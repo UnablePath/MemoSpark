@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ const OnboardingPage = () => {
   });
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+  const [count, setCount] = useState(0);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -74,6 +75,23 @@ const OnboardingPage = () => {
     if (!api) return;
     setCurrent(api.selectedScrollSnap());
   };
+
+  useEffect(() => {
+    if (!api) {
+      return;
+    }
+
+    setCount(api.scrollSnapList().length);
+    setCurrent(api.selectedScrollSnap());
+
+    api.on("select", onSelect);
+    api.on("reInit", onSelect);
+
+    return () => {
+      api.off("select", onSelect);
+      api.off("reInit", onSelect);
+    };
+  }, [api]);
 
   const handleNextSlide = () => {
     api?.scrollNext();
@@ -216,7 +234,7 @@ const OnboardingPage = () => {
                 Skip
               </Button>
             )}
-            {current < tourSlides.length - 1 ? (
+            {current < count - 1 ? (
               <Button onClick={handleNextSlide}>
                 Next <FaArrowRight className="ml-2" />
               </Button>
