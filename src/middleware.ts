@@ -1,49 +1,53 @@
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 
-// This middleware handles authentication and redirects
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
+export async function middleware(request: NextRequest) {
+  const response = NextResponse.next();
+  const supabase = createMiddlewareClient({ req: request, res: response });
 
-  // Get session from Supabase auth
-  const { data: { session } } = await supabase.auth.getSession();
+  // Refresh the session if it exists
+  await supabase.auth.getSession();
 
-  // Define routes that require authentication
-  const protectedRoutes = ['/home', '/settings'];
-  const authRoutes = ['/login', '/signup', '/onboarding'];
+  // Define paths that require authentication
+  const protectedPaths = ['/home', '/settings'];
+  const authPaths = ['/login', '/signup', '/onboarding'];
 
-  // Get the pathname from the request
-  const { pathname } = req.nextUrl;
+  const path = request.nextUrl.pathname;
+  const isProtectedPath = protectedPaths.some(prefix => path.startsWith(prefix));
+  const isAuthPath = authPaths.some(prefix => path.startsWith(prefix));
 
-  // Check if it's a protected route and the user is not authenticated
-  if (protectedRoutes.some(route => pathname.startsWith(route)) && !session) {
-    const redirectUrl = new URL('/login', req.url);
-    redirectUrl.searchParams.set('redirect', pathname);
+  // Get the authentication session
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  // If the path requires authentication and the user isn't authenticated,
+  // redirect to the login page
+  if (isProtectedPath && !session) {
+    const redirectUrl = new URL('/login', request.url);
+    redirectUrl.searchParams.set('from', path);
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Check if it's an auth route and the user is already authenticated
-  if (authRoutes.some(route => pathname.startsWith(route)) && session) {
-    return NextResponse.redirect(new URL('/home', req.url));
+  // If the user is already authenticated and trying to access auth pages,
+  // redirect them to the home page
+  if (isAuthPath && session) {
+    return NextResponse.redirect(new URL('/home', request.url));
   }
 
-  // If we get here, all checks passed and we can continue
-  return res;
+  return response;
 }
 
-// Define routes where the middleware should run
+// Define which paths this middleware should run on
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
+     * Match all request paths except for:
+     * - API routes (/api/*)
+     * - Static files (e.g. /favicon.ico, /images/*)
+     * - Next.js internals (/_next/*)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.svg).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|images|.*\\.svg).*)',
   ],
 };

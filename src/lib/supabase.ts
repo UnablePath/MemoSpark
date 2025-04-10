@@ -1,3 +1,5 @@
+'use client';
+
 import { createClient } from '@supabase/supabase-js';
 
 // These environment variables are set in the .env.local file
@@ -5,7 +7,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // Create a Supabase client for browser usage
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = typeof window !== 'undefined'
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 // Type definitions for database schema
 export type Tables = {

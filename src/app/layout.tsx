@@ -1,8 +1,8 @@
 import "@/app/globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { Toaster } from "@/components/ui/sonner";
 import { ClientBody } from "./ClientBody";
+import { AuthProvider } from "@/lib/auth-context";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,10 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ClientBody>
-          {children}
-          <Toaster position="top-center" />
-        </ClientBody>
+        <AuthProvider>
+          <ClientBody>
+            {children}
+          </ClientBody>
+        </AuthProvider>
       </body>
     </html>
   );
