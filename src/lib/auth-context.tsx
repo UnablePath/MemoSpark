@@ -112,19 +112,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (!profile) {
               console.warn('Profile not found for user:', currentUser.id, 'Attempting to create one.');
               try {
+                // Simplified insert: Only include essential fields
+                console.log(`Attempting simplified insert for user: ${currentUser.id}`);
                 const { error: insertError } = await supabase
                   .from('users')
                   .insert({
                     id: currentUser.id,
-                    email: currentUser.email, // Use email from auth user
-                    // Attempt to get name from metadata (useful for OAuth)
-                    full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || 'New User',
-                    // Set default values for other fields
-                    year_of_study: 'Not specified',
-                    subjects: [],
-                    interests: [],
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
+                    email: currentUser.email, 
+                    // Comment out other fields for debugging
+                    // full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || 'New User',
+                    // year_of_study: 'Not specified',
+                    // subjects: [],
+                    // interests: [],
+                    // created_at: new Date().toISOString(), // Rely on DB default if possible
+                    // updated_at: new Date().toISOString(), // Rely on DB default if possible
                   });
 
                 if (insertError) {
