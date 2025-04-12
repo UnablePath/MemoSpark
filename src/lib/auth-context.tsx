@@ -132,10 +132,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   console.error('Error auto-creating user profile:', insertError);
                   setUserProfile(null); // Ensure profile state is null if creation fails
                 } else {
-                  console.log('Auto-created profile successfully for user:', currentUser.id);
-                  // Re-fetch the profile after successful creation
-                  profile = await fetchUserProfile(currentUser.id);
-                  setUserProfile(profile);
+                  console.log('Auto-created profile INSERT successful for user:', currentUser.id);
+                  // Attempt to re-fetch the profile immediately after successful creation
+                  console.log('Re-fetching profile immediately after insert...');
+                  const newlyCreatedProfile = await fetchUserProfile(currentUser.id);
+                  if (newlyCreatedProfile) {
+                      console.log('Successfully re-fetched profile immediately after creation.');
+                      profile = newlyCreatedProfile; // Assign to the outer 'profile' variable
+                      setUserProfile(profile);
+                  } else {
+                      console.error('FAILED to re-fetch profile immediately after successful insert. Possible delay or read issue.');
+                      // Set profile to null for now, maybe it will appear later?
+                      setUserProfile(null); 
+                  }
                 }
               } catch (creationError) {
                   console.error('Exception during profile auto-creation:', creationError);
