@@ -56,18 +56,21 @@ export function LoginForm() {
 
       // Redirect the user after successful login
       console.log('Login successful, redirecting to:', from);
-      
-      // Use window.location.href as fallback if router push doesn't work
-      try {
-        router.push(from);
-      } catch (err) {
-        console.error('Router push failed, using fallback navigation', err);
-        window.location.href = from;
-      }
-      
       toast.success('Logged in successfully');
+
+      // Force a full page reload to ensure middleware picks up the session
+      window.location.href = from;
+
+      // Keep router.push commented out or remove if window.location.href works reliably
+      // try {
+      //   router.push(from);
+      // } catch (err) {
+      //   console.error('Router push failed, using fallback navigation', err);
+      //   window.location.href = from;
+      // }
     } catch (error) {
-      toast.error('Something went wrong', {
+      console.error("Login onSubmit error:", error);
+      toast.error('Something went wrong during login', {
         description: 'Please try again later',
       });
     } finally {

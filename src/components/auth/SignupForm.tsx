@@ -66,25 +66,18 @@ export function SignupForm() {
           description: 'We sent you a confirmation email. Please confirm your account before logging in.',
         });
         
-        try {
-          router.push('/login');
-        } catch (err) {
-          console.error('Router push failed, using fallback navigation', err);
-          window.location.href = '/login';
-        }
+        // Redirect to login (full page reload)
+        window.location.href = '/login';
       } else {
         // If email confirmation is not required, proceed to dashboard
         toast.success('Account created successfully');
         
-        try {
-          router.push('/dashboard');
-        } catch (err) {
-          console.error('Router push failed, using fallback navigation', err);
-          window.location.href = '/dashboard';
-        }
+        // Redirect to dashboard (full page reload)
+        window.location.href = '/dashboard';
       }
     } catch (error) {
-      toast.error('Something went wrong', {
+      console.error("Signup onSubmit error:", error);
+      toast.error('Something went wrong during signup', {
         description: 'Please try again later',
       });
     } finally {
