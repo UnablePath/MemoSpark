@@ -112,20 +112,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (!profile) {
               console.warn('Profile not found for user:', currentUser.id, 'Attempting to create one.');
               try {
-                // Simplified insert: Only include essential fields
-                console.log(`Attempting simplified insert for user: ${currentUser.id}`);
+                // Re-add all fields for insert
+                console.log(`Attempting full profile insert for user: ${currentUser.id}`);
                 const { error: insertError } = await supabase
                   .from('users')
                   .insert({
                     id: currentUser.id,
                     email: currentUser.email, 
-                    // Comment out other fields for debugging
-                    // full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || 'New User',
-                    // year_of_study: 'Not specified',
-                    // subjects: [],
-                    // interests: [],
-                    // created_at: new Date().toISOString(), // Rely on DB default if possible
-                    // updated_at: new Date().toISOString(), // Rely on DB default if possible
+                    // Restore other fields 
+                    full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || 'New User', // Get name from OAuth if possible
+                    year_of_study: 'Not specified', // Default value
+                    subjects: [], // Default value
+                    interests: [], // Default value
+                    created_at: new Date().toISOString(), // Set timestamp
+                    updated_at: new Date().toISOString(), // Set timestamp
                   });
 
                 if (insertError) {
@@ -199,11 +199,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log('Supabase auth.signUp response:', { user: data.user ? 'User object present' : 'No user', error });
 
-      // If signup is successful and email confirmation is not required
-      // or if we're in development mode and want to auto-create the user profile
+      // Profile creation is now handled by onAuthStateChange listener
+      // Remove the profile insertion logic from here
+      /* 
       if (data.user && !error) {
         console.log('Creating user profile in users table for ID:', data.user.id);
-        // Create user profile in the users table
         const { error: profileError } = await supabase
           .from('users')
           .insert({
@@ -225,6 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         console.log('User object not available or error occurred - profile not created yet');
       }
+      */
 
       return { error, user: data.user };
     } catch (error) {
