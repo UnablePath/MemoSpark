@@ -69,7 +69,7 @@ export function SignupForm() {
       } else {
         // If email confirmation is not required, proceed to onboarding
         toast.success('Account created successfully');
-        router.push('/onboarding');
+        router.push('/dashboard');
       }
     } catch (error) {
       toast.error('Something went wrong', {

@@ -25,7 +25,7 @@ export function LoginForm() {
   const { signIn, signInWithGoogle } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const from = searchParams.get('from') || '/home';
+  const from = searchParams.get('from') || '/dashboard';
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
