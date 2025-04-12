@@ -106,7 +106,10 @@ export default function Dashboard() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => router.push('/settings')}
+          onClick={() => {
+            // Use window.location.href as a backup if router.push isn't working
+            window.location.href = '/settings';
+          }}
           className="rounded-full"
         >
           <FaCog className="h-5 w-5" />
