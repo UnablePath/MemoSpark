@@ -1,3 +1,6 @@
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 import { SignupForm } from '@/components/auth/SignupForm';
 import { Icons } from '@/components/ui/icons';
 import Link from 'next/link';

@@ -20,7 +20,8 @@ type AuthContextType = {
   refreshProfile: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthContextType>({
+// Default implementation with non-functional placeholders
+const defaultAuthContext: AuthContextType = {
   session: null,
   user: null,
   userProfile: null,
@@ -30,7 +31,9 @@ const AuthContext = createContext<AuthContextType>({
   signInWithGoogle: async () => {},
   signOut: async () => {},
   refreshProfile: async () => {},
-});
+};
+
+const AuthContext = createContext<AuthContextType>(defaultAuthContext);
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -39,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   // Fetch user profile data from the database
   const fetchUserProfile = useCallback(async (userId: string) => {
@@ -69,46 +73,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Only run this effect on the client
   useEffect(() => {
-    setLoading(true);
+    // Avoid running this during SSR/prerender
+    if (!initialized) {
+      setInitialized(true);
+      setLoading(true);
 
-    // Get the current session
-    const initializeAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        const profile = await fetchUserProfile(session.user.id);
-        setUserProfile(profile);
-      }
-
-      setLoading(false);
-    };
-
-    initializeAuth();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      // Get the current session
+      const initializeAuth = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
           const profile = await fetchUserProfile(session.user.id);
           setUserProfile(profile);
-        } else {
-          setUserProfile(null);
         }
 
         setLoading(false);
-      }
-    );
+      };
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [fetchUserProfile]);
+      initializeAuth();
+
+      // Listen for auth changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (_event, session) => {
+          setSession(session);
+          setUser(session?.user ?? null);
+
+          if (session?.user) {
+            const profile = await fetchUserProfile(session.user.id);
+            setUserProfile(profile);
+          } else {
+            setUserProfile(null);
+          }
+
+          setLoading(false);
+        }
+      );
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [fetchUserProfile, initialized]);
 
   // Sign in with email and password
   const signIn = async (email: string, password: string) => {
