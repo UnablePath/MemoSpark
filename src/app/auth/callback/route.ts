@@ -9,13 +9,28 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code');
 
   if (code) {
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    try {
+      const cookieStore = cookies();
+      const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
-    // Exchange the code for a session
-    await supabase.auth.exchangeCodeForSession(code);
+      // Exchange the code for a session
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      
+      if (error) {
+        console.error('Error exchanging code for session:', error);
+        // Redirect to login with error
+        return NextResponse.redirect(new URL('/login?error=auth_callback_failed', request.url));
+      }
+      
+      // Successful authentication, redirect to dashboard
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    } catch (err) {
+      console.error('Exception during auth callback:', err);
+      // Redirect to login with error
+      return NextResponse.redirect(new URL('/login?error=auth_callback_exception', request.url));
+    }
   }
 
-  // URL to redirect to after sign in process completes
+  // If no code parameter, redirect to home page
   return NextResponse.redirect(new URL('/dashboard', request.url));
 }

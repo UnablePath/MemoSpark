@@ -185,12 +185,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Sign in with Google OAuth
   const signInWithGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    try {
+      console.log('Starting Google sign-in with redirect to:', `${window.location.origin}/auth/callback`);
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          // Add scopes for better profile access
+          scopes: 'email profile',
+        },
+      });
+      
+      if (error) {
+        console.error('Error initiating Google sign-in:', error);
+      }
+    } catch (error) {
+      console.error('Exception during Google sign-in:', error);
+    }
   };
 
   // Sign out

@@ -65,11 +65,23 @@ export function SignupForm() {
         toast.success('Check your email', {
           description: 'We sent you a confirmation email. Please confirm your account before logging in.',
         });
-        router.push('/login');
+        
+        try {
+          router.push('/login');
+        } catch (err) {
+          console.error('Router push failed, using fallback navigation', err);
+          window.location.href = '/login';
+        }
       } else {
-        // If email confirmation is not required, proceed to onboarding
+        // If email confirmation is not required, proceed to dashboard
         toast.success('Account created successfully');
-        router.push('/dashboard');
+        
+        try {
+          router.push('/dashboard');
+        } catch (err) {
+          console.error('Router push failed, using fallback navigation', err);
+          window.location.href = '/dashboard';
+        }
       }
     } catch (error) {
       toast.error('Something went wrong', {
@@ -189,10 +201,19 @@ export function SignupForm() {
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{' '}
-        <Button variant="link" className="p-0 h-auto" asChild>
-          <a href="/login" className="underline">
-            Sign in
-          </a>
+        <Button 
+          variant="link" 
+          className="p-0 h-auto" 
+          onClick={() => {
+            try {
+              router.push('/login');
+            } catch (err) {
+              console.error('Router navigation failed, using fallback', err);
+              window.location.href = '/login';
+            }
+          }}
+        >
+          <span className="underline">Sign in</span>
         </Button>
       </p>
     </div>

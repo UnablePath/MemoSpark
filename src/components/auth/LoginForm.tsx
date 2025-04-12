@@ -55,7 +55,16 @@ export function LoginForm() {
       }
 
       // Redirect the user after successful login
-      router.push(from);
+      console.log('Login successful, redirecting to:', from);
+      
+      // Use window.location.href as fallback if router push doesn't work
+      try {
+        router.push(from);
+      } catch (err) {
+        console.error('Router push failed, using fallback navigation', err);
+        window.location.href = from;
+      }
+      
       toast.success('Logged in successfully');
     } catch (error) {
       toast.error('Something went wrong', {
@@ -70,9 +79,12 @@ export function LoginForm() {
     setIsGoogleLoading(true);
 
     try {
+      console.log('Initiating Google sign-in from login form');
       await signInWithGoogle();
-      // Note: Redirect happens automatically after OAuth
+      // A note that this redirect happens via Supabase's OAuth flow
+      // You'll be redirected to the Google authentication page, then back to your auth callback
     } catch (error) {
+      console.error('Google sign-in exception:', error);
       toast.error('Google sign-in failed', {
         description: 'Please try again later',
       });
@@ -153,10 +165,19 @@ export function LoginForm() {
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{' '}
-        <Button variant="link" className="p-0 h-auto" asChild>
-          <a href="/signup" className="underline">
-            Sign up
-          </a>
+        <Button 
+          variant="link" 
+          className="p-0 h-auto" 
+          onClick={() => {
+            try {
+              router.push('/signup');
+            } catch (err) {
+              console.error('Router navigation failed, using fallback', err);
+              window.location.href = '/signup';
+            }
+          }}
+        >
+          <span className="underline">Sign up</span>
         </Button>
       </p>
     </div>

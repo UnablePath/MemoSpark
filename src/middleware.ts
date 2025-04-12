@@ -33,7 +33,7 @@ export async function middleware(request: NextRequest) {
   // If the user is already authenticated and trying to access auth pages,
   // redirect them to the home page
   if (isAuthPath && session) {
-    return NextResponse.redirect(new URL('/home', request.url));
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   return response;
