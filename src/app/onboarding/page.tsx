@@ -1,3 +1,6 @@
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -9,11 +12,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel";
 import { motion } from "framer-motion";
 import { FaGoogle, FaArrowRight, FaArrowLeft } from "react-icons/fa";
+import { useAuth } from "@/lib/auth-context";
+import { toast } from "sonner";
 
 // Onboarding steps component
 const OnboardingPage = () => {
   const router = useRouter();
+  const { signUp, signInWithGoogle } = useAuth();
   const [currentStep, setCurrentStep] = useState<"signup" | "tour">("signup");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -31,15 +39,63 @@ const OnboardingPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real application, this would save the user data
-    setCurrentStep("tour");
+    setIsLoading(true);
+    
+    try {
+      // Convert subjects and interests to arrays
+      const subjectsArray = formData.subjects.split(',').map(s => s.trim());
+      const interestsArray = formData.interests.split(',').map(i => i.trim());
+      
+      // Call signUp function from useAuth
+      const { error, user } = await signUp(formData.email, formData.password, {
+        full_name: formData.name,
+        year_of_study: formData.year,
+        subjects: subjectsArray,
+        interests: interestsArray,
+      });
+      
+      if (error) {
+        toast.error('Signup failed', {
+          description: error.message,
+        });
+        return;
+      }
+      
+      // Check if email confirmation is required
+      if (!user) {
+        toast.success('Check your email', {
+          description: 'We sent you a confirmation email. Please confirm your account.',
+        });
+        router.push('/login');
+      } else {
+        // If email confirmation is not required, proceed to tour
+        toast.success('Account created successfully');
+        setCurrentStep("tour");
+      }
+    } catch (error) {
+      toast.error('Something went wrong', {
+        description: 'Please try again later',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleGoogleSignIn = () => {
-    // In a real application, this would initiate Google Auth
-    setCurrentStep("tour");
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    
+    try {
+      // Call Google sign-in from useAuth
+      await signInWithGoogle();
+      // The redirect will happen automatically with Supabase OAuth
+    } catch (error) {
+      toast.error('Google sign-in failed', {
+        description: 'Please try again later',
+      });
+      setIsGoogleLoading(false);
+    }
   };
 
   const handleSkipTour = () => {
@@ -126,6 +182,7 @@ const OnboardingPage = () => {
                       value={formData.name}
                       onChange={handleInputChange}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -136,6 +193,7 @@ const OnboardingPage = () => {
                       value={formData.email}
                       onChange={handleInputChange}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -146,6 +204,7 @@ const OnboardingPage = () => {
                       value={formData.password}
                       onChange={handleInputChange}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -155,6 +214,7 @@ const OnboardingPage = () => {
                       value={formData.year}
                       onChange={handleInputChange}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -164,6 +224,7 @@ const OnboardingPage = () => {
                       value={formData.subjects}
                       onChange={handleInputChange}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                   <div className="space-y-2">
@@ -172,10 +233,15 @@ const OnboardingPage = () => {
                       name="interests"
                       value={formData.interests}
                       onChange={handleInputChange}
+                      disabled={isLoading}
                     />
                   </div>
-                  <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-                    Continue
+                  <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isLoading}>
+                    {isLoading ? (
+                      <>Loading...</>
+                    ) : (
+                      "Continue"
+                    )}
                   </Button>
                 </form>
               </TabsContent>
@@ -187,8 +253,15 @@ const OnboardingPage = () => {
                   <Button
                     onClick={handleGoogleSignIn}
                     className="w-full bg-white text-black border border-gray-300 hover:bg-gray-100"
+                    disabled={isGoogleLoading}
                   >
-                    <FaGoogle className="mr-2" /> Sign in with Google
+                    {isGoogleLoading ? (
+                      <>Loading...</>
+                    ) : (
+                      <>
+                        <FaGoogle className="mr-2" /> Sign in with Google
+                      </>
+                    )}
                   </Button>
                 </div>
               </TabsContent>

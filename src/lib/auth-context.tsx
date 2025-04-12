@@ -165,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (profileError) {
           console.error('Error creating user profile:', profileError);
-          return { error: profileError as AuthError, user: null };
+          return { error: profileError as unknown as AuthError, user: null };
         }
       }
 

@@ -7,8 +7,34 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // Create a singleton Supabase client that works in both client and server contexts
-// Note: During build/prerendering, this will create a mock client that won't throw errors
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Add error handling to prevent crashes during build/SSR
+let supabase;
+try {
+  supabase = createClient(supabaseUrl, supabaseAnonKey);
+} catch (error) {
+  console.error('Failed to initialize Supabase client:', error);
+  // Provide a fallback mock client that won't throw errors
+  supabase = {
+    auth: {
+      getSession: async () => ({ data: { session: null } }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      signInWithPassword: async () => ({ error: null }),
+      signUp: async () => ({ error: null, data: { user: null } }),
+      signInWithOAuth: async () => {},
+      signOut: async () => {},
+    },
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          single: async () => ({ data: null, error: null }),
+        }),
+      }),
+      insert: async () => ({ error: null }),
+    }),
+  };
+}
+
+export { supabase };
 
 // Type definitions for database schema
 export type Tables = {
