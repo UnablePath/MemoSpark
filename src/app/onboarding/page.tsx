@@ -94,11 +94,13 @@ const OnboardingPage = () => {
   }, [api]);
 
   const handleNextSlide = () => {
-    api?.scrollNext();
+    if (!api || current >= count - 1) return;
+    api.scrollNext();
   };
 
   const handlePrevSlide = () => {
-    api?.scrollPrev();
+    if (!api || current <= 0) return;
+    api.scrollPrev();
   };
 
   return (
