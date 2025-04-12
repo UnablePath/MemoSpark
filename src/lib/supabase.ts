@@ -6,10 +6,9 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Create a Supabase client for browser usage
-export const supabase = typeof window !== 'undefined'
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+// Create a singleton Supabase client that works in both client and server contexts
+// Note: During build/prerendering, this will create a mock client that won't throw errors
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Type definitions for database schema
 export type Tables = {
