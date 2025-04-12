@@ -99,13 +99,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Listen for auth changes
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         async (_event: string, session: Session | null) => {
+          console.log('Auth state changed:', { event: _event, hasSession: !!session });
           setSession(session);
-          setUser(session?.user ?? null);
+          const currentUser = session?.user ?? null;
+          setUser(currentUser);
 
-          if (session?.user) {
-            const profile = await fetchUserProfile(session.user.id);
-            setUserProfile(profile);
+          if (currentUser) {
+            console.log('Fetching profile for user ID:', currentUser.id);
+            let profile = await fetchUserProfile(currentUser.id);
+            
+            // If profile doesn't exist, attempt to create it
+            if (!profile) {
+              console.warn('Profile not found for user:', currentUser.id, 'Attempting to create one.');
+              try {
+                const { error: insertError } = await supabase
+                  .from('users')
+                  .insert({
+                    id: currentUser.id,
+                    email: currentUser.email, // Use email from auth user
+                    // Attempt to get name from metadata (useful for OAuth)
+                    full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || 'New User',
+                    // Set default values for other fields
+                    year_of_study: 'Not specified',
+                    subjects: [],
+                    interests: [],
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                  });
+
+                if (insertError) {
+                  console.error('Error auto-creating user profile:', insertError);
+                  setUserProfile(null); // Ensure profile state is null if creation fails
+                } else {
+                  console.log('Auto-created profile successfully for user:', currentUser.id);
+                  // Re-fetch the profile after successful creation
+                  profile = await fetchUserProfile(currentUser.id);
+                  setUserProfile(profile);
+                }
+              } catch (creationError) {
+                  console.error('Exception during profile auto-creation:', creationError);
+                  setUserProfile(null);
+              }
+            } else {
+              console.log('Profile found for user:', currentUser.id);
+              setUserProfile(profile);
+            }
           } else {
+            console.log('No user session, clearing profile.');
             setUserProfile(null);
           }
 
