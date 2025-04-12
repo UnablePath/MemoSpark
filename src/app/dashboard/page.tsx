@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaUserFriends, FaCalendarAlt, FaBell, FaCog } from "react-icons/fa";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/hooks/use-router";
 import { Button } from "@/components/ui/button";
 import StudentConnectionTab from "@/components/home/StudentConnectionTab";
 import TaskEventTab from "@/components/tasks/TaskEventTab";

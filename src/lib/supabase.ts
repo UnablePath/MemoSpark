@@ -1,27 +1,36 @@
 'use client';
 
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from './database.types';
 
 // These environment variables are set in the .env.local file
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // Create a singleton Supabase client that works in both client and server contexts
-// Add error handling to prevent crashes during build/SSR
-let supabase;
+let supabase: any;
 try {
-  supabase = createClient(supabaseUrl, supabaseAnonKey);
+  supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 } catch (error) {
   console.error('Failed to initialize Supabase client:', error);
-  // Provide a fallback mock client that won't throw errors
+  // Provide a fallback mock client with minimal functionality
+  // Using 'any' type to bypass TypeScript errors
   supabase = {
     auth: {
-      getSession: async () => ({ data: { session: null } }),
-      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-      signInWithPassword: async () => ({ error: null }),
-      signUp: async () => ({ error: null, data: { user: null } }),
-      signInWithOAuth: async () => {},
-      signOut: async () => {},
+      getSession: async () => ({ data: { session: null }, error: null }),
+      onAuthStateChange: () => ({ 
+        data: { 
+          subscription: { 
+            unsubscribe: () => {}, 
+            id: 'mock-id',
+            callback: () => {}
+          } 
+        } 
+      }),
+      signInWithPassword: async () => ({ error: null, data: { user: null, session: null } }),
+      signUp: async () => ({ error: null, data: { user: null, session: null } }),
+      signInWithOAuth: async () => ({ error: null }),
+      signOut: async () => ({ error: null }),
     },
     from: () => ({
       select: () => ({

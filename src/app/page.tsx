@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/hooks/use-router";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import Logo from "@/components/ui/logo";
