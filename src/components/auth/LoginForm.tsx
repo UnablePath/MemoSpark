@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Icons } from '@/components/ui/icons';
+import { Spinner, Google as GoogleIcon } from '@/components/ui/icons';
 import { toast } from 'sonner';
 
 // Form validation schema
@@ -124,7 +124,7 @@ export function LoginForm() {
           </div>
           <Button disabled={isLoading} type="submit">
             {isLoading && (
-              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+              <Spinner className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
             )}
             Sign In
           </Button>
@@ -145,9 +145,9 @@ export function LoginForm() {
         onClick={handleGoogleSignIn}
       >
         {isGoogleLoading ? (
-          <Icons.spinner className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+          <Spinner className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
         ) : (
-          <Icons.google className="mr-2 h-4 w-4" aria-hidden="true" />
+          <GoogleIcon className="mr-2 h-4 w-4" aria-hidden="true" />
         )}
         Google
       </Button>
