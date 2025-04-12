@@ -63,17 +63,37 @@ export default function SplashScreen() {
           Your gamified study companion for better engagement and time management
         </motion.p>
 
-        {/* Get Started Button (appears after the animation is complete) */}
+        {/* Action Buttons */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: animationComplete ? 1 : 0, y: animationComplete ? 0 : 20 }}
           transition={{ duration: 0.5 }}
+          className="flex flex-col sm:flex-row gap-4 items-center"
         >
+          {/* Log In Button */}
+          <Button
+            onClick={() => router.push("/auth/login")}
+            variant="outline"
+            className="bg-transparent text-white border-white hover:bg-white hover:text-primary font-semibold px-8 py-6 text-lg rounded-full"
+          >
+            Log In
+          </Button>
+
+          {/* Get Started Button */}
           <Button
             onClick={handleGetStarted}
             className="bg-white text-primary hover:bg-secondary hover:text-foreground font-semibold px-8 py-6 text-lg rounded-full"
           >
             Get Started
+          </Button>
+
+          {/* Sign Up Button */}
+          <Button
+            onClick={() => router.push("/auth/signup")}
+            variant="outline"
+            className="bg-transparent text-white border-white hover:bg-white hover:text-primary font-semibold px-8 py-6 text-lg rounded-full"
+          >
+            Sign Up
           </Button>
         </motion.div>
       </div>
