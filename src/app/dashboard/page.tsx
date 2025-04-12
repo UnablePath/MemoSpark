@@ -1,7 +1,7 @@
+"use client";
+
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
-
-"use client";
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";

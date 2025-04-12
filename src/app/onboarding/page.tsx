@@ -1,7 +1,7 @@
+"use client";
+
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
-
-"use client";
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "@/lib/hooks/use-router";
