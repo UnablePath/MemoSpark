@@ -137,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Sign up with email and password
   const signUp = async (email: string, password: string, userData: Partial<UserProfile>) => {
     try {
+      console.log('Starting signup process with email:', email, 'and userData:', userData);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -146,9 +147,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       });
 
+      console.log('Supabase auth.signUp response:', { user: data.user ? 'User object present' : 'No user', error });
+
       // If signup is successful and email confirmation is not required
       // or if we're in development mode and want to auto-create the user profile
       if (data.user && !error) {
+        console.log('Creating user profile in users table for ID:', data.user.id);
         // Create user profile in the users table
         const { error: profileError } = await supabase
           .from('users')
@@ -167,6 +171,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.error('Error creating user profile:', profileError);
           return { error: profileError as unknown as AuthError, user: null };
         }
+        console.log('User profile created successfully');
+      } else {
+        console.log('User object not available or error occurred - profile not created yet');
       }
 
       return { error, user: data.user };

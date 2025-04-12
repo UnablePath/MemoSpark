@@ -10,7 +10,17 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 // Create a singleton Supabase client that works in both client and server contexts
 let supabase: any;
 try {
+  // Check if environment variables are properly set
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Missing Supabase credentials:', {
+      urlPresent: !!supabaseUrl,
+      keyPresent: !!supabaseAnonKey
+    });
+    throw new Error('Supabase credentials are missing');
+  }
+  
   supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+  console.log('Supabase client initialized successfully');
 } catch (error) {
   console.error('Failed to initialize Supabase client:', error);
   // Provide a fallback mock client with minimal functionality
