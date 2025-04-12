@@ -115,7 +115,7 @@ export default function LandingPage() {
           >
             {/* Log In Button */}
             <Button
-              onClick={() => router.push("/auth/login")}
+              onClick={() => router.push("/login")}
               variant="outline"
               className="bg-transparent text-white border-white hover:bg-white hover:text-primary font-semibold px-8 py-3 text-lg rounded-full transition-all duration-300 ease-in-out transform hover:scale-105"
             >
@@ -132,7 +132,7 @@ export default function LandingPage() {
 
             {/* Sign Up Button */}
             <Button
-              onClick={() => router.push("/auth/signup")}
+              onClick={() => router.push("/signup")}
               variant="outline"
               className="bg-transparent text-white border-white hover:bg-white hover:text-primary font-semibold px-8 py-3 text-lg rounded-full transition-all duration-300 ease-in-out transform hover:scale-105"
             >
@@ -167,7 +167,7 @@ export default function LandingPage() {
         </div>
          <div className="text-center mt-16">
              <Button
-                onClick={() => router.push('/auth/signup')}
+                onClick={() => router.push('/signup')}
                 size="lg"
                 className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-10 py-6 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105"
             >
