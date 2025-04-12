@@ -34,8 +34,8 @@
 ## Phase 2: Core Functionality Enhancement (Weeks 3-4)
 
 ### Core Features Prioritization
-- [ ] Supabase integration for authentication
-- [ ] Database setup with necessary tables
+- [x] Supabase integration for authentication
+- [x] Database setup with necessary tables
 - [ ] User profile management
 - [ ] Task management with CRUD operations
 - [ ] Enhanced calendar functionality
