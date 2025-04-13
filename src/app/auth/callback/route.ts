@@ -1,36 +1,45 @@
-export const dynamic = 'force-dynamic';
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import { type NextRequest, NextResponse } from 'next/server';
+export async function middleware(request: NextRequest) {
+  const response = NextResponse.next();
+  const supabase = createMiddlewareClient({ req: request, res: response });
 
-export async function GET(request: NextRequest) {
-  const requestUrl = new URL(request.url);
-  const code = requestUrl.searchParams.get('code');
+  // Refresh session if it exists
+  const { data: { session } } = await supabase.auth.getSession();
 
-  if (code) {
-    try {
-      const cookieStore = cookies();
-      const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  // Protected routes
+  const protectedPaths = ['/dashboard', '/settings'];
+  const authPaths = ['/login', '/signup'];
+  const path = request.nextUrl.pathname;
 
-      // Exchange the code for a session
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
-      
-      if (error) {
-        console.error('Error exchanging code for session:', error);
-        // Redirect to login with error
-        return NextResponse.redirect(new URL('/login?error=auth_callback_failed', request.url));
-      }
-      
-      // Successful authentication, redirect to dashboard
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    } catch (err) {
-      console.error('Exception during auth callback:', err);
-      // Redirect to login with error
-      return NextResponse.redirect(new URL('/login?error=auth_callback_exception', request.url));
-    }
+  const isProtectedPath = protectedPaths.some(prefix => path.startsWith(prefix));
+  const isAuthPath = authPaths.some(prefix => path.startsWith(prefix));
+
+  // Redirect if accessing protected routes without session
+  if (isProtectedPath && !session) {
+    const redirectUrl = new URL('/login', request.url);
+    redirectUrl.searchParams.set('from', path);
+    return NextResponse.redirect(redirectUrl);
   }
 
-  // If no code parameter, redirect to home page
-  return NextResponse.redirect(new URL('/dashboard', request.url));
+  // Redirect if accessing auth routes with session
+  if (isAuthPath && session) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  return response;
 }
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for:
+     * - API routes (/api/*)
+     * - Static files (/_next/*, /images/*)
+     * - Favicon, robots.txt, etc.
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|robots.txt).*)',
+  ],
+};

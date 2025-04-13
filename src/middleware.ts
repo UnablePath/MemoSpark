@@ -6,32 +6,25 @@ export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
   const supabase = createMiddlewareClient({ req: request, res: response });
 
-  // Refresh the session if it exists
-  await supabase.auth.getSession();
+  // Refresh session if it exists
+  const { data: { session } } = await supabase.auth.getSession();
 
-  // Define paths that require authentication
-  const protectedPaths = ['/home', '/dashboard', '/settings'];
+  // Protected routes
+  const protectedPaths = ['/dashboard', '/settings'];
   const authPaths = ['/login', '/signup'];
-
   const path = request.nextUrl.pathname;
+
   const isProtectedPath = protectedPaths.some(prefix => path.startsWith(prefix));
   const isAuthPath = authPaths.some(prefix => path.startsWith(prefix));
 
-  // Get the authentication session
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  // If the path requires authentication and the user isn't authenticated,
-  // redirect to the login page
+  // Redirect if accessing protected routes without session
   if (isProtectedPath && !session) {
     const redirectUrl = new URL('/login', request.url);
     redirectUrl.searchParams.set('from', path);
     return NextResponse.redirect(redirectUrl);
   }
 
-  // If the user is already authenticated and trying to access auth pages,
-  // redirect them to the home page
+  // Redirect if accessing auth routes with session
   if (isAuthPath && session) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
@@ -39,15 +32,14 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-// Define which paths this middleware should run on
 export const config = {
   matcher: [
     /*
      * Match all request paths except for:
      * - API routes (/api/*)
-     * - Static files (e.g. /favicon.ico, /images/*)
-     * - Next.js internals (/_next/*)
+     * - Static files (/_next/*, /images/*)
+     * - Favicon, robots.txt, etc.
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|images|.*\\.svg).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|robots.txt).*)',
   ],
 };
