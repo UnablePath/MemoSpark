@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "@/lib/hooks/use-router";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import Logo from "@/components/ui/logo";
@@ -113,15 +113,6 @@ export default function LandingPage() {
             transition={{ duration: 0.5 }}
             className="flex flex-col sm:flex-row gap-4 items-center mt-6"
           >
-            {/* Log In Button */}
-            <Button
-              onClick={() => router.push("/login")}
-              variant="outline"
-              className="bg-transparent text-white border-white hover:bg-white hover:text-primary font-semibold px-8 py-3 text-lg rounded-full transition-all duration-300 ease-in-out transform hover:scale-105"
-            >
-              Log In
-            </Button>
-
             {/* Get Started Button -> Scrolls Down */}
             <Button
               onClick={handleGetStarted}
@@ -130,13 +121,13 @@ export default function LandingPage() {
               Learn More
             </Button>
 
-            {/* Sign Up Button */}
+            {/* Enter App Button */}
             <Button
-              onClick={() => router.push("/signup")}
+              onClick={() => router.push("/dashboard")}
               variant="outline"
               className="bg-transparent text-white border-white hover:bg-white hover:text-primary font-semibold px-8 py-3 text-lg rounded-full transition-all duration-300 ease-in-out transform hover:scale-105"
             >
-              Sign Up
+              Enter App
             </Button>
           </motion.div>
         </div>
@@ -167,7 +158,7 @@ export default function LandingPage() {
         </div>
          <div className="text-center mt-16">
              <Button
-                onClick={() => router.push('/signup')}
+                onClick={() => router.push('/dashboard')}
                 size="lg"
                 className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-10 py-6 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105"
             >

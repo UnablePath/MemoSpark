@@ -1,9 +1,9 @@
 import "@/app/globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { UserProvider } from "@/lib/user-context";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,17 +20,17 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <AuthProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem
-            disableTransitionOnChange
-          >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <UserProvider>
             {children}
             <Toaster />
-          </ThemeProvider>
-        </AuthProvider>
+          </UserProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -1,0 +1,79 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { useUser } from "@/lib/user-context";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { FaCog, FaUser, FaSignOutAlt } from "react-icons/fa";
+
+export const ProfileHeader = () => {
+  const { profile, isProfileLoaded } = useUser();
+  const router = useRouter();
+
+  // Get user initials for avatar
+  const getInitials = (name: string) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
+  };
+
+  // Handle navigation to settings
+  const handleNavigateToSettings = () => {
+    router.push("/settings");
+  };
+
+  // Handle navigation to profile tab
+  const handleNavigateToProfile = () => {
+    // Navigate to dashboard with profile tab active
+    router.push("/dashboard?tab=profile");
+  };
+
+  if (!isProfileLoaded) {
+    return (
+      <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="rounded-full h-10 w-10 p-0">
+          <Avatar className="h-10 w-10">
+            <AvatarFallback className="bg-primary text-primary-foreground">
+              {getInitials(profile.name || "User")}
+            </AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>
+          {profile.name ? profile.name : "Your Account"}
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleNavigateToProfile} className="cursor-pointer">
+          <FaUser className="mr-2 h-4 w-4" /> Profile
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleNavigateToSettings} className="cursor-pointer">
+          <FaCog className="mr-2 h-4 w-4" /> Settings
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="cursor-pointer">
+          <FaSignOutAlt className="mr-2 h-4 w-4" /> Sign Out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
+export default ProfileHeader;

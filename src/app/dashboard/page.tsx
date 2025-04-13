@@ -1,33 +1,48 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StudentConnectionTab from "@/components/home/StudentConnectionTab";
 import TaskEventTab from "@/components/tasks/TaskEventTab";
 import RemindersTab from "@/components/reminders/RemindersTab";
-import { FaUserFriends, FaCalendarAlt, FaBell, FaCog } from "react-icons/fa";
+import { FaUserFriends, FaCalendarAlt, FaBell, FaUser } from "react-icons/fa";
 import Logo from "@/components/ui/logo";
+import ProfileTab from "@/components/profile/ProfileTab";
+import ProfileHeader from "@/components/profile/ProfileHeader";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useUser } from "@/lib/user-context";
 
 export default function DashboardPage() {
-  const { user, loading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { profile } = useUser();
+  const [activeTab, setActiveTab] = useState("tasks");
 
+  // Handle URL tab parameter
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
+    const tabParam = searchParams.get("tab");
+    if (tabParam && ["connections", "tasks", "reminders", "profile"].includes(tabParam)) {
+      setActiveTab(tabParam);
     }
-  }, [loading, user, router]);
+  }, [searchParams]);
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  // Update URL when tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    router.push(`/dashboard?tab=${value}`, { scroll: false });
+  };
+
+  // Get user initials for avatar
+  const getInitials = (name: string) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
+  };
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -36,18 +51,15 @@ export default function DashboardPage() {
           <Logo size="sm" className="mr-2" />
           <h1 className="text-xl font-bold">StudySpark</h1>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.push('/settings')}
-          className="rounded-full"
-        >
-          <FaCog className="h-5 w-5" />
-        </Button>
+        <ProfileHeader />
       </header>
 
       <main className="flex-1 overflow-hidden">
-        <Tabs defaultValue="tasks" className="h-full flex flex-col">
+        <Tabs
+          value={activeTab}
+          onValueChange={handleTabChange}
+          className="h-full flex flex-col"
+        >
           <TabsList className="justify-around border-b px-4 py-2">
             <TabsTrigger value="connections" className="flex flex-col items-center gap-1">
               <FaUserFriends className="h-5 w-5" />
@@ -61,6 +73,10 @@ export default function DashboardPage() {
               <FaBell className="h-5 w-5" />
               <span className="text-xs">Reminders</span>
             </TabsTrigger>
+            <TabsTrigger value="profile" className="flex flex-col items-center gap-1">
+              <FaUser className="h-5 w-5" />
+              <span className="text-xs">Profile</span>
+            </TabsTrigger>
           </TabsList>
 
           <div className="flex-1 overflow-hidden">
@@ -72,6 +88,9 @@ export default function DashboardPage() {
             </TabsContent>
             <TabsContent value="reminders" className="h-full">
               <RemindersTab />
+            </TabsContent>
+            <TabsContent value="profile" className="h-full">
+              <ProfileTab />
             </TabsContent>
           </div>
         </Tabs>
