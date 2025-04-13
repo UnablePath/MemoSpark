@@ -1,6 +1,5 @@
 "use client";
 
-// Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from "react";
@@ -42,19 +41,19 @@ export default function Dashboard() {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [showWidget, setShowWidget] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [initialWidgetPosition, setInitialWidgetPosition] = useState({ x: 0, y: 0 });
 
   // Swipe threshold (minimum distance traveled to be considered swipe)
   const minSwipeDistance = 50;
 
-  // Set initial widget position and show after delay
+  // Set mounted state and initialize widget position after mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setInitialWidgetPosition({
-        x: window.innerWidth - 100,
-        y: 100
-      });
-    }
+    setMounted(true);
+    setInitialWidgetPosition({
+      x: window.innerWidth - 100,
+      y: 100
+    });
 
     const timer = setTimeout(() => {
       setShowWidget(true);
@@ -64,7 +63,7 @@ export default function Dashboard() {
   }, []);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null); // Reset on touch start
+    setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
   };
 
@@ -84,10 +83,8 @@ export default function Dashboard() {
       let newIndex: number;
 
       if (isLeftSwipe) {
-        // Moving to the right tab (left swipe)
         newIndex = Math.min(currentIndex + 1, tabs.length - 1);
       } else {
-        // Moving to the left tab (right swipe)
         newIndex = Math.max(currentIndex - 1, 0);
       }
 
@@ -95,9 +92,13 @@ export default function Dashboard() {
     }
   };
 
+  // Don't render content until mounted to prevent hydration mismatch
+  if (!mounted) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
-      {/* Header */}
       <header className="p-4 border-b flex items-center justify-between">
         <div className="flex items-center">
           <Logo size="sm" className="mr-2" />
@@ -107,7 +108,6 @@ export default function Dashboard() {
           variant="ghost"
           size="icon"
           onClick={() => {
-            // Use window.location.href as a backup if router.push isn't working
             window.location.href = '/settings';
           }}
           className="rounded-full"
@@ -116,7 +116,6 @@ export default function Dashboard() {
         </Button>
       </header>
 
-      {/* Main content area with tabs */}
       <div
         className="flex-1 relative overflow-hidden"
         onTouchStart={handleTouchStart}
@@ -138,8 +137,7 @@ export default function Dashboard() {
           </motion.div>
         </AnimatePresence>
 
-        {/* Draggable Widget */}
-        {showWidget && (
+        {showWidget && mounted && (
           <DraggableWidget
             task={{
               title: "Math Assignment Due Soon",
@@ -152,7 +150,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Bottom Navigation */}
       <div className="sticky bottom-0 w-full bg-background border-t py-2">
         <div className="flex justify-around items-center max-w-md mx-auto">
           {tabs.map((tab) => (

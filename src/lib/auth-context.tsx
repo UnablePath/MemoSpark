@@ -51,14 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from('users')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching user profile:', error);
         return null;
       }
 
-      return data as UserProfile;
+      return data as UserProfile | null;
     } catch (error) {
       console.error('Error fetching user profile:', error);
       return null;
@@ -112,43 +112,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (!profile) {
               console.warn('Profile not found for user:', currentUser.id, 'Attempting to create one.');
               try {
-                // Re-add all fields for insert
-                console.log(`Attempting full profile insert for user: ${currentUser.id}`);
+                const now = new Date().toISOString();
+                const fullName = currentUser.user_metadata?.full_name || 
+                               currentUser.user_metadata?.name || 
+                               'New User';
+
                 const { error: insertError } = await supabase
                   .from('users')
                   .insert({
                     id: currentUser.id,
-                    email: currentUser.email, 
-                    // Restore other fields 
-                    full_name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || 'New User', // Get name from OAuth if possible
-                    year_of_study: 'Not specified', // Default value
-                    subjects: [], // Default value
-                    interests: [], // Default value
-                    created_at: new Date().toISOString(), // Set timestamp
-                    updated_at: new Date().toISOString(), // Set timestamp
-                  });
+                    email: currentUser.email,
+                    full_name: fullName,
+                    year_of_study: 'Not specified',
+                    subjects: [],
+                    interests: [],
+                    created_at: now,
+                    updated_at: now,
+                  })
+                  .select()
+                  .maybeSingle();
 
                 if (insertError) {
                   console.error('Error auto-creating user profile:', insertError);
-                  setUserProfile(null); // Ensure profile state is null if creation fails
+                  setUserProfile(null);
                 } else {
-                  console.log('Auto-created profile INSERT successful for user:', currentUser.id);
-                  // Attempt to re-fetch the profile immediately after successful creation
-                  console.log('Re-fetching profile immediately after insert...');
-                  const newlyCreatedProfile = await fetchUserProfile(currentUser.id);
-                  if (newlyCreatedProfile) {
-                      console.log('Successfully re-fetched profile immediately after creation.');
-                      profile = newlyCreatedProfile; // Assign to the outer 'profile' variable
-                      setUserProfile(profile);
-                  } else {
-                      console.error('FAILED to re-fetch profile immediately after successful insert. Possible delay or read issue.');
-                      // Set profile to null for now, maybe it will appear later?
-                      setUserProfile(null); 
-                  }
+                  // Re-fetch the profile after successful creation
+                  profile = await fetchUserProfile(currentUser.id);
+                  setUserProfile(profile);
                 }
               } catch (creationError) {
-                  console.error('Exception during profile auto-creation:', creationError);
-                  setUserProfile(null);
+                console.error('Exception during profile auto-creation:', creationError);
+                setUserProfile(null);
               }
             } else {
               console.log('Profile found for user:', currentUser.id);
@@ -198,35 +192,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       console.log('Supabase auth.signUp response:', { user: data.user ? 'User object present' : 'No user', error });
-
-      // Profile creation is now handled by onAuthStateChange listener
-      // Remove the profile insertion logic from here
-      /* 
-      if (data.user && !error) {
-        console.log('Creating user profile in users table for ID:', data.user.id);
-        const { error: profileError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            email,
-            full_name: userData.full_name,
-            year_of_study: userData.year_of_study,
-            subjects: userData.subjects,
-            interests: userData.interests,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
-
-        if (profileError) {
-          console.error('Error creating user profile:', profileError);
-          return { error: profileError as unknown as AuthError, user: null };
-        }
-        console.log('User profile created successfully');
-      } else {
-        console.log('User object not available or error occurred - profile not created yet');
-      }
-      */
-
       return { error, user: data.user };
     } catch (error) {
       console.error('Error signing up:', error);
@@ -243,7 +208,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
-          // Add scopes for better profile access
           scopes: 'email profile',
         },
       });

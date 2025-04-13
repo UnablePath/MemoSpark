@@ -27,6 +27,7 @@ const DraggableWidget: React.FC<DraggableWidgetProps> = ({
   onClick,
 }) => {
   const [position, setPosition] = useState(defaultPosition);
+  const [mounted, setMounted] = useState(false);
   const constraintsRef = useRef<HTMLDivElement>(null);
 
   const priorityColors = {
@@ -43,32 +44,37 @@ const DraggableWidget: React.FC<DraggableWidgetProps> = ({
     }
   };
 
-  // Save position to localStorage
+  // Initialize component and handle localStorage after mount
   useEffect(() => {
-    // Only run in browser environment
-    if (typeof window !== 'undefined') {
-      const savedPosition = localStorage.getItem('widgetPosition');
-      if (savedPosition) {
-        try {
-          setPosition(JSON.parse(savedPosition));
-        } catch (error) {
-          console.error('Failed to parse saved widget position', error);
-        }
+    setMounted(true);
+    const savedPosition = localStorage.getItem('widgetPosition');
+    if (savedPosition) {
+      try {
+        const parsed = JSON.parse(savedPosition);
+        setPosition(parsed);
+      } catch (error) {
+        console.error('Failed to parse saved widget position', error);
       }
     }
   }, []);
 
+  // Save position to localStorage
   useEffect(() => {
-    // Only run in browser environment
-    if (typeof window !== 'undefined') {
+    if (mounted) {
       localStorage.setItem('widgetPosition', JSON.stringify(position));
     }
-  }, [position]);
+  }, [position, mounted]);
 
-  // Set a safe initial position if we're on client side
-  const initialPosition = typeof window !== 'undefined'
-    ? { x: Math.min(window.innerWidth - 100, position.x), y: Math.min(window.innerHeight - 100, position.y) }
-    : position;
+  // Don't render anything until mounted to prevent hydration mismatch
+  if (!mounted) {
+    return null;
+  }
+
+  // Calculate safe position based on window size
+  const safePosition = {
+    x: Math.min(window.innerWidth - 100, position.x),
+    y: Math.min(window.innerHeight - 100, position.y)
+  };
 
   return (
     <div ref={constraintsRef} className="fixed inset-0 pointer-events-none z-40">
@@ -77,8 +83,8 @@ const DraggableWidget: React.FC<DraggableWidgetProps> = ({
         dragMomentum={false}
         dragElastic={0.1}
         dragConstraints={constraintsRef}
-        initial={initialPosition}
-        animate={position}
+        initial={safePosition}
+        animate={safePosition}
         onDragEnd={handleDragEnd}
         whileDrag={{ scale: 1.1 }}
         whileHover={{ scale: 1.05 }}
