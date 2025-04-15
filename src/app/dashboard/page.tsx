@@ -1,43 +1,39 @@
 "use client";
 
-import { Suspense } from "react";
+import { useRef } from "react";
 import Logo from "@/components/ui/logo";
 import ProfileHeader from "@/components/profile/ProfileHeader";
-import { DashboardTabs } from "./DashboardTabs";
-import { Skeleton } from "@/components/ui/skeleton";
+import DashboardSwipeTabs from './DashboardSwipeTabs';
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { DraggableWidget } from "@/components/widgets/DraggableWidget";
+import { WidgetContent } from "@/components/widgets/WidgetContent";
 
 export default function DashboardPage() {
+  const [isWidgetEnabled] = useLocalStorage('dashboard-widget-enabled', false);
+  const constraintsRef = useRef(null);
+
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <header className="p-4 border-b flex items-center justify-between">
+    <div ref={constraintsRef} className="flex flex-col h-screen bg-background relative overflow-hidden">
+      <header className="p-4 border-b flex items-center justify-between flex-shrink-0 z-10 bg-background">
         <div className="flex items-center">
-          <Logo size="sm" className="mr-2" />
-          <h1 className="text-xl font-bold">StudySpark</h1>
+          <Logo size="md" />
         </div>
         <ProfileHeader />
       </header>
 
-      <main className="flex-1 overflow-hidden">
-        <Suspense fallback={<DashboardLoadingSkeleton />}>
-          <DashboardTabs />
-        </Suspense>
-      </main>
-    </div>
-  );
-}
+      <div className="flex-1 overflow-hidden">
+        <DashboardSwipeTabs />
+      </div>
 
-function DashboardLoadingSkeleton() {
-  return (
-    <div className="h-full flex flex-col">
-      <div className="flex justify-around border-b px-4 py-2">
-        <Skeleton className="h-10 w-16" />
-        <Skeleton className="h-10 w-16" />
-        <Skeleton className="h-10 w-16" />
-        <Skeleton className="h-10 w-16" />
-      </div>
-      <div className="flex-1 overflow-y-auto p-4">
-        <Skeleton className="h-full w-full" />
-      </div>
+      {isWidgetEnabled && (
+        <DraggableWidget
+          widgetId="dashboard-widget"
+          dragConstraintsRef={constraintsRef}
+          initialPosition={{ x: 100, y: 200 }}
+        >
+          <WidgetContent type="tasks" />
+        </DraggableWidget>
+      )}
     </div>
   );
 }

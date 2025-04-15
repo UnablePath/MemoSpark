@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useMemo } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FaSearch, FaPlus, FaComment } from "react-icons/fa";
+import { FaSearch, FaPlus, FaComment, FaTimes, FaPaperPlane, FaUsers } from "react-icons/fa";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Mock data for student profiles
 const mockStudents = [
@@ -43,20 +45,26 @@ const mockStudents = [
   },
 ];
 
-const StudentConnectionTab = () => {
+export default function StudentConnectionTab() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [chatMessage, setChatMessage] = useState("");
   const [chatMessages, setChatMessages] = useState<{[key: string]: {text: string, sent: boolean}[]}>({});
 
-  // Filter students based on search query
-  const filteredStudents = mockStudents.filter(
+  const filteredStudents = useMemo(() => mockStudents.filter(
     (student) =>
       student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.subjects.some((subject) =>
         subject.toLowerCase().includes(searchQuery.toLowerCase())
+      ) ||
+      student.interests.some((interest) =>
+        interest.toLowerCase().includes(searchQuery.toLowerCase())
       )
-  );
+  ), [searchQuery]);
+
+  const selectedStudent = useMemo(() => {
+    return mockStudents.find(student => student.id === selectedStudentId) || null;
+  }, [selectedStudentId]);
 
   const handleSendMessage = (studentId: string) => {
     if (!chatMessage.trim()) return;
@@ -84,6 +92,7 @@ const StudentConnectionTab = () => {
   };
 
   const getInitials = (name: string) => {
+    if (!name) return "??";
     return name
       .split(" ")
       .map((n) => n[0])
@@ -91,140 +100,131 @@ const StudentConnectionTab = () => {
       .toUpperCase();
   };
 
+  const handleSimulateGroupChat = () => {
+    // In a real app, this would navigate to a group chat or open a modal
+    alert("Group Chat Simulation: Imagine a bustling chat room here!");
+    console.log("Simulating group chat action...");
+  };
+
   return (
-    <div className="h-full flex flex-col">
-      <div className="p-4 border-b">
-        <div className="flex items-center mb-4">
-          <h1 className="text-2xl font-bold flex-1">Student Connections</h1>
-          <Avatar className="h-10 w-10">
-            <AvatarFallback className="bg-primary text-white">ME</AvatarFallback>
-          </Avatar>
-        </div>
-        <div className="relative">
-          <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+    <div className="flex flex-col h-full p-4 gap-4">
+      {/* Search and Group Chat Button */}
+      <div className="flex gap-2 items-center">
+        <div className="relative flex-grow">
+          <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search by name or subject..."
+            type="search"
+            placeholder="Search students by name, subject, interest..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
         </div>
+        <Button onClick={handleSimulateGroupChat} variant="outline" size="icon" aria-label="Simulate Group Chat">
+          <FaUsers className="h-5 w-5" />
+        </Button>
       </div>
 
-      <div className="flex-1 overflow-auto p-4">
-        {selectedStudent ? (
-          <div className="h-full flex flex-col">
-            <div className="flex items-center space-x-2 mb-4">
-              <Button
-                variant="ghost"
-                onClick={() => setSelectedStudent(null)}
-                className="p-2"
-              >
-                ← Back
-              </Button>
-              <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-primary text-white">
-                  {getInitials(mockStudents.find(s => s.id === selectedStudent)?.name || "")}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h2 className="font-semibold">
-                  {mockStudents.find(s => s.id === selectedStudent)?.name}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  {mockStudents.find(s => s.id === selectedStudent)?.year}
-                </p>
+      {/* Student List / Chat View */}
+      <div className="flex-1 relative overflow-hidden">
+        {/* Student List (visible when no student selected) */}
+        {!selectedStudent && (
+          <ScrollArea className="h-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pr-4">
+              {filteredStudents.length > 0 ? (
+                filteredStudents.map((student) => (
+                  <Card key={student.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="flex flex-row items-center gap-4 pb-2">
+                      <Avatar>
+                        <AvatarImage src={student.avatar || undefined} alt={student.name} />
+                        <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <CardTitle>{student.name}</CardTitle>
+                        <CardDescription>{student.year}</CardDescription>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pb-2">
+                      <div className="mb-2">
+                        <h4 className="text-sm font-medium mb-1">Subjects:</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {student.subjects.map((subj) => <Badge key={subj} variant="secondary">{subj}</Badge>)}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Interests:</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {student.interests.map((interest) => <Badge key={interest} variant="outline">{interest}</Badge>)}
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex justify-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => alert(`Connection request sent to ${student.name}!`)}>
+                        <FaPlus className="mr-1 h-3 w-3" /> Connect
+                      </Button>
+                      <Button size="sm" onClick={() => setSelectedStudentId(student.id)}>
+                        <FaComment className="mr-1 h-3 w-3" /> Message
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))
+              ) : (
+                <p className="text-muted-foreground col-span-full text-center py-10">No students found matching your search.</p>
+              )}
+            </div>
+          </ScrollArea>
+        )}
+
+        {/* Chat View (visible when a student is selected) */}
+        {selectedStudent && (
+          <div className="absolute inset-0 bg-background flex flex-col h-full border rounded-lg">
+            {/* Chat Header */}
+            <div className="flex items-center justify-between p-3 border-b bg-muted/40">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={selectedStudent.avatar || undefined} alt={selectedStudent.name} />
+                  <AvatarFallback>{getInitials(selectedStudent.name)}</AvatarFallback>
+                </Avatar>
+                <span className="font-semibold">{selectedStudent.name}</span>
               </div>
+              <Button variant="ghost" size="icon" onClick={() => setSelectedStudentId(null)} aria-label="Close chat">
+                <FaTimes className="h-4 w-4" />
+              </Button>
             </div>
 
-            <div className="flex-1 overflow-auto bg-secondary/10 rounded-lg p-4 mb-4">
-              {(chatMessages[selectedStudent] || []).map((message, index) => (
-                <div
-                  key={index}
-                  className={`mb-2 flex ${message.sent ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`rounded-lg px-3 py-2 max-w-[80%] ${
-                      message.sent
-                        ? "bg-primary text-white"
-                        : "bg-secondary text-foreground"
-                    }`}
-                  >
-                    {message.text}
+            {/* Chat Messages */}
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-3">
+                {(chatMessages[selectedStudent.id] || []).map((msg, index) => (
+                  <div key={index} className={`flex ${msg.sent ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`px-3 py-2 rounded-lg max-w-[75%] ${msg.sent ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                      {msg.text}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+                {/* Placeholder if no messages */} 
+                {(!chatMessages[selectedStudent.id] || chatMessages[selectedStudent.id].length === 0) && (
+                    <p className="text-center text-muted-foreground text-sm">Start the conversation!</p>
+                )}
+              </div>
+            </ScrollArea>
 
-            <div className="flex space-x-2">
+            {/* Chat Input */}
+            <div className="p-3 border-t flex gap-2 items-center bg-muted/40">
               <Input
                 placeholder="Type a message..."
                 value={chatMessage}
                 onChange={(e) => setChatMessage(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSendMessage(selectedStudent)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(selectedStudent.id)}
+                className="flex-1"
               />
-              <Button onClick={() => handleSendMessage(selectedStudent)}>Send</Button>
+              <Button onClick={() => handleSendMessage(selectedStudent.id)} size="icon" aria-label="Send message">
+                <FaPaperPlane className="h-4 w-4" />
+              </Button>
             </div>
           </div>
-        ) : (
-          <>
-            <h2 className="font-semibold mb-3">Students in Your Subjects</h2>
-            <div className="grid gap-4">
-              {filteredStudents.map((student) => (
-                <Card key={student.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-center">
-                      <Avatar className="h-12 w-12 mr-4">
-                        <AvatarFallback className="bg-primary text-white">
-                          {getInitials(student.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{student.name}</h3>
-                        <p className="text-sm text-muted-foreground">{student.year}</p>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {student.subjects.map((subject, idx) => (
-                            <span
-                              key={idx}
-                              className="text-xs bg-secondary text-secondary-foreground rounded-full px-2 py-0.5"
-                            >
-                              {subject}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="rounded-full h-8 w-8 p-0"
-                        >
-                          <FaPlus className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => setSelectedStudent(student.id)}
-                          className="rounded-full h-8 w-8 p-0"
-                        >
-                          <FaComment className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-
-              {filteredStudents.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No students found matching your search.
-                </div>
-              )}
-            </div>
-          </>
         )}
       </div>
     </div>
   );
-};
-
-export default StudentConnectionTab;
+}

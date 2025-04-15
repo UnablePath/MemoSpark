@@ -33,10 +33,10 @@ export const ProfileHeader = () => {
     router.push("/settings");
   };
 
-  // Handle navigation to profile tab
+  // Handle navigation to profile page
   const handleNavigateToProfile = () => {
-    // Navigate to dashboard with profile tab active
-    router.push("/dashboard?tab=profile");
+    // Navigate to the dedicated profile page
+    router.push("/profile");
   };
 
   if (!isProfileLoaded) {
