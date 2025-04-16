@@ -15,7 +15,7 @@ import {
 import { FaCog, FaUser, FaSignOutAlt } from "react-icons/fa";
 
 export const ProfileHeader = () => {
-  const { profile, isProfileLoaded } = useUser();
+  const { profile, isProfileLoaded, resetProfile } = useUser();
   const router = useRouter();
 
   // Get user initials for avatar
@@ -37,6 +37,16 @@ export const ProfileHeader = () => {
   const handleNavigateToProfile = () => {
     // Navigate to the dedicated profile page
     router.push("/profile");
+  };
+
+  // Handle Sign Out
+  const handleSignOut = () => {
+    localStorage.removeItem('isAuthenticated'); // Clear auth flag
+    // Optional: Clear the profile from local storage too
+    // localStorage.removeItem('studyspark_profile');
+    // Optional: Reset profile state in context if desired
+    // resetProfile();
+    router.push('/login'); // Redirect to login
   };
 
   if (!isProfileLoaded) {
@@ -68,7 +78,7 @@ export const ProfileHeader = () => {
           <FaCog className="mr-2 h-4 w-4" /> Settings
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="cursor-pointer">
+        <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
           <FaSignOutAlt className="mr-2 h-4 w-4" /> Sign Out
         </DropdownMenuItem>
       </DropdownMenuContent>

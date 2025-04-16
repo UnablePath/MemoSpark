@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import Logo from "@/components/ui/logo";
+// import Logo from "@/components/ui/logo";
+import { StudySparkLogoSvg } from "@/components/ui/StudySparkLogoSvg";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import DashboardSwipeTabs from './DashboardSwipeTabs';
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -15,8 +16,8 @@ export default function DashboardPage() {
   return (
     <div ref={constraintsRef} className="flex flex-col h-screen bg-background relative overflow-hidden">
       <header className="p-4 border-b flex items-center justify-between flex-shrink-0 z-10 bg-background">
-        <div className="flex items-center">
-          <Logo size="md" />
+        <div className="flex items-center text-primary">
+          <StudySparkLogoSvg height={40} />
         </div>
         <ProfileHeader />
       </header>

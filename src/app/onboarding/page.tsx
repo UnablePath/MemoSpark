@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import Logo from '@/components/ui/logo';
+import { StudySparkLogoSvg } from "@/components/ui/StudySparkLogoSvg";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -25,7 +25,7 @@ export default function OnboardingPage() {
   const handleOnboardingSubmit = () => {
     updateProfile({ name, email });
     // Attempt to save - saveProfile includes validation and toasts
-    if (saveProfile()) {
+    if (Boolean(saveProfile())) {
       router.push('/dashboard'); // Navigate to dashboard on successful save
     }
   };
@@ -45,8 +45,8 @@ export default function OnboardingPage() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-primary/10 via-background to-background p-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
-            <div className="mx-auto mb-4">
-                <Logo size="lg" />
+            <div className="mx-auto mb-4 text-primary">
+                <StudySparkLogoSvg height={60} />
             </div>
           <CardTitle className="text-2xl">Welcome to StudySpark!</CardTitle>
           <CardDescription>Let's get your profile set up quickly.</CardDescription>

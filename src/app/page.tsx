@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import Logo from "@/components/ui/logo";
+import { StudySparkLogoSvg } from "@/components/ui/StudySparkLogoSvg";
 import Image from "next/image";
 
 export default function LandingPage() {
@@ -81,9 +81,9 @@ export default function LandingPage() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
-            className="animate-floating"
+            className="animate-floating text-white"
           >
-            <Logo size="lg" showText={false} />
+            <StudySparkLogoSvg height={60} />
           </motion.div>
 
           {/* App Name */}
@@ -121,9 +121,9 @@ export default function LandingPage() {
               Learn More
             </Button>
 
-            {/* Enter App Button */}
+            {/* Enter App Button -> Navigate to Login */}
             <Button
-              onClick={() => router.push("/dashboard")}
+              onClick={() => router.push("/login")}
               variant="outline"
               className="bg-transparent text-white border-white hover:bg-white hover:text-primary font-semibold px-8 py-3 text-lg rounded-full transition-all duration-300 ease-in-out transform hover:scale-105"
             >
@@ -157,8 +157,9 @@ export default function LandingPage() {
           ))}
         </div>
          <div className="text-center mt-16">
+             {/* Button at bottom -> Navigate to Login */}
              <Button
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push('/login')}
                 size="lg"
                 className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-10 py-6 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105"
             >

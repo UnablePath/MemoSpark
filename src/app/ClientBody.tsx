@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useUser } from '@/lib/user-context';
 import { useRouter, usePathname } from 'next/navigation';
 import { Toaster } from "@/components/ui/sonner";
@@ -9,50 +9,67 @@ interface ClientBodyProps {
   children: React.ReactNode;
 }
 
+const PUBLIC_PATHS = ['/login', '/signup'];
+
 export default function ClientBody({ children }: ClientBodyProps) {
   const { profile, isProfileLoaded } = useUser();
   const router = useRouter();
   const pathname = usePathname();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!isProfileLoaded) {
-      return; // Wait until the profile is loaded
+    const authStatus = localStorage.getItem('isAuthenticated') === 'true';
+    setIsAuthenticated(authStatus);
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated === null || !isProfileLoaded) {
+      return;
     }
 
+    const isPublicPath = PUBLIC_PATHS.includes(pathname);
     const needsOnboarding = !profile.name;
     const isOnboardingPage = pathname === '/onboarding';
 
-    // TODO: Add authentication check here later
-    // const isAuthenticated = checkAuthStatus(); // Placeholder
-    // if (!isAuthenticated && pathname !== '/login') {
-    //   router.replace('/login');
-    //   return;
-    // }
-
-    if (needsOnboarding && !isOnboardingPage) {
-      // If profile name is missing and we are NOT on the onboarding page, redirect there
-      router.replace('/onboarding');
-    } else if (!needsOnboarding && isOnboardingPage) {
-      // If profile name EXISTS and we ARE on the onboarding page, redirect away
-      router.replace('/dashboard');
+    if (!isAuthenticated && !isPublicPath) {
+      router.replace('/login');
+      return;
     }
-    // Otherwise, stay on the current page (e.g., dashboard, settings, etc.)
 
-  }, [isProfileLoaded, profile, pathname, router]);
+    if (isAuthenticated) {
+      if (needsOnboarding && !isOnboardingPage && !isPublicPath) {
+        router.replace('/onboarding');
+      } else if (!needsOnboarding && isOnboardingPage) {
+        router.replace('/dashboard');
+      }
+    }
 
-  // Render children only if profile is loaded and onboarding status is resolved,
-  // or if on the onboarding page itself while needing onboarding.
-  const shouldRenderChildren = isProfileLoaded && (!profile.name || pathname !== '/onboarding');
+  }, [isAuthenticated, isProfileLoaded, profile, pathname, router]);
+
+  const shouldRenderChildren = () => {
+    if (isAuthenticated === null || (!isProfileLoaded && isAuthenticated)) {
+      return false;
+    }
+    if (!isAuthenticated && PUBLIC_PATHS.includes(pathname)) {
+      return true;
+    }
+    if (isAuthenticated && !profile.name && pathname === '/onboarding') {
+      return true;
+    }
+    if (isAuthenticated && profile.name && !PUBLIC_PATHS.includes(pathname) && pathname !== '/onboarding') {
+      return true;
+    }
+    return false;
+  };
 
   return (
     <>
-      {/* Render children based on loading/onboarding state */}
-      {shouldRenderChildren ? children : (
+      {shouldRenderChildren() ? children : (
           <div className="flex items-center justify-center h-screen bg-background">
-              <p>Loading...</p> { /* Or a dedicated loading component */ }
+              <p>Loading...</p>
           </div>
       )}
-      <Toaster /> { /* Keep toaster accessible */}
+      <Toaster />
     </>
   );
 }
