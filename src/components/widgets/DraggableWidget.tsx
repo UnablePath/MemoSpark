@@ -28,7 +28,7 @@ export function DraggableWidget({
 
   // Define shape classes based on the setting
   const shapeClasses = {
-    square: 'rounded-none',
+    square: 'rounded-none aspect-square',
     rounded: 'rounded-lg', // Default
     pill: 'rounded-full',
   };
@@ -46,12 +46,14 @@ export function DraggableWidget({
       }}
       // Combine base classes, dynamic shape class, and passed className
       className={cn(
-        'absolute z-50 cursor-grab active:cursor-grabbing bg-card text-card-foreground p-2 shadow-lg',
+        'absolute z-50 cursor-grab active:cursor-grabbing bg-card text-card-foreground p-2 shadow-lg border-2 border-green-500/80',
         shapeClasses[shape as keyof typeof shapeClasses] || shapeClasses.rounded, // Apply shape class
         className // Apply any additional classes passed as props
       )}
     >
-      {children}
+      <div className="flex items-center justify-center h-full w-full">
+        {children}
+      </div>
     </motion.div>
   );
 } 

@@ -2,8 +2,8 @@ import "@/app/globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
 import { UserProvider } from "@/lib/user-context";
+import ClientBody from "./ClientBody";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,8 +27,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <UserProvider>
-            {children}
-            <Toaster />
+            <ClientBody>
+              {children}
+            </ClientBody>
           </UserProvider>
         </ThemeProvider>
       </body>
