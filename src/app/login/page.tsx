@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { StudySparkLogoSvg } from "@/components/ui/StudySparkLogoSvg";
 import Link from 'next/link';
-import type { UserProfile } from '@/lib/user-context'; // Import type for checking
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,49 +15,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Prevent access if already authenticated (optional but good practice)
-  useEffect(() => {
-    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-    if (isAuthenticated) {
-      router.replace('/dashboard'); // Or check onboarding status here too
-    }
-  }, [router]);
-
   const handleLogin = () => {
     setIsLoading(true);
-    // --- Simulate Login --- 
-    // In a real app: validate inputs, send to backend, handle response
     console.log('Simulating login for:', email);
 
     // Simulate network delay
     setTimeout(() => {
-      // On successful simulation:
-      localStorage.setItem('isAuthenticated', 'true');
-
-      // Check if onboarding is needed by looking at stored profile
-      const savedProfileRaw = localStorage.getItem("studyspark_profile");
-      let needsOnboarding = true; // Default to true
-      if (savedProfileRaw) {
-        try {
-          const savedProfile: Partial<UserProfile> = JSON.parse(savedProfileRaw);
-          if (savedProfile.name) {
-            needsOnboarding = false;
-          }
-        } catch (e) {
-          console.error("Error parsing profile during login check:", e);
-          // Proceed assuming onboarding needed if profile is corrupted
-        }
-      }
-
+      // --- Authentication simulation successful --- 
+      // No need to set isAuthenticated flag here anymore.
+      // No need to check onboarding status here.
+      
       setIsLoading(false);
+      // Always redirect to dashboard after successful login
+      router.push('/dashboard');
 
-      // Redirect based on onboarding status
-      if (needsOnboarding) {
-        router.push('/onboarding');
-      } else {
-        router.push('/dashboard');
-      }
-    }, 1000); // 1 second delay
+    }, 1000);
   };
 
   return (

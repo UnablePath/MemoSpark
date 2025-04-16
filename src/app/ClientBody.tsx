@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useUser } from '@/lib/user-context';
 import { useRouter, usePathname } from 'next/navigation';
 import { Toaster } from "@/components/ui/sonner";
@@ -15,15 +15,9 @@ export default function ClientBody({ children }: ClientBodyProps) {
   const { profile, isProfileLoaded } = useUser();
   const router = useRouter();
   const pathname = usePathname();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const authStatus = localStorage.getItem('isAuthenticated') === 'true';
-    setIsAuthenticated(authStatus);
-  }, []);
-
-  useEffect(() => {
-    if (isAuthenticated === null || !isProfileLoaded) {
+    if (!isProfileLoaded) {
       return;
     }
 
@@ -31,32 +25,27 @@ export default function ClientBody({ children }: ClientBodyProps) {
     const needsOnboarding = !profile.name;
     const isOnboardingPage = pathname === '/onboarding';
 
-    if (!isAuthenticated && !isPublicPath) {
-      router.replace('/login');
-      return;
-    }
-
-    if (isAuthenticated) {
-      if (needsOnboarding && !isOnboardingPage && !isPublicPath) {
+    if (!isPublicPath) {
+      if (needsOnboarding && !isOnboardingPage) {
         router.replace('/onboarding');
       } else if (!needsOnboarding && isOnboardingPage) {
         router.replace('/dashboard');
       }
     }
 
-  }, [isAuthenticated, isProfileLoaded, profile, pathname, router]);
+  }, [isProfileLoaded, profile, pathname, router]);
 
   const shouldRenderChildren = () => {
-    if (isAuthenticated === null || (!isProfileLoaded && isAuthenticated)) {
+    if (!isProfileLoaded && !PUBLIC_PATHS.includes(pathname)) {
       return false;
     }
-    if (!isAuthenticated && PUBLIC_PATHS.includes(pathname)) {
+    if (PUBLIC_PATHS.includes(pathname)) {
       return true;
     }
-    if (isAuthenticated && !profile.name && pathname === '/onboarding') {
+    if (!profile.name && pathname === '/onboarding') {
       return true;
     }
-    if (isAuthenticated && profile.name && !PUBLIC_PATHS.includes(pathname) && pathname !== '/onboarding') {
+    if (profile.name && pathname !== '/onboarding') {
       return true;
     }
     return false;

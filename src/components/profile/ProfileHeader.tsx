@@ -41,11 +41,10 @@ export const ProfileHeader = () => {
 
   // Handle Sign Out
   const handleSignOut = () => {
-    localStorage.removeItem('isAuthenticated'); // Clear auth flag
-    // Optional: Clear the profile from local storage too
-    // localStorage.removeItem('studyspark_profile');
-    // Optional: Reset profile state in context if desired
-    // resetProfile();
+    // Clear the profile from local storage upon sign out
+    localStorage.removeItem('studyspark_profile');
+    // Reset profile state in context so UI updates immediately
+    resetProfile();
     router.push('/login'); // Redirect to login
   };
 
