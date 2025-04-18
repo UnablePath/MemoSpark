@@ -27,7 +27,7 @@ export const StudySparkLogoSvg: React.FC<StudySparkLogoSvgProps> = ({ height, cl
             {`
                 .studyspark-logo-b { letter-spacing: -0.09em; }
                 .studyspark-logo-b, .studyspark-logo-c, .studyspark-logo-d, .studyspark-logo-e {
-                    font-family: 'Square721 BT', sans-serif; /* Fallback font */
+                    font-family: 'Square721 BT', sans-serif;
                     font-weight: 700;
                 }
                 .studyspark-logo-c { letter-spacing: -0.09em; }

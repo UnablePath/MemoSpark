@@ -11,6 +11,8 @@ export interface UserProfile {
   subjects: string[];
   interests: string[];
   avatar?: string | null;
+  birthDate?: string | null;
+  bio?: string;
 }
 
 // Default user profile
@@ -21,6 +23,8 @@ export const defaultProfile: UserProfile = {
   subjects: [],
   interests: [],
   avatar: null,
+  birthDate: null,
+  bio: "",
 };
 
 // Define the context type
