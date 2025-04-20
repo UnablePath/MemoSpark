@@ -4,25 +4,25 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%; /* White */
-    --foreground: 0 0% 0%; /* Black */
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 0%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 0%;
-    --primary: 142 60% 45%; /* Green */
+    --background: 0 0% 98%; /* Slightly off-white */
+    --foreground: 0 0% 10%; /* Slightly off-black */
+    --card: 0 0% 100%; /* Keep card white for contrast */
+    --card-foreground: 0 0% 10%; /* Match foreground */
+    --popover: 0 0% 100%; /* Keep popover white */
+    --popover-foreground: 0 0% 10%;
+    --primary: 142 60% 40%; /* Slightly darker/less vibrant green */
     --primary-foreground: 0 0% 100%;
-    --secondary: 40 38% 83%; /* Beige */
-    --secondary-foreground: 0 0% 0%;
-    --muted: 40 38% 90%;
-    --muted-foreground: 0 0% 40%;
-    --accent: 40 38% 83%;
-    --accent-foreground: 0 0% 0%;
+    --secondary: 40 30% 85%; /* Slightly darker/less saturated beige */
+    --secondary-foreground: 0 0% 10%;
+    --muted: 40 30% 92%; /* Darker muted */
+    --muted-foreground: 0 0% 45%; /* Darker muted text */
+    --accent: 40 30% 85%;
+    --accent-foreground: 0 0% 10%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 40 38% 83%;
-    --input: 40 38% 83%;
-    --ring: 142 60% 45%;
+    --border: 40 30% 80%; /* Darker border */
+    --input: 40 30% 80%; /* Darker input border */
+    --ring: 142 60% 40%; /* Match primary */
     --radius: 1rem; /* Rounded corners for StudySpark style */
     --chart-1: 142 60% 45%;
     --chart-2: 40 38% 83%;
@@ -38,19 +38,19 @@
     --card-foreground: 0 0% 95%;
     --popover: 0 0% 15%;
     --popover-foreground: 0 0% 95%;
-    --primary: 142 50% 40%; /* Darker Green */
+    --primary: 142 55% 45%; /* Slightly adjusted dark green */
     --primary-foreground: 0 0% 100%;
-    --secondary: 40 25% 70%; /* Darker Beige */
+    --secondary: 40 25% 75%; /* Slightly adjusted dark beige */
     --secondary-foreground: 0 0% 100%;
     --muted: 0 0% 20%;
     --muted-foreground: 0 0% 70%;
-    --accent: 40 25% 70%;
+    --accent: 40 25% 75%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 85.7% 97.3%;
     --border: 40 25% 70%;
     --input: 40 25% 70%;
-    --ring: 142 50% 40%;
+    --ring: 142 55% 45%; /* Match dark primary */
     --chart-1: 142 50% 40%;
     --chart-2: 40 25% 70%;
     --chart-3: 0 0% 95%;
