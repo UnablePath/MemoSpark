@@ -72,6 +72,10 @@ const config = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
+      fontFamily: {
+        sans: ['var(--font-sans)', 'sans-serif'], // Assuming you might have a sans variable, or just use system default
+        linea: ['Linea', 'sans-serif'],
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],

@@ -35,7 +35,7 @@ export const StudySparkLogoSvg: React.FC<StudySparkLogoSvgProps> = ({ height, cl
                 .studyspark-logo-f { font-size: 120.41px; fill: currentColor; } /* Use currentColor for text */
                 .studyspark-logo-g {
                     fill: #39b54a; /* Original green */
-                    font-family: 'linea', sans-serif; /* Specify fallback */
+                    /* font-family will be applied via Tailwind utility class */
                     letter-spacing: -0.09em;
                  }
                 .studyspark-logo-e { letter-spacing: -0.11em; }
@@ -47,7 +47,7 @@ export const StudySparkLogoSvg: React.FC<StudySparkLogoSvgProps> = ({ height, cl
             <tspan className="studyspark-logo-e" x="219.35" y="0">D</tspan>
             <tspan className="studyspark-logo-c" x="299.23" y="0">Y</tspan>
             {/* Apply green fill directly or via class */}
-            <tspan className="studyspark-logo-g" fill="#39b54a" x="371.11" y="0">S</tspan>
+            <tspan className="studyspark-logo-g font-linea" x="371.11" y="0">S</tspan>
             <tspan className="studyspark-logo-d" x="464.45" y="0">P</tspan>
             <tspan className="studyspark-logo-b" x="533.39" y="0">ARK</tspan>
         </text>
@@ -55,4 +55,4 @@ export const StudySparkLogoSvg: React.FC<StudySparkLogoSvgProps> = ({ height, cl
   );
 };
 
-export default StudySparkLogoSvg; 
+export default StudySparkLogoSvg;
