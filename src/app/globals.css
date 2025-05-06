@@ -57,6 +57,37 @@
     --chart-4: 0 0% 15%;
     --chart-5: 142 40% 30%;
   }
+
+  /* Add the high contrast theme */
+  .high-contrast {
+    --background: 0 0% 0%; /* Black */
+    --foreground: 60 100% 50%; /* Bright Yellow */
+    --card: 0 0% 0%; /* Black */
+    --card-foreground: 60 100% 50%; /* Bright Yellow */
+    --popover: 0 0% 0%; /* Black */
+    --popover-foreground: 60 100% 50%; /* Bright Yellow */
+    --primary: 60 100% 50%; /* Bright Yellow for primary elements */
+    --primary-foreground: 0 0% 0%; /* Black text on yellow */
+    --secondary: 0 0% 100%; /* White for secondary elements */
+    --secondary-foreground: 0 0% 0%; /* Black text on white */
+    --muted: 0 0% 15%; /* Dark grey */
+    --muted-foreground: 0 0% 80%; /* Light grey text */
+    --accent: 0 0% 100%; /* White */
+    --accent-foreground: 0 0% 0%; /* Black */
+    --destructive: 0 100% 50%; /* Bright Red */
+    --destructive-foreground: 0 0% 0%; /* Black */
+    --border: 60 100% 50%; /* Bright Yellow border */
+    --input: 0 0% 0%; /* Black input background */
+    --input-foreground: 60 100% 50%; /* Bright Yellow input text */
+    --ring: 0 0% 100%; /* White ring */
+    --radius: 0rem; /* Remove rounded corners for sharper look */
+    /* Adjust chart colors for high contrast */
+    --chart-1: 60 100% 50%; /* Yellow */
+    --chart-2: 0 0% 100%; /* White */
+    --chart-3: 240 100% 50%; /* Bright Blue */
+    --chart-4: 300 100% 50%; /* Bright Magenta */
+    --chart-5: 0 100% 50%; /* Bright Red */
+  }
 }
 
 @layer base {
@@ -65,7 +96,26 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Ensure transitions for smooth theme changes */
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
+  /* Ensure links and buttons have clear focus states */
+  a:focus, button:focus, input:focus, select:focus, textarea:focus {
+    @apply outline outline-2 outline-offset-2 outline-[hsl(var(--ring))];
+  }
+  /* High contrast specific adjustments */
+  .high-contrast a, .high-contrast button {
+     @apply text-[hsl(var(--secondary))] underline; /* White, underlined links/buttons */
+  }
+   .high-contrast button {
+     @apply border border-[hsl(var(--secondary))] bg-transparent; /* White border, transparent bg */
+   }
+   .high-contrast button:hover {
+      @apply bg-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))]; /* White bg, black text on hover */
+   }
+    .high-contrast input, .high-contrast select, .high-contrast textarea {
+      @apply bg-[hsl(var(--input))] text-[hsl(var(--input-foreground))] border-[hsl(var(--border))];
+    }
 }
 
 /* Custom animations for the app */

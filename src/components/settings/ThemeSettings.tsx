@@ -4,13 +4,11 @@ import React from 'react';
 import { useTheme } from 'next-themes';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useThemeContext } from '@/components/providers/theme-provider';
 
 export function ThemeSettings() {
   const { theme, setTheme } = useTheme();
-  const [isHighContrast, setIsHighContrast] = useLocalStorage<boolean>('highContrast', false);
-
-  // TODO: Apply high-contrast class to root element when isHighContrast is true
+  const { accessibilityOptions, setAccessibilityOption } = useThemeContext();
 
   return (
     <div className="space-y-4">
@@ -37,8 +35,8 @@ export function ThemeSettings() {
          </Label>
         <Switch 
           id="high-contrast" 
-          checked={isHighContrast}
-          onCheckedChange={setIsHighContrast}
+          checked={accessibilityOptions.highContrast}
+          onCheckedChange={(checked) => setAccessibilityOption('highContrast', checked)}
         />
        </div>
        {/* Add custom color preferences later */}
