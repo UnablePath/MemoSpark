@@ -31,6 +31,7 @@ export default function OnboardingPage() {
   const [interests, setInterests] = useState('');
   const [step, setStep] = useState(1);
   const totalSteps = 3;
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isProfileLoaded && profile.name) {
@@ -39,8 +40,8 @@ export default function OnboardingPage() {
   }, [isProfileLoaded, profile, router]);
 
   const handleOnboardingSubmit = () => {
-    if (!birthDate || birthDate > SIXTEEN_YEARS_AGO) {
-      alert("You must be at least 16 years old to use StudySpark.");
+    if (!birthDate) {
+      setFormError("Please select your date of birth to continue.");
       return;
     }
 
@@ -59,13 +60,14 @@ export default function OnboardingPage() {
   };
 
   const handleNextStep = () => {
+    setFormError(null);
     if (step === 1 && (!name || !email)) {
-      alert("Please fill in your name and email to continue.");
+      setFormError("Please fill in your name and email to continue.");
       return;
     }
     
     if (step === 2 && !birthDate) {
-      alert("Please select your date of birth to continue.");
+      setFormError("Please select your date of birth to continue.");
       return;
     }
 
@@ -95,17 +97,18 @@ export default function OnboardingPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-primary/5 via-background to-background p-4">
-      <Card className="w-full max-w-lg shadow-xl border-border/40 overflow-hidden">
+      <a href="#main-content" className="sr-only focus:not-sr-only absolute top-2 left-2 z-50 bg-primary text-primary-foreground px-4 py-2 rounded focus:outline-dashed focus:outline-2 focus:outline-offset-2">Skip to main content</a>
+      <Card id="main-content" className="w-full max-w-lg shadow-xl border-border/40 overflow-hidden">
         <CardHeader className="text-center pb-6 pt-8 space-y-4">
-          <div className="mx-auto mb-2 text-primary">
+          <div className="mx-auto mb-2 text-primary" role="img" aria-label="StudySpark Logo">
             <StudySparkLogoSvg height={60} />
           </div>
-          <CardTitle className="text-2xl font-bold">Welcome to StudySpark!</CardTitle>
-          <CardDescription className="text-base">
+          <CardTitle className="text-2xl font-bold focus:outline-dashed focus:outline-2" role="heading" aria-level={1} tabIndex={0}>Welcome to StudySpark!</CardTitle>
+          <CardDescription className="text-base focus:outline-dashed focus:outline-2" tabIndex={0}>
             Let's get your profile set up in just a few steps.
           </CardDescription>
           
-          <div className="flex justify-center space-x-2 pt-2">
+          <div role="status" aria-live="polite" aria-label={`Step ${step} of ${totalSteps}`} className="flex justify-center space-x-2 pt-2">
             {[...Array(totalSteps)].map((_, index) => (
               <div
                 key={index}
@@ -113,17 +116,23 @@ export default function OnboardingPage() {
                   "h-1.5 rounded-full transition-all duration-300",
                   index + 1 === step ? "w-8 bg-primary" : "w-4 bg-primary/20"
                 )}
+                aria-hidden="true"
               />
             ))}
           </div>
         </CardHeader>
 
         <CardContent className="px-8 pb-6">
+          {formError && (
+            <p role="alert" className="text-sm text-red-600 mb-4 p-2 bg-red-50 border border-red-200 rounded-lg focus:outline-dashed focus:outline-2" tabIndex={0}>
+                {formError}
+            </p>
+          )}
           {step === 1 && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-base flex items-center gap-2">
-                  <User size={16} className="text-primary" />
+                <Label htmlFor="name" className="text-base flex items-center gap-2"> 
+                  <User size={16} className="text-primary" aria-hidden="true" />
                   Full Name
                 </Label>
                 <Input 
@@ -131,14 +140,16 @@ export default function OnboardingPage() {
                   placeholder="e.g., Alex Johnson" 
                   value={name} 
                   onChange={(e) => setName(e.target.value)} 
-                  className="h-11 text-base"
-                  required 
+                  className="h-11 text-base focus:outline-dashed focus:outline-2 focus:outline-offset-2"
+                  required
+                  aria-required="true"
+                  aria-describedby={formError && (name === '' || email === '') ? "form-error-message" : undefined}
                 />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-base flex items-center gap-2">
-                  <Mail size={16} className="text-primary" />
+                  <Mail size={16} className="text-primary" aria-hidden="true" />
                   Email Address
                 </Label>
                 <Input 
@@ -147,8 +158,10 @@ export default function OnboardingPage() {
                   placeholder="e.g., alex@example.com" 
                   value={email} 
                   onChange={(e) => setEmail(e.target.value)} 
-                  className="h-11 text-base"
+                  className="h-11 text-base focus:outline-dashed focus:outline-2 focus:outline-offset-2"
                   required 
+                  aria-required="true"
+                  aria-describedby={formError && (name === '' || email === '') ? "form-error-message" : undefined}
                 />
               </div>
             </div>
@@ -158,11 +171,11 @@ export default function OnboardingPage() {
             <div className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="year" className="text-base flex items-center gap-2">
-                  <GraduationCap size={16} className="text-primary" />
+                  <GraduationCap size={16} className="text-primary" aria-hidden="true" />
                   Year of Study
                 </Label>
                 <Select value={yearOfStudy} onValueChange={setYearOfStudy}>
-                  <SelectTrigger id="year" className="h-11 text-base">
+                  <SelectTrigger id="year" className="h-11 text-base focus:outline-dashed focus:outline-2 focus:outline-offset-2" aria-label="Select your year of study">
                     <SelectValue placeholder="Select year" />
                   </SelectTrigger>
                   <SelectContent>
@@ -176,8 +189,8 @@ export default function OnboardingPage() {
               
               <div className="space-y-2">
                 <Label htmlFor="birthdate" className="text-base flex items-center gap-2">
-                  <CalendarIcon size={16} className="text-primary" />
-                  Date of Birth (16+)
+                  <CalendarIcon size={16} className="text-primary" aria-hidden="true" />
+                  Date of Birth
                 </Label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -185,26 +198,35 @@ export default function OnboardingPage() {
                       id="birthdate"
                       variant="outline"
                       className={cn(
-                        "w-full h-11 justify-start text-left font-normal text-base",
+                        "w-full h-11 justify-start text-left font-normal text-base bg-gradient-to-r from-blue-50 via-white to-pink-50 border-2 border-primary/20 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 focus:outline-dashed focus:outline-2 focus:outline-offset-2",
                         !birthDate && "text-muted-foreground"
                       )}
+                      aria-label={birthDate ? `Selected date: ${format(birthDate, "PPP")}, Change date of birth` : "Pick your date of birth"}
+                      aria-describedby={formError && !birthDate ? "form-error-message" : undefined}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      <CalendarIcon className="mr-2 h-4 w-4 text-primary" aria-hidden="true" />
                       {birthDate ? format(birthDate, "PPP") : <span>Pick a date</span>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="center">
-                    <Calendar
-                      mode="single"
-                      selected={birthDate}
-                      onSelect={setBirthDate}
-                      initialFocus
-                      captionLayout="dropdown-buttons"
-                      fromDate={MIN_DATE}
-                      toDate={MAX_DATE}
-                      defaultMonth={SIXTEEN_YEARS_AGO}
-                      className="rounded-md border"
-                    />
+                  <PopoverContent className="w-auto p-0 rounded-2xl shadow-2xl border-2 border-primary/10 bg-gradient-to-br from-white via-blue-50 to-pink-50 max-w-xs sm:max-w-sm md:max-w-md" align="center" sideOffset={8} avoidCollisions>
+                    <div className="p-4 pb-0 flex flex-col items-center">
+                      <CalendarIcon className="h-8 w-8 text-primary mb-2 animate-bounce" aria-hidden="true" />
+                      <h4 className="font-bold text-lg mb-1 text-primary focus:outline-dashed focus:outline-2" role="heading" aria-level={2} tabIndex={0}>Pick your birthday!</h4>
+                    </div>
+                    <div className="px-4 pb-4">
+                      <Calendar
+                        mode="single"
+                        selected={birthDate}
+                        onSelect={setBirthDate}
+                        initialFocus
+                        captionLayout="dropdown-buttons"
+                        fromDate={MIN_DATE}
+                        toDate={MAX_DATE}
+                        defaultMonth={SIXTEEN_YEARS_AGO}
+                        className="rounded-lg border bg-white shadow-sm"
+                        aria-label="Calendar for selecting date of birth"
+                      />
+                    </div>
                   </PopoverContent>
                 </Popover>
               </div>
@@ -215,7 +237,7 @@ export default function OnboardingPage() {
             <div className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="interests" className="text-base flex items-center gap-2">
-                  <Sparkles size={16} className="text-primary" />
+                  <Sparkles size={16} className="text-primary" aria-hidden="true" />
                   Interests (comma-separated)
                 </Label>
                 <Textarea
@@ -223,12 +245,13 @@ export default function OnboardingPage() {
                   placeholder="e.g., Programming, Hiking, Music"
                   value={interests}
                   onChange={(e) => setInterests(e.target.value)}
-                  className="min-h-[120px] text-base resize-none"
+                  className="min-h-[120px] text-base resize-none focus:outline-dashed focus:outline-2 focus:outline-offset-2"
+                  aria-label="Enter your interests, separated by commas"
                 />
               </div>
               
-              <div className="bg-primary/5 p-4 rounded-lg border border-primary/10 mt-4">
-                <h3 className="font-medium text-sm mb-2 text-primary">Almost there!</h3>
+              <div className="bg-primary/5 p-4 rounded-lg border border-primary/10 mt-4 focus:outline-dashed focus:outline-2" tabIndex={0} role="region" aria-label="Information about interests">
+                <h3 className="font-medium text-sm mb-2 text-primary" role="heading" aria-level={3}>Almost there!</h3>
                 <p className="text-sm text-muted-foreground">
                   Your interests help us personalize your study experience and connect you with like-minded peers.
                 </p>
@@ -242,7 +265,8 @@ export default function OnboardingPage() {
             <Button 
               variant="outline" 
               onClick={handlePrevStep}
-              className="h-11"
+              className="h-11 focus:outline-dashed focus:outline-2 focus:outline-offset-2"
+              aria-label="Go to previous step"
             >
               Back
             </Button>
@@ -252,12 +276,13 @@ export default function OnboardingPage() {
           
           <Button 
             onClick={handleNextStep} 
-            className="h-11 px-6 group"
+            className="h-11 px-6 group focus:outline-dashed focus:outline-2 focus:outline-offset-2"
+            aria-label={step < totalSteps ? "Go to next step" : "Complete setup"}
           >
             {step < totalSteps ? (
               <>
                 Next
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
               </>
             ) : (
               'Complete Setup'
@@ -266,9 +291,12 @@ export default function OnboardingPage() {
         </CardFooter>
       </Card>
       
-      <p className="text-xs text-muted-foreground mt-4">
+      <p className="text-xs text-muted-foreground mt-4 focus:outline-dashed focus:outline-2" tabIndex={0}>
         By completing setup, you agree to our Terms of Service and Privacy Policy.
       </p>
+      <div aria-live="polite" className="sr-only" id="form-error-message">
+        {formError && <p>{formError}</p>}
+      </div>
     </div>
   );
 }

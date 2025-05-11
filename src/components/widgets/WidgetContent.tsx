@@ -44,7 +44,7 @@ export function WidgetContent({ type, data }: WidgetContentProps) {
       // Display urgent task
       return (
         <div className="text-center p-2 text-sm">
-          <p className="font-semibold mb-1">Next Task:</p>
+          <h3 className="font-semibold mb-1 text-base">Next Task:</h3>
           {urgentTask ? (
             <p>{urgentTask.text}</p>
           ) : (

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { motion, PanInfo } from 'framer-motion';
+import { motion, PanInfo, useReducedMotion } from 'framer-motion';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { cn } from "@/lib/utils";
 import { Expand } from 'lucide-react';
@@ -51,6 +51,8 @@ export function DraggableWidget({
     height: initialHeight,
   });
 
+  const prefersReducedMotion = useReducedMotion();
+
   const shapeClasses = {
     square: 'rounded-none aspect-square',
     rounded: 'rounded-lg',
@@ -67,7 +69,7 @@ export function DraggableWidget({
     <motion.div
       drag
       dragConstraints={dragConstraintsRef}
-      dragElastic={0.3}
+      dragElastic={prefersReducedMotion ? 0 : 0.3}
       dragMomentum={false}
       style={{
         x: position.x,

@@ -9,6 +9,8 @@ interface TabContainerProps {
   initialTab?: number;
   onTabChange?: (index: number) => void;
   activeIndex?: number;
+  panelIds?: string[];
+  tabIds?: string[];
 }
 
 const swipeConfidenceThreshold = 10000;
@@ -41,7 +43,9 @@ export function TabContainer({
     children,
     initialTab = 0,
     onTabChange,
-    activeIndex: controlledIndex
+    activeIndex: controlledIndex,
+    panelIds,
+    tabIds
 }: TabContainerProps) {
   const tabs = Children.toArray(children).filter(isValidElement);
   const [[internalIndex, direction], setInternalIndex] = useState([initialTab, 0]);
@@ -89,6 +93,9 @@ export function TabContainer({
       <AnimatePresence initial={false} custom={direction}>
         <motion.div
           key={currentIndex}
+          role="tabpanel"
+          id={panelIds?.[currentIndex]}
+          aria-labelledby={tabIds?.[currentIndex]}
           custom={direction}
           variants={variants}
           initial="enter"

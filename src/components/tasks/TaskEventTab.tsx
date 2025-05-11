@@ -129,7 +129,15 @@ const Countdown: React.FC<CountdownProps> = ({ dueDateString }) => {
     return () => clearInterval(interval);
   }, [dueDateString]);
 
-  return <span className="text-xs text-blue-600 dark:text-blue-400 ml-2">({timeRemaining})</span>;
+  const isPastDue = timeRemaining === "Past due";
+  const pulseAnimation = !isPastDue && timeRemaining !== "Due now" ? "animate-pulse" : "";
+
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold shadow-sm border ${isPastDue ? 'bg-red-100 text-red-700 border-red-200' : 'bg-blue-100 text-blue-700 border-blue-200'} ${pulseAnimation} ml-2`}>
+      <FaClock className="h-3 w-3 mr-1" aria-hidden="true" />
+      {timeRemaining}
+    </span>
+  );
 };
 // --- End Countdown Logic ---
 
@@ -229,21 +237,29 @@ const TaskEventTab = () => {
           <h1 className="text-2xl font-bold flex-1">Tasks & Events</h1>
           <Dialog open={showAddTask} onOpenChange={setShowAddTask}>
             <DialogTrigger asChild>
-              <Button size="sm" className="rounded-full h-8 w-8 p-0">
-                <FaPlus className="h-4 w-4" />
+              <Button size="sm" className="rounded-full h-8 w-8 p-0" aria-label="Add new task or event">
+                <FaPlus className="h-4 w-4" aria-hidden="true" />
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Add New Task/Event</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <Input name="title" placeholder="Title" value={newTask.title} onChange={handleInputChange} />
-                <Input name="dueDate" type="datetime-local" value={newTask.dueDate} onChange={handleInputChange} />
-              </div>
-              <DialogFooter>
-                <Button onClick={handleAddTask}>Add Task</Button>
-              </DialogFooter>
+              <form onSubmit={(e) => { e.preventDefault(); handleAddTask(); }}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <label htmlFor="task-title" className="text-right col-span-1">Title</label>
+                    <Input id="task-title" name="title" placeholder="e.g., Finish project report" value={newTask.title} onChange={handleInputChange} className="col-span-3" />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <label htmlFor="task-dueDate" className="text-right col-span-1">Due Date</label>
+                    <Input id="task-dueDate" name="dueDate" type="datetime-local" value={newTask.dueDate} onChange={handleInputChange} className="col-span-3" />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit">Add Task</Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         </div>

@@ -11,6 +11,7 @@ export default function LandingPage() {
   const router = useRouter();
   const [animationComplete, setAnimationComplete] = useState(false);
   const featuresRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Gradient colors for the background (green to beige)
   const gradientStyle = {
@@ -50,13 +51,15 @@ export default function LandingPage() {
 
   return (
     <>
+      {/* Skip to Content Link for Accessibility */}
+      <a href="#features" className="sr-only focus:not-sr-only absolute top-2 left-2 z-50 bg-primary text-primary-foreground px-4 py-2 rounded focus:outline-dashed focus:outline-2 focus:outline-offset-2">Skip to main content</a>
       {/* Splash Screen Section */}
       <div
         className="min-h-screen w-full flex flex-col items-center justify-center p-4 relative overflow-hidden"
         style={gradientStyle}
       >
         {/* Floating bubbles for background effect */}
-        {Array.from({ length: 10 }).map((_, i) => (
+        {!prefersReducedMotion && Array.from({ length: 10 }).map((_, i) => (
             <motion.div
                 key={i}
                 initial={{ opacity: 0, scale: 0.5, y: 50 }}
@@ -72,6 +75,7 @@ export default function LandingPage() {
                     borderRadius: '50%',
                     filter: 'blur(5px)',
                 }}
+                aria-hidden="true"
             />
         ))}
 
@@ -82,6 +86,8 @@ export default function LandingPage() {
             animate={{ scale: 1 }}
             transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
             className="animate-floating text-white"
+            aria-label="StudySpark Logo"
+            role="img"
           >
             <StudySparkLogoSvg height={60} />
           </motion.div>
@@ -91,7 +97,10 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8, duration: 0.5 }}
-            className="text-4xl md:text-5xl font-bold text-white text-center drop-shadow-md"
+            className="text-4xl md:text-5xl font-bold text-white text-center drop-shadow-md focus:outline-dashed focus:outline-2"
+            role="heading"
+            aria-level={1}
+            tabIndex={0}
           >
             StudySpark
           </motion.h1>
@@ -101,7 +110,8 @@ export default function LandingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2, duration: 0.5 }}
-            className="text-white text-xl text-center max-w-md drop-shadow"
+            className="text-white text-xl text-center max-w-md drop-shadow focus:outline-dashed focus:outline-2"
+            tabIndex={0}
           >
             Your gamified study companion for better engagement and time management
           </motion.p>
@@ -116,7 +126,8 @@ export default function LandingPage() {
             {/* Get Started Button -> Scrolls Down */}
             <Button
               onClick={handleGetStarted}
-              className="bg-white text-primary hover:bg-secondary hover:text-foreground font-semibold px-8 py-4 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105"
+              className="bg-white text-primary hover:bg-secondary hover:text-foreground font-semibold px-8 py-4 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
+              aria-label="Learn more about StudySpark features"
             >
               Learn More
             </Button>
@@ -125,7 +136,8 @@ export default function LandingPage() {
             <Button
               onClick={() => router.push("/login")}
               variant="outline"
-              className="bg-transparent text-white border-white hover:bg-white hover:text-primary font-semibold px-8 py-3 text-lg rounded-full transition-all duration-300 ease-in-out transform hover:scale-105"
+              className="bg-transparent text-white border-white hover:bg-white hover:text-primary font-semibold px-8 py-3 text-lg rounded-full transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
+              aria-label="Sign in to StudySpark"
             >
               Enter App
             </Button>
@@ -135,7 +147,7 @@ export default function LandingPage() {
 
       {/* Features Section */}
       <div ref={featuresRef} id="features" className="w-full bg-background py-16 px-4 md:px-8">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-primary">
+        <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-primary focus:outline-dashed focus:outline-2" role="heading" aria-level={2} tabIndex={0}>
           How StudySpark Helps You Succeed
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
@@ -146,12 +158,14 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.5, delay: index * 0.2 }}
-              className="bg-card p-6 rounded-lg shadow-md flex flex-col items-center text-center"
+              className="bg-card p-6 rounded-lg shadow-md flex flex-col items-center text-center focus:outline-dashed focus:outline-2"
+              tabIndex={0}
+              aria-label={feature.title}
             >
               <div className="w-32 h-32 mb-4 bg-muted rounded-full flex items-center justify-center">
                   <Image src={feature.image} alt={feature.title} width={80} height={80} className="text-muted-foreground" />
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-card-foreground">{feature.title}</h3>
+              <h3 className="text-xl font-semibold mb-2 text-card-foreground" role="heading" aria-level={3}>{feature.title}</h3>
               <p className="text-muted-foreground">{feature.description}</p>
             </motion.div>
           ))}
@@ -161,12 +175,15 @@ export default function LandingPage() {
              <Button
                 onClick={() => router.push('/login')}
                 size="lg"
-                className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-10 py-6 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-10 py-6 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
+                aria-label="Get started with StudySpark"
             >
                 Get Started with StudySpark Now!
             </Button>
          </div>
       </div>
+      {/* ARIA live region for future status messages */}
+      <div aria-live="polite" className="sr-only" id="status-message-region"></div>
     </>
   );
 }

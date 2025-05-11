@@ -1,4 +1,4 @@
-import type React from "react";
+import React from "react";
 
 interface KoalaMascotProps extends React.SVGProps<SVGSVGElement> {
   size?: string | number;
@@ -15,6 +15,7 @@ export const KoalaMascot: React.FC<KoalaMascotProps> = ({
 }) => {
   const width = typeof size === "string" ? size : `${size}px`;
   const height = typeof size === "string" ? size : `${size}px`;
+  const titleId = React.useId ? React.useId() : `koala-title-${Math.random().toString(36).substr(2, 9)}`; // Fallback for older React
 
   // The new SVG code converted to JSX
   const NewKoalaSVG = (
@@ -23,8 +24,11 @@ export const KoalaMascot: React.FC<KoalaMascotProps> = ({
       height={height}
       viewBox="0 0 965.93 597.07" // Updated viewBox from the new SVG
       xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-labelledby={titleId}
       {...props} // Spread remaining props onto the SVG element
     >
+      <title id={titleId}>Stu, the StudySpark Mascot</title>
       {/*
         Original SVG <defs> and <style> were converted into inline attributes.
         Classes like .b, .c, .d, etc., were replaced by direct fill/stroke attributes.
