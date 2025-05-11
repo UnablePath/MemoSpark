@@ -309,7 +309,10 @@ export default function StudentConnectionTab() {
   }, [selectedStudent]); // Rerun when chat opens/closes
 
   return (
-    <div className="flex flex-col h-full p-4 gap-4">
+    <div 
+      className="flex flex-col h-full p-4 gap-4"
+      data-view-mode={viewMode}
+    >
       {/* ARIA Live Region for status messages */}
       <div aria-live="polite" className="sr-only">
         {statusMessage}
@@ -366,12 +369,12 @@ export default function StudentConnectionTab() {
                 >
                   <CardHeader className="flex flex-row items-center gap-4 pb-2">
                     <div className="relative">
-                      <Avatar className={getStreak(student.id) ? 'ring-2 ring-orange-400 ring-offset-2' : ''}>
+                      <Avatar className={`w-20 h-20 ${getStreak(student.id) ? 'ring-2 ring-orange-400 ring-offset-2' : ''}`}>
                         <AvatarImage src={student.avatar || undefined} alt={`${student.name}'s avatar`} />
-                        <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
+                        <AvatarFallback className="text-3xl">{getInitials(student.name)}</AvatarFallback>
                       </Avatar>
                       {getStreak(student.id) > 0 && (
-                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2" aria-label={`Current streak: ${getStreak(student.id)} days`}>
+                        <div className="absolute top-0 right-0 p-1 bg-background/70 rounded-bl-lg" aria-label={`Current streak: ${getStreak(student.id)} days`}>
                           <StreakTracker currentStreak={getStreak(student.id)} />
                         </div>
                       )}
@@ -451,6 +454,9 @@ export default function StudentConnectionTab() {
                     drag="x"
                     dragConstraints={{ left: -200, right: 200, top: 0, bottom: 0 }}
                     dragElastic={0.2}
+                    onDragStart={(event, info) => {
+                      event.stopPropagation();
+                    }}
                     onDragEnd={(e, { offset, velocity }) => {
                       const swipeVelocity = Math.abs(offset.x) * velocity.x;
                       if (swipeVelocity < -10000) { 
@@ -464,21 +470,21 @@ export default function StudentConnectionTab() {
                   >
                     <Card className="w-full h-full flex flex-col shadow-xl border border-border">
                       <CardHeader className="flex-shrink-0">
-                        <div className="flex items-center gap-3">
-                           <Avatar className={`w-16 h-16 ${getStreak(student.id) ? 'ring-2 ring-orange-400 ring-offset-2' : ''}`}>
+                        <div className="flex items-center gap-3 relative">
+                           <Avatar className={`w-24 h-24 ${getStreak(student.id) ? 'ring-2 ring-orange-400 ring-offset-2' : ''}`}>
                             <AvatarImage src={student.avatar || undefined} alt={`${student.name}'s avatar`} />
-                            <AvatarFallback className="text-2xl">{getInitials(student.name)}</AvatarFallback>
+                            <AvatarFallback className="text-4xl">{getInitials(student.name)}</AvatarFallback>
                           </Avatar>
+                          {getStreak(student.id) > 0 && (
+                            <div className="absolute top-0 right-0 p-1 bg-background/70 rounded-bl-lg" aria-label={`Current streak: ${getStreak(student.id)} days`}>
+                              <StreakTracker currentStreak={getStreak(student.id)} />
+                            </div>
+                          )}
                           <div>
                             <CardTitle id={`tinder-student-name-${student.id}`}>{student.name}</CardTitle>
                             <CardDescription>{student.year}</CardDescription>
                           </div>
                         </div>
-                         {getStreak(student.id) > 0 && (
-                          <div className="mt-2 flex justify-center" aria-label={`Current streak: ${getStreak(student.id)} days`}>
-                            <StreakTracker currentStreak={getStreak(student.id)} />
-                          </div>
-                        )}
                       </CardHeader>
                       <CardContent className="flex-grow overflow-y-auto p-4 space-y-3">
                         <div>

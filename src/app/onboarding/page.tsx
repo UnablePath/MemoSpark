@@ -14,12 +14,115 @@ import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, ArrowRight, User, Mail, GraduationCap, Sparkles } from "lucide-react";
+import { Calendar as CalendarIcon, ArrowRight, User, Mail, GraduationCap, Sparkles, Pencil as PencilIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { CaptionProps, useDayPicker, useNavigation } from "react-day-picker";
 
 const MAX_DATE = new Date();
 const MIN_DATE = new Date(MAX_DATE.getFullYear() - 100, MAX_DATE.getMonth(), MAX_DATE.getDate());
 const SIXTEEN_YEARS_AGO = new Date(MAX_DATE.getFullYear() - 16, MAX_DATE.getMonth(), MAX_DATE.getDate());
+
+// Custom Caption Component for the Calendar
+function CustomCalendarCaption(props: CaptionProps) {
+  const { goToMonth, nextMonth, previousMonth } = useNavigation();
+  const { fromDate, toDate } = useDayPicker();
+  const { displayMonth } = props;
+
+  const years: number[] = [];
+  const refYear = displayMonth.getFullYear();
+  const fromYear = fromDate ? fromDate.getFullYear() : refYear - 100;
+  const toYear = toDate ? toDate.getFullYear() : refYear;
+  for (let i = fromYear; i <= toYear; i++) {
+    years.push(i);
+  }
+
+  const handleYearChange = (yearValue: string) => {
+    const newYear = parseInt(yearValue, 10);
+    const newMonthDate = new Date(newYear, displayMonth.getMonth());
+    if (fromDate && newMonthDate < fromDate) {
+      goToMonth(fromDate);
+    } else if (toDate && newMonthDate > toDate) {
+      goToMonth(toDate);
+    } else {
+      goToMonth(newMonthDate);
+    }
+  };
+
+  const handleMonthChange = (monthValue: string) => {
+    const newMonth = parseInt(monthValue, 10);
+    const newMonthDate = new Date(displayMonth.getFullYear(), newMonth);
+    if (fromDate && newMonthDate < fromDate) {
+      goToMonth(fromDate);
+    } else if (toDate && newMonthDate > toDate) {
+      goToMonth(toDate);
+    } else {
+      goToMonth(newMonthDate);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between pt-2 pb-1.5 px-1.5 sm:px-2 space-x-1 sm:space-x-1.5 border-b border-border">
+      <div className="flex items-center space-x-1 sm:space-x-1.5">
+        <Select
+          value={displayMonth.getFullYear().toString()}
+          onValueChange={handleYearChange}
+        >
+          <SelectTrigger 
+            aria-label="Select year"
+            className="h-8 text-sm font-semibold focus:ring-0 focus:outline-none bg-transparent hover:bg-accent w-[auto] min-w-[65px] sm:min-w-[70px] border-0 shadow-none px-1.5 py-0 data-[state=open]:bg-accent"
+          >
+            <SelectValue placeholder="Year" />
+          </SelectTrigger>
+          <SelectContent position="popper" className="max-h-[200px]">
+            {years.map((year) => (
+              <SelectItem key={year} value={year.toString()} className="focus:bg-accent">{year}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={displayMonth.getMonth().toString()}
+          onValueChange={handleMonthChange}
+        >
+          <SelectTrigger 
+            aria-label="Select month"
+            className="h-8 text-sm font-semibold focus:ring-0 focus:outline-none bg-transparent hover:bg-accent w-[auto] min-w-[90px] sm:min-w-[100px] border-0 shadow-none px-1.5 py-0 data-[state=open]:bg-accent"
+          >
+            <SelectValue placeholder="Month" />
+          </SelectTrigger>
+          <SelectContent position="popper" className="max-h-[200px]">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <SelectItem key={i} value={i.toString()} className="focus:bg-accent">{format(new Date(displayMonth.getFullYear(), i), "MMMM")}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex items-center">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-7 w-7 border-0 hover:bg-accent rounded-full"
+          onClick={() => previousMonth && goToMonth(previousMonth)}
+          disabled={!previousMonth}
+          aria-label="Go to previous month"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-7 w-7 border-0 hover:bg-accent rounded-full"
+          onClick={() => nextMonth && goToMonth(nextMonth)}
+          disabled={!nextMonth}
+          aria-label="Go to next month"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -28,6 +131,7 @@ export default function OnboardingPage() {
   const [email, setEmail] = useState('');
   const [yearOfStudy, setYearOfStudy] = useState<string>('Freshman');
   const [birthDate, setBirthDate] = useState<Date | undefined>();
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [interests, setInterests] = useState('');
   const [step, setStep] = useState(1);
   const totalSteps = 3;
@@ -192,7 +296,7 @@ export default function OnboardingPage() {
                   <CalendarIcon size={16} className="text-primary" aria-hidden="true" />
                   Date of Birth
                 </Label>
-                <Popover>
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       id="birthdate"
@@ -208,24 +312,66 @@ export default function OnboardingPage() {
                       {birthDate ? format(birthDate, "PPP") : <span>Pick a date</span>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 rounded-2xl shadow-2xl border-2 border-primary/10 bg-gradient-to-br from-white via-blue-50 to-pink-50 max-w-xs sm:max-w-sm md:max-w-md" align="center" sideOffset={8} avoidCollisions>
-                    <div className="p-4 pb-0 flex flex-col items-center">
-                      <CalendarIcon className="h-8 w-8 text-primary mb-2 animate-bounce" aria-hidden="true" />
-                      <h4 className="font-bold text-lg mb-1 text-primary focus:outline-dashed focus:outline-2" role="heading" aria-level={2} tabIndex={0}>Pick your birthday!</h4>
+                  <PopoverContent 
+                    className="w-[calc(100vw-2rem)] sm:w-full max-w-lg p-0 rounded-lg shadow-xl border border-border"
+                    align="center" 
+                    sideOffset={8}
+                    aria-labelledby="calendar-dialog-title"
+                    role="dialog"
+                    aria-modal="true"
+                  >
+                    <div className="bg-primary text-primary-foreground p-2.5 rounded-t-lg">
+                      <div className="text-[0.7rem] uppercase tracking-wider mb-0.5">
+                        Select Date
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-lg font-semibold" id="calendar-dialog-title">
+                          {birthDate ? format(birthDate, "EEE, MMM d") : "Pick a date"}
+                        </span>
+                        <PencilIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                      </div>
                     </div>
-                    <div className="px-4 pb-4">
+
+                    <div className="p-1.5 bg-background">
                       <Calendar
                         mode="single"
                         selected={birthDate}
                         onSelect={setBirthDate}
-                        initialFocus
-                        captionLayout="dropdown-buttons"
                         fromDate={MIN_DATE}
                         toDate={MAX_DATE}
                         defaultMonth={SIXTEEN_YEARS_AGO}
-                        className="rounded-lg border bg-white shadow-sm"
-                        aria-label="Calendar for selecting date of birth"
+                        initialFocus
+                        className="rounded-md !p-0"
+                        classNames={{
+                          months: 'flex flex-col sm:flex-row space-y-1.5 sm:space-x-4 sm:space-y-0',
+                          month: 'space-y-0.5',
+                          caption_label: 'hidden',
+                          nav_button: 'h-5 w-5 opacity-80 hover:opacity-100',
+                          nav_button_previous: 'absolute left-1 top-[calc(50%-0.625rem)] sm:static',
+                          nav_button_next: 'absolute right-1 top-[calc(50%-0.625rem)] sm:static',
+                          table: 'w-full border-collapse',
+                          head_row: 'flex justify-around mb-0',
+                          head_cell: 'text-muted-foreground rounded-md w-7 font-normal text-[0.7rem]',
+                          row: 'flex w-full mt-0.5 justify-around',
+                          cell: 'h-7 w-7 text-center text-xs p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20',
+                          day: 'h-7 w-7 p-0 font-normal aria-selected:opacity-100 rounded-full hover:bg-accent focus:bg-accent transition-colors',
+                          day_selected: 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground',
+                          day_today: 'bg-accent text-accent-foreground font-semibold',
+                          day_outside: 'day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30',
+                          day_disabled: 'text-muted-foreground opacity-50',
+                          day_range_middle: 'aria-selected:bg-accent aria-selected:text-accent-foreground',
+                          day_hidden: 'invisible',
+                        }}
+                        components={{
+                          Caption: CustomCalendarCaption,
+                        }}
+                        showOutsideDays={false}
                       />
+                    </div>
+
+                    <div className="flex justify-end gap-2 p-2 border-t border-border rounded-b-lg">
+                      <Button variant="ghost" onClick={() => setIsCalendarOpen(false)} className="h-8 text-sm">Cancel</Button>
+                      <Button onClick={() => setIsCalendarOpen(false)} className="h-8 text-sm">OK</Button>
                     </div>
                   </PopoverContent>
                 </Popover>

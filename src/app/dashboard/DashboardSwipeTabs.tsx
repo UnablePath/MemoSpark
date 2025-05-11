@@ -19,6 +19,7 @@ const TABS = TABS_CONFIG.map(tab => tab.component);
 
 export function DashboardSwipeTabs() {
   const [activeTabIndex, setActiveTabIndex] = useState(1); // Start on TaskTab (middle)
+  const [isTinderModeActive, setIsTinderModeActive] = useState(false); // New state
   const tablistRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -34,7 +35,15 @@ export function DashboardSwipeTabs() {
          tabRefs.current[activeTabIndex]?.focus();
       }
     }
-  }, [activeTabIndex]);
+
+    // Check if tinder mode is active in the StudentConnectionTab
+    const studentTabContent = document.querySelector('[data-view-mode]');
+    if (TABS_CONFIG[activeTabIndex]?.key === 'connections' && studentTabContent?.getAttribute('data-view-mode') === 'tinder') {
+      setIsTinderModeActive(true);
+    } else {
+      setIsTinderModeActive(false);
+    }
+  }, [activeTabIndex]); // Re-check when activeTabIndex changes
 
   const handleTabChange = (index: number) => {
     setActiveTabIndex(index);
@@ -74,6 +83,7 @@ export function DashboardSwipeTabs() {
         initialTab={activeTabIndex} // Keep initialTab for first load
         activeIndex={activeTabIndex} // Control the active tab
         onTabChange={handleTabChange} // Get updates from TabContainer swipes
+        restrictSwipeToEdges={isTinderModeActive} // Pass the new prop
         // Pass panel IDs to TabContainer so it can set them
         panelIds={TABS_CONFIG.map((tab, index) => `dashboard-panel-${tab.key}-${index}`)}
         tabIds={TABS_CONFIG.map((tab, index) => `dashboard-tab-${tab.key}-${index}`)}

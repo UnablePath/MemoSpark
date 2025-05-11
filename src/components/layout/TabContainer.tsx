@@ -11,6 +11,7 @@ interface TabContainerProps {
   activeIndex?: number;
   panelIds?: string[];
   tabIds?: string[];
+  restrictSwipeToEdges?: boolean;
 }
 
 const swipeConfidenceThreshold = 10000;
@@ -45,7 +46,8 @@ export function TabContainer({
     onTabChange,
     activeIndex: controlledIndex,
     panelIds,
-    tabIds
+    tabIds,
+    restrictSwipeToEdges = false
 }: TabContainerProps) {
   const tabs = Children.toArray(children).filter(isValidElement);
   const [[internalIndex, direction], setInternalIndex] = useState([initialTab, 0]);
@@ -71,12 +73,34 @@ export function TabContainer({
     }
   };
 
+  const edgeThresholdPx = 50;
+
   const handlers = useSwipeable({
-    onSwipedLeft: () => {
-       changeTab(1);
+    onSwipedLeft: (eventData: SwipeEventData) => {
+      if (restrictSwipeToEdges) {
+        const touchX = eventData.initial[0];
+        const targetElement = eventData.event.target as HTMLElement;
+        const widthToCheck = targetElement?.offsetParent instanceof HTMLElement ? targetElement.offsetParent.offsetWidth : window.innerWidth;
+        
+        if (touchX > edgeThresholdPx && touchX < widthToCheck - edgeThresholdPx) {
+          eventData.event.stopPropagation();
+          return;
+        }
+      }
+      changeTab(1);
     },
-    onSwipedRight: () => {
-       changeTab(-1);
+    onSwipedRight: (eventData: SwipeEventData) => {
+      if (restrictSwipeToEdges) {
+        const touchX = eventData.initial[0];
+        const targetElement = eventData.event.target as HTMLElement;
+        const widthToCheck = targetElement?.offsetParent instanceof HTMLElement ? targetElement.offsetParent.offsetWidth : window.innerWidth;
+
+        if (touchX > edgeThresholdPx && touchX < widthToCheck - edgeThresholdPx) {
+          eventData.event.stopPropagation();
+          return;
+        }
+      }
+      changeTab(-1);
     },
     preventScrollOnSwipe: true,
     trackMouse: true
@@ -90,7 +114,7 @@ export function TabContainer({
 
   return (
     <div {...handlers} className="relative overflow-hidden w-full h-full flex-grow">
-      <AnimatePresence initial={false} custom={direction}>
+      <AnimatePresence initial={false} custom={direction} mode="wait">
         <motion.div
           key={currentIndex}
           role="tabpanel"
