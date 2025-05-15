@@ -234,7 +234,9 @@ const TaskEventTab = () => {
     <div className="h-full flex flex-col">
       <div className="p-4 border-b">
         <div className="flex items-center mb-4">
-          <h1 className="text-2xl font-bold flex-1">Tasks & Events</h1>
+          <div className="flex-1">
+            {/* <h1 className="text-2xl font-bold flex-1">Tasks & Events</h1> REMOVED */}
+          </div>
           <Dialog open={showAddTask} onOpenChange={setShowAddTask}>
             <DialogTrigger asChild>
               <Button size="sm" className="rounded-full h-8 w-8 p-0" aria-label="Add new task or event">
@@ -394,18 +396,95 @@ const TaskEventTab = () => {
       {/* Additional custom styles for calendar */}
       <style jsx global>{`
         .react-calendar {
-          border: none;
+          border: 1px solid hsl(var(--border)); /* Use theme border */
+          border-radius: var(--radius); /* Use theme radius */
           font-family: inherit;
           width: 100%;
+          background: hsl(var(--card)); /* Use theme card background */
+          color: hsl(var(--card-foreground)); /* Use theme card foreground for text */
+          line-height: 1.5; /* Improved readability */
         }
-        .react-calendar__tile--active {
-          background: hsl(142, 60%, 45%);
-          color: white;
+
+        /* Navigation */
+        .react-calendar__navigation button {
+          color: hsl(var(--primary));
+          min-width: 44px;
+          background: none;
+          font-size: 1rem;
+          margin-top: 8px;
+        }
+        .react-calendar__navigation button:enabled:hover,
+        .react-calendar__navigation button:enabled:focus {
+          background-color: hsl(var(--muted)); /* Use theme muted for hover */
+        }
+        .react-calendar__navigation button[disabled] {
+          color: hsl(var(--muted-foreground));
+          background-color: transparent;
+        }
+        .react-calendar__navigation__label {
+            font-weight: bold;
+            color: hsl(var(--foreground));
+        }
+
+        /* Weekday Headers */
+        .react-calendar__month-view__weekdays__weekday {
+          padding: 0.5em;
+          text-align: center;
+          text-transform: uppercase;
+          font-weight: bold;
+          font-size: 0.75em;
+          color: hsl(var(--muted-foreground));
+        }
+        .react-calendar__month-view__weekdays__weekday abbr[title] {
+          text-decoration: none; /* Remove underline from weekday abbreviations */
+        }
+
+        /* Day Tiles */
+        .react-calendar__tile {
+          padding: 0.75em 0.5em;
+          background: none;
+          text-align: center;
+          color: hsl(var(--card-foreground));
+          border-radius: var(--radius);
+        }
+        .react-calendar__tile:disabled {
+          color: hsl(var(--muted-foreground));
+          background-color: hsl(var(--card)); /* Ensure it's card background */
+        }
+        .react-calendar__tile:enabled:hover,
+        .react-calendar__tile:enabled:focus {
+          background-color: hsl(var(--muted));
+        }
+        .react-calendar__tile--now { /* Today */
+          background: hsl(var(--primary) / 0.1); /* Slight primary background */
+          color: hsl(var(--primary));
+          font-weight: bold;
+        }
+        .react-calendar__tile--now:enabled:hover,
+        .react-calendar__tile--now:enabled:focus {
+          background: hsl(var(--primary) / 0.2);
+        }
+        .react-calendar__tile--hasActive { /* Day that contains active day */
+          background: hsl(var(--primary) / 0.2);
+        }
+        .react-calendar__tile--hasActive:enabled:hover,
+        .react-calendar__tile--hasActive:enabled:focus {
+          background: hsl(var(--primary) / 0.3);
+        }
+        .react-calendar__tile--active { /* Selected day */
+          background: hsl(var(--primary));
+          color: hsl(var(--primary-foreground));
         }
         .react-calendar__tile--active:enabled:hover,
         .react-calendar__tile--active:enabled:focus {
-          background: hsl(142, 60%, 40%);
+          background: hsl(var(--primary)); /* Keep primary on hover/focus for active */
+          color: hsl(var(--primary-foreground));
         }
+        .react-calendar--selectRange .react-calendar__tile--hover {
+          background-color: hsl(var(--muted));
+        }
+
+        /* Task marker */
         .has-task {
           position: relative;
         }
@@ -418,7 +497,17 @@ const TaskEventTab = () => {
           width: 6px;
           height: 6px;
           border-radius: 50%;
-          background-color: hsl(142, 60%, 45%);
+          background-color: hsl(var(--primary)); /* Use theme primary color */
+        }
+
+        /* Remove default border from react-calendar if applying our own */
+        .react-calendar,
+        .react-calendar *, 
+        .react-calendar *:before,
+        .react-calendar *:after {
+            -moz-box-sizing: border-box;
+            -webkit-box-sizing: border-box;
+            box-sizing: border-box;
         }
       `}</style>
     </div>

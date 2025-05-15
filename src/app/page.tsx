@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { StudySparkLogoSvg } from "@/components/ui/StudySparkLogoSvg";
 import Image from "next/image";
-import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { HomepageNavbar } from "@/components/layout/HomepageNavbar";
+import { BubblePopGame } from "@/components/home/BubblePopGame";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -52,15 +54,18 @@ export default function LandingPage() {
 
   return (
     <>
-      {/* Skip to Content Link for Accessibility */}
-      <a href="#features" className="sr-only focus:not-sr-only absolute top-2 left-2 z-50 bg-primary text-primary-foreground px-4 py-2 rounded focus:outline-dashed focus:outline-2 focus:outline-offset-2">Skip to main content</a>
-      {/* Splash Screen Section */}
+      <HomepageNavbar />
+      {/* Skip to Content Link for Accessibility - ensure it targets content below navbar */}
+      <a href="#splash-content" className="sr-only focus:not-sr-only absolute top-2 left-2 z-[60] bg-primary text-primary-foreground px-4 py-2 rounded focus:outline-dashed focus:outline-2 focus:outline-offset-2">Skip to main content</a>
+      
+      {/* Splash Screen Section - Add padding-top for the fixed navbar */}
       <div
-        className="min-h-screen w-full flex flex-col items-center justify-center p-4 relative overflow-hidden"
+        id="splash-content" // Added ID for skip link target
+        className="min-h-screen w-full flex flex-col items-center justify-center p-4 pt-20 md:pt-24 relative overflow-hidden" // Added pt-20 (80px) or md:pt-24
         style={gradientStyle}
       >
-        {/* Floating bubbles for background effect */}
-        {!prefersReducedMotion && Array.from({ length: 10 }).map((_, i) => (
+        {/* Floating bubbles for background effect - REMOVED in favor of the game */}
+        {/* {!prefersReducedMotion && Array.from({ length: 10 }).map((_, i) => (
             <motion.div
                 key={i}
                 initial={{ opacity: 0, scale: 0.5, y: 50 }}
@@ -78,7 +83,7 @@ export default function LandingPage() {
                 }}
                 aria-hidden="true"
             />
-        ))}
+        ))} */}
 
         <div className="flex flex-col items-center justify-center gap-8 z-10">
           {/* Logo Animation */}
@@ -93,19 +98,6 @@ export default function LandingPage() {
             <StudySparkLogoSvg height={60} />
           </motion.div>
 
-          {/* App Name */}
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.5 }}
-            className="text-4xl md:text-5xl font-bold text-white text-center drop-shadow-md focus:outline-dashed focus:outline-2"
-            role="heading"
-            aria-level={1}
-            tabIndex={0}
-          >
-            StudySpark
-          </motion.h1>
-
           {/* Tagline */}
           <motion.p
             initial={{ opacity: 0 }}
@@ -117,14 +109,13 @@ export default function LandingPage() {
             Your gamified study companion for better engagement and time management
           </motion.p>
 
-          {/* Action Buttons */}
+          {/* Action Buttons - SignInButton and SignUpButton are now in HomepageNavbar */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: animationComplete ? 1 : 0, y: animationComplete ? 0 : 20 }}
             transition={{ duration: 0.5 }}
             className="flex flex-col sm:flex-row gap-4 items-center mt-6"
           >
-            {/* Get Started Button -> Scrolls Down */}
             <Button
               onClick={handleGetStarted}
               className="bg-white text-primary hover:bg-secondary hover:text-foreground font-semibold px-8 py-4 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
@@ -133,6 +124,8 @@ export default function LandingPage() {
               Learn More
             </Button>
 
+            {/* Removed SignedOut SignInButton - it's in the navbar */}
+            {/* 
             <SignedOut>
               <SignInButton mode="modal">
                 <Button
@@ -144,6 +137,7 @@ export default function LandingPage() {
                 </Button>
               </SignInButton>
             </SignedOut>
+            */}
             <SignedIn>
               <Button
                 onClick={() => router.push('/dashboard')}
@@ -154,6 +148,13 @@ export default function LandingPage() {
               </Button>
             </SignedIn>
           </motion.div>
+        </div>
+      </div>
+
+      {/* Bubble Pop Game Section - Added below the main splash content, before features */}
+      <div className="w-full flex justify-center bg-background">
+        <div className="max-w-4xl w-full px-4">
+          <BubblePopGame />
         </div>
       </div>
 
@@ -183,27 +184,20 @@ export default function LandingPage() {
           ))}
         </div>
          <div className="text-center mt-16">
-             <SignedOut>
-               <SignInButton mode="modal">
-                 <Button
-                   size="lg"
-                   className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-10 py-6 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
-                   aria-label="Get started with StudySpark"
-                 >
-                   Get Started with StudySpark Now!
-                 </Button>
-               </SignInButton>
-             </SignedOut>
-             <SignedIn>
-               <Button
-                   onClick={() => router.push('/dashboard')}
-                   size="lg"
-                   className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-10 py-6 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
-                   aria-label="Go to your StudySpark dashboard"
-               >
-                   Go to Dashboard
-               </Button>
-             </SignedIn>
+           {/* Get Started / Go to Dashboard buttons - SignInButton is in Navbar*/}
+            <SignedOut>
+              {/* This SignInButton can be a larger call to action if desired, or removed if navbar is sufficient */}
+              {/* For now, let's assume the navbar handles primary sign-in/sign-up for SignedOut users */}
+              {/* If a large "Get Started" button is still desired here for signed-out users, it can be added back using SignInButton */}
+              <Button 
+                onClick={handleGetStarted} 
+                size="lg" 
+                className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-10 py-6 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
+                aria-label="Learn more and get started with StudySpark"
+              >
+                Discover Features & Sign Up
+              </Button>
+            </SignedOut>
          </div>
       </div>
       {/* ARIA live region for future status messages */}
