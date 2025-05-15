@@ -28,7 +28,7 @@ export default function DashboardPage() {
         <DashboardSwipeTabs />
       </main>
 
-      {isWidgetEnabled && (
+      {/* {isWidgetEnabled && (
         <div role="region" aria-label="Draggable Mascot Widget">
           <DraggableWidget
             widgetId="dashboard-widget"
@@ -38,7 +38,7 @@ export default function DashboardPage() {
             <WidgetContent type="tasks" />
           </DraggableWidget>
         </div>
-      )}
+      )} */}
       {/* ARIA live region for status messages */}
       <div aria-live="polite" className="sr-only" id="dashboard-status-message"></div>
     </div>

@@ -23,6 +23,10 @@ type Student = {
   avatar: string | null;
 };
 
+interface StudentConnectionTabProps {
+  onViewModeChange?: (isTinderMode: boolean) => void;
+}
+
 const mockStudents: Student[] = [
   {
     id: "1",
@@ -58,7 +62,7 @@ const mockStudents: Student[] = [
   },
 ];
 
-export default function StudentConnectionTab() {
+export default function StudentConnectionTab({ onViewModeChange }: StudentConnectionTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [chatMessage, setChatMessage] = useState("");
@@ -85,6 +89,11 @@ export default function StudentConnectionTab() {
   const lastFocusedElementRef = useRef<HTMLElement | null>(null);
   const chatModalRef = useRef<HTMLDivElement>(null); // Ref for the chat modal main div
   const [tinderExitDirection, setTinderExitDirection] = useState<number>(0);
+
+  // Call onViewModeChange when viewMode changes
+  useEffect(() => {
+    onViewModeChange?.(viewMode === 'tinder');
+  }, [viewMode, onViewModeChange]);
 
   const cardVariants = {
     initial: {

@@ -98,7 +98,7 @@ export default function SettingsPage() {
             </div>
         </SettingsSection>
 
-        <SettingsSection title="Dashboard Widget">
+        {/* <SettingsSection title="Dashboard Widget">
           <div className="space-y-4">
             <div className="flex items-center justify-between space-x-2">
                 <Label htmlFor="widget-toggle" className="flex flex-col space-y-1">
@@ -139,7 +139,7 @@ export default function SettingsPage() {
               </RadioGroup>
             </fieldset>
           </div>
-        </SettingsSection>
+        </SettingsSection> */}
 
       </div>
 

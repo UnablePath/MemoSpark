@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { StudySparkLogoSvg } from "@/components/ui/StudySparkLogoSvg";
 import Image from "next/image";
+import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -132,15 +133,26 @@ export default function LandingPage() {
               Learn More
             </Button>
 
-            {/* Enter App Button -> Navigate to Login */}
-            <Button
-              onClick={() => router.push("/login")}
-              variant="outline"
-              className="bg-transparent text-white border-white hover:bg-white hover:text-primary font-semibold px-8 py-3 text-lg rounded-full transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
-              aria-label="Sign in to StudySpark"
-            >
-              Enter App
-            </Button>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <Button
+                  variant="outline"
+                  className="bg-transparent text-white border-white hover:bg-white hover:text-primary font-semibold px-8 py-3 text-lg rounded-full transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
+                  aria-label="Sign in to StudySpark"
+                >
+                  Enter App
+                </Button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <Button
+                onClick={() => router.push('/dashboard')}
+                className="bg-white text-primary hover:bg-secondary hover:text-foreground font-semibold px-8 py-3 text-lg rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
+                aria-label="Go to your StudySpark dashboard"
+              >
+                Go to Dashboard
+              </Button>
+            </SignedIn>
           </motion.div>
         </div>
       </div>
@@ -171,15 +183,27 @@ export default function LandingPage() {
           ))}
         </div>
          <div className="text-center mt-16">
-             {/* Button at bottom -> Navigate to Login */}
-             <Button
-                onClick={() => router.push('/login')}
-                size="lg"
-                className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-10 py-6 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
-                aria-label="Get started with StudySpark"
-            >
-                Get Started with StudySpark Now!
-            </Button>
+             <SignedOut>
+               <SignInButton mode="modal">
+                 <Button
+                   size="lg"
+                   className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-10 py-6 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
+                   aria-label="Get started with StudySpark"
+                 >
+                   Get Started with StudySpark Now!
+                 </Button>
+               </SignInButton>
+             </SignedOut>
+             <SignedIn>
+               <Button
+                   onClick={() => router.push('/dashboard')}
+                   size="lg"
+                   className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-10 py-6 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
+                   aria-label="Go to your StudySpark dashboard"
+               >
+                   Go to Dashboard
+               </Button>
+             </SignedIn>
          </div>
       </div>
       {/* ARIA live region for future status messages */}

@@ -27,27 +27,39 @@ export function DashboardSwipeTabs() {
     tabRefs.current = tabRefs.current.slice(0, TABS_CONFIG.length);
   }, []);
 
-  useEffect(() => {
-    // Focus the active tab button when activeTabIndex changes, if it was changed by swipe
-    if (tabRefs.current[activeTabIndex] && document.activeElement !== tabRefs.current[activeTabIndex]) {
-      // Check if focus is not already within the tablist to avoid focus stealing during keyboard nav
-      if (!tablistRef.current?.contains(document.activeElement)) {
-         tabRefs.current[activeTabIndex]?.focus();
-      }
-    }
-
-    // Check if tinder mode is active in the StudentConnectionTab
-    const studentTabContent = document.querySelector('[data-view-mode]');
-    if (TABS_CONFIG[activeTabIndex]?.key === 'connections' && studentTabContent?.getAttribute('data-view-mode') === 'tinder') {
-      setIsTinderModeActive(true);
+  // New handler for StudentConnectionTab view mode changes
+  const handleStudentTabViewModeChange = (isTinder: boolean) => {
+    // Only set tinder mode if the connections tab is currently active
+    if (TABS_CONFIG[activeTabIndex]?.key === 'connections') {
+      setIsTinderModeActive(isTinder);
     } else {
+      // If connections tab is not active, tinder mode should not be active for the tabs
       setIsTinderModeActive(false);
     }
-  }, [activeTabIndex]); // Re-check when activeTabIndex changes
+  };
 
   const handleTabChange = (index: number) => {
+    const newActiveTabConfig = TABS_CONFIG[index];
+    if (newActiveTabConfig?.key !== 'connections') {
+      // If switching to a tab that is not connections, disable Tinder mode for swiping
+      setIsTinderModeActive(false);
+    }
+    // If switching TO connections tab, the StudentConnectionTab's useEffect will call
+    // handleStudentTabViewModeChange and set isTinderModeActive appropriately.
+    // However, we also need to consider the initial state or direct calls to handleStudentTabViewModeChange.
+    // The logic in handleStudentTabViewModeChange should be sufficient if called correctly.
+
     setActiveTabIndex(index);
   };
+
+  // Re-define TABS_CONFIG and TABS to include the prop. 
+  // This is a simplified way; ideally, TABS_CONFIG might be memoized or defined inside if props change.
+  const currentTabsConfig = [
+    { key: 'connections', component: <StudentConnectionTab key="connections" onViewModeChange={handleStudentTabViewModeChange} />, icon: FaUserFriends },
+    { key: 'tasks', component: <TaskEventTab key="tasks" />, icon: FaCalendarAlt },
+    { key: 'reminders', component: <RemindersTab key="reminders" />, icon: FaBell },
+  ];
+  const currentTabs = currentTabsConfig.map(tab => tab.component);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (!tablistRef.current) return;
@@ -83,12 +95,12 @@ export function DashboardSwipeTabs() {
         initialTab={activeTabIndex} // Keep initialTab for first load
         activeIndex={activeTabIndex} // Control the active tab
         onTabChange={handleTabChange} // Get updates from TabContainer swipes
-        restrictSwipeToEdges={isTinderModeActive} // Pass the new prop
+        swipingEnabled={!isTinderModeActive} // Pass the new prop
         // Pass panel IDs to TabContainer so it can set them
-        panelIds={TABS_CONFIG.map((tab, index) => `dashboard-panel-${tab.key}-${index}`)}
-        tabIds={TABS_CONFIG.map((tab, index) => `dashboard-tab-${tab.key}-${index}`)}
+        panelIds={currentTabsConfig.map((tab, index) => `dashboard-panel-${tab.key}-${index}`)}
+        tabIds={currentTabsConfig.map((tab, index) => `dashboard-tab-${tab.key}-${index}`)}
       >
-        {TABS}
+        {currentTabs}
       </TabContainer>
 
       {/* Icon Bar / Tab List */}
@@ -100,7 +112,7 @@ export function DashboardSwipeTabs() {
         className="flex justify-around items-center p-2 border-t bg-background"
         onKeyDown={handleKeyDown}
       >
-        {TABS_CONFIG.map((tab, index) => {
+        {currentTabsConfig.map((tab, index) => {
           const Icon = tab.icon;
           const isActive = index === activeTabIndex;
           const tabId = `dashboard-tab-${tab.key}-${index}`;

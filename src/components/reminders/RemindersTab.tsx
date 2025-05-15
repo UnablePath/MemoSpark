@@ -273,7 +273,7 @@ const RemindersTab = () => {
       </div>
 
       {/* Header with Title, streak and coins */}
-      <div className="mb-4 pb-4 border-b">
+      <div className="mb-4 pb-4 border-b flex-shrink-0">
         <h1 className="text-2xl font-bold mb-2 text-center sm:text-left">Reminders & Achievements</h1>
         <div className="flex flex-col sm:flex-row justify-around items-center gap-4 text-center p-2 rounded-lg bg-muted/50">
           <div>
@@ -290,74 +290,75 @@ const RemindersTab = () => {
         </div>
       </div>
 
-      {/* Main content: Stu Mascot, Reminders List */}
-      <div className="flex-grow flex flex-col md:flex-row gap-4 overflow-hidden mt-4">
-        {/* Stu Mascot Section */}
-        <div className="w-full md:w-1/3 flex flex-col items-center justify-center relative p-4 bg-muted/30 rounded-lg">
-          <Button 
-            variant="ghost" 
-            className="p-0 h-auto w-auto block rounded-full focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" 
-            onClick={handleStuClick} 
-            aria-label="Interact with Stu, your study mascot"
+      {/* Stu Mascot Section - Centered */}
+      <div className="flex flex-col items-center justify-center relative py-4 md:py-6 flex-shrink-0">
+        {/* Interactive Button for Stu */}
+        <Button 
+          variant="ghost" 
+          className="p-0 w-32 h-32 sm:w-40 sm:h-40 block rounded-full focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          onClick={handleStuClick} 
+          aria-label="Interact with Stu, your study mascot"
+        >
+          <motion.div 
+            variants={getDynamicKoalaVariants()} 
+            animate={stuReady ? stuAnimation : "loading"} 
+            className="w-full h-full flex items-center justify-center cursor-pointer"
           >
-            <motion.div 
-              variants={getDynamicKoalaVariants()} 
-              animate={stuReady ? stuAnimation : "loading"} 
-              className="cursor-pointer"
-            >
-              <KoalaMascot size={150} />
-            </motion.div>
-          </Button>
-          {showingStuMessage && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }} 
-              animate={{ opacity: 1, y: 0 }} 
-              exit={{ opacity: 0, y: 10 }} 
-              className="absolute bottom-4 left-4 right-4 p-3 bg-background border shadow-lg rounded-md text-sm text-center z-10"
-            >
-              {stuMessage}
-            </motion.div>
-          )}
-          {!stuReady && <p className="text-sm text-muted-foreground mt-2">Stu is waking up...</p>}
-        </div>
+            <KoalaMascot size="100%" />
+          </motion.div>
+        </Button>
+        {/* Stu's Message Bubble */}
+        {showingStuMessage && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: 10 }} 
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-auto max-w-xs sm:max-w-sm md:max-w-md p-3 bg-background border shadow-lg rounded-md text-sm text-center z-10 mb-[-20px] sm:mb-[-24px]" // Positioned below Stu, adjust mb as needed
+          >
+            {stuMessage}
+          </motion.div>
+        )}
+        {!stuReady && <p className="text-sm text-muted-foreground mt-2">Stu is waking up...</p>}
+      </div>
 
-        {/* Reminders List Section */}
-        <div className="w-full md:w-2/3 flex flex-col">
-          <h2 className="text-xl font-semibold mb-3">Your Reminders</h2>
-          {reminders.length === 0 ? (
+      {/* Reminders List Section - Takes remaining space */}
+      <div className="flex-grow flex flex-col overflow-hidden mt-4">
+        <h2 className="text-xl font-semibold mb-3 px-1 text-center sm:text-left flex-shrink-0">Your Reminders</h2>
+        {reminders.length === 0 ? (
+          <div className="flex-grow flex items-center justify-center">
             <p className="text-muted-foreground text-center py-6">No reminders scheduled. Add some from your tasks!</p>
-          ) : (
-            <ul className="space-y-3 overflow-y-auto pr-2 flex-grow">
-              {reminders.map((reminder) => (
-                <li key={reminder.id} className={`p-3 rounded-lg shadow transition-all flex items-center gap-3 ${reminder.completed ? 'bg-muted/50 opacity-70' : 'bg-card border'}`}>
-                  <div className="flex-grow">
-                    <h3 className={`font-medium ${reminder.completed ? 'line-through' : ''}`}>{reminder.taskName}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Due: {reminder.dueDate} - {reminder.points} points
-                    </p>
-                  </div>
-                  {!reminder.completed && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => completeReminder(reminder.id)}
-                      aria-label={`Complete reminder: ${reminder.taskName}`}
-                      className="whitespace-nowrap bg-green-500 hover:bg-green-600 text-white border-green-600"
-                    >
-                      <FaCheckCircle className="mr-2 h-4 w-4" aria-hidden="true"/> Mark as Done
-                    </Button>
-                  )}
-                  {reminder.completed && (
-                     <FaCheckCircle className="h-6 w-6 text-green-500" aria-label="Reminder completed" role="img" />
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+          </div>
+        ) : (
+          <ul className="space-y-3 overflow-y-auto pr-2 flex-grow">
+            {reminders.map((reminder) => (
+              <li key={reminder.id} className={`p-3 rounded-lg shadow transition-all flex items-center gap-3 ${reminder.completed ? 'bg-muted/50 opacity-70' : 'bg-card border'}`}>
+                <div className="flex-grow">
+                  <h3 className={`font-medium ${reminder.completed ? 'line-through' : ''}`}>{reminder.taskName}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Due: {reminder.dueDate} - {reminder.points} points
+                  </p>
+                </div>
+                {!reminder.completed && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => completeReminder(reminder.id)}
+                    aria-label={`Complete reminder: ${reminder.taskName}`}
+                    className="whitespace-nowrap bg-green-500 hover:bg-green-600 text-white border-green-600"
+                  >
+                    <FaCheckCircle className="mr-2 h-4 w-4" aria-hidden="true"/> Mark as Done
+                  </Button>
+                )}
+                {reminder.completed && (
+                   <FaCheckCircle className="h-6 w-6 text-green-500" aria-label="Reminder completed" role="img" />
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       
-      {/* Achievements Dialog (placeholder for now, will be a separate step) */}
+      {/* Achievements Dialog */}
       {showAchievements && (
         <Dialog open={showAchievements} onOpenChange={setShowAchievements}>
           <DialogContent>

@@ -5,9 +5,9 @@ import { motion, PanInfo, useReducedMotion } from 'framer-motion';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { cn } from "@/lib/utils";
 import { Expand } from 'lucide-react';
+import { format } from "date-fns";
 
 interface DraggableWidgetProps {
-  children: React.ReactNode;
   widgetId: string;
   initialPosition?: { x: number; y: number };
   dragConstraintsRef?: React.RefObject<HTMLElement>;
@@ -27,8 +27,40 @@ const MIN_HEIGHT = 80;
 const MAX_WIDTH = 500;
 const MAX_HEIGHT = 400;
 
+// Reminder type and mockReminders from RemindersTab
+export interface Reminder {
+  id: string;
+  taskName: string;
+  dueDate: string;
+  completed: boolean;
+  points: number;
+}
+
+const mockReminders: Reminder[] = [
+  {
+    id: "1",
+    taskName: "Math Assignment",
+    dueDate: format(new Date(new Date().setHours(14, 30)), "p, MMM d"),
+    completed: false,
+    points: 10,
+  },
+  {
+    id: "2",
+    taskName: "Study Group Meeting",
+    dueDate: format(new Date(new Date().setHours(16, 0)), "p, MMM d"),
+    completed: false,
+    points: 5,
+  },
+  {
+    id: "3",
+    taskName: "Physics Lab Report",
+    dueDate: "Tomorrow, 11:59 PM",
+    completed: false,
+    points: 15,
+  },
+];
+
 export function DraggableWidget({
-  children,
   widgetId,
   initialPosition = { x: 50, y: 50 },
   dragConstraintsRef,
@@ -65,6 +97,23 @@ export function DraggableWidget({
     setSize({ width: newWidth, height: newHeight });
   };
 
+  // Find the latest uncompleted reminder
+  const latestReminder = mockReminders.find(r => !r.completed) || null;
+
+  // Widget visual style (from Widget.tsx)
+  const priorityColors: Record<string, string> = {
+    high: "bg-red-500",
+    medium: "bg-yellow-500",
+    low: "bg-green-500",
+  };
+
+  // For demo, assign priority based on points (10+ = high, 5+ = medium, else low)
+  const getPriority = (reminder: Reminder) => {
+    if (reminder.points >= 10) return "high";
+    if (reminder.points >= 5) return "medium";
+    return "low";
+  };
+
   return (
     <motion.div
       drag
@@ -89,10 +138,35 @@ export function DraggableWidget({
         className
       )}
     >
-      <div className="h-full w-full p-2 overflow-auto">
-        {children}
+      <div className="h-full w-full flex items-center justify-center p-2">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className={cn(
+            "rounded-full bg-white shadow-lg p-1 max-w-[120px] aspect-square flex flex-col items-center justify-center border-4 border-primary overflow-hidden relative",
+            // Optionally add more classes for responsiveness
+          )}
+        >
+          {latestReminder ? (
+            <>
+              <div className="absolute top-0 left-0 w-full h-2 bg-secondary" />
+              <div className="text-center px-2">
+                <div className="text-xs font-semibold line-clamp-2">{latestReminder.taskName}</div>
+                <div className="text-[10px] text-muted-foreground mt-1">
+                  {latestReminder.dueDate}
+                </div>
+                <div className={`h-1.5 w-1.5 rounded-full mt-1 mx-auto ${priorityColors[getPriority(latestReminder)]}`} />
+              </div>
+            </>
+          ) : (
+            <div className="text-center px-2">
+              <div className="text-xs font-semibold">No urgent tasks</div>
+              <div className="text-[10px] text-muted-foreground mt-1">All caught up!</div>
+            </div>
+          )}
+          <div className="absolute bottom-2 text-[8px] font-medium">StudySpark</div>
+        </motion.div>
       </div>
-
       <motion.div
         drag
         dragMomentum={false}

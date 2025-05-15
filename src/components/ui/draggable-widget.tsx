@@ -95,16 +95,16 @@ const DraggableWidget: React.FC<DraggableWidgetProps> = ({
       >
         <div
           onClick={onClick}
-          className="rounded-full bg-white shadow-lg p-2 w-28 h-28 flex flex-col items-center justify-center border-4 border-primary overflow-hidden relative"
+          className="rounded-full bg-white shadow-lg p-2 w-36 h-36 flex flex-col items-center justify-center border-4 border-primary overflow-hidden relative"
         >
           {task ? (
             <>
               <div className="absolute top-0 left-0 w-full h-2 bg-secondary" />
               <div className="flex flex-col items-center justify-center h-full px-1">
-                <KoalaMascot size={24} className="absolute top-2 opacity-30" />
-                <div className="text-center px-1 mt-6 w-full">
-                  <div className="text-[10px] font-semibold line-clamp-2 overflow-hidden">{task.title}</div>
-                  <div className="text-[8px] text-muted-foreground mt-1">
+                <KoalaMascot size={48} className="absolute top-3 opacity-40" />
+                <div className="text-center px-1 mt-8 w-full">
+                  <div className="text-xs font-semibold line-clamp-2 overflow-hidden">{task.title}</div>
+                  <div className="text-[10px] text-muted-foreground mt-1">
                     {format(new Date(task.dueDate), 'MMM d')}
                   </div>
                   <div className={`h-1.5 w-1.5 rounded-full mt-1 mx-auto ${priorityColors[task.priority]}`} />
@@ -113,11 +113,11 @@ const DraggableWidget: React.FC<DraggableWidgetProps> = ({
             </>
           ) : (
             <div className="text-center px-2">
-              <div className="text-xs font-semibold">No tasks</div>
-              <KoalaMascot size={30} />
+              <div className="text-sm font-semibold">No tasks</div>
+              <KoalaMascot size={60} />
             </div>
           )}
-          <div className="absolute bottom-2 text-[8px] font-medium">StudySpark</div>
+          <div className="absolute bottom-2 text-[10px] font-medium">StudySpark</div>
         </div>
       </motion.div>
     </div>

@@ -11,7 +11,7 @@ interface TabContainerProps {
   activeIndex?: number;
   panelIds?: string[];
   tabIds?: string[];
-  restrictSwipeToEdges?: boolean;
+  swipingEnabled?: boolean;
 }
 
 const swipeConfidenceThreshold = 10000;
@@ -47,7 +47,7 @@ export function TabContainer({
     activeIndex: controlledIndex,
     panelIds,
     tabIds,
-    restrictSwipeToEdges = false
+    swipingEnabled = true
 }: TabContainerProps) {
   const tabs = Children.toArray(children).filter(isValidElement);
   const [[internalIndex, direction], setInternalIndex] = useState([initialTab, 0]);
@@ -73,32 +73,18 @@ export function TabContainer({
     }
   };
 
-  const edgeThresholdPx = 50;
+  const edgeThresholdPx = 100;
 
   const handlers = useSwipeable({
     onSwipedLeft: (eventData: SwipeEventData) => {
-      if (restrictSwipeToEdges) {
-        const touchX = eventData.initial[0];
-        const targetElement = eventData.event.target as HTMLElement;
-        const widthToCheck = targetElement?.offsetParent instanceof HTMLElement ? targetElement.offsetParent.offsetWidth : window.innerWidth;
-        
-        if (touchX > edgeThresholdPx && touchX < widthToCheck - edgeThresholdPx) {
-          eventData.event.stopPropagation();
-          return;
-        }
+      if (!swipingEnabled) {
+        return;
       }
       changeTab(1);
     },
     onSwipedRight: (eventData: SwipeEventData) => {
-      if (restrictSwipeToEdges) {
-        const touchX = eventData.initial[0];
-        const targetElement = eventData.event.target as HTMLElement;
-        const widthToCheck = targetElement?.offsetParent instanceof HTMLElement ? targetElement.offsetParent.offsetWidth : window.innerWidth;
-
-        if (touchX > edgeThresholdPx && touchX < widthToCheck - edgeThresholdPx) {
-          eventData.event.stopPropagation();
-          return;
-        }
+      if (!swipingEnabled) {
+        return;
       }
       changeTab(-1);
     },

@@ -22,7 +22,7 @@ export const KoalaMascot: React.FC<KoalaMascotProps> = ({
     <svg
       width={width}
       height={height}
-      viewBox="0 0 965.93 597.07" // Updated viewBox from the new SVG
+      viewBox="0 0 282.93 297.07" // Updated viewBox from the new SVG
       xmlns="http://www.w3.org/2000/svg"
       role="img"
       aria-labelledby={titleId}
