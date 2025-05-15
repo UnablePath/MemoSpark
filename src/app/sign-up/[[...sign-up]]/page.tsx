@@ -1,18 +1,5 @@
-import "@/app/globals.css";
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { ThemeProvider } from "@/components/providers/theme-provider";
-import { UserProvider } from "@/lib/user-context";
-import ClientBody from "./ClientBody";
-import { ClerkProvider } from "@clerk/nextjs";
-import { ConditionalHeader } from "@/components/layout/ConditionalHeader";
-
-const inter = Inter({ subsets: ["latin"] });
-
-export const metadata: Metadata = {
-  title: "StudySpark - Your Ultimate Study Companion",
-  description: "An innovative app designed to enhance your learning experience with smart task management, collaborative features, and gamified reminders.",
-};
+import { SignUp } from "@clerk/nextjs";
+import { StudySparkLogoSvg } from "@/components/ui/StudySparkLogoSvg";
 
 // Define the appearance object (ideally, this would be in a shared file)
 const studySparkClerkAppearance = {
@@ -27,9 +14,9 @@ const studySparkClerkAppearance = {
   },
   elements: {
     card: {
-      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
-      border: '1px solid hsl(40, 30%, 80%)',
-      borderRadius: '0.75rem',
+      boxShadow: 'none',
+      border: 'none',
+      padding: '1.5rem',
       backgroundColor: 'hsl(0, 0%, 100%)',
     },
     formButtonPrimary:
@@ -46,15 +33,6 @@ const studySparkClerkAppearance = {
     formFieldLabel: 'text-sm font-medium text-[hsl(0,0%,10%)]',
     alternativeMethodsBlockButton: 
       'border border-[hsl(40,30%,80%)] bg-[hsl(0,0%,98%)] shadow-sm hover:bg-[hsl(40,30%,85%)] hover:text-[hsl(0,0%,10%)] rounded-md h-9 px-4 py-2 text-sm text-[hsl(0,0%,10%)]',
-    userButtonPopoverCard: {
-        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
-        border: '1px solid hsl(40, 30%, 80%)',
-        borderRadius: '0.75rem',
-    },
-    userButtonPopoverActionButton:
-        'text-[hsl(0,0%,10%)] hover:bg-[hsl(40,30%,92%)] flex items-center gap-2 w-full',
-    userButtonPopoverFooter:
-        'hidden', 
   },
   layout: {
     logoPlacement: 'none' as const,
@@ -63,25 +41,20 @@ const studySparkClerkAppearance = {
   }
 } as const;
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function Page() {
   return (
-    <ClerkProvider appearance={studySparkClerkAppearance}>
-      <html lang="en" suppressHydrationWarning>
-        <body className={inter.className}>
-          <ThemeProvider>
-            <UserProvider>
-              <ClientBody>
-                <ConditionalHeader />
-                {children}
-              </ClientBody>
-            </UserProvider>
-          </ThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-[hsl(var(--primary)/0.1)] via-[hsl(var(--background))] to-[hsl(var(--background))] p-4">
+      <div className="w-full max-w-md bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))] rounded-xl border border-[hsl(var(--border))] shadow-xl">
+        <div className="flex flex-col items-center p-6">
+          <div className="mx-auto mb-6 text-[hsl(var(--primary))]">
+            <StudySparkLogoSvg height={50} />
+          </div>
+          <SignUp 
+            path="/sign-up" 
+            appearance={studySparkClerkAppearance} 
+          />
+        </div>
+      </div>
+    </div>
   );
-}
+} 

@@ -57,7 +57,7 @@ export const ProfileHeader = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="rounded-full h-10 w-10 p-0">
+        <Button variant="ghost" className="rounded-full h-10 w-10 p-0" aria-label="Open user menu">
           <Avatar className="h-10 w-10">
             <AvatarFallback className="bg-primary text-primary-foreground">
               {getInitials(profile.name || "User")}
@@ -71,14 +71,14 @@ export const ProfileHeader = () => {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleNavigateToProfile} className="cursor-pointer">
-          <FaUser className="mr-2 h-4 w-4" /> Profile
+          <FaUser className="mr-2 h-4 w-4" aria-hidden="true" /> Profile
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleNavigateToSettings} className="cursor-pointer">
-          <FaCog className="mr-2 h-4 w-4" /> Settings
+          <FaCog className="mr-2 h-4 w-4" aria-hidden="true" /> Settings
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
-          <FaSignOutAlt className="mr-2 h-4 w-4" /> Sign Out
+          <FaSignOutAlt className="mr-2 h-4 w-4" aria-hidden="true" /> Sign Out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

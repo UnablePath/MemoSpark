@@ -9,6 +9,9 @@ interface TabContainerProps {
   initialTab?: number;
   onTabChange?: (index: number) => void;
   activeIndex?: number;
+  panelIds?: string[];
+  tabIds?: string[];
+  swipingEnabled?: boolean;
 }
 
 const swipeConfidenceThreshold = 10000;
@@ -41,7 +44,10 @@ export function TabContainer({
     children,
     initialTab = 0,
     onTabChange,
-    activeIndex: controlledIndex
+    activeIndex: controlledIndex,
+    panelIds,
+    tabIds,
+    swipingEnabled = true
 }: TabContainerProps) {
   const tabs = Children.toArray(children).filter(isValidElement);
   const [[internalIndex, direction], setInternalIndex] = useState([initialTab, 0]);
@@ -67,12 +73,20 @@ export function TabContainer({
     }
   };
 
+  const edgeThresholdPx = 100;
+
   const handlers = useSwipeable({
-    onSwipedLeft: () => {
-       changeTab(1);
+    onSwipedLeft: (eventData: SwipeEventData) => {
+      if (!swipingEnabled) {
+        return;
+      }
+      changeTab(1);
     },
-    onSwipedRight: () => {
-       changeTab(-1);
+    onSwipedRight: (eventData: SwipeEventData) => {
+      if (!swipingEnabled) {
+        return;
+      }
+      changeTab(-1);
     },
     preventScrollOnSwipe: true,
     trackMouse: true
@@ -86,9 +100,12 @@ export function TabContainer({
 
   return (
     <div {...handlers} className="relative overflow-hidden w-full h-full flex-grow">
-      <AnimatePresence initial={false} custom={direction}>
+      <AnimatePresence initial={false} custom={direction} mode="wait">
         <motion.div
           key={currentIndex}
+          role="tabpanel"
+          id={panelIds?.[currentIndex]}
+          aria-labelledby={tabIds?.[currentIndex]}
           custom={direction}
           variants={variants}
           initial="enter"

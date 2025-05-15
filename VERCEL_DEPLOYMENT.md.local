@@ -255,36 +255,6 @@ Add the required secrets to your GitHub repository:
 1. In your Vercel dashboard, go to "Logs"
 2. View your application's logs for debugging issues
 
-## 9. Supabase Edge Functions Integration
-
-If you're using Supabase Edge Functions:
-
-1. Update your Next.js API routes to call Supabase Edge Functions:
-
-```typescript
-// pages/api/calculateStreak.ts
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { supabase } from '@/lib/supabase';
-
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  try {
-    const { data, error } = await supabase.functions.invoke('calculate-streaks', {
-      body: JSON.stringify(req.body),
-    });
-
-    if (error) throw error;
-
-    res.status(200).json(data);
-  } catch (error) {
-    console.error('Error calling Edge Function:', error);
-    res.status(500).json({ error: 'Failed to process request' });
-  }
-}
-```
-
 ## 10. Vercel Deployment Checks
 
 Vercel automatically performs deployment checks. To add custom checks:

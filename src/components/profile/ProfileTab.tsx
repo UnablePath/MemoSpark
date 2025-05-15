@@ -342,8 +342,7 @@ const ProfileTab = () => {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground text-sm">
-              Your profile information is currently stored only on this device. When you connect a Supabase account,
-              your data will be securely stored and accessible across devices.
+              Your profile information is currently stored only on this device. In the future, connecting an account will allow your data to be securely stored and accessible across devices.
             </p>
           </CardContent>
         </Card>

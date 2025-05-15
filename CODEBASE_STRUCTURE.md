@@ -42,7 +42,6 @@ studyspark/
 │   │   └── useWidgetPosition.ts
 │   │
 │   ├── lib/                 # Utility libraries
-│   │   ├── supabase.ts      # Supabase client
 │   │   └── utils.ts         # Utility functions
 │   │
 │   ├── styles/              # Global styles
@@ -51,7 +50,6 @@ studyspark/
 ├── cursor.rules             # Coding standards and guidelines
 ├── PRODUCT_TIMELINE.md      # Development timeline
 ├── CODEBASE_STRUCTURE.md    # This document
-├── SETUP_SUPABASE.md        # Supabase setup guide
 ├── biome.json               # Biome configuration
 ├── tailwind.config.js       # Tailwind configuration
 ├── tsconfig.json            # TypeScript configuration
@@ -170,7 +168,7 @@ export const TabContainer = ({ children }) => {
 
 ### Local Storage
 
-For client-side persistence without Supabase:
+For client-side persistence:
 
 1. **useLocalStorage Hook**
    - Get and set items in localStorage
@@ -187,19 +185,6 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 2. **Storage Keys**
    - Consistent naming convention for keys
    - Namespaced to avoid conflicts
-
-### Supabase Integration
-
-For server-side persistence and authentication:
-
-1. **Supabase Client**
-   - Configuration in src/lib/supabase.ts
-   - Type definitions for database tables
-
-2. **Data Access Patterns**
-   - Custom hooks for data operations
-   - Error handling and loading states
-   - Optimistic updates for better UX
 
 ## Animation System
 
