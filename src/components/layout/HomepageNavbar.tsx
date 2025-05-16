@@ -26,11 +26,9 @@ export function HomepageNavbar() {
             <StudySparkLogoSvg height={32} />
           </Link>
           <Link
-            href="https://promptu.ai"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/coming-soon"
             className="text-xs text-muted-foreground hover:text-primary transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background rounded-sm"
-            aria-label="Visit PromptU.ai, the creators of StudySpark"
+            aria-label="Learn more about PromptU, the creators of StudySpark (Coming Soon)"
           >
             by PromptU
           </Link>
@@ -103,12 +101,10 @@ export function HomepageNavbar() {
               </Link>
             ))}
             <Link
-              href="https://promptu.ai"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/coming-soon"
               onClick={() => setIsMobileMenuOpen(false)}
               className="block px-3 py-2 rounded-md text-base font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background"
-              aria-label="Visit PromptU.ai, the creators of StudySpark"
+              aria-label="Learn more about PromptU, the creators of StudySpark (Coming Soon)"
             >
               by PromptU
             </Link>

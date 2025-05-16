@@ -22,7 +22,7 @@ export default function DashboardPage() {
       {/* ConditionalHeader is now disabled for /dashboard */}
       {/* Integrated header elements for dashboard: Logo and UserButton */}
       <div className="flex items-center justify-between p-4 border-b border-border bg-background flex-shrink-0">
-        <Link href="/dashboard" aria-label="StudySpark Dashboard Home" className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md">
+        <Link href="/" aria-label="StudySpark Homepage" className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md">
           <StudySparkLogoSvg height={36} /> 
         </Link>
         <SignedIn>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Children, isValidElement, useEffect } from 'react';
+import React, { useState, Children, isValidElement, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSwipeable, SwipeEventData } from 'react-swipeable';
 
@@ -73,20 +73,24 @@ export function TabContainer({
     }
   };
 
-  const edgeThresholdPx = 100;
+  const edgeThresholdPx = 50;
 
   const handlers = useSwipeable({
     onSwipedLeft: (eventData: SwipeEventData) => {
-      if (!swipingEnabled) {
-        return;
+      if (!swipingEnabled) return;
+      const containerWidth = (eventData.event.currentTarget as HTMLElement)?.offsetWidth;
+      if (!containerWidth) return;
+      if (eventData.initial[0] > containerWidth - edgeThresholdPx) {
+        changeTab(1);
       }
-      changeTab(1);
     },
     onSwipedRight: (eventData: SwipeEventData) => {
-      if (!swipingEnabled) {
-        return;
+      if (!swipingEnabled) return;
+      const containerWidth = (eventData.event.currentTarget as HTMLElement)?.offsetWidth;
+      if (!containerWidth) return;
+      if (eventData.initial[0] < edgeThresholdPx) {
+        changeTab(-1);
       }
-      changeTab(-1);
     },
     preventScrollOnSwipe: true,
     trackMouse: true
