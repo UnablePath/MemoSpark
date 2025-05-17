@@ -38,7 +38,7 @@ const MIN_SPAWN_INTERVAL = 250;
 const SPAWN_INTERVAL_DECREMENT = 75; 
 
 const INITIAL_BASE_SPEED = 0.7;
-const MAX_BASE_SPEED = 3.5;
+const MAX_BASE_SPEED = 2.8;
 const SPEED_INCREMENT = 0.15;
 
 const INITIAL_RANDOM_SPEED_ADD = 0.5; 
@@ -57,6 +57,8 @@ export function BubblePopGame() {
   const [gameActive, setGameActive] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [numSpikes, setNumSpikes] = useState(0);
+  const [isPausedByVisibility, setIsPausedByVisibility] = useState(false);
+  const tabHiddenTime = useRef<number | null>(null);
 
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const nextBubbleId = useRef(0);
@@ -105,7 +107,7 @@ export function BubblePopGame() {
   };
 
   const scheduleNextBubble = useCallback(() => {
-    if (!gameActive || !gameAreaRef.current) return;
+    if (!gameActive || !gameAreaRef.current || isPausedByVisibility) return;
     if (bubbleCreationTimeoutId.current) clearTimeout(bubbleCreationTimeoutId.current);
     
     bubbleCreationTimeoutId.current = setTimeout(() => {
@@ -125,7 +127,7 @@ export function BubblePopGame() {
       ]);
       scheduleNextBubble(); 
     }, currentSpawnInterval.current);
-  }, [gameActive]);
+  }, [gameActive, isPausedByVisibility]);
 
   const popBubble = (id: number, x: number, y: number, size: number) => {
     if (!gameActive) return;
@@ -139,7 +141,7 @@ export function BubblePopGame() {
   };
 
   useEffect(() => {
-    if (!gameActive) {
+    if (!gameActive || isPausedByVisibility) {
         if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
         return;
     }
@@ -160,7 +162,7 @@ export function BubblePopGame() {
           })
           .filter(bubble => bubble !== null) as Bubble[]
       );
-      if (gameActive) { 
+      if (gameActive && !isPausedByVisibility) {
         animationFrameId.current = requestAnimationFrame(gameLoop);
       }
     };
@@ -169,12 +171,20 @@ export function BubblePopGame() {
     return () => {
       if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
     };
-  }, [gameActive, score]); 
+  }, [gameActive, score, isPausedByVisibility]);
 
   useEffect(() => {
-    if (gameActive) {
-      lastDifficultyRampTime.current = Date.now();
-      gameTimeMs.current = 0;
+    if (gameActive && !isPausedByVisibility) {
+      if (tabHiddenTime.current !== null) {
+        const pauseDuration = Date.now() - tabHiddenTime.current;
+        lastDifficultyRampTime.current += pauseDuration;
+        tabHiddenTime.current = null;
+      }
+      
+      if (!isPausedByVisibility || lastDifficultyRampTime.current === 0) {
+        lastDifficultyRampTime.current = Date.now();
+        gameTimeMs.current = 0;
+      }
       scheduleNextBubble();
 
       gameLogicIntervalId.current = setInterval(() => {
@@ -196,7 +206,28 @@ export function BubblePopGame() {
       if (gameLogicIntervalId.current) clearInterval(gameLogicIntervalId.current);
       if (bubbleCreationTimeoutId.current) clearTimeout(bubbleCreationTimeoutId.current);
     };
-  }, [gameActive, scheduleNextBubble]);
+  }, [gameActive, scheduleNextBubble, isPausedByVisibility]);
+
+  // Effect for Page Visibility API
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (gameActive && !gameOver) {
+          setIsPausedByVisibility(true);
+          tabHiddenTime.current = Date.now();
+        }
+      } else {
+        if (isPausedByVisibility) {
+          setIsPausedByVisibility(false);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [gameActive, gameOver, isPausedByVisibility]);
 
   const startGame = () => {
     setBubbles([]); 
@@ -320,8 +351,8 @@ export function BubblePopGame() {
           Score: {score}
         </div>
       )}
-       <div className="absolute bottom-2 left-2 text-xs text-slate-400/70">
-        Don't let the bubbles hit the spikes!
+       <div className="absolute bottom-2 left-2 text-xs text-slate-300">
+        Pop the bubbles before they hit the spikes!
       </div>
     </div>
   );
