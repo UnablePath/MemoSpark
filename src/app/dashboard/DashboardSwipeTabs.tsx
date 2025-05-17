@@ -6,13 +6,17 @@ import { TabIndicator } from '@/components/layout/TabIndicator';
 import StudentConnectionTab from '@/components/home/StudentConnectionTab'; // Assuming this is correct
 import TaskEventTab from '@/components/tasks/TaskEventTab';         // Using TaskEventTab as per old dashboard
 import RemindersTab from '@/components/reminders/RemindersTab';     // Using RemindersTab as per old dashboard
-import { FaUserFriends, FaCalendarAlt, FaBell } from 'react-icons/fa';
+import CrashoutTab from '@/components/dashboard/CrashoutTab'; // Import the new CrashoutTab
+import GamificationHub from '@/components/gamification/GamificationHub'; // Import GamificationHub
+import { FaUserFriends, FaCalendarAlt, FaBell, FaSpa, FaGamepad } from 'react-icons/fa'; // Add FaGamepad icon
 
 // Define the order of tabs and their corresponding icons
 const TABS_CONFIG = [
   { key: 'connections', component: <StudentConnectionTab key="connections" />, icon: FaUserFriends },
   { key: 'tasks', component: <TaskEventTab key="tasks" />, icon: FaCalendarAlt },
   { key: 'reminders', component: <RemindersTab key="reminders" />, icon: FaBell },
+  { key: 'crashout', component: <CrashoutTab key="crashout" />, icon: FaSpa },
+  { key: 'gamification', component: <GamificationHub key="gamification" />, icon: FaGamepad }, // Add Gamification tab
 ];
 
 const TABS = TABS_CONFIG.map(tab => tab.component);
@@ -54,12 +58,20 @@ export function DashboardSwipeTabs() {
 
   // Re-define TABS_CONFIG and TABS to include the prop. 
   // This is a simplified way; ideally, TABS_CONFIG might be memoized or defined inside if props change.
-  const currentTabsConfig = [
-    { key: 'connections', component: <StudentConnectionTab key="connections" onViewModeChange={handleStudentTabViewModeChange} />, icon: FaUserFriends },
-    { key: 'tasks', component: <TaskEventTab key="tasks" />, icon: FaCalendarAlt },
-    { key: 'reminders', component: <RemindersTab key="reminders" />, icon: FaBell },
-  ];
-  const currentTabs = currentTabsConfig.map(tab => tab.component);
+  const currentTabsConfig = TABS_CONFIG.map(tabConfig => {
+    if (tabConfig.key === 'connections') {
+      // Ensure the component is a valid React element before trying to clone
+      if (React.isValidElement(tabConfig.component)) {
+        return {
+          ...tabConfig,
+          component: React.cloneElement(tabConfig.component as React.ReactElement<any>, { onViewModeChange: handleStudentTabViewModeChange }),
+        };
+      }
+    }
+    return tabConfig;
+  });
+
+  // const currentTabs = currentTabsConfig.map(tab => tab.component); // This line is fine, or can use the component directly from currentTabsConfig
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (!tablistRef.current) return;
@@ -100,7 +112,7 @@ export function DashboardSwipeTabs() {
         panelIds={currentTabsConfig.map((tab, index) => `dashboard-panel-${tab.key}-${index}`)}
         tabIds={currentTabsConfig.map((tab, index) => `dashboard-tab-${tab.key}-${index}`)}
       >
-        {currentTabs}
+        {currentTabsConfig.map(tab => tab.component)} {/* Use currentTabsConfig here */}
       </TabContainer>
 
       {/* Icon Bar / Tab List */}

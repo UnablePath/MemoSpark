@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { StudySparkLogoSvg } from "@/components/ui/StudySparkLogoSvg";
 import Image from "next/image";
-import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
 import { HomepageNavbar } from "@/components/layout/HomepageNavbar";
 import { BubblePopGame } from "@/components/home/BubblePopGame";
 
@@ -64,8 +64,8 @@ export default function LandingPage() {
         className="min-h-screen w-full flex flex-col items-center justify-center p-4 pt-20 md:pt-24 relative overflow-hidden" // Added pt-20 (80px) or md:pt-24
         style={gradientStyle}
       >
-        {/* Floating bubbles for background effect - REMOVED in favor of the game */}
-        {/* {!prefersReducedMotion && Array.from({ length: 10 }).map((_, i) => (
+        {/* Floating bubbles for background effect - REINSTATED */}
+        {!prefersReducedMotion && Array.from({ length: 10 }).map((_, i) => (
             <motion.div
                 key={i}
                 initial={{ opacity: 0, scale: 0.5, y: 50 }}
@@ -80,10 +80,11 @@ export default function LandingPage() {
                     background: 'rgba(255, 255, 255, 0.1)',
                     borderRadius: '50%',
                     filter: 'blur(5px)',
+                    zIndex: 0, // Ensure bubbles are in the background
                 }}
                 aria-hidden="true"
             />
-        ))} */}
+        ))}
 
         <div className="flex flex-col items-center justify-center gap-8 z-10">
           {/* Logo Animation */}
@@ -184,19 +185,18 @@ export default function LandingPage() {
           ))}
         </div>
          <div className="text-center mt-16">
-           {/* Get Started / Go to Dashboard buttons - SignInButton is in Navbar*/}
             <SignedOut>
-              {/* This SignInButton can be a larger call to action if desired, or removed if navbar is sufficient */}
-              {/* For now, let's assume the navbar handles primary sign-in/sign-up for SignedOut users */}
-              {/* If a large "Get Started" button is still desired here for signed-out users, it can be added back using SignInButton */}
-              <Button 
-                onClick={handleGetStarted} 
-                size="lg" 
-                className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-10 py-6 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
-                aria-label="Learn more and get started with StudySpark"
-              >
-                Discover Features & Sign Up
-              </Button>
+              {/* Wrap the Button with SignUpButton to make it a direct CTA */}
+              <SignUpButton mode="modal">
+                <Button 
+                  // onClick={handleGetStarted} // SignUpButton will handle the click for modal
+                  size="lg" 
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-10 py-6 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
+                  aria-label="Sign up for StudySpark"
+                >
+                  Discover Features & Sign Up
+                </Button>
+              </SignUpButton>
             </SignedOut>
          </div>
       </div>
