@@ -460,326 +460,223 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
   };
 
   return (
-    <div 
-      className="flex flex-col h-full p-4 gap-4"
-      data-view-mode={viewMode}
-    >
-      {/* ARIA Live Region for status messages */}
-      <div aria-live="polite" className="sr-only">
-        {statusMessage}
-      </div>
-
-      {/* View Mode Toggle */}
-      <div className="flex items-center gap-2 mb-2">
-        <Button
-          variant={viewMode === 'grid' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setViewMode('grid')}
-          aria-pressed={viewMode === 'grid'}
-        >
-          Grid/List
-        </Button>
-        <Button
-          variant={viewMode === 'swipe' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setViewMode('swipe')}
-          aria-pressed={viewMode === 'swipe'}
-        >
-          Swipe Mode
-        </Button>
-      </div>
-      {/* Search and Group Chat Button */}
-      <div className="flex gap-2 items-center">
-        <div className="relative flex-grow">
-          <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search students by name, subject, interest..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Button onClick={handleSimulateGroupChat} variant="outline" size="icon" aria-label="Simulate Group Chat">
-          <FaUsers className="h-5 w-5" aria-hidden="true" /> {/* Icon hidden as button has aria-label */}
-        </Button>
-      </div>
-
-      {/* Student List / Chat View */}
-      {viewMode === 'grid' && !selectedStudent && (
-        <ScrollArea className="h-full">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pr-4">
-            {filteredStudents.length > 0 ? (
-              filteredStudents.map((student) => (
-                <Card
-                  key={student.id}
-                  className="hover:shadow-md transition-shadow flex flex-col"
-                  role="article"
-                  aria-labelledby={`student-name-${student.id}`}
-                  tabIndex={-1}
-                >
-                  <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                    <div className="relative">
-                      <Avatar className={`w-20 h-20 ${getStreak(student.id) ? 'ring-2 ring-orange-400 ring-offset-2' : ''}`}>
-                        <AvatarImage src={student.avatar || undefined} alt={`${student.name}'s avatar`} />
-                        <AvatarFallback className="text-3xl">{getInitials(student.name)}</AvatarFallback>
-                      </Avatar>
-                      {getStreak(student.id) > 0 && (
-                        <div className="absolute top-0 right-0 p-1 bg-background/70 rounded-bl-lg" aria-label={`Current streak: ${getStreak(student.id)} days`}>
-                          <StreakTracker currentStreak={getStreak(student.id)} />
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <CardTitle id={`student-name-${student.id}`}>{student.name}</CardTitle>
-                      <CardDescription>{student.year}</CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pb-2 flex-grow">
-                    <div className="mb-2">
-                      <h4 className="text-sm font-medium mb-1">Subjects:</h4>
-                      <div className="flex flex-wrap gap-1">
-                        {student.subjects.map((subj) => <Badge key={subj} variant="secondary">{subj}</Badge>)}
-                      </div>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">Interests:</h4>
-                      <div className="flex flex-wrap gap-1">
-                        {student.interests.map((interest) => <Badge key={interest} variant="outline">{interest}</Badge>)}
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-end gap-2 pt-2">
-                    <Button variant="outline" size="sm" onClick={() => alert(`Connect with ${student.name} (not implemented)`)} aria-label={`Connect with ${student.name}`}>
-                      <FaPlus className="mr-2 h-4 w-4" aria-hidden="true" /> Connect
-                    </Button>
-                    <Button variant="default" size="sm" onClick={() => openChat(student.id)} aria-label={`Message ${student.name}`}>
-                      <FaComment className="mr-2 h-4 w-4" aria-hidden="true" /> Message
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))
-            ) : (
-              <p className="text-muted-foreground col-span-full text-center py-10">No students found matching your search.</p>
+    <div className="flex flex-col h-full p-1 md:p-2 bg-gradient-to-br from-slate-900 via-slate-800 to-gray-900 text-slate-100 rounded-lg shadow-2xl overflow-hidden">
+      {/* Header and Controls */}
+      <div className="flex-shrink-0 p-3 md:p-4 border-b border-slate-700 shadow-md bg-slate-800/50 rounded-t-lg">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+          <h2 className="text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-cyan-300 to-teal-400 self-center">
+            Connect & Collaborate
+          </h2>
+          <div className="flex items-center gap-2 md:gap-3">
+            {viewMode === 'grid' && (
+              <div className="relative flex-grow max-w-xs">
+                <Input
+                  type="search"
+                  placeholder="Search students..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-3 py-2 text-sm bg-slate-700 border-slate-600 placeholder-slate-400 text-slate-100 rounded-md focus:ring-cyan-500 focus:border-cyan-500"
+                  aria-label="Search students"
+                />
+                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              </div>
             )}
-          </div>
-        </ScrollArea>
-      )}
-      {viewMode === 'swipe' && !selectedStudent && (
-        <div className="flex flex-col items-center justify-center flex-grow relative w-full h-full">
-          {/* Last action feedback */}
-          {lastAction && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-foreground text-background px-3 py-1.5 rounded-full text-xs shadow-lg z-30 pointer-events-none"
-              role="status" // For screen readers to announce feedback
+            <Button
+              onClick={() => {
+                const newMode = viewMode === 'grid' ? 'swipe' : 'grid';
+                setViewMode(newMode);
+                setStatusMessage(newMode === 'swipe' ? "Swipe mode activated. Use arrow keys or swipe gestures." : "Grid view activated.");
+              }}
+              variant="outline"
+              size="sm"
+              className="bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-300 hover:text-sky-300 transition-all duration-150"
+              aria-label={viewMode === 'grid' ? "Switch to Swipe Mode" : "Switch to Grid View"}
             >
-              {lastAction}
-            </motion.div>
-          )}
-          
-          {/* Action Buttons for Swipe Mode */}
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-4 z-20 px-4">
-            <Button 
-              onClick={handleRewind} 
-              variant="outline" 
-              size="icon" 
-              className="rounded-full h-12 w-12 bg-background/80 backdrop-blur-sm shadow-md hover:bg-muted focus-visible:ring-yellow-500 hover:scale-105 active:scale-95 transform transition-transform duration-150 ease-out"
-              aria-label="Rewind last swipe"
-              disabled={swipeHistory.length === 0}
-            >
-              <FaUndo className="h-5 w-5 text-yellow-500" />
-            </Button>
-            <Button 
-              onClick={() => availableStudents[0] && handleSwipe('left', availableStudents[0])} 
-              variant="destructive" 
-              size="icon" 
-              className="rounded-full h-16 w-16 bg-red-500/90 hover:bg-red-600 text-white backdrop-blur-sm shadow-xl focus-visible:ring-red-400 hover:scale-110 active:scale-100 transform transition-transform duration-150 ease-out"
-              aria-label="Skip student"
-              disabled={!availableStudents[0]}
-            >
-              <FaTimes className="h-7 w-7" />
-            </Button>
-            <Button 
-              onClick={() => availableStudents[0] && handleSwipe('right', availableStudents[0])} 
-              variant="default" 
-              size="icon" 
-              className="rounded-full h-16 w-16 bg-green-500/90 hover:bg-green-600 text-white backdrop-blur-sm shadow-xl focus-visible:ring-green-400 hover:scale-110 active:scale-100 transform transition-transform duration-150 ease-out"
-              aria-label="Connect with student"
-              disabled={!availableStudents[0]}
-            >
-              <FaPlus className="h-7 w-7" /> {/* Using FaPlus for "Connect" */}
-            </Button>
-             <Button 
-              onClick={() => availableStudents[0] && openChat(availableStudents[0]!.id)} 
-              variant="outline" 
-              size="icon" 
-              className="rounded-full h-12 w-12 bg-background/80 backdrop-blur-sm shadow-md hover:bg-muted focus-visible:ring-blue-500 hover:scale-105 active:scale-95 transform transition-transform duration-150 ease-out"
-              aria-label="Open chat with current student"
-              disabled={!availableStudents[0]}
-            >
-              <FaComment className="h-5 w-5 text-blue-500" />
+              {viewMode === 'grid' ? "✨ Swipe Mode" : "📊 Grid View"}
             </Button>
           </div>
+        </div>
+      </div>
 
-          <div 
-            ref={swipeCardFocusRef} 
-            tabIndex={-1} 
-            className="relative w-full max-w-xs h-[450px] flex items-center justify-center outline-none mt-8" 
-            aria-label={availableStudents.length > 0 && availableStudents[0] ? `Current student profile: ${availableStudents[0].name}` : "No more students to connect with"}
-            role="region" 
-            aria-live="off" 
-          >
-            <AnimatePresence initial={false} custom={tinderExitDirection} mode="wait">
-              {availableStudents.length > 0 && availableStudents[0] ? (
-                availableStudents.slice(0, 1).map((student) => ( 
-                  <motion.div
-                    key={student.id} 
-                    className="absolute w-full h-full cursor-grab"
-                    variants={cardVariants} // Use the variants object
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                    custom={tinderExitDirection} // Use renamed state for custom prop
-                    drag="x"
-                    dragConstraints={{ left: -200, right: 200, top: 0, bottom: 0 }}
-                    dragElastic={0.2}
-                    onDragStart={(event, info) => {
-                      event.stopPropagation();
-                    }}
-                    onDragEnd={(e, { offset, velocity }) => {
-                      const swipeVelocity = Math.abs(offset.x) * velocity.x;
-                      if (swipeVelocity < -10000) { 
-                        handleSwipe('left', student);
-                      } else if (swipeVelocity > 10000) { 
-                        handleSwipe('right', student);
-                      }
-                    }}
-                    role="article"
-                    aria-labelledby={`swipe-student-name-${student.id}`}
-                  >
-                    <Card className="w-full h-full flex flex-col shadow-xl border border-border">
-                      <CardHeader className="flex-shrink-0">
-                        <div className="flex items-center gap-3 relative">
-                           <Avatar className={`w-24 h-24 ${getStreak(student.id) ? 'ring-2 ring-orange-400 ring-offset-2' : ''}`}>
-                            <AvatarImage src={student.avatar || undefined} alt={`${student.name}'s avatar`} />
-                            <AvatarFallback className="text-4xl">{getInitials(student.name)}</AvatarFallback>
-                          </Avatar>
-                          {getStreak(student.id) > 0 && (
-                            <div className="absolute top-0 right-0 p-1 bg-background/70 rounded-bl-lg" aria-label={`Current streak: ${getStreak(student.id)} days`}>
-                              <StreakTracker currentStreak={getStreak(student.id)} />
-                            </div>
-                          )}
-                          <div>
-                            <CardTitle id={`swipe-student-name-${student.id}`}>{student.name}</CardTitle>
-                            <CardDescription>{student.year}</CardDescription>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="flex-grow overflow-y-auto p-4 space-y-3">
-                        <div>
-                          <h4 className="text-sm font-semibold mb-1">Subjects:</h4>
-                          <div className="flex flex-wrap gap-1">
-                            {student.subjects.map(subj => <Badge key={subj} variant="secondary">{subj}</Badge>)}
-                          </div>
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-semibold mb-1">Interests:</h4>
-                          <div className="flex flex-wrap gap-1">
-                            {student.interests.map(interest => <Badge key={interest} variant="outline">{interest}</Badge>)}
-                          </div>
-                        </div>
-                      </CardContent>
-                      <CardFooter className="flex-shrink-0 p-2 border-t">
-                        <div className="flex justify-around w-full">
-                          <Button variant="destructive" size="lg" onClick={() => handleSwipe('left', student)} aria-label={`Skip ${student.name}`}>
-                            Skip <FaTimes className="ml-2 h-4 w-4" aria-hidden="true" />
-                          </Button>
-                          <Button className="bg-green-600 hover:bg-green-700 text-white" size="lg" onClick={() => handleSwipe('right', student)} aria-label={`Connect with ${student.name}`}>
-                            Connect <FaPlus className="ml-2 h-4 w-4" aria-hidden="true" />
-                          </Button>
-                        </div>
-                      </CardFooter>
-                    </Card>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="text-center text-muted-foreground p-4">
-                  <FaUsers className="mx-auto h-12 w-12 mb-2" aria-hidden="true" />
-                  <p>No more students to connect with right now. Check back later!</p>
-                  {swipeHistory.length > 0 && (
-                     <p className="mt-2 text-sm">You can still rewind your last action.</p>
-                  )}
+      {/* ARIA Live Region for announcements */}
+      {statusMessage && (
+        <div className="sr-only" role="status" aria-live="assertive" aria-atomic="true">
+          {statusMessage}
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <div className="flex-grow overflow-y-auto relative p-2 md:p-4 space-y-4">
+        {viewMode === 'grid' && !selectedStudentId && (
+          <div className="flex flex-col gap-6"> {/* New: Main container for grid sections */}
+            {/* Student Discovery Section */}
+            <section aria-labelledby="student-discovery-heading">
+              <h3 id="student-discovery-heading" className="text-xl font-semibold mb-4 text-sky-300">Discover Connections</h3>
+              {availableStudents.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                  {filteredStudents.map((student) => (
+                    <StudentCard key={student.id} student={student} isSwipeMode={false} />
+                  ))}
                 </div>
+              ) : (
+                <p className="text-center text-slate-400 py-8">No students match your current search or all students have been viewed.</p>
+              )}
+            </section>
+
+            {/* Activity Feed and Study Group Hub Section - Rendered as a new row/area below discovery */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-700/50 mt-6">
+              <section aria-labelledby="activity-feed-heading">
+                <h3 id="activity-feed-heading" className="text-lg font-semibold mb-3 text-sky-400">Latest Activity</h3>
+                 <ActivityFeedPlaceholder />
+              </section>
+              <section aria-labelledby="study-group-hub-heading">
+                <h3 id="study-group-hub-heading" className="text-lg font-semibold mb-3 text-teal-400">Study Groups</h3>
+                <StudyGroupHubPlaceholder />
+              </section>
+            </div>
+          </div>
+        )}
+
+        {viewMode === 'swipe' && !selectedStudentId && (
+          <div ref={swipeCardFocusRef} tabIndex={-1} className="outline-none flex flex-col items-center justify-center h-full relative">
+            <AnimatePresence initial={false} custom={tinderExitDirection}>
+              {availableStudents.length > 0 ? (
+                <StudentCard
+                  key={availableStudents[0].id}
+                  student={availableStudents[0]}
+                  isSwipeMode={true}
+                  onSwipe={(direction) => handleSwipe(direction, availableStudents[0])}
+                  drag="x"
+                  style={{
+                    position: 'absolute', // Needed for stacking and AnimatePresence
+                    width: 'calc(100% - 20px)', // Responsive width
+                    maxWidth: '380px', // Max card width
+                    height: 'auto', // Auto height based on content
+                  }}
+                />
+              ) : (
+                <Card className="text-center p-6 md:p-10 bg-slate-800 border-slate-700 shadow-xl rounded-xl">
+                  <CardHeader>
+                    <CardTitle className="text-2xl md:text-3xl font-bold text-sky-400">That's everyone for now!</CardTitle>
+                    <CardDescription className="text-slate-400 text-sm md:text-base mt-2">
+                      You've swiped through all available student profiles. Check back later for new connections or try adjusting your search filters in grid view.
+                    </CardDescription>
+                  </CardHeader>
+                  {swipeHistory.length > 0 && (
+                     <Button onClick={handleRewind} variant="outline" className="mt-4 bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-300">
+                        <FaUndo className="mr-2" /> Rewind Last Swipe
+                     </Button>
+                  )}
+                </Card>
               )}
             </AnimatePresence>
+            {availableStudents.length > 0 && (
+              <div className="absolute bottom-5 md:bottom-8 flex items-center justify-center gap-3 md:gap-5 z-10 p-2 bg-black/30 backdrop-blur-sm rounded-full shadow-lg">
+                <Button
+                  onClick={() => handleSwipe('left', availableStudents[0])}
+                  variant="default" // Changed from 'gooeyLeft'
+                  size="lg"
+                  className="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 md:p-4 shadow-md transform transition-transform hover:scale-110"
+                  aria-label="Skip student"
+                >
+                  <FaTimes className="h-5 w-5 md:h-6 md:w-6" />
+                </Button>
+                <Button
+                  onClick={() => openChat(availableStudents[0].id)}
+                  variant="default" // Explicitly add Chat button
+                  size="lg"
+                  className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-3 md:p-4 shadow-md transform transition-transform hover:scale-110"
+                  aria-label="Chat with student"
+                >
+                  <FaComment className="h-5 w-5 md:h-6 md:w-6" />
+                </Button>
+                <Button
+                  onClick={() => handleSwipe('right', availableStudents[0])}
+                  variant="default" // Changed from 'gooeyRight'
+                  size="lg"
+                  className="bg-green-500 hover:bg-green-600 text-white rounded-full p-3 md:p-4 shadow-md transform transition-transform hover:scale-110"
+                  aria-label="Connect with student"
+                >
+                  <FaPlus className="h-5 w-5 md:h-6 md:w-6" />
+                </Button>
+                {swipeHistory.length > 0 && (
+                   <Button 
+                     onClick={handleRewind} 
+                     variant="outline" 
+                     size="icon" 
+                     className="bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-full p-2 md:p-3 shadow-md transform transition-transform hover:scale-110"
+                     aria-label="Rewind last swipe"
+                   >
+                     <FaUndo className="h-4 w-4 md:h-5 md:w-5" />
+                   </Button>
+                )}
+              </div>
+            )}
+            {lastAction && (
+              <p className="mt-4 text-sm text-slate-400 bg-slate-700/50 px-3 py-1 rounded-md">{lastAction}</p>
+            )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Chat View (visible when a student is selected) */}
-      {selectedStudent && (
-        <div 
-          ref={chatModalRef} // Add ref to the modal container
-          className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={`chat-with-${selectedStudent.id}-title`}
-          // aria-describedby={`chat-with-${selectedStudent.id}-description`} // Optional description
-        >
-          <Card className="w-full max-w-lg h-[70vh] flex flex-col shadow-xl bg-card">
-              <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
-                  <div className="flex items-center gap-3">
-                      <Avatar>
-                          <AvatarImage src={selectedStudent.avatar || undefined} alt={`${selectedStudent.name}'s avatar`} />
-                          <AvatarFallback>{getInitials(selectedStudent.name)}</AvatarFallback>
-                      </Avatar>
-                      <CardTitle id={`chat-with-${selectedStudent.id}-title`}>Chat with {selectedStudent.name}</CardTitle>
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={closeChat} aria-label={`Close chat with ${selectedStudent.name}`}>
-                      <FaTimes aria-hidden="true" />
-                  </Button>
-              </CardHeader>
-              <ScrollArea className="flex-grow p-4">
-                  <ul className="space-y-3" aria-live="polite"> {/* Added ul and aria-live for new messages */}
-                      {(chatMessages[selectedStudent.id] || []).map((msg, index) => (
-                          <li key={index} className={`flex ${msg.sent ? 'justify-end' : 'justify-start'}`}>
-                              <div className={`p-2 rounded-lg max-w-[70%] ${msg.sent ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                                  {msg.text}
-                              </div>
-                          </li>
-                      ))}
-                  </ul>
-              </ScrollArea>
-              <CardFooter className="p-4 border-t">
-                  <form className="flex w-full gap-2" onSubmit={(e) => { e.preventDefault(); handleSendMessage(selectedStudent.id); }}>
-                      <Input 
-                          ref={chatInputRef} // Assign ref for focus
-                          type="text" 
-                          placeholder="Type a message..." 
-                          value={chatMessage} 
-                          onChange={(e) => setChatMessage(e.target.value)} 
-                          aria-label={`Message to ${selectedStudent.name}`}
-                          className="flex-grow"
-                      />
-                      <Button type="submit" size="icon" aria-label="Send message">
-                          <FaPaperPlane aria-hidden="true" />
+        {/* Chat Modal - Overlay */}
+        <AnimatePresence>
+          {selectedStudentId && selectedStudent && (
+            <motion.div
+              ref={chatModalRef}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20, transition: { duration: 0.2 } }}
+              transition={{ type: "spring", stiffness: 260, damping: 25 }}
+              className="fixed inset-0 md:inset-auto md:bottom-0 md:right-0 md:m-4 md:max-w-md w-full h-full md:h-[70vh] md:max-h-[500px] bg-slate-800 border border-slate-700 rounded-xl shadow-2xl flex flex-col z-50"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="chat-modal-title"
+            >
+              <Card className="w-full max-w-lg h-[70vh] flex flex-col shadow-xl bg-card">
+                  <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
+                      <div className="flex items-center gap-3">
+                          <Avatar>
+                              <AvatarImage src={selectedStudent.avatar || undefined} alt={`${selectedStudent.name}'s avatar`} />
+                              <AvatarFallback>{getInitials(selectedStudent.name)}</AvatarFallback>
+                          </Avatar>
+                          <CardTitle id={`chat-with-${selectedStudent.id}-title`}>Chat with {selectedStudent.name}</CardTitle>
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={closeChat} aria-label={`Close chat with ${selectedStudent.name}`}>
+                          <FaTimes aria-hidden="true" />
                       </Button>
-                  </form>
-              </CardFooter>
-          </Card>
-        </div>
-      )}
-
-      {/* Placeholder sections for Activity Feed and Study Group Hub */}
-      {!selectedStudentId && viewMode === 'grid' && ( // Only show these in grid view for now, and when not in chat
-        <div className="mt-8 px-2 md:px-0">
-          <ActivityFeedPlaceholder />
-          <StudyGroupHubPlaceholder />
-        </div>
-      )}
+                  </CardHeader>
+                  <ScrollArea className="flex-grow p-4">
+                      <ul className="space-y-3" aria-live="polite"> {/* Added ul and aria-live for new messages */}
+                          {(chatMessages[selectedStudent.id] || []).map((msg, index) => (
+                              <li key={index} className={`flex ${msg.sent ? 'justify-end' : 'justify-start'}`}>
+                                  <div className={`p-2 rounded-lg max-w-[70%] ${msg.sent ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                                      {msg.text}
+                                  </div>
+                              </li>
+                          ))}
+                      </ul>
+                  </ScrollArea>
+                  <CardFooter className="p-4 border-t">
+                      <form className="flex w-full gap-2" onSubmit={(e) => { e.preventDefault(); handleSendMessage(selectedStudent.id); }}>
+                          <Input 
+                              ref={chatInputRef} // Assign ref for focus
+                              type="text" 
+                              placeholder="Type a message..." 
+                              value={chatMessage} 
+                              onChange={(e) => setChatMessage(e.target.value)} 
+                              aria-label={`Message to ${selectedStudent.name}`}
+                              className="flex-grow"
+                          />
+                          <Button type="submit" size="icon" aria-label="Send message">
+                              <FaPaperPlane aria-hidden="true" />
+                          </Button>
+                      </form>
+                  </CardFooter>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
