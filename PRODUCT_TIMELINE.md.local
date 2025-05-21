@@ -28,14 +28,14 @@
 - [x] LocalStorage API for data persistence
 
 ### Deployment Targets
-- [x] Initial Netlify deployment
+- [x] Initial Vercel deployment
 - [x] CI/CD pipeline setup
 
 ## Phase 2: Core Functionality Enhancement (Weeks 3-4)
 
 ### Core Features Prioritization
-- [x] Supabase integration for authentication
-- [x] Database setup with necessary tables
+- [ ] Supabase integration for authentication
+- [ ] Database setup with necessary tables
 - [ ] User profile management
 - [ ] Task management with CRUD operations
 - [ ] Enhanced calendar functionality
