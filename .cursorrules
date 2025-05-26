@@ -1,0 +1,274 @@
+# Cursor Rules - Development Standards
+
+You are an expert React, Next.js, and Tailwind CSS developer. Follow these standards strictly:
+
+## React Component Development
+
+### File Structure & Naming
+- Use PascalCase for component files (e.g., `UserProfile.tsx`)
+- Use named exports primarily, default exports only for page components
+- Place TypeScript interfaces directly above the component definition
+- Order imports: React → external libraries → internal modules → assets/styles
+
+### Component Architecture
+- Call all hooks at the top level, before conditional logic or returns
+- Use TypeScript interfaces for all props (e.g., `interface ComponentProps { ... }`)
+- Prefer composition over inheritance
+- Keep components focused and single-responsibility
+
+```typescript
+// Template Structure
+import React, { useState, useEffect } from 'react';
+import { externalLibrary } from 'external-lib';
+import { internalUtil } from '../utils/helpers';
+
+interface ComponentNameProps {
+  // Define all props with proper types
+}
+
+export const ComponentName: React.FC<ComponentNameProps> = ({ prop1, prop2 }) => {
+  // All hooks at top level
+  const [state, setState] = useState();
+  
+  // Effects and handlers
+  
+  return (
+    // JSX with Tailwind classes
+  );
+};
+```
+
+### State Management Rules
+- **Simple state**: Use `useState` for local component state
+- **Complex state**: Use `useReducer` for state with multiple sub-values or complex transitions
+- **Shared state**: Use Context API for simple sharing, Zustand/Redux Toolkit for complex apps
+- **Avoid prop drilling**: Pass data through context or state management when drilling more than 2 levels
+
+## Next.js App Router Patterns
+
+### Directory Structure
+- Use `app/` directory with folder-based routing
+- `page.tsx` for UI routes, `layout.tsx` for shared layouts
+- `loading.tsx` for loading states, `error.tsx` for error boundaries
+- Use `(groupName)` for route groups that don't affect URL
+- Use `_folderName` for private folders excluded from routing
+
+### Server vs Client Components
+- **Default to Server Components** for:
+  - Data fetching from APIs/databases
+  - Accessing backend resources
+  - Components without interactivity
+  - Sensitive logic that shouldn't be client-side
+
+- **Use Client Components** (`'use client'`) for:
+  - State management (`useState`, `useReducer`)
+  - Lifecycle effects (`useEffect`)
+  - Browser APIs (localStorage, window, etc.)
+  - Event handlers and interactivity
+  - Third-party libraries that require client-side execution
+
+### Data Fetching Patterns
+- **Server Components**: Use `async/await` directly, leverage Next.js caching
+- **Client Components**: Use SWR, React Query, or `useEffect` for client-side fetching
+- **Server Actions**: Use for form submissions and mutations with `'use server'`
+
+```typescript
+// Server Component Example
+async function getData() {
+  const res = await fetch('https://api.example.com/data', {
+    next: { revalidate: 3600 } // Cache for 1 hour
+  });
+  if (!res.ok) throw new Error('Failed to fetch');
+  return res.json();
+}
+
+export default async function Page() {
+  const data = await getData();
+  return <div>{/* Render data */}</div>;
+}
+```
+
+### Caching & Revalidation
+- Use `fetch` with Next.js caching options: `cache: 'force-cache'` or `cache: 'no-store'`
+- Use `next: { revalidate: seconds }` for time-based revalidation
+- Use `revalidatePath()` and `revalidateTag()` in Server Actions for on-demand revalidation
+
+## Tailwind CSS Guidelines
+
+### Class Usage
+- **Prefer utility classes** over custom CSS
+- Use `className` prop, never inline styles unless absolutely necessary
+- For dynamic styles, use `clsx` or `cva` (Class Variance Authority)
+- Format long class lists across multiple lines for readability
+
+### Component Variants with CVA
+```typescript
+import { cva, type VariantProps } from 'class-variance-authority';
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2",
+  {
+    variants: {
+      variant: {
+        default: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
+        secondary: "bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-400",
+        destructive: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+);
+
+interface ButtonProps 
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, 
+    VariantProps<typeof buttonVariants> {}
+
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, ...props }, ref) => {
+    return (
+      <button 
+        className={buttonVariants({ variant, size, className })} 
+        ref={ref} 
+        {...props} 
+      />
+    );
+  }
+);
+```
+
+### Styling Restrictions
+- **Avoid `@apply`** unless absolutely necessary for base styles
+- **No arbitrary values** (`[color: #123456]`) unless exceptional cases
+- Stick to theme values defined in `tailwind.config.js`
+- Use `@tailwindcss/forms` and `@tailwindcss/typography` plugins when appropriate
+
+## Code Quality Standards
+
+### TypeScript
+- Use strict TypeScript configuration
+- Define interfaces for all props, API responses, and complex objects
+- Use union types and literal types for better type safety
+- Prefer `interface` over `type` for object shapes
+
+### Error Handling
+- Always handle async operations with try/catch or .catch()
+- Create reusable error boundary components
+- Use proper error states in loading/error/success patterns
+- Log errors appropriately without exposing sensitive information
+
+### Performance Best Practices
+- Use `React.memo()` for expensive re-renders
+- Implement proper loading states and skeleton UIs
+- Use `Suspense` boundaries for async components
+- Optimize images with Next.js `Image` component
+- Implement proper caching strategies
+
+### Accessibility
+- Use semantic HTML elements
+- Include proper ARIA labels and roles
+- Ensure keyboard navigation works
+- Maintain proper color contrast ratios
+- Test with screen readers
+
+## Form Handling Patterns
+
+### Server Actions
+```typescript
+// app/actions.ts
+'use server';
+
+import { revalidatePath } from 'next/cache';
+
+export async function createUser(formData: FormData) {
+  const name = formData.get('name') as string;
+  
+  try {
+    // Validate input
+    if (!name) throw new Error('Name is required');
+    
+    // Perform mutation
+    await db.user.create({ data: { name } });
+    
+    // Revalidate cache
+    revalidatePath('/users');
+    
+    return { success: true };
+  } catch (error) {
+    return { error: 'Failed to create user' };
+  }
+}
+```
+
+### Form Components
+- Use controlled components with `useState` for complex forms
+- Use uncontrolled components with `useRef` for simple forms
+- Implement proper validation with libraries like Zod
+- Show loading states during form submission
+
+## Additional Best Practices
+
+### Security
+- Validate all inputs on both client and server
+- Use environment variables for sensitive data
+- Implement proper authentication and authorization
+- Sanitize user inputs to prevent XSS
+
+### Testing
+- Write unit tests for utility functions
+- Test components with React Testing Library
+- Test Server Actions and API routes
+- Maintain good test coverage for critical paths
+
+### Code Organization
+- Group related files in feature folders
+- Use barrel exports (`index.ts`) to simplify imports
+- Keep utility functions pure and testable
+- Separate business logic from UI components
+
+### Environment & Configuration
+- Use different `.env` files for different environments
+- Prefix client-side environment variables with `NEXT_PUBLIC_`
+- Keep sensitive variables server-side only
+- Document all environment variables in README
+
+## Naming Conventions
+- **Components**: PascalCase (`UserProfile`)
+- **Files**: PascalCase for components, camelCase for utilities (`userUtils.ts`)
+- **Variables/Functions**: camelCase (`getUserData`)
+- **Constants**: SCREAMING_SNAKE_CASE (`API_BASE_URL`)
+- **CSS Classes**: kebab-case (follow Tailwind conventions)
+
+## Import Organization
+Always organize imports in this order:
+1. React and React-related imports
+2. Third-party library imports
+3. Internal components and utilities
+4. Type-only imports (with `type` keyword)
+5. Assets and styles
+
+```typescript
+import React, { useState, useEffect } from 'react';
+import { NextPage } from 'next';
+import { clsx } from 'clsx';
+import { Button } from '@/components/ui/Button';
+import { getUserData } from '@/utils/api';
+import type { User } from '@/types/user';
+import styles from './Component.module.css';
+```
+
+When writing code, always prioritize:
+1. **Type Safety**: Use TypeScript properly
+2. **Performance**: Optimize for speed and bundle size
+3. **Accessibility**: Ensure all users can use the interface
+4. **Maintainability**: Write clean, readable, documented code
+5. **User Experience**: Create smooth, intuitive interfaces
+
+Follow these rules consistently and suggest improvements when you see opportunities to enhance code quality, performance, or developer experience.
