@@ -13,13 +13,6 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "StudySpark - Your Ultimate Study Companion",
   description: "An innovative app designed to enhance your learning experience with smart task management, collaborative features, and gamified reminders.",
-  manifest: "/manifest.json",
-  icons: {
-    icon: "/favicon.ico",
-    apple: "/favicon.ico",
-  },
-  themeColor: "#3b82f6",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
 };
 
 // Define the appearance object (ideally, this would be in a shared file)

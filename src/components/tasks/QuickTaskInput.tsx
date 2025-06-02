@@ -351,3 +351,30 @@ export const QuickTaskInput: React.FC<QuickTaskInputProps> = ({
 };
 
 export default QuickTaskInput; 
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Success feedback */}
+      <AnimatePresence>
+        {showSuccess && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="absolute -right-16 top-0 h-full flex items-center"
+          >
+            <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+              <CheckCircle2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Added!</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+export default QuickTaskInput; 

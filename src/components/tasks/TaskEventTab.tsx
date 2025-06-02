@@ -47,9 +47,6 @@ import "react-calendar/dist/Calendar.css";
 import { TimetableGrid } from "./TimetableGrid"; // Import the new TimetableGrid component
 import { v4 as uuidv4 } from 'uuid'; // For generating UIDs for iCal events
 import { cn } from "@/lib/utils";
-import { notificationScheduler } from '@/lib/notifications/notificationScheduler';
-import { useAuth } from '@clerk/nextjs';
-import { toast } from 'sonner';
 
 // Enhanced task management components
 import { ProgressiveTaskCapture } from './ProgressiveTaskCapture';
@@ -108,7 +105,6 @@ interface Task {
   subject?: string;
   completed: boolean;
   reminder: boolean;
-  reminderMinutes?: number; // Custom reminder time in minutes before due date
   description?: string;
   // Recurrence fields
   recurrenceRule?: RecurrenceRule;
@@ -439,7 +435,6 @@ const exportTimetableToICal = (entries: ClassTimetableEntry[]): string => {
 };
 
 const TaskEventTab = () => {
-  const { userId } = useAuth();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
@@ -463,14 +458,13 @@ const TaskEventTab = () => {
     subject: "",
     description: "",
     reminder: true,
-    reminderMinutes: 15, // Default to 15 minutes
     recurrenceRule: "none",
     recurrenceInterval: 1,
     recurrenceEndDate: "",
   };
   const [newTask, setNewTask] = useState<Omit<Task, "id" | "completed">>(initialNewTaskState);
 
-  const handleAddTask = async () => {
+  const handleAddTask = () => {
     if (!newTask.title || !newTask.dueDate) {
       // Basic validation, can be enhanced
       alert("Title and Due Date are required.");
@@ -487,37 +481,13 @@ const TaskEventTab = () => {
       recurrenceEndDate: newTask.recurrenceRule !== "none" && newTask.recurrenceEndDate && isValid(parseISO(newTask.recurrenceEndDate)) ? newTask.recurrenceEndDate : undefined,
     };
 
-    // Schedule push notification if reminder is enabled and user is authenticated
-    if (taskToAdd.reminder && userId) {
-      try {
-        const reminderMinutes = taskToAdd.reminderMinutes || 15; // Use custom time or default to 15
-        const scheduledId = await notificationScheduler.scheduleTaskReminder({
-          userId,
-          taskId: taskToAdd.id,
-          taskTitle: taskToAdd.title,
-          dueDate: taskToAdd.dueDate,
-          reminderMinutes,
-          priority: taskToAdd.priority
-        });
-        
-        if (scheduledId) {
-          toast.success(`Task created with reminder ${reminderMinutes} minutes before due time!`);
-        } else {
-          toast.warning("Task created, but reminder could not be scheduled");
-        }
-      } catch (error) {
-        console.error('Failed to schedule task reminder:', error);
-        toast.warning("Task created, but reminder scheduling failed");
-      }
-    }
-
     setTasks([...tasks, taskToAdd]);
     setShowAddTaskDialog(false);
     setNewTask(initialNewTaskState); // Reset form
   };
 
   // Enhanced task creation handler for new components
-  const handleEnhancedTaskCreate = async (taskData: Omit<ExtendedTask, 'id' | 'completed'>) => {
+  const handleEnhancedTaskCreate = (taskData: Omit<ExtendedTask, 'id' | 'completed'>) => {
     // Convert ExtendedTask to Task format for backward compatibility
     const convertedTask: Task = {
       id: Date.now().toString(),
@@ -535,30 +505,6 @@ const TaskEventTab = () => {
       originalDueDate: taskData.originalDueDate,
       completedOverrides: taskData.completedOverrides,
     };
-
-    // Schedule push notification if reminder is enabled and user is authenticated
-    if (convertedTask.reminder && userId) {
-      try {
-        const reminderMinutes = convertedTask.reminderMinutes || taskData.reminderMinutes || 15; // Use custom time or default to 15
-        const scheduledId = await notificationScheduler.scheduleTaskReminder({
-          userId,
-          taskId: convertedTask.id,
-          taskTitle: convertedTask.title,
-          dueDate: convertedTask.dueDate,
-          reminderMinutes,
-          priority: convertedTask.priority
-        });
-        
-        if (scheduledId) {
-          toast.success(`Task created with reminder ${reminderMinutes} minutes before due time!`);
-        } else {
-          toast.warning("Task created, but reminder could not be scheduled");
-        }
-      } catch (error) {
-        console.error('Failed to schedule task reminder:', error);
-        toast.warning("Task created, but reminder scheduling failed");
-      }
-    }
 
     setTasks(prev => [...prev, convertedTask]);
     setShowProgressiveCapture(false);
@@ -789,7 +735,7 @@ const TaskEventTab = () => {
               className="transition-all duration-200"
             >
               Quick Add
-              </Button>
+            </Button>
             <Button
               variant={inputMode === 'progressive' ? "default" : "outline"}
               size="sm"
@@ -798,15 +744,15 @@ const TaskEventTab = () => {
             >
               Detailed Add
             </Button>
-                  </div>
+          </div>
           <StuTaskGuidance 
             currentStep="quickCapture" 
             taskData={{}}
             size="sm"
             position="corner"
-                    />
-                  </div>
-                  
+          />
+        </div>
+        
         {/* Quick task input */}
         {inputMode === 'quick' && (
           <div className="mb-4">
@@ -816,8 +762,8 @@ const TaskEventTab = () => {
               className="w-full"
               autoFocus={false}
             />
-                      </div>
-                    )}
+          </div>
+        )}
 
         {/* Progressive task capture dialog */}
         <ProgressiveTaskCapture

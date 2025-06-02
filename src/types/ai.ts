@@ -16,7 +16,6 @@ export interface BaseTask {
   subject?: string;
   completed: boolean;
   reminder: boolean;
-  reminderMinutes?: number; // Custom reminder time in minutes before due date
   description?: string;
   // Recurrence fields
   recurrenceRule?: RecurrenceRule;
