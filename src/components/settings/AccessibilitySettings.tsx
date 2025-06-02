@@ -1,59 +1,84 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Switch } from '@/components/ui/switch';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import { useThemeContext } from '@/components/providers/theme-provider';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 
-const DEFAULT_FONT_SIZE = 16;
+export const AccessibilitySettings: React.FC = () => {
+  const [fontSizeMultiplier, setFontSizeMultiplier] = useLocalStorage('fontSizeMultiplier', 1);
+  const { accessibilityOptions, setAccessibilityOption } = useThemeContext();
+  const { reducedMotion, largeText } = accessibilityOptions;
 
-export function AccessibilitySettings() {
-  const [reducedMotion, setReducedMotion] = useLocalStorage<boolean>('reducedMotion', false);
-  const [fontSize, setFontSize] = useLocalStorage<number>('fontSize', DEFAULT_FONT_SIZE);
-
-  // Apply font size change to the root element
   useEffect(() => {
-    document.documentElement.style.fontSize = `${fontSize}px`;
-  }, [fontSize]);
+    document.documentElement.style.fontSize = `${fontSizeMultiplier * 16}px`;
+  }, [fontSizeMultiplier]);
 
-  // TODO: Check for reducedMotion preference in animation components
+  const increaseFontSize = () => setFontSizeMultiplier(prev => Math.min(prev + 0.1, 1.5));
+  const decreaseFontSize = () => setFontSizeMultiplier(prev => Math.max(prev - 0.1, 0.8));
+
+  const handleReducedMotionChange = (checked: boolean) => {
+    setAccessibilityOption('reducedMotion', checked);
+  };
+
+  const handleLargeTextChange = (checked: boolean) => {
+    setAccessibilityOption('largeText', checked);
+  };
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium">Accessibility</h3>
-
-      <div className="space-y-4 p-4 border rounded-lg">
-        <div className="flex justify-between items-center">
-           <Label htmlFor="font-size">Font Size</Label>
-           <span className="text-sm font-medium">{fontSize}px</span>
+      <div className="space-y-2">
+        <Label className="block text-base font-medium">Font Size</Label>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" onClick={decreaseFontSize} aria-label="Decrease font size">-</Button>
+          <span className="min-w-[40px] text-center text-sm">{(fontSizeMultiplier * 100).toFixed(0)}%</span>
+          <Button variant="outline" onClick={increaseFontSize} aria-label="Increase font size">+</Button>
         </div>
-        <Slider 
-          id="font-size" 
-          value={[fontSize]} 
-          max={24} 
-          min={12} 
-          step={1} 
-          onValueChange={(value) => setFontSize(value[0])} 
-        />
-        <span className="text-sm text-muted-foreground">Adjust the base font size for the application.</span>
+        <p className="text-sm text-muted-foreground">
+          Adjust the text size for better readability.
+        </p>
       </div>
 
-      <div className="flex items-center justify-between p-4 border rounded-lg">
-        <Label htmlFor="reduced-motion" className="flex flex-col space-y-1">
-          <span>Reduced Motion</span>
+      <div className="flex items-center justify-between pt-4 border-t mt-4">
+        <Label htmlFor="reduced-motion-toggle" className="flex flex-col space-y-1">
+          <span className="text-base font-medium">Reduced Motion</span>
           <span className="font-normal leading-snug text-muted-foreground">
-            Minimize animations and transitions.
+            Disable animations and transitions for a calmer experience.
           </span>
         </Label>
         <Switch 
-          id="reduced-motion" 
+          id="reduced-motion-toggle"
           checked={reducedMotion}
-          onCheckedChange={setReducedMotion}
+          onCheckedChange={handleReducedMotionChange}
+          aria-label="Toggle reduced motion"
         />
       </div>
 
-      {/* Add screen reader optimization settings later */}
+      <div className="flex items-center justify-between pt-4 border-t mt-4">
+        <Label htmlFor="large-text-toggle" className="flex flex-col space-y-1">
+          <span className="text-base font-medium">Large Text</span>
+          <span className="font-normal leading-snug text-muted-foreground">
+            Increase text size globally for improved legibility.
+          </span>
+        </Label>
+        <Switch
+          id="large-text-toggle"
+          checked={largeText}
+          onCheckedChange={handleLargeTextChange}
+          aria-label="Toggle large text mode"
+        />
+      </div>
+
+      {/* Placeholder for Screen Reader Optimization Settings - to be implemented based on specific needs */}
+      {/* <div className="pt-4 border-t mt-4">
+        <h4 className="text-base font-medium mb-1">Screen Reader Optimizations</h4>
+        <p className="text-sm text-muted-foreground">Fine-tune settings for screen reader users. (Coming soon)</p>
+      </div> */}
     </div>
   );
-} 
+};
+
+export default AccessibilitySettings;

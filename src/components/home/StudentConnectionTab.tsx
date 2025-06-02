@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import type React from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -231,7 +232,7 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
 
   // Placeholder: assign a random streak for each student
   const getStreak = (studentId: string) => {
-    return parseInt(studentId) % 2 === 0 ? 3 + parseInt(studentId) : 0;
+    return Number.parseInt(studentId) % 2 === 0 ? 3 + Number.parseInt(studentId) : 0;
   };
 
   const handleSwipe = (direction: 'left' | 'right', student: Student) => {

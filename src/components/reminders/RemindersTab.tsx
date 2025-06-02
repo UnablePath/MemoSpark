@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { format } from "date-fns";
-import { FaCalendarAlt, FaCheckCircle, FaStar } from "react-icons/fa";
+import { FaCalendarAlt, FaCheckCircle, FaStar, FaBell, FaBellSlash } from "react-icons/fa";
 import { toast } from "sonner";
 import KoalaMascot from "@/components/ui/koala-mascot";
+import { notificationService } from "@/lib/notifications/notificationService";
+import type { NotificationPermissionState } from "@/lib/notifications/types";
 
 // Mock data for streaks, reminders and achievements
 const initialStreak = 3;
@@ -141,6 +143,12 @@ const RemindersTab = () => {
   const [stuReady, setStuReady] = useState(false);
   const prefersReducedMotion = useReducedMotion();
   const [reminders, setReminders] = useState<Reminder[]>(mockReminders);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermissionState>(
+    notificationService.getPermissionState()
+  );
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    notificationService.getSettings().enabled
+  );
 
   // Show Stu's greeting message when the component mounts
   useEffect(() => {
@@ -169,6 +177,54 @@ const RemindersTab = () => {
 
     return () => clearTimeout(wakeupTimer);
   }, []);
+
+  // Set up notification event listeners
+  useEffect(() => {
+    const handleNotificationClick = (event: CustomEvent) => {
+      const { notification } = event.detail;
+      if (notification.relatedReminderId) {
+        // Handle reminder-related notification clicks
+        toast.success(`Opened reminder: ${notification.title}`);
+      }
+    };
+
+    const handleNavigateToReminders = () => {
+      // This tab is already the reminders tab, so just show a message
+      toast.info("You're already viewing reminders!");
+    };
+
+    window.addEventListener('notificationClicked', handleNotificationClick as EventListener);
+    window.addEventListener('navigateToReminders', handleNavigateToReminders);
+
+    return () => {
+      window.removeEventListener('notificationClicked', handleNotificationClick as EventListener);
+      window.removeEventListener('navigateToReminders', handleNavigateToReminders);
+    };
+  }, []);
+
+  // Schedule notifications for due reminders
+  useEffect(() => {
+    if (notificationPermission.permission === 'granted' && notificationsEnabled) {
+      reminders.forEach(reminder => {
+        if (!reminder.completed && reminder.dueDate !== "Tomorrow, 11:59 PM") {
+          // Try to parse the due date and schedule a notification
+          try {
+            const dueDate = new Date(reminder.dueDate);
+            if (!isNaN(dueDate.getTime())) {
+              notificationService.scheduleTaskDueNotification(
+                reminder.id,
+                reminder.taskName,
+                dueDate.toISOString(),
+                15 // 15 minutes advance notice
+              );
+            }
+          } catch (error) {
+            console.warn(`Failed to schedule notification for reminder ${reminder.id}:`, error);
+          }
+        }
+      });
+    }
+  }, [reminders, notificationPermission.permission, notificationsEnabled]);
 
   const handleStuClick = () => {
     if (showingStuMessage) return;
@@ -201,6 +257,9 @@ const RemindersTab = () => {
     if (reminder) {
       setCoins(prev => prev + reminder.points);
 
+      // Cancel any pending notifications for this reminder
+      notificationService.cancelNotification(`task_due_${reminder.id}_${Date.now()}`);
+
       const message = getRandomMessage("encouragement", { streak: streak.toString() });
       setStuMessage(message);
       setStuMessageForSR(message);
@@ -218,6 +277,41 @@ const RemindersTab = () => {
       toast(`+${reminder.points} coins earned!`, {
         description: "Keep completing tasks to earn more!",
       });
+
+      // Send achievement notification if appropriate
+      if (coins + reminder.points >= 100) {
+        notificationService.sendAchievementNotification(
+          "Century Club",
+          "You've earned 100+ study coins!"
+        );
+      }
+    }
+  };
+
+  const handleNotificationPermissionRequest = async () => {
+    const permission = await notificationService.requestPermission();
+    setNotificationPermission(notificationService.getPermissionState());
+    
+    if (permission === 'granted') {
+      toast.success("Notifications enabled! You'll receive reminders for your tasks.", {
+        description: "You can change this in your browser settings anytime."
+      });
+    } else if (permission === 'denied') {
+      toast.error("Notifications blocked. Enable them in your browser settings to get reminders.");
+    } else {
+      toast.info("Notification permission is required for reminders.");
+    }
+  };
+
+  const toggleNotifications = () => {
+    const newEnabled = !notificationsEnabled;
+    setNotificationsEnabled(newEnabled);
+    notificationService.updateSettings({ enabled: newEnabled });
+    
+    if (newEnabled && notificationPermission.permission !== 'granted') {
+      handleNotificationPermissionRequest();
+    } else {
+      toast.success(newEnabled ? "Notifications enabled" : "Notifications disabled");
     }
   };
 
@@ -225,21 +319,21 @@ const RemindersTab = () => {
   const koalaVariants = {
     idle: {
       y: [0, -2, 0],
-      transition: { duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: "loop" as "loop" }
+      transition: { duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: "loop" as const }
     },
     talking: {
       y: [0, -5, 0, -3, 0],
-      transition: { duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: "loop" as "loop" }
+      transition: { duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: "loop" as const }
     },
     excited: {
       y: [0, -10, 0, -8, 0],
       rotate: [-5, 5, -5, 5, 0],
-      transition: { duration: 0.5, repeat: 3, repeatType: "loop" as "loop" }
+      transition: { duration: 0.5, repeat: 3, repeatType: "loop" as const }
     },
     sleeping: {
       y: 0,
       rotate: [0, 2, 0],
-      transition: { duration: 3, repeat: Number.POSITIVE_INFINITY, repeatType: "loop" as "loop" }
+      transition: { duration: 3, repeat: Number.POSITIVE_INFINITY, repeatType: "loop" as const }
     },
     loading: {
       opacity: [0.3, 1],
@@ -274,7 +368,22 @@ const RemindersTab = () => {
 
       {/* Header with Title, streak and coins */}
       <div className="mb-4 pb-4 border-b flex-shrink-0">
-        <h1 className="text-2xl font-bold mb-2 text-center sm:text-left">Reminders & Achievements</h1>
+        <div className="flex justify-between items-center mb-2">
+          <h1 className="text-2xl font-bold text-center sm:text-left">Reminders & Achievements</h1>
+          <Button
+            onClick={toggleNotifications}
+            variant={notificationsEnabled ? "default" : "outline"}
+            size="sm"
+            className="ml-2"
+            aria-label={notificationsEnabled ? "Disable notifications" : "Enable notifications"}
+          >
+            {notificationsEnabled ? (
+              <FaBell className="h-4 w-4" />
+            ) : (
+              <FaBellSlash className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
         <div className="flex flex-col sm:flex-row justify-around items-center gap-4 text-center p-2 rounded-lg bg-muted/50">
           <div>
             <p className="text-sm text-muted-foreground">Current Streak</p>
@@ -288,6 +397,22 @@ const RemindersTab = () => {
              <FaStar className="mr-2 h-4 w-4" aria-hidden="true" /> View Achievements
           </Button>
         </div>
+        {/* Notification status indicator */}
+        {notificationPermission.isSupported && notificationPermission.permission !== 'granted' && (
+          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">
+            💡 <button 
+              onClick={handleNotificationPermissionRequest}
+              className="underline font-medium hover:text-yellow-900"
+            >
+              Enable notifications
+            </button> to get reminded about your tasks!
+          </div>
+        )}
+        {!notificationPermission.isSupported && (
+          <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-600">
+            ℹ️ Browser notifications are not supported on this device.
+          </div>
+        )}
       </div>
 
       {/* Stu Mascot Section - Centered */}

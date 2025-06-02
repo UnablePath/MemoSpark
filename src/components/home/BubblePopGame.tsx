@@ -77,7 +77,7 @@ export function BubblePopGame() {
     if (typeof window !== 'undefined') {
         const storedHighScore = localStorage.getItem('bubblePopHighScore');
         if (storedHighScore) {
-            setHighScore(parseInt(storedHighScore, 10));
+            setHighScore(Number.parseInt(storedHighScore, 10));
         }
     }
     // Calculate numSpikes on mount and when gameAreaRef is available

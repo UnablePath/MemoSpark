@@ -47,6 +47,15 @@ import "react-calendar/dist/Calendar.css";
 import { TimetableGrid } from "./TimetableGrid"; // Import the new TimetableGrid component
 import { v4 as uuidv4 } from 'uuid'; // For generating UIDs for iCal events
 import { cn } from "@/lib/utils";
+import { notificationScheduler } from '@/lib/notifications/notificationScheduler';
+import { useAuth } from '@clerk/nextjs';
+import { toast } from 'sonner';
+
+// Enhanced task management components
+import { ProgressiveTaskCapture } from './ProgressiveTaskCapture';
+import { StuTaskGuidance } from './StuTaskGuidance';
+import { QuickTaskInput } from './QuickTaskInput';
+import type { ExtendedTask } from '@/types/ai';
 
 // Sample data for tasks and events
 type Priority = "low" | "medium" | "high";
@@ -99,6 +108,7 @@ interface Task {
   subject?: string;
   completed: boolean;
   reminder: boolean;
+  reminderMinutes?: number; // Custom reminder time in minutes before due date
   description?: string;
   // Recurrence fields
   recurrenceRule?: RecurrenceRule;
@@ -352,7 +362,7 @@ const generateRecurringInstances = (masterTask: Task, viewStartDate: Date, viewE
 const exportTimetableToICal = (entries: ClassTimetableEntry[]): string => {
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; // Get local timezone
 
-  let массовыхСобытий = [
+  const массовыхСобытий = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     `PRODID:-//StudySpark//TimetableExporter//EN`,
@@ -429,10 +439,15 @@ const exportTimetableToICal = (entries: ClassTimetableEntry[]): string => {
 };
 
 const TaskEventTab = () => {
+  const { userId } = useAuth();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar" | "timetable">("list");
+  
+  // Enhanced task creation state
+  const [inputMode, setInputMode] = useState<'quick' | 'progressive'>('quick');
+  const [showProgressiveCapture, setShowProgressiveCapture] = useState(false);
   
   const [classTimetable, setClassTimetable] = useState<ClassTimetableEntry[]>(initialTimetableEntries);
   // State for Add/Edit Timetable Entry Dialog
@@ -448,13 +463,14 @@ const TaskEventTab = () => {
     subject: "",
     description: "",
     reminder: true,
+    reminderMinutes: 15, // Default to 15 minutes
     recurrenceRule: "none",
     recurrenceInterval: 1,
     recurrenceEndDate: "",
   };
   const [newTask, setNewTask] = useState<Omit<Task, "id" | "completed">>(initialNewTaskState);
 
-  const handleAddTask = () => {
+  const handleAddTask = async () => {
     if (!newTask.title || !newTask.dueDate) {
       // Basic validation, can be enhanced
       alert("Title and Due Date are required.");
@@ -471,9 +487,82 @@ const TaskEventTab = () => {
       recurrenceEndDate: newTask.recurrenceRule !== "none" && newTask.recurrenceEndDate && isValid(parseISO(newTask.recurrenceEndDate)) ? newTask.recurrenceEndDate : undefined,
     };
 
+    // Schedule push notification if reminder is enabled and user is authenticated
+    if (taskToAdd.reminder && userId) {
+      try {
+        const reminderMinutes = taskToAdd.reminderMinutes || 15; // Use custom time or default to 15
+        const scheduledId = await notificationScheduler.scheduleTaskReminder({
+          userId,
+          taskId: taskToAdd.id,
+          taskTitle: taskToAdd.title,
+          dueDate: taskToAdd.dueDate,
+          reminderMinutes,
+          priority: taskToAdd.priority
+        });
+        
+        if (scheduledId) {
+          toast.success(`Task created with reminder ${reminderMinutes} minutes before due time!`);
+        } else {
+          toast.warning("Task created, but reminder could not be scheduled");
+        }
+      } catch (error) {
+        console.error('Failed to schedule task reminder:', error);
+        toast.warning("Task created, but reminder scheduling failed");
+      }
+    }
+
     setTasks([...tasks, taskToAdd]);
     setShowAddTaskDialog(false);
     setNewTask(initialNewTaskState); // Reset form
+  };
+
+  // Enhanced task creation handler for new components
+  const handleEnhancedTaskCreate = async (taskData: Omit<ExtendedTask, 'id' | 'completed'>) => {
+    // Convert ExtendedTask to Task format for backward compatibility
+    const convertedTask: Task = {
+      id: Date.now().toString(),
+      title: taskData.title,
+      dueDate: taskData.dueDate,
+      priority: taskData.priority,
+      type: taskData.type,
+      subject: taskData.subject,
+      completed: false,
+      reminder: taskData.reminder,
+      description: taskData.description,
+      recurrenceRule: taskData.recurrenceRule || 'none',
+      recurrenceInterval: taskData.recurrenceInterval,
+      recurrenceEndDate: taskData.recurrenceEndDate,
+      originalDueDate: taskData.originalDueDate,
+      completedOverrides: taskData.completedOverrides,
+    };
+
+    // Schedule push notification if reminder is enabled and user is authenticated
+    if (convertedTask.reminder && userId) {
+      try {
+        const reminderMinutes = convertedTask.reminderMinutes || taskData.reminderMinutes || 15; // Use custom time or default to 15
+        const scheduledId = await notificationScheduler.scheduleTaskReminder({
+          userId,
+          taskId: convertedTask.id,
+          taskTitle: convertedTask.title,
+          dueDate: convertedTask.dueDate,
+          reminderMinutes,
+          priority: convertedTask.priority
+        });
+        
+        if (scheduledId) {
+          toast.success(`Task created with reminder ${reminderMinutes} minutes before due time!`);
+        } else {
+          toast.warning("Task created, but reminder could not be scheduled");
+        }
+      } catch (error) {
+        console.error('Failed to schedule task reminder:', error);
+        toast.warning("Task created, but reminder scheduling failed");
+      }
+    }
+
+    setTasks(prev => [...prev, convertedTask]);
+    setShowProgressiveCapture(false);
+    setInputMode('quick');
   };
 
   // Updated function to get all tasks for a given day, including recurring instances
@@ -690,146 +779,52 @@ const TaskEventTab = () => {
   return (
     <div className="h-full flex flex-col relative">
       <div className="p-4 border-b">
-        <div className="flex items-center mb-4">
-          <div className="flex-1">
-            {/* <h1 className="text-2xl font-bold flex-1">Tasks & Events</h1> REMOVED */}
-          </div>
-          <Dialog open={showAddTaskDialog} onOpenChange={setShowAddTaskDialog}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="rounded-full h-8 w-8 p-0" aria-label="Add new task or event">
-                <FaPlus className="h-4 w-4" aria-hidden="true" />
+        {/* Enhanced task creation header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Button
+              variant={inputMode === 'quick' ? "default" : "outline"}
+              size="sm"
+              onClick={() => setInputMode('quick')}
+              className="transition-all duration-200"
+            >
+              Quick Add
               </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Add New Task/Event</DialogTitle>
-                <DialogDescription>
-                  Fill in the details for your new task or event. Add recurrence if needed.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={(e) => { e.preventDefault(); handleAddTask(); }}>
-                <div className="grid gap-4 py-4">
-                  
-                  <div>
-                    <Label htmlFor="task-title">Title</Label>
-                    <Input id="task-title" name="title" placeholder="e.g., Finish project report" value={newTask.title} onChange={handleInputChange} className="mt-1" />
+            <Button
+              variant={inputMode === 'progressive' ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowProgressiveCapture(true)}
+              className="transition-all duration-200"
+            >
+              Detailed Add
+            </Button>
                   </div>
-
-                  <div>
-                    <Label htmlFor="task-description">Description (Optional)</Label>
-                    <textarea 
-                        id="task-description" 
-                        name="description" 
-                        placeholder="e.g., Outline chapters, write introduction..." 
-                        value={newTask.description}
-                        onChange={handleInputChange} 
-                        className="mt-1 w-full min-h-[80px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          <StuTaskGuidance 
+            currentStep="quickCapture" 
+            taskData={{}}
+            size="sm"
+            position="corner"
                     />
                   </div>
                   
-                  <div>
-                    <Label htmlFor="task-dueDate">Due Date & Time</Label>
-                    <Input id="task-dueDate" name="dueDate" type="datetime-local" value={newTask.dueDate} onChange={handleInputChange} className="mt-1" />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="task-priority">Priority</Label>
-                      <Select name="priority" value={newTask.priority} onValueChange={(value: Priority) => setNewTask(prev => ({...prev, priority: value}))}>
-                        <SelectTrigger id="task-priority" className="mt-1">
-                          <SelectValue placeholder="Select priority" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="task-type">Type</Label>
-                      <Select name="type" value={newTask.type} onValueChange={(value: TaskType) => setNewTask(prev => ({...prev, type: value}))}>
-                        <SelectTrigger id="task-type" className="mt-1">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="academic">Academic</SelectItem>
-                          <SelectItem value="personal">Personal</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="task-subject">Subject/Category (Optional)</Label>
-                    <Input id="task-subject" name="subject" placeholder="e.g., Mathematics" value={newTask.subject} onChange={handleInputChange} className="mt-1" />
-                  </div>
-                  
-                  <div className="flex items-center space-x-2 mt-2">
-                    <input type="checkbox" id="task-reminder" name="reminder" checked={newTask.reminder} onChange={handleInputChange} className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"/>
-                    <Label htmlFor="task-reminder" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Set Reminder
-                    </Label>
-                  </div>
-
-                  {/* Recurrence Fields */}
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="text-sm font-medium mb-2 flex items-center"><FaRedo className="mr-2 h-3.5 w-3.5 text-muted-foreground"/>Recurrence Settings</h4>
-                    <div>
-                      <Label htmlFor="task-recurrenceRule">Repeats</Label>
-                      <Select name="recurrenceRule" value={newTask.recurrenceRule} onValueChange={handleRecurrenceRuleChange}>
-                        <SelectTrigger id="task-recurrenceRule" className="mt-1">
-                          <SelectValue placeholder="Select recurrence" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          <SelectItem value="daily">Daily</SelectItem>
-                          <SelectItem value="weekly">Weekly</SelectItem>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                          <SelectItem value="yearly">Yearly</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {newTask.recurrenceRule && newTask.recurrenceRule !== "none" && (
-                      <div className="mt-3 grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="task-recurrenceInterval">Interval</Label>
-                          <Input 
-                            id="task-recurrenceInterval" 
-                            name="recurrenceInterval" 
-                            type="number" 
-                            min="1" 
-                            value={newTask.recurrenceInterval}
-                            onChange={handleInputChange} 
-                            className="mt-1" 
-                            placeholder={`Every ${newTask.recurrenceRule === "daily" ? "day(s)" : newTask.recurrenceRule === "weekly" ? "week(s)" : newTask.recurrenceRule === "monthly" ? "month(s)" : "year(s)"}`}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="task-recurrenceEndDate">Ends On (Optional)</Label>
-                          <Input 
-                            id="task-recurrenceEndDate" 
-                            name="recurrenceEndDate" 
-                            type="date" 
-                            value={newTask.recurrenceEndDate}
-                            onChange={handleInputChange} 
-                            className="mt-1" 
-                            min={format(addDays(parseISO(newTask.dueDate), 1), 'yyyy-MM-dd')} // End date must be after due date
-                          />
-                        </div>
+        {/* Quick task input */}
+        {inputMode === 'quick' && (
+          <div className="mb-4">
+            <QuickTaskInput
+              onTaskCreate={handleEnhancedTaskCreate}
+              placeholder="What needs to be done? (e.g., 'Study math exam tomorrow')"
+              className="w-full"
+              autoFocus={false}
+            />
                       </div>
                     )}
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setShowAddTaskDialog(false)}>Cancel</Button>
-                  <Button type="submit">Add Task</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+
+        {/* Progressive task capture dialog */}
+        <ProgressiveTaskCapture
+          open={showProgressiveCapture}
+          onOpenChange={setShowProgressiveCapture}
+          onTaskCreate={handleEnhancedTaskCreate}
+        />
 
         <div className="flex space-x-2 mb-2">
           <Button

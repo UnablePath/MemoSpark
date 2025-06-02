@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { ClassTimetableEntry, ALL_DAYS_OF_WEEK, DayOfWeek } from './TaskEventTab'; // Assuming types are exported from TaskEventTab or a shared types file
+import type React from 'react';
+import { type ClassTimetableEntry, ALL_DAYS_OF_WEEK, type DayOfWeek } from './TaskEventTab'; // Assuming types are exported from TaskEventTab or a shared types file
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button'; // Import Button for edit/delete
 import { FaPencilAlt, FaTrashAlt } from 'react-icons/fa'; // Import icons

@@ -70,7 +70,7 @@ export default function LandingPage() {
                 key={i}
                 initial={{ opacity: 0, scale: 0.5, y: 50 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ delay: 1.5 + i * 0.1, duration: 1, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
+                transition={{ delay: 1.5 + i * 0.1, duration: 1, repeat: Number.POSITIVE_INFINITY, repeatType: "mirror", ease: "easeInOut" }}
                 style={{
                     position: 'absolute',
                     left: `${Math.random() * 100}%`,

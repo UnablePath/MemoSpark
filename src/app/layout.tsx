@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { UserProvider } from "@/lib/user-context";
+import { AIProvider } from "@/lib/ai/aiContext";
 import ClientBody from "./ClientBody";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ConditionalHeader } from "@/components/layout/ConditionalHeader";
@@ -12,6 +13,13 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "StudySpark - Your Ultimate Study Companion",
   description: "An innovative app designed to enhance your learning experience with smart task management, collaborative features, and gamified reminders.",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
+  themeColor: "#3b82f6",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
 };
 
 // Define the appearance object (ideally, this would be in a shared file)
@@ -74,10 +82,12 @@ export default function RootLayout({
         <body className={inter.className}>
           <ThemeProvider>
             <UserProvider>
-              <ClientBody>
-                <ConditionalHeader />
-                {children}
-              </ClientBody>
+              <AIProvider>
+                <ClientBody>
+                  <ConditionalHeader />
+                  {children}
+                </ClientBody>
+              </AIProvider>
             </UserProvider>
           </ThemeProvider>
         </body>

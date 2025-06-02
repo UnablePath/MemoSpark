@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { motion, PanInfo, useReducedMotion } from 'framer-motion';
+import type React from 'react';
+import { motion, type PanInfo, useReducedMotion } from 'framer-motion';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { cn } from "@/lib/utils";
 import { Expand } from 'lucide-react';

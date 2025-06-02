@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, Children, isValidElement, useEffect, useRef } from 'react';
+import type React from 'react';
+import { useState, Children, isValidElement, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSwipeable, SwipeEventData } from 'react-swipeable';
+import { useSwipeable, type SwipeEventData } from 'react-swipeable';
 
 interface TabContainerProps {
   children: React.ReactNode;
@@ -13,11 +14,6 @@ interface TabContainerProps {
   tabIds?: string[];
   swipingEnabled?: boolean;
 }
-
-const swipeConfidenceThreshold = 10000;
-const swipePower = (offset: number, velocity: number) => {
-  return Math.abs(offset) * velocity;
-};
 
 const variants = {
   enter: (direction: number) => {
@@ -51,6 +47,8 @@ export function TabContainer({
 }: TabContainerProps) {
   const tabs = Children.toArray(children).filter(isValidElement);
   const [[internalIndex, direction], setInternalIndex] = useState([initialTab, 0]);
+  const isSwipingRef = useRef(false);
+  const swipeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const currentIndex = controlledIndex !== undefined ? controlledIndex : internalIndex;
 
@@ -61,37 +59,73 @@ export function TabContainer({
     }
   }, [controlledIndex, internalIndex]);
 
-  const changeTab = (newDirection: number) => {
+  // Debounced tab change to prevent rapid fire swipes
+  const changeTab = useCallback((newDirection: number) => {
+    // Prevent multiple rapid swipes
+    if (isSwipingRef.current) return;
+    
+    isSwipingRef.current = true;
+    
+    // Clear any existing timeout
+    if (swipeTimeoutRef.current) {
+      clearTimeout(swipeTimeoutRef.current);
+    }
+
     const nextIndex = (currentIndex + newDirection + tabs.length) % tabs.length;
+    
     if (controlledIndex !== undefined) {
         onTabChange?.(nextIndex);
-    }
-    else {
+    } else {
         const animationDirection = nextIndex > internalIndex ? 1 : (nextIndex < internalIndex ? -1 : 0);
         setInternalIndex([nextIndex, animationDirection]);
         onTabChange?.(nextIndex);
     }
-  };
 
-  const edgeThresholdPx = 50;
+    // Reset swipe lock after animation completes
+    swipeTimeoutRef.current = setTimeout(() => {
+      isSwipingRef.current = false;
+    }, 400); // Slightly longer than animation duration
+  }, [currentIndex, tabs.length, controlledIndex, onTabChange, internalIndex]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (swipeTimeoutRef.current) {
+        clearTimeout(swipeTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Expand edge threshold by 10% as requested
+  const edgeThresholdPx = 55; // Increased from 50 to 55 (10% increase)
 
   const handlers = useSwipeable({
     onSwipedLeft: (eventData: SwipeEventData) => {
-      if (!swipingEnabled) return;
+      if (!swipingEnabled || isSwipingRef.current) return;
+      
       const containerWidth = (eventData.event.currentTarget as HTMLElement)?.offsetWidth;
       if (!containerWidth) return;
-      if (eventData.initial[0] > containerWidth - edgeThresholdPx) {
+      
+      // More lenient swipe detection - increased area by 10%
+      const swipeThreshold = containerWidth * 0.1; // 10% of container width
+      if (eventData.initial[0] > containerWidth - (edgeThresholdPx + swipeThreshold)) {
         changeTab(1);
       }
     },
     onSwipedRight: (eventData: SwipeEventData) => {
-      if (!swipingEnabled) return;
+      if (!swipingEnabled || isSwipingRef.current) return;
+      
       const containerWidth = (eventData.event.currentTarget as HTMLElement)?.offsetWidth;
       if (!containerWidth) return;
-      if (eventData.initial[0] < edgeThresholdPx) {
+      
+      // More lenient swipe detection - increased area by 10%
+      const swipeThreshold = containerWidth * 0.1; // 10% of container width
+      if (eventData.initial[0] < edgeThresholdPx + swipeThreshold) {
         changeTab(-1);
       }
     },
+    // Add swipe distance threshold to improve detection
+    delta: 10, // Minimum distance for swipe
     preventScrollOnSwipe: true,
     trackMouse: true
   });
@@ -120,6 +154,10 @@ export function TabContainer({
             opacity: { duration: 0.2 },
           }}
           className="absolute w-full h-full"
+          // Prevent content from being interactable during transition
+          style={{ 
+            pointerEvents: isSwipingRef.current ? 'none' : 'auto'
+          }}
         >
           {activeTabContent}
         </motion.div>
