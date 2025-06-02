@@ -93,17 +93,31 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({
   className
 }) => {
   // Determine confidence level from suggestion
+  const currentConfidence = typeof suggestion.confidence === 'number' ? suggestion.confidence : 0;
   const suggestionConfidence = confidence || 
-    (suggestion.confidence >= 0.8 ? 'high' : 
-     suggestion.confidence >= 0.5 ? 'medium' : 'low');
+    (currentConfidence >= 0.8 ? 'high' : 
+     currentConfidence >= 0.5 ? 'medium' : 'low');
 
   // Determine priority from suggestion
   const suggestionPriority = priority || suggestion.priority || 'medium';
 
   // Determine type from suggestion
-  const suggestionType = type || suggestion.type || 'task_suggestion';
+  const rawSuggestionType = type || suggestion.type || 'task_suggestion';
+  
+  const validIconMapKeys = [
+    "study_time", "break_reminder", "task_suggestion", 
+    "difficulty_adjustment", "subject_focus", "schedule_optimization", 
+    "suggestion", "quick_action", "insight", "reminder"
+  ] as const;
+  
+  type ValidSuggestionIconType = typeof validIconMapKeys[number];
 
-  const IconComponent = suggestionIconMap[suggestionType] || Star;
+  let validatedSuggestionType: ValidSuggestionIconType = 'task_suggestion'; 
+  if (validIconMapKeys.includes(rawSuggestionType as any)) {
+      validatedSuggestionType = rawSuggestionType as ValidSuggestionIconType;
+  }
+
+  const IconComponent = suggestionIconMap[validatedSuggestionType] || Star;
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -131,7 +145,7 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({
   if (compact) {
     return (
       <Card className={cn(
-        suggestionCardVariants({ confidence: suggestionConfidence, priority: suggestionPriority, type: suggestionType }),
+        suggestionCardVariants({ confidence: suggestionConfidence, priority: suggestionPriority, type: validatedSuggestionType }),
         "p-3",
         className
       )}>
@@ -178,7 +192,7 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({
   return (
     <Card 
       className={cn(
-        suggestionCardVariants({ confidence: suggestionConfidence, priority: suggestionPriority, type: suggestionType }),
+        suggestionCardVariants({ confidence: suggestionConfidence, priority: suggestionPriority, type: validatedSuggestionType }),
         className
       )}
       role="article"

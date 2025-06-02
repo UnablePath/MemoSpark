@@ -20,6 +20,9 @@ const Widget = ({ task, className, ...props }: WidgetProps) => {
     low: "bg-green-500",
   };
 
+  // Destructure onDrag to prevent it from being spread to motion.div if it conflicts
+  const { onDrag, ...restProps } = props;
+
   return (
     <motion.div
       initial={{ scale: 0.9, opacity: 0 }}
@@ -28,7 +31,6 @@ const Widget = ({ task, className, ...props }: WidgetProps) => {
         "rounded-full bg-white shadow-lg p-1 max-w-[120px] aspect-square flex flex-col items-center justify-center border-4 border-primary overflow-hidden relative",
         className
       )}
-      {...props}
     >
       {task ? (
         <>

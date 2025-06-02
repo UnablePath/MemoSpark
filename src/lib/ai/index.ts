@@ -184,40 +184,25 @@ export class StudySparkAI {
       userId: 'temp',
       lastAnalyzed: new Date().toISOString(),
       timePattern: {
-        optimalStudyHours: userPrefs.availableStudyHours.slice(0, 3),
-        peakProductivityPeriod: { 
-          start: userPrefs.availableStudyHours[0] || 9, 
-          end: userPrefs.availableStudyHours[userPrefs.availableStudyHours.length - 1] || 17 
-        },
-        averageSessionLength: userPrefs.sessionLengthPreference === 'short' ? 30 : 
+        mostProductiveHours: userPrefs.availableStudyHours.slice(0, 3),
+        preferredStudyDuration: userPrefs.sessionLengthPreference === 'short' ? 30 :
                             userPrefs.sessionLengthPreference === 'long' ? 60 : 45,
-        preferredBreakInterval: userPrefs.breakFrequency === 'frequent' ? 25 :
+        averageBreakTime: userPrefs.breakFrequency === 'frequent' ? 25 :
                                userPrefs.breakFrequency === 'minimal' ? 90 : 45,
-        confidence: 0.6 // Higher confidence for preference-based patterns
+        peakPerformanceDays: ['Monday', 'Tuesday', 'Wednesday'],
+        consistencyScore: 0.6
       },
       difficultyProfile: {
-        currentLevel: userPrefs.difficultyComfort === 'easy' ? 'beginner' :
-                     userPrefs.difficultyComfort === 'challenging' ? 'advanced' : 'intermediate',
-        successRateByLevel: {
-          'level_1': 0.9,
-          'level_2': 0.8,
-          'level_3': 0.7,
-          'level_4': 0.6,
-          'level_5': 0.5
-        },
-        strugglingSubjects: userPrefs.strugglingSubjects,
-        strengths: userPrefs.preferredSubjects,
-        recommendedChallengeLevel: userPrefs.difficultyComfort === 'easy' ? 3 :
+        averageTaskDifficulty: userPrefs.difficultyComfort === 'easy' ? 3 :
                                   userPrefs.difficultyComfort === 'challenging' ? 7 : 5,
-        learningVelocity: 0
+        difficultyTrend: 'stable',
+        subjectDifficultyMap: {},
+        adaptationRate: 0.5
       },
       subjectInsights: {
-        subjectEngagement: {},
-        completionRates: {},
-        timeSpentBySubject: {},
-        strugglingAreas: userPrefs.strugglingSubjects,
         preferredSubjects: userPrefs.preferredSubjects,
-        recommendedFocus: []
+        strugglingSubjects: userPrefs.strugglingSubjects,
+        subjectPerformance: {}
       },
       totalTasksAnalyzed: 0,
       dataQuality: 0.6
@@ -450,10 +435,10 @@ export const AIUtils = {
    */
   calculateOptimalStudyTime(patterns: PatternData, currentTime: Date = new Date()): number {
     const currentHour = currentTime.getHours();
-    const optimalHours = patterns.timePattern.optimalStudyHours;
+    const optimalHours = patterns.timePattern.mostProductiveHours;
     
     // Find the next optimal hour
-    const nextOptimalHour = optimalHours.find(hour => hour > currentHour) || optimalHours[0];
+    const nextOptimalHour = optimalHours.find((hour: number) => hour > currentHour) || optimalHours[0];
     return nextOptimalHour;
   },
 
@@ -466,9 +451,9 @@ export const AIUtils = {
     difficulty: number;
   } {
     return {
-      duration: patterns.timePattern.averageSessionLength,
-      breakInterval: patterns.timePattern.preferredBreakInterval,
-      difficulty: patterns.difficultyProfile.recommendedChallengeLevel
+      duration: patterns.timePattern.preferredStudyDuration,
+      breakInterval: patterns.timePattern.averageBreakTime,
+      difficulty: patterns.difficultyProfile.averageTaskDifficulty
     };
   },
 
@@ -533,5 +518,3 @@ export const AIUtils = {
 
 // Export singleton instance
 export const studySparkAI = new StudySparkAI(); 
-}; 
-}; 

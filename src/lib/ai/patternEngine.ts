@@ -13,6 +13,15 @@ import type {
 import type { UserAIPreferences as AIContextUserPreferences } from './aiContext'; // Import UserAIPreferences from aiContext
 import type { SupabaseClient } from '@supabase/supabase-js'; // Import SupabaseClient type
 
+// Re-export the types needed by index.ts
+export type { 
+  TimePattern, 
+  DifficultyProfile, 
+  SubjectInsights, 
+  PatternData,
+  ExtendedTask as Task // Export ExtendedTask as Task
+};
+
 // Enhanced ClassTimetableEntry interface for AI analysis
 export interface ClassTimetableEntry {
   id: string;

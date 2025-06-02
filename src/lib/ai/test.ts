@@ -142,7 +142,7 @@ export async function testFirstDayExperience() {
     onboardingNeeded: fullRecommendations.onboardingNeeded,
     dataQuality: Math.round(fullRecommendations.patterns.dataQuality * 100),
     suggestionsCount: fullRecommendations.suggestions.length,
-    confidence: AIUtils.formatConfidence(fullRecommendations.patterns.timePattern.confidence)
+    confidence: AIUtils.formatConfidence(fullRecommendations.patterns.dataQuality)
   });
 
   // Test 5: Intelligent defaults from timetable

@@ -269,9 +269,16 @@ export class SupabaseAIService {
       // Sort by priority and confidence
       const sortedSuggestions = suggestions
         .sort((a, b) => {
-          const priorityOrder = { high: 3, medium: 2, low: 1 };
-          const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
-          return priorityDiff !== 0 ? priorityDiff : b.confidence - a.confidence;
+          const priorityOrder = { high: 3, medium: 2, low: 1 } as const;
+          
+          const priorityA = a.priority && (a.priority in priorityOrder) ? a.priority : 'medium';
+          const priorityB = b.priority && (b.priority in priorityOrder) ? b.priority : 'medium';
+          const priorityDiff = priorityOrder[priorityB] - priorityOrder[priorityA];
+          
+          const confidenceA = typeof a.confidence === 'number' ? a.confidence : 0;
+          const confidenceB = typeof b.confidence === 'number' ? b.confidence : 0;
+          
+          return priorityDiff !== 0 ? priorityDiff : confidenceB - confidenceA;
         })
         .slice(0, 5); // Limit to top 5 suggestions
 
@@ -324,8 +331,8 @@ export class SupabaseAIService {
     }
 
     // Subject focus suggestion based on insights
-    if (patterns.subjectInsights.strugglingAreas.length > 0) {
-      const strugglingSubject = patterns.subjectInsights.strugglingAreas[0];
+    if (patterns.subjectInsights.strugglingSubjects.length > 0) {
+      const strugglingSubject = patterns.subjectInsights.strugglingSubjects[0];
       suggestions.push({
         id: `pattern_subject_${Date.now()}`,
         type: 'subject_focus',
@@ -455,12 +462,14 @@ export class SupabaseAIService {
         patterns: patterns ? {
           timePattern: patterns.timePattern,
           difficultyProfile: {
-            currentLevel: patterns.difficultyProfile.currentLevel,
-            recommendedChallengeLevel: patterns.difficultyProfile.recommendedChallengeLevel
+            averageTaskDifficulty: patterns.difficultyProfile.averageTaskDifficulty,
+            difficultyTrend: patterns.difficultyProfile.difficultyTrend,
+            subjectDifficultyMap: patterns.difficultyProfile.subjectDifficultyMap,
+            adaptationRate: patterns.difficultyProfile.adaptationRate
           },
           subjectInsights: {
             preferredSubjects: patterns.subjectInsights.preferredSubjects,
-            strugglingAreas: patterns.subjectInsights.strugglingAreas
+            strugglingSubjects: patterns.subjectInsights.strugglingSubjects
           }
         } : null,
         config,
