@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { UserContext, updateStuPreferences, saveUserContext } from '@/lib/userContext';
-import KoalaMascot from '@/components/ui/koala-mascot';
+import { KoalaMascot } from '@/components/ui/koala-mascot';
 
 interface StuPreferencesProps {
   userContext: UserContext;
@@ -85,7 +85,7 @@ export const StuPreferences: React.FC<StuPreferencesProps> = ({
             }}
             className="relative"
           >
-            <KoalaMascot size={60} />
+            <KoalaMascot className="w-15 h-15" />
             {previewAnimation === 'celebrating' && (
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 text-lg animate-bounce">
                 🎉✨

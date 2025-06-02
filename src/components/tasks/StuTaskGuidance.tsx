@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import KoalaMascot from '@/components/ui/koala-mascot';
+import { KoalaMascot } from '@/components/ui/koala-mascot';
 import { cn } from '@/lib/utils';
 import type { ExtendedTask } from '@/types/ai';
 import { 
@@ -382,7 +382,7 @@ export const StuTaskGuidance: React.FC<StuTaskGuidanceProps> = ({
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleMascotClick(); }}
       >
-        <KoalaMascot size={config.mascot} />
+        <KoalaMascot className="w-full h-full" />
         {celebrationActive && (
           <motion.div 
             className="absolute inset-0 flex items-center justify-center"
@@ -439,7 +439,7 @@ export const StuQuickGuidance: React.FC<{
       exit={prefersReducedMotion ? undefined : { opacity: 0, y: 5 }}
       transition={{ duration: 0.2 }}
     >
-      <KoalaMascot size={24} />
+      <KoalaMascot className="w-6 h-6" />
       <span className="flex-1">{message}</span>
       {onAction && (
         <Button variant="ghost" size="sm" onClick={onAction} className="text-primary/70 hover:text-primary">

@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { format } from "date-fns";
 import { FaCalendarAlt, FaCheckCircle, FaStar } from "react-icons/fa";
 import { toast } from "sonner";
-import KoalaMascot from "@/components/ui/koala-mascot";
+import { KoalaMascot } from "@/components/ui/koala-mascot";
 
 // Mock data for streaks, reminders and achievements
 const initialStreak = 3;
@@ -304,7 +304,7 @@ const RemindersTab = () => {
             animate={stuReady ? stuAnimation : "loading"} 
             className="w-full h-full flex items-center justify-center cursor-pointer"
           >
-            <KoalaMascot size="100%" />
+                                <KoalaMascot className="w-full h-full" />
           </motion.div>
         </Button>
         {/* Stu's Message Bubble */}
