@@ -1,12 +1,33 @@
 import React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
-interface KoalaMascotProps {
+const koalaMascotVariants = cva(
+  // Base classes that apply to all variants
+  "",
+  {
+    variants: {
+      size: {
+        xs: "w-8 h-8",      // For small icons
+        sm: "w-12 h-12",    // For circular containers and compact spaces
+        md: "w-16 h-16",    // Current default size
+        lg: "w-24 h-24",    // For prominent display
+        xl: "w-32 h-32",    // For hero sections and main features
+      },
+    },
+    defaultVariants: {
+      size: "md",
+    },
+  }
+);
+
+interface KoalaMascotProps extends VariantProps<typeof koalaMascotVariants> {
   className?: string;
   'aria-label'?: string;
 }
 
 export const KoalaMascot: React.FC<KoalaMascotProps> = ({ 
+  size,
   className,
   'aria-label': ariaLabel = 'Stu, the StudySpark Mascot'
 }) => {
@@ -15,7 +36,7 @@ export const KoalaMascot: React.FC<KoalaMascotProps> = ({
   return (
     <svg
       viewBox="0 0 169.57 110.97"
-      className={cn('w-16 h-16', className)}
+      className={cn(koalaMascotVariants({ size }), className)}
       role="img"
       aria-labelledby={titleId}
       xmlns="http://www.w3.org/2000/svg"

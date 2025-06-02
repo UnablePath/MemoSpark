@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { FaCalendarAlt, FaCheckCircle, FaStar } from "react-icons/fa";
 import { toast } from "sonner";
 import { KoalaMascot } from "@/components/ui/koala-mascot";
+import { cn } from "@/lib/utils";
 
 // Mock data for streaks, reminders and achievements
 const initialStreak = 3;
@@ -268,7 +269,13 @@ const RemindersTab = () => {
   return (
     <div className="h-full flex flex-col relative overflow-hidden p-4">
       {/* ARIA Live Region for Stu's messages and other status */}
-      <div aria-live="polite" className="sr-only">
+      <div 
+        aria-live="polite" 
+        aria-atomic="true" 
+        className="sr-only"
+        role="status"
+        id="stu-announcements"
+      >
         {stuMessageForSR}
       </div>
 
@@ -278,13 +285,21 @@ const RemindersTab = () => {
         <div className="flex flex-col sm:flex-row justify-around items-center gap-4 text-center p-2 rounded-lg bg-muted/50">
           <div>
             <p className="text-sm text-muted-foreground">Current Streak</p>
-            <p className="text-2xl font-bold text-primary" aria-live="polite" aria-atomic="true">{streak} days</p>
+            <p className="text-2xl font-bold text-primary" aria-live="polite" aria-atomic="true" aria-label={`Current streak: ${streak} days`}>
+              {streak} days
+            </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Study Coins</p>
-            <p className="text-2xl font-bold text-yellow-500" aria-live="polite" aria-atomic="true">{coins} 🪙</p>
+            <p className="text-2xl font-bold text-yellow-500" aria-live="polite" aria-atomic="true" aria-label={`Study coins: ${coins}`}>
+              {coins} 🪙
+            </p>
           </div>
-          <Button onClick={() => setShowAchievements(true)} variant="outline">
+          <Button 
+            onClick={() => setShowAchievements(true)} 
+            variant="outline"
+            aria-label="View your achievements and progress"
+          >
              <FaStar className="mr-2 h-4 w-4" aria-hidden="true" /> View Achievements
           </Button>
         </div>
@@ -297,74 +312,123 @@ const RemindersTab = () => {
           variant="ghost" 
           className="p-0 w-32 h-32 sm:w-40 sm:h-40 block rounded-full focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           onClick={handleStuClick} 
-          aria-label="Interact with Stu, your study mascot"
+          aria-label="Interact with Stu, your study mascot. Click for encouragement and tips."
+          aria-describedby="stu-announcements"
         >
           <motion.div 
             variants={getDynamicKoalaVariants()} 
             animate={stuReady ? stuAnimation : "loading"} 
             className="w-full h-full flex items-center justify-center cursor-pointer"
           >
-                                <KoalaMascot className="w-full h-full" />
+            <KoalaMascot 
+              size="lg" 
+              className="w-full h-full" 
+              aria-label={stuReady ? "Stu the koala mascot" : "Stu is loading"}
+            />
           </motion.div>
         </Button>
+        
         {/* Stu's Message Bubble */}
         {showingStuMessage && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }} 
             exit={{ opacity: 0, y: 10 }} 
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-auto max-w-xs sm:max-w-sm md:max-w-md p-3 bg-background border shadow-lg rounded-md text-sm text-center z-10 mb-[-20px] sm:mb-[-24px]" // Positioned below Stu, adjust mb as needed
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-auto max-w-xs sm:max-w-sm md:max-w-md p-3 bg-background border shadow-lg rounded-md text-sm text-center z-10 mb-[-20px] sm:mb-[-24px]"
+            role="tooltip"
+            aria-live="assertive"
+            aria-atomic="true"
           >
             {stuMessage}
           </motion.div>
         )}
-        {!stuReady && <p className="text-sm text-muted-foreground mt-2">Stu is waking up...</p>}
+        
+        {!stuReady && (
+          <p className="text-sm text-muted-foreground mt-2" role="status" aria-live="polite">
+            Stu is waking up...
+          </p>
+        )}
       </div>
 
       {/* Reminders List Section - Takes remaining space */}
       <div className="flex-grow flex flex-col overflow-hidden mt-4">
-        <h2 className="text-xl font-semibold mb-3 px-1 text-center sm:text-left flex-shrink-0">Your Reminders</h2>
+        <h2 className="text-xl font-semibold mb-3 px-1 text-center sm:text-left flex-shrink-0">
+          Your Reminders
+        </h2>
+        
         {reminders.length === 0 ? (
           <div className="flex-grow flex items-center justify-center">
-            <p className="text-muted-foreground text-center py-6">No reminders scheduled. Add some from your tasks!</p>
+            <p className="text-muted-foreground text-center py-6">
+              No reminders scheduled. Add some from your tasks!
+            </p>
           </div>
         ) : (
-          <ul className="space-y-3 overflow-y-auto pr-2 flex-grow">
+          <div className="space-y-3 overflow-y-auto pr-2 flex-grow" role="list" aria-label="Your reminders">
             {reminders.map((reminder) => (
-              <li key={reminder.id} className={`p-3 rounded-lg shadow transition-all flex items-center gap-3 ${reminder.completed ? 'bg-muted/50 opacity-70' : 'bg-card border'}`}>
+              <div 
+                key={reminder.id} 
+                className={cn(
+                  "p-3 rounded-lg shadow transition-all flex items-center gap-3",
+                  reminder.completed ? 'bg-muted/50 opacity-70' : 'bg-card border'
+                )}
+                role="listitem"
+              >
                 <div className="flex-grow">
-                  <h3 className={`font-medium ${reminder.completed ? 'line-through' : ''}`}>{reminder.taskName}</h3>
-                  <p className="text-xs text-muted-foreground">
+                  <h3 
+                    className={cn("font-medium", reminder.completed && 'line-through')}
+                    id={`reminder-title-${reminder.id}`}
+                  >
+                    {reminder.taskName}
+                  </h3>
+                  <p 
+                    className="text-xs text-muted-foreground"
+                    id={`reminder-details-${reminder.id}`}
+                  >
                     Due: {reminder.dueDate} - {reminder.points} points
                   </p>
                 </div>
+                
                 {!reminder.completed && (
                   <Button 
                     variant="outline" 
                     size="sm" 
                     onClick={() => completeReminder(reminder.id)}
-                    aria-label={`Complete reminder: ${reminder.taskName}`}
+                    aria-labelledby={`reminder-title-${reminder.id}`}
+                    aria-describedby={`reminder-details-${reminder.id}`}
+                    aria-label={`Mark reminder "${reminder.taskName}" as complete to earn ${reminder.points} points`}
                     className="whitespace-nowrap bg-green-500 hover:bg-green-600 text-white border-green-600"
                   >
                     <FaCheckCircle className="mr-2 h-4 w-4" aria-hidden="true"/> Mark as Done
                   </Button>
                 )}
+                
                 {reminder.completed && (
-                   <FaCheckCircle className="h-6 w-6 text-green-500" aria-label="Reminder completed" role="img" />
+                   <FaCheckCircle 
+                     className="h-6 w-6 text-green-500" 
+                     aria-label="Reminder completed" 
+                     role="img" 
+                   />
                 )}
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
       
       {/* Achievements Dialog */}
       {showAchievements && (
         <Dialog open={showAchievements} onOpenChange={setShowAchievements}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Your Achievements</DialogTitle></DialogHeader>
+          <DialogContent aria-labelledby="achievements-title" aria-describedby="achievements-description">
+            <DialogHeader>
+              <DialogTitle id="achievements-title">Your Achievements</DialogTitle>
+            </DialogHeader>
+            <p id="achievements-description">View your progress and unlocked achievements here.</p>
             <p>Achievements list will go here...</p>
-            <DialogFooter><Button onClick={() => setShowAchievements(false)}>Close</Button></DialogFooter>
+            <DialogFooter>
+              <Button onClick={() => setShowAchievements(false)} aria-label="Close achievements dialog">
+                Close
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}

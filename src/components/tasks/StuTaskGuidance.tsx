@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { KoalaMascot } from '@/components/ui/koala-mascot';
 import { cn } from '@/lib/utils';
@@ -251,65 +251,85 @@ export const StuTaskGuidance: React.FC<StuTaskGuidanceProps> = ({
     } else {
       setStuAnimation('talking');
     }
+    
+    setTimeout(() => {
+      setStuAnimation('idle');
+    }, 3000);
 
-    // Hide message after a delay, unless high interactivity is preferred
-    if ((localUserContext.stuPreferences.messageDuration || 'medium') !== 'long') {
-      const duration = (localUserContext.stuPreferences.messageDuration || 'medium') === 'medium' ? 8000 : 5000;
-      setTimeout(() => {
-        setShowMessage(false);
-        setStuAnimation('idle');
-      }, duration);
-    }
-  }, [getPersonalizedMessage, localUserContext.stuPreferences.messageFrequency, localUserContext.stuPreferences.messageDuration]);
+    setTimeout(() => {
+      setShowMessage(false);
+      setStuMessageForSR(''); // Clear screen reader message
+    }, 6000);
+  }, [getPersonalizedMessage, localUserContext.stuPreferences.messageFrequency]);
 
+  // Show celebration message when task is completed
   const showCelebrationMessage = useCallback(() => {
     const message = getRandomMessage('celebration');
     setStuMessage(message);
     setStuMessageForSR(message);
     setShowMessage(true);
-    triggerCelebration(); // Trigger confetti and animation
-
-    if ((localUserContext.stuPreferences.messageDuration || 'medium') !== 'long') {
-      setTimeout(() => {
-        setShowMessage(false);
-        setStuAnimation('idle');
-      }, 8000);
-    }
-  }, [triggerCelebration, localUserContext.stuPreferences.messageDuration]);
+    triggerCelebration();
+    
+    setTimeout(() => {
+      setShowMessage(false);
+      setStuMessageForSR(''); // Clear screen reader message
+    }, 4000);
+  }, [triggerCelebration]);
 
   const handleMascotClick = () => {
-    if (currentStep === 'completed') {
-      showCelebrationMessage();
-    } else {
-      showContextualTip(currentStep);
-    }
-    if (onGuidanceAction) onGuidanceAction('mascot_click');
-  };
-  
-  const handleMessageClick = () => {
-    setShowMessage(false);
-    setStuAnimation('idle');
-    if (onGuidanceAction) onGuidanceAction('message_dismiss');
+    if (showMessage) return;
+    
+    const encouragementMessage = getRandomMessage('encouragement');
+    setStuMessage(encouragementMessage);
+    setStuMessageForSR(encouragementMessage);
+    setShowMessage(true);
+    setStuAnimation('excited');
+    
+    setTimeout(() => {
+      setStuAnimation('idle');
+    }, 2000);
+
+    setTimeout(() => {
+      setShowMessage(false);
+      setStuMessageForSR(''); // Clear screen reader message
+    }, 4000);
+    
+    onGuidanceAction?.('mascot_clicked');
   };
 
-  // Helper to get a random message from a category
+  const handleMessageClick = () => {
+    setShowMessage(false);
+    setStuMessageForSR(''); // Clear screen reader message
+    onGuidanceAction?.('message_dismissed');
+  };
+
   const getRandomMessage = (category: keyof typeof stuMessages) => {
     const messages = stuMessages[category];
     return messages[Math.floor(Math.random() * messages.length)];
   };
 
-  // Dynamic styles based on position prop
   const getPositionStyles = () => {
     switch (position) {
       case 'floating':
-        return 'fixed bottom-4 right-4 z-50';
+        return {
+          container: "fixed top-4 right-4 z-50",
+          bubble: "absolute top-full right-0 mt-2"
+        };
       case 'corner':
-        return 'absolute top-2 right-2 z-30';
+        return {
+          container: "absolute top-0 right-0",
+          bubble: "absolute top-full right-0 mt-2"
+        };
       case 'embedded':
       default:
-        return 'relative';
+        return {
+          container: "relative",
+          bubble: "absolute top-full left-1/2 -translate-x-1/2 mt-2 z-20"
+        };
     }
   };
+
+  const positionStyles = getPositionStyles();
 
   if (!stuReady && position !== 'embedded') {
     // For non-embedded, delay rendering until Stu is ready to avoid layout shifts
@@ -317,109 +337,74 @@ export const StuTaskGuidance: React.FC<StuTaskGuidanceProps> = ({
   }
   
   return (
-    <motion.div 
-      className={cn("flex items-end", getPositionStyles(), className)}
-      initial={!prefersReducedMotion && position !== 'embedded' ? { opacity: 0, y: 20 } : false}
-      animate={!prefersReducedMotion && position !== 'embedded' ? { opacity: 1, y: 0 } : false}
-      transition={{ duration: 0.5, delay: 0.2 }}
-    >
-      {/* Screen reader only message announcement */}
-      {stuMessageForSR && (
-        <div className="sr-only" role="alert" aria-live="assertive">
-          {`Stu says: ${stuMessageForSR}`}
-        </div>
-      )}
+    <div className={cn("flex flex-col items-center", positionStyles.container, className)}>
+      {/* ARIA Live Region for Stu's guidance messages */}
+      <div 
+        aria-live="polite" 
+        aria-atomic="true" 
+        className="sr-only"
+        role="status"
+        id={`stu-guidance-${currentStep}`}
+      >
+        {stuMessageForSR}
+      </div>
+
+      {/* Interactive Stu Mascot */}
+      <Button
+        variant="ghost"
+        className={cn(
+          "rounded-full p-1 hover:bg-accent transition-colors",
+          config.container,
+          "focus:ring-2 focus:ring-primary focus:ring-offset-2"
+        )}
+        onClick={handleMascotClick}
+        aria-label={`Stu guidance for ${currentStep} step. Click for tips and encouragement.`}
+        aria-describedby={`stu-guidance-${currentStep}`}
+      >
+        <motion.div
+          variants={getDynamicKoalaVariants()}
+          animate={celebrationActive ? 'celebrating' : stuAnimation}
+          className="flex items-center justify-center"
+        >
+          <KoalaMascot
+            size={size === 'sm' ? 'sm' : size === 'lg' ? 'md' : 'sm'}
+            className="drop-shadow-sm"
+            aria-hidden="true"
+          />
+        </motion.div>
+      </Button>
 
       {/* Message Bubble */}
-      <motion.div
-        initial={!prefersReducedMotion ? { opacity: 0, y: 10, scale: 0.9 } : { opacity: 0 }}
-        animate={!prefersReducedMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 1 }}
-        exit={!prefersReducedMotion ? { opacity: 0, y: 10, scale: 0.9 } : { opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 20, duration: 0.3 }}
-        className={cn(
-          "absolute bottom-full mb-2 p-3 rounded-lg shadow-lg max-w-xs text-sm",
-          "bg-background border border-border",
-          "dark:bg-zinc-800 dark:border-zinc-700",
-          config.bubble,
-          position === 'corner' ? 'right-0' : 'left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0'
-        )}
-        style={{ pointerEvents: 'auto' }} // Ensure clicks are registered
-        onClick={handleMessageClick}
-        role="tooltip"
-      >
-        <p className="text-foreground dark:text-zinc-100">{stuMessage}</p>
-        <div 
-          className={cn(
-            "absolute w-3 h-3 bg-background border-b border-r border-border transform rotate-45",
-            "dark:bg-zinc-800 dark:border-zinc-700",
-            position === 'corner' ? 'bottom-[-7px] right-4' : 'bottom-[-7px] left-1/2 -translate-x-1/2'
-          )}
-        />
-        {(localUserContext.stuPreferences.messageDuration || 'medium') === 'long' && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={(e) => { 
-              e.stopPropagation(); 
-              handleMessageClick(); 
-            }}
-            className="mt-2 w-full text-xs"
+      <AnimatePresence>
+        {showMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+            className={cn(
+              "bg-background border shadow-lg rounded-lg p-3 text-sm text-center",
+              config.bubble,
+              positionStyles.bubble
+            )}
+            role="tooltip"
+            aria-live="assertive"
+            aria-atomic="true"
           >
-            Dismiss
-          </Button>
-        )}
-      </motion.div>
-
-      {/* Koala Mascot */}
-      <motion.div
-        className={cn("relative cursor-pointer", config.container)}
-        variants={getDynamicKoalaVariants()}
-        animate={celebrationActive ? 'celebrating' : stuAnimation} 
-        initial={!prefersReducedMotion ? 'loading' : 'idle'}
-        onClick={handleMascotClick}
-        aria-label={`Stu the Koala, currently ${stuAnimation}`}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleMascotClick(); }}
-      >
-        <KoalaMascot className="w-full h-full" />
-        {celebrationActive && (
-          <motion.div 
-            className="absolute inset-0 flex items-center justify-center"
-            initial={{ opacity: 0}}
-            animate={{ opacity: 1}}
-            exit={{ opacity: 0}}
-          >
-            {/* Simplified celebration particles for when canvas-confetti fails or is not desired */}
-            {[...Array(5)].map((_, i) => (
-              <motion.div 
-                key={i}
-                className="absolute bg-primary rounded-full"
-                initial={{ opacity: 0, scale: 0, y:0, x:0}}
-                animate={{
-                  opacity: [0,1,0],
-                  scale: [0,1,0],
-                  y: [0, Math.random() * -80 - 20, Math.random() * -100 -50],
-                  x: [0, Math.random() * 60 - 30, Math.random() * 80 - 40],
-                }}
-                transition={{
-                  duration: Math.random() * 1 + 1,
-                  delay: i * 0.1,
-                  repeat: Number.POSITIVE_INFINITY,
-                  repeatDelay: 2,
-                }}
-                style={{
-                  width: Math.random()*8+4,
-                  height: Math.random()*8+4,
-                  left: '50%',
-                  top: '50%',
-                }}
-              />
-            ))}
+            <button
+              onClick={handleMessageClick}
+              className="text-left hover:bg-accent/50 rounded p-1 transition-colors w-full focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
+              aria-label={`Stu says: ${stuMessage}. Click to dismiss.`}
+            >
+              {stuMessage}
+            </button>
+            
+            {/* Small arrow pointing to mascot */}
+            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-background border-l border-t rotate-45" />
           </motion.div>
         )}
-      </motion.div>
-    </motion.div>
+      </AnimatePresence>
+    </div>
   );
 };
 
@@ -439,7 +424,7 @@ export const StuQuickGuidance: React.FC<{
       exit={prefersReducedMotion ? undefined : { opacity: 0, y: 5 }}
       transition={{ duration: 0.2 }}
     >
-      <KoalaMascot className="w-6 h-6" />
+      <KoalaMascot size="xs" />
       <span className="flex-1">{message}</span>
       {onAction && (
         <Button variant="ghost" size="sm" onClick={onAction} className="text-primary/70 hover:text-primary">

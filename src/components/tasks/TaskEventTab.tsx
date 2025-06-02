@@ -724,6 +724,15 @@ const TaskEventTab = () => {
 
   return (
     <div className="h-full flex flex-col relative">
+      {/* ARIA Live Region for status announcements */}
+      <div 
+        aria-live="polite" 
+        aria-atomic="true" 
+        className="sr-only"
+        role="status"
+      >
+        {/* Status messages will be announced here */}
+      </div>
       <div className="p-4 border-b">
         {/* Enhanced task creation header */}
         <div className="flex items-center justify-between mb-4">
@@ -778,24 +787,30 @@ const TaskEventTab = () => {
             size="sm"
             onClick={() => setViewMode("list")}
             className="flex-1"
+            aria-pressed={viewMode === "list"}
+            aria-label={viewMode === "list" ? "List view currently selected" : "Switch to list view"}
           >
-            <FaTasks className="mr-2 h-4 w-4" /> List View
+            <FaTasks className="mr-2 h-4 w-4" aria-hidden="true" /> List View
           </Button>
           <Button
             variant={viewMode === "calendar" ? "default" : "outline"}
             size="sm"
             onClick={() => setViewMode("calendar")}
             className="flex-1"
+            aria-pressed={viewMode === "calendar"}
+            aria-label={viewMode === "calendar" ? "Calendar view currently selected" : "Switch to calendar view"}
           >
-            <FaCalendarAlt className="mr-2 h-4 w-4" /> Calendar
+            <FaCalendarAlt className="mr-2 h-4 w-4" aria-hidden="true" /> Calendar
           </Button>
           <Button
             variant={viewMode === "timetable" ? "default" : "outline"}
             size="sm"
             onClick={() => setViewMode("timetable")}
             className="flex-1"
+            aria-pressed={viewMode === "timetable"}
+            aria-label={viewMode === "timetable" ? "Timetable view currently selected" : "Switch to timetable view"}
           >
-            <FaTable className="mr-2 h-4 w-4" /> Timetable
+            <FaTable className="mr-2 h-4 w-4" aria-hidden="true" /> Timetable
           </Button>
         </div>
       </div>
@@ -814,6 +829,20 @@ const TaskEventTab = () => {
                 }
                 return null;
               }}
+              tileContent={({ date, view }) => {
+                if (view === 'month') {
+                  const tasksOnDay = getTasksForDate(date, tasks);
+                  if (tasksOnDay.length > 0) {
+                    return (
+                      <span className="sr-only">
+                        {tasksOnDay.length} task{tasksOnDay.length > 1 ? 's' : ''}
+                      </span>
+                    );
+                  }
+                }
+                return null;
+              }}
+              aria-label="Calendar view of tasks"
             />
             <div className="mt-4">
               <h3 className="font-medium mb-2">
@@ -828,36 +857,63 @@ const TaskEventTab = () => {
                         <Card key={task.id} className={`shadow-sm ${task.originalDueDate ? 'bg-blue-50 border-blue-200' : ''}`}>
                       <CardContent className="p-3">
                         <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={task.completed}
-                            onChange={() => toggleTaskCompletion(task.id)}
-                            className="mr-3 h-5 w-5 rounded border-gray-300 flex-shrink-0"
-                                aria-labelledby={`task-title-${task.id}`}
-                          />
+                          <div className="relative mr-3 flex-shrink-0">
+                            <input
+                              id={`task-checkbox-${task.id}`}
+                              type="checkbox"
+                              checked={task.completed}
+                              onChange={() => toggleTaskCompletion(task.id)}
+                              className={cn(
+                                "h-5 w-5 rounded border-2 transition-colors",
+                                "border-border bg-background text-primary",
+                                "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
+                                "checked:bg-primary checked:border-primary checked:text-primary-foreground",
+                                "hover:border-primary/50"
+                              )}
+                              aria-labelledby={`task-title-${task.id}`}
+                              aria-describedby={`task-details-${task.id}`}
+                            />
+                          </div>
                           <div className="flex-1 min-w-0">
                                 <p id={`task-title-${task.id}`} className={`font-medium truncate ${task.completed ? "line-through text-muted-foreground" : ""}`}>
                               {task.title}
                                   {task.originalDueDate && <span className="text-xs text-blue-600 font-normal"> (Recurring)</span>}
                             </p>
-                            <div className="flex items-center text-xs text-muted-foreground mt-1 flex-wrap gap-x-2">
+                            <div id={`task-details-${task.id}`} className="flex items-center text-xs text-muted-foreground mt-1 flex-wrap gap-x-2">
                               {task.subject && <span className="mr-1 whitespace-nowrap">{task.subject}</span>}
                               <span className="flex items-center whitespace-nowrap">
-                                <FaClock className="mr-1 h-3 w-3" />
+                                <FaClock className="mr-1 h-3 w-3" aria-hidden="true" />
+                                <span className="sr-only">Due time: </span>
                                 {format(parseISO(task.dueDate), "p")}
                               </span>
                               {!task.completed && <Countdown dueDateString={task.dueDate} />}
                             </div>
                           </div>
-                          <div className={`ml-2 h-3 w-3 rounded-full flex-shrink-0 ${getPriorityColor(task.priority)}`} />
-                              <div className="ml-auto flex items-center gap-1 pl-2">
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditTaskPlaceholder(task)} aria-label="Edit task">
-                                  <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteTaskPlaceholder(task)} aria-label="Delete task">
-                                  <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
-                                </Button>
-                              </div>
+                          <div 
+                            className={cn("ml-2 h-3 w-3 rounded-full flex-shrink-0", getPriorityColor(task.priority))} 
+                            aria-label={`Priority: ${task.priority}`}
+                            role="img"
+                          />
+                          <div className="ml-auto flex items-center gap-1 pl-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7" 
+                              onClick={() => handleEditTaskPlaceholder(task)} 
+                              aria-label={`Edit task: ${task.title}`}
+                            >
+                              <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" aria-hidden="true" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7" 
+                              onClick={() => handleDeleteTaskPlaceholder(task)} 
+                              aria-label={`Delete task: ${task.title}`}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" aria-hidden="true" />
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -884,11 +940,11 @@ const TaskEventTab = () => {
             />
             
             <div className="mt-4 flex justify-center gap-4">
-                <Button onClick={openAddTimetableEntryDialog} size="sm">
-                    <FaPlus className="mr-2 h-4 w-4" /> Add Class
+                <Button onClick={openAddTimetableEntryDialog} size="sm" aria-label="Add new class to timetable">
+                    <FaPlus className="mr-2 h-4 w-4" aria-hidden="true" /> Add Class
                 </Button>
-                <Button onClick={handleExportICal} size="sm" variant="outline">
-                    <FaFileExport className="mr-2 h-4 w-4" /> Export iCal
+                <Button onClick={handleExportICal} size="sm" variant="outline" aria-label="Export timetable to calendar file">
+                    <FaFileExport className="mr-2 h-4 w-4" aria-hidden="true" /> Export iCal
                 </Button>
             </div>
           </div>
@@ -938,34 +994,61 @@ const TaskEventTab = () => {
                   <Card key={task.id} className={`shadow-sm ${task.originalDueDate ? 'bg-blue-50 border-blue-200' : ''}`}>
                     <CardContent className="p-3">
                       <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={task.completed}
-                          onChange={() => toggleTaskCompletion(task.id)}
-                          className="mr-3 h-5 w-5 rounded border-gray-300 flex-shrink-0"
-                          aria-labelledby={`task-title-${task.id}`}
-                        />
+                        <div className="relative mr-3 flex-shrink-0">
+                          <input
+                            id={`task-checkbox-list-${task.id}`}
+                            type="checkbox"
+                            checked={task.completed}
+                            onChange={() => toggleTaskCompletion(task.id)}
+                            className={cn(
+                              "h-5 w-5 rounded border-2 transition-colors",
+                              "border-border bg-background text-primary",
+                              "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
+                              "checked:bg-primary checked:border-primary checked:text-primary-foreground",
+                              "hover:border-primary/50"
+                            )}
+                            aria-labelledby={`task-title-list-${task.id}`}
+                            aria-describedby={`task-details-list-${task.id}`}
+                          />
+                        </div>
                         <div className="flex-1 min-w-0">
-                          <p id={`task-title-${task.id}`} className={`font-medium truncate ${task.completed ? "line-through text-muted-foreground" : ""}`}>
+                          <p id={`task-title-list-${task.id}`} className={`font-medium truncate ${task.completed ? "line-through text-muted-foreground" : ""}`}>
                             {task.title}
                             {task.originalDueDate && <span className="text-xs text-blue-600 font-normal"> (Recurring)</span>}
                           </p>
-                          <div className="flex items-center text-xs text-muted-foreground mt-1 flex-wrap gap-x-2">
+                          <div id={`task-details-list-${task.id}`} className="flex items-center text-xs text-muted-foreground mt-1 flex-wrap gap-x-2">
                             {task.subject && <span className="mr-1 whitespace-nowrap">{task.subject}</span>}
                             <span className="flex items-center whitespace-nowrap">
-                              <FaCalendarAlt className="mr-1 h-3 w-3" />
+                              <FaCalendarAlt className="mr-1 h-3 w-3" aria-hidden="true" />
+                              <span className="sr-only">Due date: </span>
                               {format(parseISO(task.dueDate), "MMM d, p")}
                             </span>
                             {!task.completed && <Countdown dueDateString={task.dueDate} />}
                           </div>
                         </div>
-                        <div className={`ml-2 h-3 w-3 rounded-full flex-shrink-0 ${getPriorityColor(task.priority)}`} />
+                        <div 
+                          className={cn("ml-2 h-3 w-3 rounded-full flex-shrink-0", getPriorityColor(task.priority))} 
+                          aria-label={`Priority: ${task.priority}`}
+                          role="img"
+                        />
                         <div className="ml-auto flex items-center gap-1 pl-2">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditTaskPlaceholder(task)} aria-label="Edit task">
-                            <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7" 
+                            onClick={() => handleEditTaskPlaceholder(task)} 
+                            aria-label={`Edit task: ${task.title}`}
+                          >
+                            <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" aria-hidden="true" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteTaskPlaceholder(task)} aria-label="Delete task">
-                            <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7" 
+                            onClick={() => handleDeleteTaskPlaceholder(task)} 
+                            aria-label={`Delete task: ${task.title}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" aria-hidden="true" />
                           </Button>
                         </div>
                       </div>
@@ -991,7 +1074,7 @@ const TaskEventTab = () => {
           aria-label="Add new task or event"
           title="Add new task or event"
         >
-          <FaPlus className="h-6 w-6" />
+          <FaPlus className="h-6 w-6" aria-hidden="true" />
         </Button>
       )}
 

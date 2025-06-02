@@ -85,7 +85,7 @@ export const StuPreferences: React.FC<StuPreferencesProps> = ({
             }}
             className="relative"
           >
-            <KoalaMascot className="w-15 h-15" />
+            <KoalaMascot size="md" />
             {previewAnimation === 'celebrating' && (
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 text-lg animate-bounce">
                 🎉✨

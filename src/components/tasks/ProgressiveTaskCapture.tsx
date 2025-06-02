@@ -90,17 +90,17 @@ const QuickCaptureStep: React.FC<{
     >
       <div className="text-center mb-6">
         <div className="flex items-center justify-center mb-2">
-          <div className="p-3 bg-primary/10 rounded-full">
+          <div className="p-3 bg-primary/10 rounded-full" aria-hidden="true">
             <Tag className="h-6 w-6 text-primary" />
           </div>
         </div>
-        <h3 className="text-lg font-semibold">Quick Task Capture</h3>
+        <h3 className="text-lg font-semibold text-foreground">Quick Task Capture</h3>
         <p className="text-sm text-muted-foreground">Start with the essentials</p>
       </div>
 
       <div className={cn("space-y-4", isMobile && "space-y-6")}>
         <div>
-          <Label htmlFor="quick-title" className={cn("text-sm font-medium", isMobile && "text-base")}>
+          <Label htmlFor="quick-title" className={cn("text-sm font-medium text-foreground", isMobile && "text-base")}>
             What needs to be done? *
           </Label>
           <Input
@@ -110,8 +110,9 @@ const QuickCaptureStep: React.FC<{
             onChange={(e) => onChange({ title: e.target.value })}
             className={cn(
               "mt-1.5 h-11 transition-all duration-200",
+              "border-border bg-background text-foreground placeholder:text-muted-foreground",
               isMobile && "h-14 text-base px-4 rounded-lg touch-manipulation",
-              "focus:ring-2 focus:ring-primary/20"
+              "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background"
             )}
             autoFocus={!isMobile} // Avoid auto-focus on mobile to prevent unwanted keyboard
             autoComplete="off"
@@ -119,18 +120,25 @@ const QuickCaptureStep: React.FC<{
             spellCheck={true}
             inputMode="text"
             required
+            aria-invalid={!data.title ? "true" : "false"}
+            aria-describedby="quick-title-error"
           />
+          {!data.title && (
+            <p id="quick-title-error" className="sr-only text-red-500 text-xs mt-1">
+              Task title is required
+            </p>
+          )}
         </div>
 
         <div>
-          <Label htmlFor="quick-due-date" className={cn("text-sm font-medium", isMobile && "text-base")}>
+          <Label htmlFor="quick-due-date" className={cn("text-sm font-medium text-foreground", isMobile && "text-base")}>
             When is it due? *
           </Label>
           <div className="relative mt-1.5">
             <Calendar className={cn(
-              "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground",
+              "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none",
               isMobile && "left-4 h-5 w-5"
-            )} />
+            )} aria-hidden="true" />
             <Input
               id="quick-due-date"
               type="datetime-local"
@@ -138,48 +146,85 @@ const QuickCaptureStep: React.FC<{
               onChange={(e) => onChange({ dueDate: e.target.value })}
               className={cn(
                 "pl-10 h-11 transition-all duration-200",
+                "border-border bg-background text-foreground",
                 isMobile && "pl-12 h-14 text-base rounded-lg touch-manipulation",
-                "focus:ring-2 focus:ring-primary/20"
+                "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background"
               )}
               required
+              aria-invalid={!data.dueDate ? "true" : "false"}
+              aria-describedby="quick-due-date-error"
             />
+            {!data.dueDate && (
+              <p id="quick-due-date-error" className="sr-only text-red-500 text-xs mt-1">
+                Due date is required
+              </p>
+            )}
           </div>
         </div>
 
         <div className={cn("grid grid-cols-2 gap-3", isMobile && "gap-4")}>
           <div>
-            <Label htmlFor="quick-priority" className={cn("text-sm font-medium", isMobile && "text-base")}>
+            <Label htmlFor="quick-priority" className={cn("text-sm font-medium text-foreground", isMobile && "text-base")}>
               Priority
             </Label>
             <Select value={data.priority} onValueChange={(value: Priority) => onChange({ priority: value })}>
               <SelectTrigger className={cn(
                 "mt-1.5 h-11 transition-all duration-200",
+                "border-border bg-background text-foreground",
+                "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
                 isMobile && "h-14 text-base rounded-lg touch-manipulation"
               )}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low" className={isMobile ? "py-3 text-base" : ""}>Low</SelectItem>
-                <SelectItem value="medium" className={isMobile ? "py-3 text-base" : ""}>Medium</SelectItem>
-                <SelectItem value="high" className={isMobile ? "py-3 text-base" : ""}>High</SelectItem>
+              <SelectContent className="bg-background border-border shadow-lg">
+                <SelectItem value="low" className={cn(
+                  "text-foreground hover:bg-accent hover:text-accent-foreground",
+                  isMobile && "py-3 text-base"
+                )}>
+                  Low
+                </SelectItem>
+                <SelectItem value="medium" className={cn(
+                  "text-foreground hover:bg-accent hover:text-accent-foreground",
+                  isMobile && "py-3 text-base"
+                )}>
+                  Medium
+                </SelectItem>
+                <SelectItem value="high" className={cn(
+                  "text-foreground hover:bg-accent hover:text-accent-foreground",
+                  isMobile && "py-3 text-base"
+                )}>
+                  High
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <Label htmlFor="quick-type" className={cn("text-sm font-medium", isMobile && "text-base")}>
+            <Label htmlFor="quick-type" className={cn("text-sm font-medium text-foreground", isMobile && "text-base")}>
               Type
             </Label>
             <Select value={data.type} onValueChange={(value: TaskType) => onChange({ type: value })}>
               <SelectTrigger className={cn(
                 "mt-1.5 h-11 transition-all duration-200",
+                "border-border bg-background text-foreground",
+                "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
                 isMobile && "h-14 text-base rounded-lg touch-manipulation"
               )}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="academic" className={isMobile ? "py-3 text-base" : ""}>Academic</SelectItem>
-                <SelectItem value="personal" className={isMobile ? "py-3 text-base" : ""}>Personal</SelectItem>
+              <SelectContent className="bg-background border-border shadow-lg">
+                <SelectItem value="academic" className={cn(
+                  "text-foreground hover:bg-accent hover:text-accent-foreground",
+                  isMobile && "py-3 text-base"
+                )}>
+                  Academic
+                </SelectItem>
+                <SelectItem value="personal" className={cn(
+                  "text-foreground hover:bg-accent hover:text-accent-foreground",
+                  isMobile && "py-3 text-base"
+                )}>
+                  Personal
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -340,6 +385,7 @@ const DetailsStep: React.FC<{
       transition={{ duration: 0.2 }}
       onSubmit={handleSubmit}
       className="space-y-4"
+      aria-labelledby="details-step-title"
     >
       <div className="text-center mb-6">
         <div className="flex items-center justify-center mb-2">
@@ -347,83 +393,143 @@ const DetailsStep: React.FC<{
             <Clock className="h-6 w-6 text-primary" />
           </div>
         </div>
-        <h3 className="text-lg font-semibold">Additional Details</h3>
+        <h3 id="details-step-title" className="text-lg font-semibold text-foreground">Additional Details</h3>
         <p className="text-sm text-muted-foreground">Fine-tune your task settings</p>
       </div>
 
       <div className="space-y-4">
         <div>
-          <Label htmlFor="details-description" className="text-sm font-medium">Description</Label>
+          <Label htmlFor="details-description" className="text-sm font-medium text-foreground">
+            Description
+          </Label>
           <Textarea
             id="details-description"
             placeholder="Add notes, requirements, or other details..."
             value={data.description || ''}
             onChange={(e) => onChange({ description: e.target.value })}
-            className="mt-1.5 min-h-[80px]"
+            className="mt-1.5 min-h-[80px] focus:ring-2 focus:ring-primary/20 border-border bg-background text-foreground placeholder:text-muted-foreground"
             rows={3}
+            aria-describedby="details-description-hint"
           />
+          <p id="details-description-hint" className="sr-only">
+            Optional field to add additional notes or requirements for this task
+          </p>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <input
-            id="details-reminder"
-            type="checkbox"
-            checked={data.reminder}
-            onChange={(e) => onChange({ reminder: e.target.checked })}
-            className="rounded border-border"
-          />
-          <Label htmlFor="details-reminder" className="text-sm font-medium">
-            Enable reminders
-          </Label>
+        <div className="flex items-center space-x-3">
+          <div className="relative">
+            <input
+              id="details-reminder"
+              type="checkbox"
+              checked={data.reminder}
+              onChange={(e) => onChange({ reminder: e.target.checked })}
+              className={cn(
+                "h-4 w-4 rounded border-2 border-border bg-background text-primary",
+                "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
+                "transition-colors duration-200",
+                "checked:bg-primary checked:border-primary checked:text-primary-foreground",
+                "hover:border-primary/50"
+              )}
+              aria-describedby="details-reminder-description"
+            />
+          </div>
+          <div className="flex-1">
+            <Label 
+              htmlFor="details-reminder" 
+              className="text-sm font-medium text-foreground cursor-pointer"
+            >
+              Enable reminders
+            </Label>
+            <p id="details-reminder-description" className="text-xs text-muted-foreground mt-1">
+              Get notified before your task is due
+            </p>
+          </div>
         </div>
 
         <div>
-          <Label htmlFor="details-recurrence" className="text-sm font-medium">Recurrence</Label>
+          <Label htmlFor="details-recurrence" className="text-sm font-medium text-foreground">
+            Recurrence
+          </Label>
           <Select 
             value={data.recurrenceRule || 'none'} 
             onValueChange={(value: RecurrenceRule) => onChange({ recurrenceRule: value })}
           >
-            <SelectTrigger className="mt-1.5 h-11">
+            <SelectTrigger 
+              className="mt-1.5 h-11 focus:ring-2 focus:ring-primary/20 border-border bg-background text-foreground"
+              aria-describedby="details-recurrence-hint"
+            >
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No recurrence</SelectItem>
-              <SelectItem value="daily">Daily</SelectItem>
-              <SelectItem value="weekly">Weekly</SelectItem>
-              <SelectItem value="monthly">Monthly</SelectItem>
-              <SelectItem value="yearly">Yearly</SelectItem>
+            <SelectContent className="bg-background border-border shadow-lg">
+              <SelectItem value="none" className="text-foreground hover:bg-accent hover:text-accent-foreground">
+                No recurrence
+              </SelectItem>
+              <SelectItem value="daily" className="text-foreground hover:bg-accent hover:text-accent-foreground">
+                Daily
+              </SelectItem>
+              <SelectItem value="weekly" className="text-foreground hover:bg-accent hover:text-accent-foreground">
+                Weekly
+              </SelectItem>
+              <SelectItem value="monthly" className="text-foreground hover:bg-accent hover:text-accent-foreground">
+                Monthly
+              </SelectItem>
+              <SelectItem value="yearly" className="text-foreground hover:bg-accent hover:text-accent-foreground">
+                Yearly
+              </SelectItem>
             </SelectContent>
           </Select>
+          <p id="details-recurrence-hint" className="sr-only">
+            Choose how often this task should repeat
+          </p>
         </div>
 
         {data.recurrenceRule && data.recurrenceRule !== 'none' && (
-          <div className="grid grid-cols-2 gap-3">
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="grid grid-cols-2 gap-3"
+          >
             <div>
-              <Label htmlFor="details-interval" className="text-sm font-medium">Interval</Label>
+              <Label htmlFor="details-interval" className="text-sm font-medium text-foreground">
+                Interval
+              </Label>
               <Input
                 id="details-interval"
                 type="number"
                 min="1"
+                max="365"
                 value={data.recurrenceInterval || 1}
                 onChange={(e) => onChange({ recurrenceInterval: Number(e.target.value) })}
-                className="mt-1.5 h-11"
+                className="mt-1.5 h-11 focus:ring-2 focus:ring-primary/20 border-border bg-background text-foreground"
                 placeholder={`Every ${data.recurrenceRule === 'daily' ? 'day(s)' : 
                   data.recurrenceRule === 'weekly' ? 'week(s)' : 
                   data.recurrenceRule === 'monthly' ? 'month(s)' : 'year(s)'}`}
+                aria-describedby="details-interval-hint"
               />
+              <p id="details-interval-hint" className="sr-only">
+                How often the task should repeat
+              </p>
             </div>
             <div>
-              <Label htmlFor="details-end-date" className="text-sm font-medium">Ends On</Label>
+              <Label htmlFor="details-end-date" className="text-sm font-medium text-foreground">
+                Ends On
+              </Label>
               <Input
                 id="details-end-date"
                 type="date"
                 value={data.recurrenceEndDate || ''}
                 onChange={(e) => onChange({ recurrenceEndDate: e.target.value })}
-                className="mt-1.5 h-11"
+                className="mt-1.5 h-11 focus:ring-2 focus:ring-primary/20 border-border bg-background text-foreground"
                 min={format(addDays(parseISO(data.dueDate), 1), 'yyyy-MM-dd')}
+                aria-describedby="details-end-date-hint"
               />
+              <p id="details-end-date-hint" className="sr-only">
+                When the recurring task should stop
+              </p>
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
     </motion.form>
@@ -572,18 +678,24 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
         onTouchEnd={handleTouchEnd}
       >
         <DialogHeader className={cn("pb-2", isMobile && "pb-4 pt-2")}>
-          <DialogTitle className="sr-only">Create New Task - {stepTitles[step - 1]}</DialogTitle>
+          <DialogTitle className="text-xl font-semibold text-foreground text-center">
+            Create New Task - {stepTitles[step - 1]}
+          </DialogTitle>
           
           {/* Mobile handle indicator */}
           {isMobile && (
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center mb-4" aria-hidden="true">
               <div className="w-8 h-1 bg-muted-foreground/30 rounded-full" />
             </div>
           )}
           
           <div className="flex items-center justify-between mb-4">
             {/* Enhanced progress indicator */}
-            <div className="flex justify-center space-x-2 flex-1">
+            <div 
+              className="flex justify-center space-x-2 flex-1"
+              role="tablist"
+              aria-label="Task creation steps"
+            >
               {[...Array(totalSteps)].map((_, index) => (
                 <button
                   key={index}
@@ -599,7 +711,7 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
                   disabled={index + 1 > step && index !== 0}
                   className={cn(
                     "h-2 rounded-full transition-all duration-300 touch-manipulation",
-                    "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1",
+                    "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background",
                     isMobile ? "min-w-[44px] h-3" : "w-4",
                     index + 1 === step 
                       ? "bg-primary shadow-sm" 
@@ -609,6 +721,10 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
                     index + 1 <= step && "cursor-pointer hover:shadow-sm"
                   )}
                   aria-label={`Step ${index + 1}: ${stepTitles[index]}`}
+                  aria-current={index + 1 === step ? "step" : undefined}
+                  role="tab"
+                  aria-selected={index + 1 === step}
+                  tabIndex={index + 1 <= step ? 0 : -1}
                 />
               ))}
             </div>
@@ -671,11 +787,14 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
                 onClick={handlePrev}
                 size={isMobile ? "lg" : "default"}
                 className={cn(
-                  "flex items-center gap-2 touch-manipulation",
+                  "flex items-center gap-2 touch-manipulation transition-colors",
+                  "border-border hover:bg-accent hover:text-accent-foreground",
+                  "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
                   isMobile && "min-h-[48px] px-6 flex-1"
                 )}
+                aria-label={`Go back to ${stepTitles[step - 2] || 'previous step'}`}
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
                 Back
               </Button>
             )}
@@ -689,9 +808,12 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
                 onClick={() => onOpenChange(false)}
                 size={isMobile ? "lg" : "default"}
                 className={cn(
-                  "touch-manipulation",
+                  "touch-manipulation transition-colors",
+                  "hover:bg-accent hover:text-accent-foreground",
+                  "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
                   isMobile && "min-h-[48px] px-4"
                 )}
+                aria-label="Cancel task creation"
               >
                 Cancel
               </Button>
@@ -703,12 +825,15 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
                 disabled={!taskData.title || !taskData.dueDate}
                 size={isMobile ? "lg" : "default"}
                 className={cn(
-                  "flex items-center gap-2 touch-manipulation",
+                  "flex items-center gap-2 touch-manipulation transition-colors",
+                  "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
                   isMobile && "min-h-[48px] px-6 flex-1"
                 )}
+                aria-label={`Continue to ${stepTitles[step] || 'next step'}`}
               >
                 Next
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </Button>
             ) : !taskCompleted ? (
               <Button
@@ -716,12 +841,16 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
                 disabled={!taskData.title || !taskData.dueDate}
                 size={isMobile ? "lg" : "default"}
                 className={cn(
-                  "flex items-center gap-2 touch-manipulation",
-                  isMobile && "min-h-[48px] px-6 flex-1 bg-primary text-primary-foreground"
+                  "flex items-center gap-2 touch-manipulation transition-colors",
+                  "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+                  isMobile && "min-h-[48px] px-6 flex-1"
                 )}
+                aria-label="Create new task with entered details"
               >
                 Create Task
-                <Sparkles className="h-4 w-4" />
+                <Sparkles className="h-4 w-4" aria-hidden="true" />
               </Button>
             ) : (
               <motion.div
@@ -731,6 +860,8 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
                   "text-sm text-primary font-medium",
                   isMobile && "text-base py-3 text-center"
                 )}
+                role="status"
+                aria-live="polite"
               >
                 Task created successfully! ✨
               </motion.div>

@@ -11,25 +11,25 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%; /* Slightly off-white */
-    --foreground: 0 0% 10%; /* Slightly off-black */
+    --background: 0 0% 100%; /* Pure white for maximum contrast */
+    --foreground: 0 0% 9%; /* Near black for excellent readability - 4.5:1 contrast */
     --card: 0 0% 100%; /* Keep card white for contrast */
-    --card-foreground: 0 0% 10%; /* Match foreground */
+    --card-foreground: 0 0% 9%; /* Match foreground */
     --popover: 0 0% 100%; /* Keep popover white */
-    --popover-foreground: 0 0% 10%;
-    --primary: 142 60% 40%; /* Slightly darker/less vibrant green */
+    --popover-foreground: 0 0% 9%; /* Improved contrast for dialog text */
+    --primary: 142 76% 36%; /* Enhanced green with better contrast */
     --primary-foreground: 0 0% 100%;
-    --secondary: 40 30% 85%; /* Slightly darker/less saturated beige */
-    --secondary-foreground: 0 0% 10%;
-    --muted: 40 30% 92%; /* Darker muted */
-    --muted-foreground: 0 0% 45%; /* Darker muted text */
-    --accent: 40 30% 85%;
-    --accent-foreground: 0 0% 10%;
+    --secondary: 210 40% 92%; /* Light blue-gray for better contrast */
+    --secondary-foreground: 0 0% 9%;
+    --muted: 210 40% 94%; /* Light blue-gray muted background */
+    --muted-foreground: 0 0% 39%; /* Darker muted text for 4.5:1 contrast */
+    --accent: 210 40% 92%;
+    --accent-foreground: 0 0% 9%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 40 30% 80%; /* Darker border */
-    --input: 40 30% 80%; /* Darker input border */
-    --ring: 142 60% 40%; /* Match primary */
+    --border: 214 32% 91%; /* More visible light gray border */
+    --input: 214 32% 91%; /* More visible input border */
+    --ring: 142 76% 36%; /* Match enhanced primary */
     --radius: 1rem; /* Rounded corners for StudySpark style */
     --chart-1: 142 60% 45%;
     --chart-2: 40 38% 83%;
@@ -107,7 +107,12 @@
     transition: background-color 0.3s ease, color 0.3s ease;
   }
   /* Ensure links and buttons have clear focus states */
-  a:focus, button:focus, input:focus, select:focus, textarea:focus {
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-[hsl(var(--ring))];
+  }
+  
+  /* Enhanced focus styles for better accessibility */
+  input[type="checkbox"]:focus-visible {
     @apply outline outline-2 outline-offset-2 outline-[hsl(var(--ring))];
   }
   /* High contrast specific adjustments */
@@ -122,6 +127,10 @@
    }
     .high-contrast input, .high-contrast select, .high-contrast textarea {
       @apply bg-[hsl(var(--input))] text-[hsl(var(--input-foreground))] border-[hsl(var(--border))];
+    }
+    
+    .high-contrast input[type="checkbox"] {
+      @apply bg-[hsl(var(--input))] border-2 border-[hsl(var(--border))];
     }
 }
 
