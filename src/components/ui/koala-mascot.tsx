@@ -35,7 +35,7 @@ export const KoalaMascot: React.FC<KoalaMascotProps> = ({
 
   return (
     <svg
-      viewBox="0 0 169.57 110.97"
+      viewBox="29.3 0 110.97 110.97"
       className={cn(koalaMascotVariants({ size }), className)}
       role="img"
       aria-labelledby={titleId}

@@ -754,12 +754,15 @@ const TaskEventTab = () => {
               Detailed Add
             </Button>
           </div>
-          <StuTaskGuidance 
-            currentStep="quickCapture" 
-            taskData={{}}
-            size="sm"
-            position="corner"
-          />
+          {/* Conditionally render StuTaskGuidance to prevent overlap with modals */}
+          {!showProgressiveCapture && !showAddTaskDialog && (
+            <StuTaskGuidance 
+              currentStep="quickCapture" 
+              taskData={{}}
+              size="sm"
+              position="corner"
+            />
+          )}
         </div>
         
         {/* Quick task input */}
@@ -1066,18 +1069,6 @@ const TaskEventTab = () => {
         )}
       </div>
 
-      {/* Floating Action Button for Add Task/Event */}
-      {!showAddTaskDialog && !showAddEditTimetableEntryDialog && ( // Only show if no dialogs are open
-        <Button 
-          onClick={() => setShowAddTaskDialog(true)}
-          className="fixed bottom-20 right-6 md:bottom-24 md:right-8 lg:bottom-6 lg:right-6 z-30 h-14 w-14 rounded-full shadow-xl flex items-center justify-center bg-primary hover:bg-primary/90 text-primary-foreground p-0 animate-bounce hover:animate-none"
-          aria-label="Add new task or event"
-          title="Add new task or event"
-        >
-          <FaPlus className="h-6 w-6" aria-hidden="true" />
-        </Button>
-      )}
-
       {/* Dialog for Adding/Editing Timetable Entry */}
       <Dialog open={showAddEditTimetableEntryDialog} onOpenChange={setShowAddEditTimetableEntryDialog}>
         <DialogContent className="sm:max-w-lg">
@@ -1087,110 +1078,168 @@ const TaskEventTab = () => {
               {editingTimetableEntry ? "Update the details of this class." : "Fill in the details for the new class schedule."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); handleSaveTimetableEntry(); }} className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="tt-courseName">Course Name</Label>
-                <Input id="tt-courseName" name="courseName" value={currentTimetableForm.courseName || ''} onChange={handleTimetableFormChange} className="mt-1" placeholder="e.g., Pre-Calculus II"/>
-              </div>
-              <div>
-                <Label htmlFor="tt-courseCode">Course Code</Label>
-                <Input id="tt-courseCode" name="courseCode" value={currentTimetableForm.courseCode || ''} onChange={handleTimetableFormChange} className="mt-1" placeholder="e.g., MATH122"/>
-              </div>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="courseName" className="text-right">
+                Course Name
+              </Label>
+              <Input
+                id="courseName"
+                name="courseName"
+                value={currentTimetableForm.courseName || ""}
+                onChange={handleTimetableFormChange}
+                className="col-span-3"
+                placeholder="e.g., Introduction to AI"
+              />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="tt-instructor">Instructor (Optional)</Label>
-                <Input id="tt-instructor" name="instructor" value={currentTimetableForm.instructor || ''} onChange={handleTimetableFormChange} className="mt-1" placeholder="e.g., Dr. Smith"/>
-              </div>
-              <div>
-                <Label htmlFor="tt-location">Location (Optional)</Label>
-                <Input id="tt-location" name="location" value={currentTimetableForm.location || ''} onChange={handleTimetableFormChange} className="mt-1" placeholder="e.g., Room 101"/>
-              </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="courseCode" className="text-right">
+                Course Code
+              </Label>
+              <Input
+                id="courseCode"
+                name="courseCode"
+                value={currentTimetableForm.courseCode || ""}
+                onChange={handleTimetableFormChange}
+                className="col-span-3"
+                placeholder="e.g., CS101"
+              />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="tt-startTime">Start Time</Label>
-                <Input id="tt-startTime" name="startTime" type="time" value={currentTimetableForm.startTime || ''} onChange={handleTimetableFormChange} className="mt-1"/>
-              </div>
-              <div>
-                <Label htmlFor="tt-endTime">End Time</Label>
-                <Input id="tt-endTime" name="endTime" type="time" value={currentTimetableForm.endTime || ''} onChange={handleTimetableFormChange} className="mt-1"/>
-              </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="instructor" className="text-right">
+                Instructor
+              </Label>
+              <Input
+                id="instructor"
+                name="instructor"
+                value={currentTimetableForm.instructor || ""}
+                onChange={handleTimetableFormChange}
+                className="col-span-3"
+                placeholder="e.g., Dr. Ada Lovelace"
+              />
             </div>
-            <div>
-              <Label>Days of the Week</Label>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-1 border p-2 rounded-md">
-                {ALL_DAYS_OF_WEEK.map(day => (
-                  <Button 
-                    key={day} 
-                    type="button"
-                    variant={(currentTimetableForm.daysOfWeek || []).includes(day) ? "default" : "outline"}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="location" className="text-right">
+                Location
+              </Label>
+              <Input
+                id="location"
+                name="location"
+                value={currentTimetableForm.location || ""}
+                onChange={handleTimetableFormChange}
+                className="col-span-3"
+                placeholder="e.g., Turing Hall, Room 101"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="startTime" className="text-right">
+                Start Time
+              </Label>
+              <Input
+                id="startTime"
+                name="startTime"
+                type="time"
+                value={currentTimetableForm.startTime || ""}
+                onChange={handleTimetableFormChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="endTime" className="text-right">
+                End Time
+              </Label>
+              <Input
+                id="endTime"
+                name="endTime"
+                type="time"
+                value={currentTimetableForm.endTime || ""}
+                onChange={handleTimetableFormChange}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Days</Label>
+              <div className="col-span-3 flex flex-wrap gap-2">
+                {ALL_DAYS_OF_WEEK.map((day) => (
+                  <Button
+                    key={day}
+                    variant={currentTimetableForm.daysOfWeek?.includes(day) ? "default" : "outline"}
                     size="sm"
                     onClick={() => handleTimetableDaysChange(day)}
-                    className="text-xs justify-start"
+                    className="text-xs"
                   >
-                    {(currentTimetableForm.daysOfWeek || []).includes(day) && <FaCheck className="mr-2 h-3 w-3"/>}
-                    {day}
+                    {day.substring(0,3)}
                   </Button>
                 ))}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="tt-semesterStartDate">Semester Start Date</Label>
-                <Input id="tt-semesterStartDate" name="semesterStartDate" type="date" value={currentTimetableForm.semesterStartDate || ''} onChange={handleTimetableFormChange} className="mt-1"/>
-              </div>
-              <div>
-                <Label htmlFor="tt-semesterEndDate">Semester End Date</Label>
-                <Input id="tt-semesterEndDate" name="semesterEndDate" type="date" value={currentTimetableForm.semesterEndDate || ''} onChange={handleTimetableFormChange} className="mt-1"/>
-              </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="semesterStartDate" className="text-right">
+                Start Date
+              </Label>
+              <Input
+                id="semesterStartDate"
+                name="semesterStartDate"
+                type="date"
+                value={currentTimetableForm.semesterStartDate || ""}
+                onChange={handleTimetableFormChange}
+                className="col-span-3"
+              />
             </div>
-            <div>
-                <Label htmlFor="tt-detailedDescription">Detailed Description (Optional)</Label>
-                <Textarea 
-                    id="tt-detailedDescription" 
-                    name="detailedDescription" 
-                    value={currentTimetableForm.detailedDescription || ''} 
-                    onChange={handleTimetableFormChange} 
-                    className="mt-1" 
-                    placeholder="e.g., Syllabus overview, required materials, grading policy..."
-                    rows={3}
-                />
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="semesterEndDate" className="text-right">
+                End Date
+              </Label>
+              <Input
+                id="semesterEndDate"
+                name="semesterEndDate"
+                type="date"
+                value={currentTimetableForm.semesterEndDate || ""}
+                onChange={handleTimetableFormChange}
+                className="col-span-3"
+              />
             </div>
-            <div>
-                <Label htmlFor="tt-color">Color (Optional)</Label>
-                <div className="flex items-center mt-1">
-                    {/* <Input id="tt-color" name="color" type="color" value={currentTimetableForm.color || '#3b82f6'} onChange={handleTimetableFormChange} className="h-8 w-12 p-1 mr-2"/> */}
-                    <Input 
-                        id="tt-color-text" 
-                        name="color" 
-                        value={currentTimetableForm.color || ''} 
-                        onChange={handleTimetableFormChange} 
-                        placeholder="e.g., bg-blue-500" 
-                        className="h-8 text-xs flex-grow"
-                    />
-                </div>
-                <div className="mt-2 grid grid-cols-6 sm:grid-cols-8 gap-1.5">
-                    {PREDEFINED_TIMETABLE_COLORS.map(bgColorClass => (
-                        <Button
-                            type="button"
-                            key={bgColorClass}
-                            className={cn("h-6 w-full p-0 border-2", 
-                                currentTimetableForm.color === bgColorClass ? 'border-ring ring-2 ring-offset-2 ring-foreground' : 'border-transparent',
-                                bgColorClass
-                            )}
-                            aria-label={`Set color to ${bgColorClass}`}
-                            onClick={() => setCurrentTimetableForm(prev => ({ ...prev, color: bgColorClass }))}
-                        />
-                    ))}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Select a preset or type a Tailwind background class (e.g., bg-sky-500).</p>
+             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="color" className="text-right">
+                Color
+              </Label>
+              <Select
+                name="color"
+                value={currentTimetableForm.color || ""}
+                onValueChange={(value) => setCurrentTimetableForm(prev => ({...prev, color: value}))}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select a color" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PREDEFINED_TIMETABLE_COLORS.map(colorClass => (
+                    <SelectItem key={colorClass} value={colorClass}>
+                      <div className="flex items-center">
+                        <div className={cn("w-4 h-4 rounded-full mr-2", colorClass)} />
+                        {colorClass.replace("bg-", "").replace("-500", "").replace("-600", "")}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </form>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="detailedDescription" className="text-right">
+                Description
+              </Label>
+              <Textarea
+                id="detailedDescription"
+                name="detailedDescription"
+                value={currentTimetableForm.detailedDescription || ""}
+                onChange={handleTimetableFormChange}
+                className="col-span-3"
+                placeholder="Add any extra details about the class, like topics, exam dates, etc."
+              />
+            </div>
+          </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => { setShowAddEditTimetableEntryDialog(false); setEditingTimetableEntry(null); setCurrentTimetableForm({}); }}>Cancel</Button>
-            <Button type="submit" onClick={handleSaveTimetableEntry}>Save Class Schedule</Button>
+            <Button variant="outline" onClick={() => setShowAddEditTimetableEntryDialog(false)}>Cancel</Button>
+            <Button onClick={handleSaveTimetableEntry}>{editingTimetableEntry ? "Save Changes" : "Add Class"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

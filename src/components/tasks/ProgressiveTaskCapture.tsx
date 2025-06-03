@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { Calendar, Clock, Tag, Repeat, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import type { ExtendedTask, Priority, TaskType, RecurrenceRule } from '@/types/ai';
 import { StuTaskGuidance, StuQuickGuidance } from './StuTaskGuidance';
+import { KoalaMascot } from '@/components/ui/koala-mascot';
 import { useIsMobile, useIsTouchDevice, useReducedMotion } from '@/hooks/useMediaQuery';
 
 // Task creation interfaces matching existing patterns
@@ -544,10 +545,7 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
   initialData = {}
 }) => {
   const [step, setStep] = useState(1);
-  const [taskData, setTaskData] = useState<TaskFormData>(() => ({
-    ...initialTaskState,
-    ...initialData
-  }));
+  const [taskData, setTaskData] = useState<TaskFormData>({ ...initialTaskState, ...initialData });
   const [taskCompleted, setTaskCompleted] = useState(false);
   const [touchStartY, setTouchStartY] = useState(0);
   const [touchStartX, setTouchStartX] = useState(0);
@@ -671,80 +669,26 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className={cn(
-          "sm:max-w-lg max-h-[90vh] overflow-y-auto transition-all duration-200",
-          isMobile && "fixed inset-x-2 bottom-2 top-auto max-h-[85vh] rounded-t-xl border-t-2 shadow-2xl"
+          "p-0 overflow-hidden flex flex-col bg-card text-card-foreground shadow-2xl rounded-lg",
+          "sm:max-w-lg", // Default for larger screens
+          isMobile ? "w-[90vw] max-h-[90vh] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" : "max-h-[80vh]",
+          isMobile && "pb-[env(safe-area-inset-bottom)]" // Add padding for home bar on iOS
         )}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
+        onOpenAutoFocus={(e) => e.preventDefault()} // Prevent auto-focus on first input unless intended
       >
-        <DialogHeader className={cn("pb-2", isMobile && "pb-4 pt-2")}>
-          <DialogTitle className="text-xl font-semibold text-foreground text-center">
-            Create New Task - {stepTitles[step - 1]}
+        <DialogHeader className={cn("p-6 pb-4 text-center", isMobile && "p-4 pb-3")}>
+          <DialogTitle className={cn("text-xl font-semibold", isMobile && "text-lg")}>
+            {taskCompleted ? "Task Created!" : stepTitles[step - 1] || "Add New Task"}
           </DialogTitle>
-          
-          {/* Mobile handle indicator */}
-          {isMobile && (
-            <div className="flex justify-center mb-4" aria-hidden="true">
-              <div className="w-8 h-1 bg-muted-foreground/30 rounded-full" />
-            </div>
-          )}
-          
-          <div className="flex items-center justify-between mb-4">
-            {/* Enhanced progress indicator */}
-            <div 
-              className="flex justify-center space-x-2 flex-1"
-              role="tablist"
-              aria-label="Task creation steps"
-            >
-              {[...Array(totalSteps)].map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    // Allow direct step navigation if previous steps are complete
-                    if (index + 1 <= step || (index === 0)) {
-                      setStep(index + 1);
-                      if (isTouchDevice && 'vibrate' in navigator) {
-                        navigator.vibrate(5);
-                      }
-                    }
-                  }}
-                  disabled={index + 1 > step && index !== 0}
-                  className={cn(
-                    "h-2 rounded-full transition-all duration-300 touch-manipulation",
-                    "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background",
-                    isMobile ? "min-w-[44px] h-3" : "w-4",
-                    index + 1 === step 
-                      ? "bg-primary shadow-sm" 
-                      : index + 1 < step 
-                      ? "bg-primary/70 hover:bg-primary/80 cursor-pointer" 
-                      : "bg-primary/20 cursor-not-allowed",
-                    index + 1 <= step && "cursor-pointer hover:shadow-sm"
-                  )}
-                  aria-label={`Step ${index + 1}: ${stepTitles[index]}`}
-                  aria-current={index + 1 === step ? "step" : undefined}
-                  role="tab"
-                  aria-selected={index + 1 === step}
-                  tabIndex={index + 1 <= step ? 0 : -1}
-                />
-              ))}
-            </div>
-            
-            {/* Stu Guidance */}
-            <div className="ml-4">
-              <StuTaskGuidance
-                currentStep={getStuStep()}
-                taskData={taskData}
-                size="sm"
-                position="embedded"
-                onGuidanceAction={(action) => {
-                  console.log('Stu guidance action:', action);
-                }}
-              />
-            </div>
-          </div>
         </DialogHeader>
 
-        <div className="min-h-[400px]">
+        <div 
+          className={cn("flex-grow overflow-y-auto px-6 pb-4", isMobile && "px-4 pb-3")}
+          ref={contentRef}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <AnimatePresence mode="wait">
             {step === 1 && (
               <QuickCaptureStep
@@ -775,99 +719,110 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
           </AnimatePresence>
         </div>
 
-        <DialogFooter className={cn(
-          "flex-row justify-between pt-4",
-          isMobile && "pt-6 gap-4 flex-col sm:flex-row"
-        )}>
-          <div className={cn("flex gap-2", isMobile && "order-2 justify-center")}>
-            {step > 1 && !taskCompleted && (
+        {!taskCompleted && (
+          <DialogFooter className={cn(
+            "p-6 pt-4 border-t border-border bg-muted/30", 
+            "flex flex-row justify-between items-center",
+            isMobile && "p-4 pt-3 grid grid-cols-2 gap-3"
+          )}>
+            {step > 1 && !taskCompleted ? (
               <Button
-                type="button"
                 variant="outline"
                 onClick={handlePrev}
                 size={isMobile ? "lg" : "default"}
                 className={cn(
                   "flex items-center gap-2 touch-manipulation transition-colors",
-                  "border-border hover:bg-accent hover:text-accent-foreground",
                   "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
-                  isMobile && "min-h-[48px] px-6 flex-1"
+                  isMobile && "min-h-[48px] px-4"
                 )}
-                aria-label={`Go back to ${stepTitles[step - 2] || 'previous step'}`}
+                aria-label="Go to previous step"
               >
                 <ChevronLeft className="h-4 w-4" aria-hidden="true" />
                 Back
               </Button>
-            )}
-          </div>
-          
-          <div className={cn("flex gap-2", isMobile && "order-1 gap-3")}>
-            {!taskCompleted && (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => onOpenChange(false)}
-                size={isMobile ? "lg" : "default"}
-                className={cn(
-                  "touch-manipulation transition-colors",
-                  "hover:bg-accent hover:text-accent-foreground",
-                  "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
-                  isMobile && "min-h-[48px] px-4"
-                )}
-                aria-label="Cancel task creation"
-              >
-                Cancel
-              </Button>
+            ) : (
+              // Placeholder to keep alignment if only one button on left (e.g. step 1)
+              <div className={cn(isMobile && "hidden")} /> 
             )}
             
-            {step < totalSteps && !taskCompleted ? (
-              <Button
-                onClick={handleNext}
-                disabled={!taskData.title || !taskData.dueDate}
-                size={isMobile ? "lg" : "default"}
-                className={cn(
-                  "flex items-center gap-2 touch-manipulation transition-colors",
-                  "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
-                  "disabled:opacity-50 disabled:cursor-not-allowed",
-                  isMobile && "min-h-[48px] px-6 flex-1"
-                )}
-                aria-label={`Continue to ${stepTitles[step] || 'next step'}`}
-              >
-                Next
-                <ChevronRight className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            ) : !taskCompleted ? (
-              <Button
-                onClick={handleSubmit}
-                disabled={!taskData.title || !taskData.dueDate}
-                size={isMobile ? "lg" : "default"}
-                className={cn(
-                  "flex items-center gap-2 touch-manipulation transition-colors",
-                  "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
-                  "disabled:opacity-50 disabled:cursor-not-allowed",
-                  "bg-primary text-primary-foreground hover:bg-primary/90",
-                  isMobile && "min-h-[48px] px-6 flex-1"
-                )}
-                aria-label="Create new task with entered details"
-              >
-                Create Task
-                <Sparkles className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            ) : (
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className={cn(
-                  "text-sm text-primary font-medium",
-                  isMobile && "text-base py-3 text-center"
-                )}
-                role="status"
-                aria-live="polite"
-              >
-                Task created successfully! ✨
-              </motion.div>
-            )}
-          </div>
-        </DialogFooter>
+            <div className={cn("flex-grow flex items-center justify-center px-4", isMobile && "hidden")}>
+                <StuTaskGuidance 
+                    currentStep={getStuStep()}
+                    taskData={taskData}
+                    size={isMobile ? "xs" : "sm"} // Use smaller mascot on mobile
+                    position="dialog" 
+                />
+            </div>
+            
+            <div className={cn("flex gap-2", isMobile && "order-1 gap-3 col-span-2 flex-grow")}>
+              {!taskCompleted && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => onOpenChange(false)}
+                  size={isMobile ? "lg" : "default"}
+                  className={cn(
+                    "touch-manipulation transition-colors",
+                    "hover:bg-accent hover:text-accent-foreground",
+                    "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
+                    isMobile && "min-h-[48px] px-4"
+                  )}
+                  aria-label="Cancel task creation"
+                >
+                  Cancel
+                </Button>
+              )}
+              
+              {step < totalSteps && !taskCompleted ? (
+                <Button
+                  onClick={handleNext}
+                  disabled={!taskData.title || !taskData.dueDate}
+                  size={isMobile ? "lg" : "default"}
+                  className={cn(
+                    "flex items-center gap-2 touch-manipulation transition-colors",
+                    "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                    isMobile && "min-h-[48px] px-6 flex-1"
+                  )}
+                  aria-label={`Continue to ${stepTitles[step] || 'next step'}`}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              ) : !taskCompleted ? (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!taskData.title || !taskData.dueDate}
+                  size={isMobile ? "lg" : "default"}
+                  className={cn(
+                    "flex items-center gap-2 touch-manipulation transition-colors",
+                    "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                    "bg-primary text-primary-foreground hover:bg-primary/90",
+                    isMobile && "min-h-[48px] px-6 flex-1"
+                  )}
+                  aria-label="Create new task with entered details"
+                >
+                  Create Task
+                  <Sparkles className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              ) : (
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className={cn(
+                    "text-sm text-primary font-medium",
+                    isMobile && "text-base py-3 text-center"
+                  )}
+                  role="status"
+                  aria-live="polite"
+                >
+                  Task created successfully! ✨
+                </motion.div>
+              )}
+            </div>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );
