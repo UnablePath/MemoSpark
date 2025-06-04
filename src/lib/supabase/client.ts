@@ -31,7 +31,7 @@ export const supabase = (supabaseUrl && supabaseAnonKey)
 
 // AI configuration management
 class SupabaseAIConfigManager {
-  private static readonly CONFIG_KEY = 'studyspark_supabase_ai_config';
+  private static readonly CONFIG_KEY = 'memospark_supabase_ai_config';
   private config: SupabaseAIConfig;
 
   constructor() {

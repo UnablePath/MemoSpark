@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { StudySparkLogoSvg } from "@/components/ui/StudySparkLogoSvg";
+import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
 import Image from "next/image";
 import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
 import { HomepageNavbar } from "@/components/layout/HomepageNavbar";
@@ -93,10 +93,10 @@ export default function LandingPage() {
             animate={{ scale: 1 }}
             transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
             className="animate-floating text-white"
-            aria-label="StudySpark Logo"
+                          aria-label="MemoSpark Logo"
             role="img"
           >
-            <StudySparkLogoSvg height={60} />
+                              <MemoSparkLogoSvg height={60} />
           </motion.div>
 
           {/* Tagline */}
@@ -120,7 +120,7 @@ export default function LandingPage() {
             <Button
               onClick={handleGetStarted}
               className="bg-white text-primary hover:bg-secondary hover:text-foreground font-semibold px-8 py-4 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
-              aria-label="Learn more about StudySpark features"
+                              aria-label="Learn more about MemoSpark features"
             >
               Learn More
             </Button>
@@ -132,7 +132,7 @@ export default function LandingPage() {
                 <Button
                   variant="outline"
                   className="bg-transparent text-white border-white hover:bg-white hover:text-primary font-semibold px-8 py-3 text-lg rounded-full transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
-                  aria-label="Sign in to StudySpark"
+                  aria-label="Sign in to MemoSpark"
                 >
                   Enter App
                 </Button>
@@ -143,7 +143,7 @@ export default function LandingPage() {
               <Button
                 onClick={() => router.push('/dashboard')}
                 className="bg-white text-primary hover:bg-secondary hover:text-foreground font-semibold px-8 py-3 text-lg rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
-                aria-label="Go to your StudySpark dashboard"
+                aria-label="Go to your MemoSpark dashboard"
               >
                 Go to Dashboard
               </Button>
@@ -162,7 +162,7 @@ export default function LandingPage() {
       {/* Features Section */}
       <div ref={featuresRef} id="features" className="w-full bg-background py-16 px-4 md:px-8">
         <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-primary focus:outline-dashed focus:outline-2" role="heading" aria-level={2} tabIndex={0}>
-          How StudySpark Helps You Succeed
+                      How MemoSpark Helps You Succeed
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {features.map((feature, index) => (
@@ -192,7 +192,7 @@ export default function LandingPage() {
                   // onClick={handleGetStarted} // SignUpButton will handle the click for modal
                   size="lg" 
                   className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-10 py-6 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
-                  aria-label="Sign up for StudySpark"
+                  aria-label="Sign up for MemoSpark"
                 >
                   Discover Features & Sign Up
                 </Button>

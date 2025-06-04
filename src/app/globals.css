@@ -9,6 +9,13 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: 'Futura Heavy';
+  src: url('/Futura Heavy.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%; /* Pure white for maximum contrast */
@@ -30,7 +37,7 @@
     --border: 214 32% 91%; /* More visible light gray border */
     --input: 214 32% 91%; /* More visible input border */
     --ring: 142 76% 36%; /* Match enhanced primary */
-    --radius: 1rem; /* Rounded corners for StudySpark style */
+    --radius: 1rem; /* Rounded corners for MemoSpark style */
     --chart-1: 142 60% 45%;
     --chart-2: 40 38% 83%;
     --chart-3: 0 0% 0%;

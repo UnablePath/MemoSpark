@@ -75,6 +75,7 @@ const config = {
       fontFamily: {
         sans: ['var(--font-sans)', 'sans-serif'], // Assuming you might have a sans variable, or just use system default
         linea: ['Linea', 'sans-serif'],
+        'futura-heavy': ['Futura Heavy', 'sans-serif'],
       },
     },
   },

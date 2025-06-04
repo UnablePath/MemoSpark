@@ -1,6 +1,6 @@
 # A string used to distinguish different Supabase projects on the same machine.
 # Not required if you have only one Supabase project set up on your machine.
-project_id = "StudySpark"
+project_id = "MemoSpark"
 
 [api]
 enabled = true

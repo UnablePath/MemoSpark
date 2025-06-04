@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Link from 'next/link';
 // import { Button } from "@/components/ui/button"; // No longer needed for Profile/Settings icons
-import { StudySparkLogoSvg } from "@/components/ui/StudySparkLogoSvg";
+import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
 // import ProfileHeader from "@/components/profile/ProfileHeader"; // To be replaced by UserButton from layout + specific icons
 import DashboardSwipeTabs from './DashboardSwipeTabs';
 import { SignedIn, UserButton } from "@clerk/nextjs"; // Import SignedIn and UserButton
@@ -22,8 +22,8 @@ export default function DashboardPage() {
       {/* ConditionalHeader is now disabled for /dashboard */}
       {/* Integrated header elements for dashboard: Logo and UserButton */}
       <div className="flex items-center justify-between p-4 border-b border-border bg-background flex-shrink-0">
-        <Link href="/" aria-label="StudySpark Homepage" className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md">
-          <StudySparkLogoSvg height={36} /> 
+                  <Link href="/" aria-label="MemoSpark Homepage" className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md">
+                          <MemoSparkLogoSvg height={36} /> 
         </Link>
         <SignedIn>
           <UserButton afterSignOutUrl="/">

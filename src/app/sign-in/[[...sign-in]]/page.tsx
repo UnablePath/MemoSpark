@@ -1,8 +1,8 @@
 import { SignIn } from "@clerk/nextjs";
-import { StudySparkLogoSvg } from "@/components/ui/StudySparkLogoSvg";
+import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
 
 // Define the appearance object (can be moved to a shared file later)
-const studySparkClerkAppearance = {
+const memoSparkClerkAppearance = {
   variables: {
     colorPrimary: 'hsl(142, 60%, 40%)',
     colorText: 'hsl(0, 0%, 10%)',
@@ -54,11 +54,11 @@ export default function Page() {
       <div className="w-full max-w-md bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))] rounded-xl border border-[hsl(var(--border))] shadow-xl">
         <div className="flex flex-col items-center p-6"> {/* Header-like section for the logo */}
           <div className="mx-auto mb-6 text-[hsl(var(--primary))]">
-            <StudySparkLogoSvg height={50} />
+                            <MemoSparkLogoSvg height={50} />
           </div>
           <SignIn
             path="/sign-in"
-            appearance={studySparkClerkAppearance}
+            appearance={memoSparkClerkAppearance}
           />
         </div>
       </div>

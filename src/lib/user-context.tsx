@@ -75,7 +75,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // Load profile from localStorage on component mount
   useEffect(() => {
-    const savedProfile = localStorage.getItem("studyspark_profile");
+    const savedProfile = localStorage.getItem("memospark_profile");
     if (savedProfile) {
       try {
         const parsedProfile = JSON.parse(savedProfile);
@@ -109,7 +109,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
 
     // Save to localStorage
-    localStorage.setItem("studyspark_profile", JSON.stringify(profile));
+    localStorage.setItem("memospark_profile", JSON.stringify(profile));
     toast.success("Profile updated successfully");
     return true;
   };
@@ -117,7 +117,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   // Reset profile to default
   const resetProfile = () => {
     setProfile(defaultProfile);
-    localStorage.removeItem("studyspark_profile");
+    localStorage.removeItem("memospark_profile");
   };
 
   // AI-specific methods

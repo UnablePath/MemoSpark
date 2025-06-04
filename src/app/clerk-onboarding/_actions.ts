@@ -208,7 +208,7 @@ export async function completeUserProfileOnboarding(formData: FormData): Promise
 
       return { 
         success: true,
-        message: "Onboarding completed successfully! Welcome to StudySpark."
+        message: "Onboarding completed successfully! Welcome to MemoSpark."
       };
       
     } catch (clerkOrSupabaseError) {

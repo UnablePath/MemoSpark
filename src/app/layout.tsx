@@ -11,12 +11,12 @@ import { ConditionalHeader } from "@/components/layout/ConditionalHeader";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "StudySpark - Your Ultimate Study Companion",
+  title: "MemoSpark - Your Ultimate Study Companion",
   description: "An innovative app designed to enhance your learning experience with smart task management, collaborative features, and gamified reminders.",
 };
 
 // Define the appearance object (ideally, this would be in a shared file)
-const studySparkClerkAppearance = {
+const memoSparkClerkAppearance = {
   variables: {
     colorPrimary: 'hsl(142, 60%, 40%)',
     colorText: 'hsl(0, 0%, 10%)',
@@ -70,7 +70,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider appearance={studySparkClerkAppearance}>
+    <ClerkProvider appearance={memoSparkClerkAppearance}>
       <html lang="en" suppressHydrationWarning>
         <body className={inter.className}>
           <ThemeProvider>
