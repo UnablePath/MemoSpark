@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO, addDays, isValid } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -550,6 +551,7 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
   const [touchStartY, setTouchStartY] = useState(0);
   const [touchStartX, setTouchStartX] = useState(0);
   
+  const contentRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const isTouchDevice = useIsTouchDevice();
   const prefersReducedMotion = useReducedMotion();
@@ -597,6 +599,12 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
     const touch = e.touches[0];
     setTouchStartX(touch.clientX);
     setTouchStartY(touch.clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    // Prevent default to avoid scrolling issues during swipe
+    if (!isTouchDevice) return;
+    e.preventDefault();
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -749,8 +757,8 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
                 <StuTaskGuidance 
                     currentStep={getStuStep()}
                     taskData={taskData}
-                    size={isMobile ? "xs" : "sm"} // Use smaller mascot on mobile
-                    position="dialog" 
+                    size={isMobile ? "sm" : "md"} // Use smaller mascot on mobile
+                    position="embedded" 
                 />
             </div>
             

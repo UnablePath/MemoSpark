@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Settings, Volume2, VolumeX, Sparkles, MessageCircle, Heart } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { UserContext, updateStuPreferences, saveUserContext } from '@/lib/userContext';
+import { type UserContext, updateStuPreferences, saveUserContext } from '@/lib/userContext';
 import { KoalaMascot } from '@/components/ui/koala-mascot';
 
 interface StuPreferencesProps {

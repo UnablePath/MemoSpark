@@ -1,15 +1,21 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import type React from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, RefreshCw, Clock, Target, Brain, AlertCircle } from 'lucide-react';
+import { Sparkles, RefreshCw, Clock, Target, Brain, AlertCircle, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { SuggestionCard } from '@/components/ai/SuggestionCard';
 import { cn } from '@/lib/utils';
 import { StudySparkAI } from '@/lib/ai';
 import type { StudySuggestion } from '@/lib/ai/suggestionEngine';
-import type { ExtendedTask, AISuggestion } from '@/types/ai';
+import type { ExtendedTask, AISuggestion, SuggestionType } from '@/types/ai';
+import { useEnhancedUserContext, useSaveAISuggestionFeedback } from '@/lib/hooks/queries';
+import { toast } from 'sonner';
+
+// Cache duration constant
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 // Task-specific suggestion interface extending AISuggestion
 interface TaskSuggestion extends AISuggestion {
@@ -24,8 +30,8 @@ interface TaskSuggestion extends AISuggestion {
   };
 }
 
-// Suggestion context interface matching the AI system
-interface SuggestionContext {
+// Enhanced suggestion context interface with feedback data
+interface EnhancedSuggestionContext {
   currentTime: Date;
   upcomingTasks: ExtendedTask[];
   recentActivity: ExtendedTask[];
@@ -37,6 +43,15 @@ interface SuggestionContext {
   };
   taskContext?: Partial<ExtendedTask>;
   suggestionTypes?: string[];
+  // New enhanced context from Supabase
+  recentCompletedTasks?: ExtendedTask[];
+  timetableEntries?: any[];
+  feedbackSummary?: {
+    totalFeedback: number;
+    likeRatio: number;
+    dislikedTypes: string[];
+    preferredTypes: string[];
+  };
 }
 
 interface AITaskSuggestionsProps {
@@ -72,44 +87,59 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
   const [retryCount, setRetryCount] = useState(0);
   const [userAcceptanceHistory, setUserAcceptanceHistory] = useState<Map<string, number>>(new Map());
 
-  // Enhanced suggestion generation with caching and performance optimizations
+  // Enhanced user context and feedback
+  const { data: enhancedContext, isLoading: contextLoading } = useEnhancedUserContext();
+  const saveFeedbackMutation = useSaveAISuggestionFeedback();
+
+  // Enhanced suggestion generation with better context and feedback filtering
   const generateTaskSuggestions = useCallback(async () => {
-    if (!currentTask.title || currentTask.title.trim().length < 3) {
-      setSuggestions([]);
-      return;
-    }
+    if (loading || !studySparkAI) return;
 
-    // Create cache key based on task properties
-    const cacheKey = `${currentTask.title?.trim()}-${currentTask.type || 'academic'}-${currentTask.priority || 'medium'}-${currentTask.subject || 'general'}`;
+    const cacheKey = `suggestions-${JSON.stringify(currentTask)}-${maxSuggestions}`;
     
-    // Check cache first (valid for 5 minutes)
-    const cachedEntry = suggestionCache.get(cacheKey);
+    // Check cache first
+    const cached = suggestionCache.get(cacheKey);
     const now = Date.now();
-    if (cachedEntry && (now - cachedEntry.timestamp) < 5 * 60 * 1000) {
-      // Update access count for cache analytics
-      setSuggestionCache(prev => new Map(prev.set(cacheKey, {
-        ...cachedEntry,
-        accessCount: cachedEntry.accessCount + 1
-      })));
-      setSuggestions(cachedEntry.suggestions);
-      setLastGenerationTime(new Date(cachedEntry.timestamp));
+    if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+      setSuggestions(cached.suggestions);
+      cached.accessCount++;
       return;
     }
 
-    // Set loading state for this specific cache key
-    setLoadingStates(prev => ({ ...prev, [cacheKey]: true }));
     setLoading(true);
+    setLoadingStates(prev => ({ ...prev, [cacheKey]: true }));
     setError(null);
 
     try {
-      // Enhanced context with user patterns and acceptance history
-      const context: SuggestionContext = {
+      // Helper function to convert Task to ExtendedTask
+      const convertTaskToExtendedTask = (task: any): ExtendedTask => ({
+        id: task.id,
+        title: task.title,
+        dueDate: task.due_date || task.dueDate || new Date().toISOString(),
+        priority: task.priority,
+        type: task.type === 'event' ? 'academic' : task.type, // Map 'event' to 'academic'
+        subject: task.subject,
+        completed: task.completed,
+        reminder: task.reminder ?? false,
+        description: task.description,
+        recurrenceRule: task.recurrence_rule || task.recurrenceRule || 'none',
+        recurrenceInterval: task.recurrence_interval || task.recurrenceInterval,
+        recurrenceEndDate: task.recurrence_end_date || task.recurrenceEndDate,
+        originalDueDate: task.original_due_date || task.originalDueDate,
+        completedOverrides: task.completed_overrides || task.completedOverrides,
+      });
+
+      // Enhanced context with user data from Supabase
+      const context: EnhancedSuggestionContext = {
         currentTime: new Date(),
-        upcomingTasks: [], // Empty for new task creation
-        recentActivity: [], // Could be populated from local storage
+        upcomingTasks: enhancedContext?.upcomingTasks?.map(convertTaskToExtendedTask) || [],
+        recentActivity: enhancedContext?.recentTasks?.map(convertTaskToExtendedTask) || [],
+        recentCompletedTasks: enhancedContext?.recentCompletedTasks?.map(convertTaskToExtendedTask) || [],
+        timetableEntries: enhancedContext?.timetableEntries || [],
         userPreferences: StudySparkAI.getDefaultPreferences(),
         taskContext: currentTask,
-        suggestionTypes: ['task_enhancement', 'time_optimization', 'priority_adjustment', 'subject_focus']
+        suggestionTypes: ['task_enhancement', 'time_optimization', 'priority_adjustment', 'subject_focus'],
+        feedbackSummary: enhancedContext?.feedbackSummary,
       };
 
       // Use StudySparkAI to generate intelligent suggestions with retry logic
@@ -120,7 +150,7 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
       while (retryAttempts <= maxRetries) {
         try {
           result = await studySparkAI.generateIntelligentSuggestions(
-            [], // Empty tasks array for new task
+            enhancedContext?.upcomingTasks?.map(convertTaskToExtendedTask) || [],
             'current-user', // In real app, would use actual user ID
             context
           );
@@ -149,25 +179,30 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
       // Add task-specific enhancement suggestions
       const enhancementSuggestions = generateTaskEnhancementSuggestions(currentTask);
       
-      // Intelligent ranking based on user acceptance history
+      // Intelligent ranking based on user acceptance history and feedback
       const rankedSuggestions = rankSuggestionsByUserPreferences(
         [...taskSuggestions, ...enhancementSuggestions],
-        userAcceptanceHistory
+        userAcceptanceHistory,
+        enhancedContext?.feedbackSummary
       );
 
-      // Combine and filter suggestions
-      const allSuggestions = rankedSuggestions
-        .filter(s => (s.confidence || 0) >= 0.4)
+      // Filter out disliked suggestion types based on feedback
+      const filteredSuggestions = rankedSuggestions
+        .filter(s => {
+          // If user consistently dislikes a type, filter it out
+          const isDislikedType = enhancedContext?.feedbackSummary?.dislikedTypes?.includes(s.type);
+          return !isDislikedType && (s.confidence || 0) >= 0.4;
+        })
         .slice(0, maxSuggestions);
 
       // Cache the results
       setSuggestionCache(prev => new Map(prev.set(cacheKey, {
-        suggestions: allSuggestions,
+        suggestions: filteredSuggestions,
         timestamp: now,
         accessCount: 1
       })));
 
-      setSuggestions(allSuggestions);
+      setSuggestions(filteredSuggestions);
       setLastGenerationTime(new Date());
       setRetryCount(0); // Reset retry count on success
     } catch (err) {
@@ -185,115 +220,84 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
       setError(errorMessage);
       
       // Generate enhanced fallback suggestions
-      const fallbackSuggestions = generateEnhancedFallbackSuggestions(currentTask);
+      const fallbackSuggestions = generateFallbackSuggestions(currentTask);
       setSuggestions(fallbackSuggestions.slice(0, maxSuggestions));
     } finally {
       setLoadingStates(prev => ({ ...prev, [cacheKey]: false }));
       setLoading(false);
     }
-  }, [currentTask, maxSuggestions, studySparkAI, suggestionCache, retryCount, userAcceptanceHistory]);
+  }, [currentTask, maxSuggestions, studySparkAI, suggestionCache, retryCount, userAcceptanceHistory, enhancedContext]);
 
-  // Intelligent ranking based on user acceptance patterns
+  // Trigger suggestions when context is loaded and current task changes
+  useEffect(() => {
+    if (!contextLoading && enhancedContext) {
+      generateTaskSuggestions();
+    }
+  }, [generateTaskSuggestions, contextLoading, enhancedContext]);
+
+  // Enhanced ranking with feedback data
   const rankSuggestionsByUserPreferences = (
     suggestions: TaskSuggestion[],
-    acceptanceHistory: Map<string, number>
+    acceptanceHistory: Map<string, number>,
+    feedbackSummary?: { preferredTypes: string[]; dislikedTypes: string[]; likeRatio: number; }
   ): TaskSuggestion[] => {
     return suggestions.sort((a, b) => {
-      // Get user acceptance rate for suggestion types
-      const aAcceptanceRate = acceptanceHistory.get(a.type) || 0.5;
-      const bAcceptanceRate = acceptanceHistory.get(b.type) || 0.5;
+      let scoreA = a.confidence || 0.5;
+      let scoreB = b.confidence || 0.5;
+
+      // Boost score for preferred types based on feedback
+      if (feedbackSummary?.preferredTypes?.includes(a.type)) {
+        scoreA += 0.2;
+      }
+      if (feedbackSummary?.preferredTypes?.includes(b.type)) {
+        scoreB += 0.2;
+      }
+
+      // Apply acceptance history
+      const historyA = acceptanceHistory.get(a.type) || 0.5;
+      const historyB = acceptanceHistory.get(b.type) || 0.5;
       
-      // Calculate composite score: confidence + acceptance rate + priority
-      const priorityOrder = { high: 3, medium: 2, low: 1 };
-      const aPriority = a.priority || 'medium';
-      const bPriority = b.priority || 'medium';
-      
-      const aScore = (a.confidence || 0) * 0.4 + aAcceptanceRate * 0.4 + priorityOrder[aPriority] * 0.2;
-      const bScore = (b.confidence || 0) * 0.4 + bAcceptanceRate * 0.4 + priorityOrder[bPriority] * 0.2;
-      
-      return bScore - aScore;
+      scoreA *= historyA;
+      scoreB *= historyB;
+
+      return scoreB - scoreA;
     });
   };
 
-  // Enhanced fallback suggestions with more intelligent defaults
-  const generateEnhancedFallbackSuggestions = (task: Partial<ExtendedTask>): TaskSuggestion[] => {
-    const suggestions: TaskSuggestion[] = [];
-    const currentTime = new Date();
-
-    // Smart task completion time estimation
-    if (task.title && !task.description) {
-      const titleWords = task.title.split(' ').length;
-      const complexity = titleWords > 5 ? 'high' : titleWords > 2 ? 'medium' : 'low';
-      
-      suggestions.push({
-        id: `fallback_smart_description_${Date.now()}`,
-        type: 'task_suggestion',
-        title: 'Add Smart Task Description',
-        description: `Based on your task complexity (${complexity}), consider adding specific details about requirements, resources, and expected outcomes.`,
-        priority: complexity === 'high' ? 'medium' : 'low',
-        confidence: 0.7,
-        reasoning: `Task appears to be ${complexity} complexity based on title length`,
-        createdAt: currentTime.toISOString(),
-        applicationAction: 'add_description',
-        metadata: {
-          category: 'task-clarity',
-          tags: ['description', 'clarity', complexity],
-          estimatedBenefit: 0.6
-        }
-      });
-    }
-
-    // Smart deadline suggestions based on task type
-    if (!task.dueDate && task.type) {
-      const suggestedHours = task.type === 'academic' ? 72 : 24; // 3 days for academic, 1 day for personal
-      const suggestedDate = new Date(currentTime.getTime() + suggestedHours * 60 * 60 * 1000);
-      
-      suggestions.push({
-        id: `fallback_smart_deadline_${Date.now()}`,
-        type: 'schedule_optimization',
-        title: 'Set Smart Deadline',
-        description: `Based on task type (${task.type}), consider setting deadline for ${format(suggestedDate, 'MMM d, h:mm a')}.`,
-        priority: 'medium',
-        confidence: 0.8,
-        reasoning: `${task.type} tasks typically need ${suggestedHours} hours for completion`,
-        createdAt: currentTime.toISOString(),
-        applicationAction: 'optimize_timing',
-        suggestedChanges: {
-          dueDate: suggestedDate.toISOString()
+  // Handle feedback with database storage
+  const handleFeedback = useCallback(async (suggestion: TaskSuggestion, feedback: 'liked' | 'disliked') => {
+    try {
+      await saveFeedbackMutation.mutateAsync({
+        suggestion_id: suggestion.id,
+        suggestion_type: suggestion.type,
+        suggestion_title: suggestion.title,
+        feedback,
+        suggestion_context: {
+          task_title: currentTask.title,
+          task_type: currentTask.type,
+          task_priority: currentTask.priority,
+          confidence: suggestion.confidence,
+          metadata: suggestion.metadata,
         },
-        metadata: {
-          category: 'time-management',
-          tags: ['deadline', 'completion', task.type],
-          estimatedBenefit: 0.8
-        }
       });
-    }
 
-    // Priority optimization based on context
-    if (task.priority === 'medium' && task.type === 'academic') {
-      suggestions.push({
-        id: `fallback_priority_boost_${Date.now()}`,
-        type: 'difficulty_adjustment',
-        title: 'Consider Higher Priority',
-        description: 'Academic tasks often benefit from higher priority to ensure adequate time allocation.',
-        priority: 'low',
-        confidence: 0.6,
-        reasoning: 'Academic tasks typically require focused attention',
-        createdAt: currentTime.toISOString(),
-        applicationAction: 'adjust_priority',
-        suggestedChanges: {
-          priority: 'high'
-        },
-        metadata: {
-          category: 'priority-management',
-          tags: ['priority', 'academic'],
-          estimatedBenefit: 0.5
-        }
+      // Update local acceptance history for immediate feedback
+      setUserAcceptanceHistory(prev => {
+        const newMap = new Map(prev);
+        const currentRate = newMap.get(suggestion.type) || 0.5;
+        const newRate = feedback === 'liked' 
+          ? Math.min(1.0, currentRate + 0.1)
+          : Math.max(0.0, currentRate - 0.05);
+        newMap.set(suggestion.type, newRate);
+        return newMap;
       });
-    }
 
-    return suggestions;
-  };
+      toast.success(feedback === 'liked' ? 'Thanks for the feedback!' : 'We\'ll improve our suggestions');
+    } catch (error) {
+      console.error('Failed to save feedback:', error);
+      toast.error('Failed to save feedback');
+    }
+  }, [saveFeedbackMutation, currentTask]);
 
   // Auto-generate suggestions when task changes with improved debouncing
   useEffect(() => {
@@ -358,210 +362,111 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
     suggestion: StudySuggestion, 
     task: Partial<ExtendedTask>
   ): Promise<TaskSuggestion> => {
-    // Map StudySuggestion to AISuggestion format
-    const aiSuggestion: AISuggestion = {
+    // Map StudySuggestion type to valid SuggestionType
+    let mappedType: SuggestionType;
+    switch (suggestion.type) {
+      case 'difficulty':
+        mappedType = 'difficulty_adjustment';
+        break;
+      case 'subject_focus':
+        mappedType = 'subject_focus';
+        break;
+      case 'task':
+        mappedType = 'task_suggestion';
+        break;
+      case 'break':
+        mappedType = 'break_reminder';
+        break;
+      case 'schedule':
+        mappedType = 'schedule_optimization';
+        break;
+      default:
+        mappedType = 'task_suggestion';
+    }
+
+    return {
       id: suggestion.id,
-      type: suggestion.type === 'task' ? 'task_suggestion' :
-            suggestion.type === 'break' ? 'break_reminder' :
-            suggestion.type === 'subject_focus' ? 'subject_focus' :
-            suggestion.type === 'schedule' ? 'schedule_optimization' :
-            suggestion.type === 'difficulty' ? 'difficulty_adjustment' : 'task_suggestion',
+      type: mappedType,
       title: suggestion.title,
       description: suggestion.description,
-      priority: suggestion.priority,
-      createdAt: new Date().toISOString(), // Add required createdAt field
+      priority: suggestion.priority as 'low' | 'medium' | 'high' | undefined,
       confidence: suggestion.confidence,
       reasoning: suggestion.reasoning,
-      suggestedTime: suggestion.suggestedTime,
-      duration: suggestion.duration,
-      subject: suggestion.subject,
-      metadata: suggestion.metadata
+      source: 'StudySparkAI',
+      createdAt: new Date().toISOString(),
+      applicationAction: getApplicationAction(mappedType),
+      suggestedChanges: await generateSuggestedChanges(suggestion, task),
+      metadata: {
+        category: suggestion.metadata.category || 'productivity',
+        estimatedBenefit: suggestion.confidence || 0.7,
+        requiredAction: 'optional',
+      },
     };
-    return await transformToTaskSuggestion(aiSuggestion, task);
   };
 
   // Determine how to apply the suggestion to the task
   const getApplicationAction = (type: string): TaskSuggestion['applicationAction'] => {
     switch (type) {
-      case 'task_suggestion':
-        return 'modify_title';
-      case 'schedule_optimization':
-        return 'optimize_timing';
-      case 'difficulty_adjustment':
-        return 'adjust_priority';
-      case 'subject_focus':
-        return 'add_description';
-      default:
-        return 'add_description';
+      case 'task': return 'modify_title';
+      case 'difficulty': return 'adjust_priority';
+      case 'schedule': return 'optimize_timing';
+      case 'subject_focus': return 'add_description';
+      default: return 'add_description';
     }
   };
 
   // Generate specific changes based on suggestion
   const generateSuggestedChanges = async (
-    suggestion: AISuggestion, 
+    suggestion: AISuggestion | StudySuggestion, 
     task: Partial<ExtendedTask>
   ): Promise<TaskSuggestion['suggestedChanges']> => {
     const changes: TaskSuggestion['suggestedChanges'] = {};
-
-    switch (suggestion.type) {
-      case 'task_suggestion':
-        if (task.title && task.title.length < 10) {
-          changes.title = `${task.title} - ${suggestion.description.split('.')[0]}`;
-        }
-        break;
-
-      case 'schedule_optimization':
-        if (suggestion.suggestedTime) {
-          changes.dueDate = suggestion.suggestedTime;
-        }
-        if (suggestion.duration) {
-          changes.timeEstimate = suggestion.duration;
-        }
-        break;
-
-      case 'difficulty_adjustment':
-        if (suggestion.metadata?.difficulty) {
-          const difficultyLevel = suggestion.metadata.difficulty as number;
-          changes.priority = difficultyLevel >= 7 ? 'high' : 
-                           difficultyLevel >= 4 ? 'medium' : 'low';
-        }
-        break;
-
-      case 'subject_focus':
-        if (suggestion.description && !task.description) {
-          changes.description = `Focus area: ${suggestion.description}`;
-        }
-        break;
+    
+    if (suggestion.type === 'difficulty_adjustment' && task.priority !== 'high') {
+      changes.priority = 'high';
     }
-
+    
+    if (suggestion.type === 'task_suggestion' && !task.description) {
+      changes.description = `Consider adding specific details about ${task.title}`;
+    }
+    
     return changes;
   };
 
   // Generate task enhancement suggestions based on title and context
   const generateTaskEnhancementSuggestions = (task: Partial<ExtendedTask>): TaskSuggestion[] => {
     const suggestions: TaskSuggestion[] = [];
-    const title = task.title?.toLowerCase() || '';
 
-    // Smart title enhancement
-    if (title && title.length > 5) {
-      if (title.includes('study') || title.includes('read') || title.includes('review')) {
-        suggestions.push({
-          id: `enhance_study_${Date.now()}`,
-          type: 'task_suggestion',
-          title: 'Break Into Study Sessions',
-          description: 'Consider breaking this into focused 25-45 minute study sessions for better retention.',
-          priority: 'medium',
-          confidence: 0.8,
-          reasoning: 'Study tasks benefit from time-boxed sessions',
-          createdAt: new Date().toISOString(),
-          applicationAction: 'add_subtasks',
-          suggestedChanges: {
-            subtasks: [
-              'Session 1: Initial review (25 min)',
-              'Session 2: Deep focus study (45 min)',
-              'Session 3: Practice/application (30 min)'
-            ],
-            timeEstimate: 100
-          },
-          metadata: {
-            category: 'task-optimization',
-            tags: ['study-sessions', 'time-management'],
-            estimatedBenefit: 0.8
-          }
-        });
-      }
-
-      if (title.includes('exam') || title.includes('test') || title.includes('quiz')) {
-        suggestions.push({
-          id: `enhance_exam_${Date.now()}`,
-          type: 'task_suggestion',
-          title: 'Exam Preparation Strategy',
-          description: 'Upgrade to a comprehensive exam prep plan with review, practice, and mock tests.',
-          priority: 'high',
-          confidence: 0.9,
-          reasoning: 'Exam tasks require strategic preparation',
-          createdAt: new Date().toISOString(),
-          applicationAction: 'modify_title',
-          suggestedChanges: {
-            title: `${task.title} - Complete Prep Plan`,
-            priority: 'high',
-            description: 'Comprehensive exam preparation including review materials, practice questions, and timed mock tests.',
-            subtasks: [
-              'Gather and organize study materials',
-              'Create study schedule leading up to exam',
-              'Complete practice questions',
-              'Take timed mock test',
-              'Review weak areas'
-            ]
-          },
-          metadata: {
-            category: 'exam-preparation',
-            tags: ['exam', 'preparation', 'strategy'],
-            estimatedBenefit: 0.9
-          }
-        });
-      }
-
-      if (title.includes('project') || title.includes('assignment') || title.includes('homework')) {
-        suggestions.push({
-          id: `enhance_project_${Date.now()}`,
-          type: 'task_suggestion',
-          title: 'Project Planning Approach',
-          description: 'Structure this as a multi-phase project with clear milestones and deadlines.',
-          priority: 'medium',
-          confidence: 0.7,
-          reasoning: 'Project tasks benefit from structured planning',
-          createdAt: new Date().toISOString(),
-          applicationAction: 'add_subtasks',
-          suggestedChanges: {
-            subtasks: [
-              'Research and planning phase',
-              'Outline and structure creation',
-              'First draft/initial implementation',
-              'Review and revision',
-              'Final polish and submission prep'
-            ],
-            description: 'Multi-phase project with structured milestones and clear deliverables.'
-          },
-          metadata: {
-            category: 'project-management',
-            tags: ['project', 'planning', 'milestones'],
-            estimatedBenefit: 0.7
-          }
-        });
-      }
+    // Check for task enhancement opportunities
+    if (task.priority !== 'high') {
+      suggestions.push({
+        id: `enhance-priority-${Date.now()}`,
+        type: 'difficulty_adjustment',
+        title: 'Consider Higher Priority',
+        description: 'This task might benefit from increased priority based on its complexity.',
+        confidence: 0.6,
+        source: 'TaskAnalyzer',
+        createdAt: new Date().toISOString(),
+        applicationAction: 'adjust_priority',
+        suggestedChanges: { priority: 'high' },
+      });
     }
 
-    // Priority enhancement based on due date
-    if (task.dueDate) {
-      const dueDate = new Date(task.dueDate);
-      const now = new Date();
-      const hoursUntilDue = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-
-      if (hoursUntilDue <= 24 && hoursUntilDue > 0) {
-        suggestions.push({
-          id: `enhance_urgent_${Date.now()}`,
-          type: 'difficulty_adjustment',
-          title: 'Urgent Priority Adjustment',
-          description: `This task is due in ${Math.round(hoursUntilDue)} hours. Consider marking as high priority.`,
-          priority: 'high',
-          confidence: 0.95,
-          reasoning: 'Tasks due within 24 hours require high priority',
-          createdAt: new Date().toISOString(),
-          applicationAction: 'adjust_priority',
-          suggestedChanges: {
-            priority: 'high'
-          },
-          metadata: {
-            category: 'urgency-management',
-            tags: ['urgent', 'priority', 'deadline'],
-            estimatedBenefit: 1.0
-          }
-        });
-      }
+    if (!task.description) {
+      suggestions.push({
+        id: `enhance-description-${Date.now()}`,
+        type: 'task_suggestion',
+        title: 'Add Task Description',
+        description: 'Adding a description can help you stay focused and track progress better.',
+        confidence: 0.8,
+        source: 'TaskAnalyzer',
+        createdAt: new Date().toISOString(),
+        applicationAction: 'add_description',
+        suggestedChanges: { description: 'Consider adding specific details about what needs to be accomplished.' },
+      });
     }
 
-    return suggestions;
+    return suggestions.filter(s => Math.random() > 0.3); // Randomly show some suggestions
   };
 
   // Fallback suggestions when AI is unavailable
@@ -610,32 +515,18 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
   };
 
   const handleSuggestionApply = (suggestion: TaskSuggestion) => {
-    // Track user acceptance for learning
-    setUserAcceptanceHistory(prev => {
-      const newMap = new Map(prev);
-      const currentRate = newMap.get(suggestion.type) || 0.5;
-      const newRate = Math.min(1.0, currentRate + 0.1); // Increase acceptance rate
-      newMap.set(suggestion.type, newRate);
-      return newMap;
-    });
-
+    // Track feedback as 'liked' when accepted
+    handleFeedback(suggestion, 'liked');
     onSuggestionApply(suggestion);
     setSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
   };
 
   const handleSuggestionDismiss = (id: string) => {
-    // Track user rejection for learning
     const suggestion = suggestions.find(s => s.id === id);
     if (suggestion) {
-      setUserAcceptanceHistory(prev => {
-        const newMap = new Map(prev);
-        const currentRate = newMap.get(suggestion.type) || 0.5;
-        const newRate = Math.max(0.0, currentRate - 0.05); // Slightly decrease acceptance rate
-        newMap.set(suggestion.type, newRate);
-        return newMap;
-      });
+      // Track feedback as 'disliked' when dismissed
+      handleFeedback(suggestion, 'disliked');
     }
-
     onSuggestionDismiss(id);
     setSuggestions(prev => prev.filter(s => s.id !== id));
   };
@@ -643,6 +534,58 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
   const handleRefresh = () => {
     generateTaskSuggestions();
   };
+
+  // Enhanced SuggestionCard with feedback buttons
+  const EnhancedSuggestionCard: React.FC<{
+    suggestion: TaskSuggestion;
+    index: number;
+  }> = ({ suggestion, index }) => (
+    <motion.div
+      key={suggestion.id}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ delay: index * 0.1 }}
+      className="relative group"
+    >
+      <SuggestionCard
+        suggestion={suggestion}
+        onAccept={() => handleSuggestionApply(suggestion)}
+        onReject={() => handleSuggestionDismiss(suggestion.id)}
+        compact={compact}
+        showReasoning={false}
+        className="hover:border-primary/30 transition-colors"
+      />
+      
+      {/* Feedback buttons overlay */}
+      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleFeedback(suggestion, 'liked');
+          }}
+          className="h-6 w-6 p-0 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/20"
+          disabled={saveFeedbackMutation.isPending}
+        >
+          <ThumbsUp className="w-3 h-3" />
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleFeedback(suggestion, 'disliked');
+          }}
+          className="h-6 w-6 p-0 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20"
+          disabled={saveFeedbackMutation.isPending}
+        >
+          <ThumbsDown className="w-3 h-3" />
+        </Button>
+      </div>
+    </motion.div>
+  );
 
   if (!currentTask.title || currentTask.title.trim().length < 3) {
     return (
@@ -662,6 +605,11 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
           <h4 className="font-medium text-sm">AI Suggestions</h4>
+          {enhancedContext?.feedbackSummary && enhancedContext.feedbackSummary.totalFeedback > 0 && (
+            <span className="text-xs text-muted-foreground">
+              ({Math.round(enhancedContext.feedbackSummary.likeRatio * 100)}% helpful)
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {lastGenerationTime && (
@@ -673,10 +621,10 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
             size="sm"
             variant="ghost"
             onClick={handleRefresh}
-            disabled={loading}
+            disabled={loading || contextLoading}
             className="h-6 w-6 p-0"
           >
-            <RefreshCw className={cn("h-3 w-3", loading && "animate-spin")} />
+            <RefreshCw className={cn("h-3 w-3", (loading || contextLoading) && "animate-spin")} />
           </Button>
         </div>
       </div>
@@ -690,7 +638,7 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
       )}
 
       {/* Loading State */}
-      {loading && (
+      {(loading || contextLoading) && (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="p-4 border rounded-lg animate-pulse">
@@ -706,9 +654,9 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
         </div>
       )}
 
-      {/* Suggestions */}
+      {/* Suggestions with enhanced feedback */}
       <AnimatePresence mode="popLayout">
-        {!loading && suggestions.length > 0 && (
+        {!loading && !contextLoading && suggestions.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -716,29 +664,18 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
             className="space-y-3"
           >
             {suggestions.map((suggestion, index) => (
-              <motion.div
+              <EnhancedSuggestionCard
                 key={suggestion.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <SuggestionCard
-                  suggestion={suggestion}
-                  onAccept={() => handleSuggestionApply(suggestion)}
-                  onReject={() => handleSuggestionDismiss(suggestion.id)}
-                  compact={compact}
-                  showReasoning={false}
-                  className="hover:border-primary/30 transition-colors"
-                />
-              </motion.div>
+                suggestion={suggestion}
+                index={index}
+              />
             ))}
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Empty State */}
-      {!loading && suggestions.length === 0 && !error && (
+      {!loading && !contextLoading && suggestions.length === 0 && !error && (
         <div className="text-center py-4">
           <Target className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">

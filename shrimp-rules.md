@@ -1,510 +1,465 @@
-# StudySpark Webapp Development Guidelines
+# StudySpark Development Rules
 
 ## Project Overview
 
-StudySpark is a study-focused web application built with Next.js 15+ app router, TypeScript, Tailwind CSS, and Clerk authentication. The application features gamification, task management, and collaborative learning tools.
+StudySpark is a mobile-first AI-powered study companion built with Next.js 15 App Router, TypeScript, Tailwind CSS, Supabase database, and Clerk authentication. **CRITICAL REQUIREMENT**: Default dark mode with minimalist design that prevents UI clutter and content bleeding.
 
-**Technology Stack:**
-- Next.js 15+ with app router pattern
-- TypeScript for type safety
-- Tailwind CSS with custom design tokens
-- Clerk for authentication
-- Radix UI for component primitives
-- Class Variance Authority (CVA) for component variants
-- Framer Motion for animations
-- Bun as package manager
-- Biome for linting/formatting (NOT ESLint/Prettier)
-
-## Project Architecture
+## Architecture Standards
 
 ### Directory Structure Rules
+- `src/app/` - Next.js App Router pages (use `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`)
+- `src/components/` - Reusable UI components organized by feature
+- `src/lib/` - Utilities, API clients, and business logic
+- `src/hooks/` - Custom React hooks
+- **CRITICAL**: When modifying database functionality, coordinate between `src/lib/supabase/client.ts` and `src/lib/supabase/server.ts`
 
-#### App Router Organization
-- **MUST use `src/app/` directory** for all routes
-- **MUST create `page.tsx`** for each route endpoint
-- **MUST create `layout.tsx`** for shared layouts
-- **MUST use `loading.tsx`** for loading states
-- **MUST use `error.tsx`** for error boundaries
-- **Authentication routes MUST follow** Clerk's catch-all pattern: `[[...sign-in]]/page.tsx`
+### Component Architecture
+- **MANDATORY**: Use TypeScript interfaces for all props
+- **MANDATORY**: Call all hooks at component top level before conditional logic
+- **MANDATORY**: Use named exports primarily, default exports only for page components
+- **PROHIBITED**: Prop drilling more than 2 levels - use Context API or state management
 
-#### Component Organization
-- **MUST organize components** by feature in `src/components/[feature]/`
-- **MUST place reusable UI primitives** in `src/components/ui/`
-- **MUST place context providers** in `src/components/providers/`
-- **MUST use feature-based grouping**: dashboard/, tasks/, gamification/, profile/, settings/, etc.
+## Minimalist Design Principles
 
-#### Utility Organization
-- **MUST place custom hooks** in `src/hooks/`
-- **MUST place utilities** in `src/lib/`
-- **MUST place context files** in `src/lib/`
+### Container Constraints (CRITICAL)
+- **MANDATORY**: Prevent content bleeding off screen with `max-w-screen-sm mx-auto px-4`
+- **MANDATORY**: Account for bottom tab bar with `pb-20` or `mb-20` on page containers
+- **MANDATORY**: Use safe area handling with `pt-safe pb-safe` when needed
+- **PROHIBITED**: Fixed heights that break on different screen sizes
+- **PROHIBITED**: Horizontal scrolling except for intentional carousels
 
-### File Naming Conventions
+### Visual Hierarchy Rules
+- **MANDATORY**: One primary action per screen (prominent button styling)
+- **MANDATORY**: Secondary actions must use `variant="secondary"` or `variant="ghost"`
+- **MANDATORY**: Use whitespace systematically - `space-y-4` for related items, `space-y-8` for sections
+- **PROHIBITED**: More than 3 different font sizes on one screen
+- **PROHIBITED**: More than 2 different button styles on one screen
 
-#### Components
-- **MUST use PascalCase** for component files: `UserProfile.tsx`
-- **MUST use PascalCase** for component exports: `export const UserProfile`
-- **MUST use kebab-case** for page routes: `/user-profile`
+### Mobile-First Responsive Design
+- **MANDATORY**: Design for 320px width minimum
+- **MANDATORY**: Use `text-sm` as default, `text-lg` for headings only
+- **MANDATORY**: Touch targets minimum 44px (`h-11 min-h-11`)
+- **PROHIBITED**: Hover-only interactions
+- **PROHIBITED**: Small touch targets (`h-8` or smaller for interactive elements)
 
-#### Other Files
-- **MUST use camelCase** for utility files: `userUtils.ts`
-- **MUST use kebab-case** for CSS modules: `component.module.css`
-- **MUST use SCREAMING_SNAKE_CASE** for constants: `API_BASE_URL`
+## Theme System Architecture
+
+### Dark Mode Default
+- **MANDATORY**: Default theme is `'dark'` in `src/components/providers/theme-provider.tsx`
+- **MANDATORY**: All components must work in dark mode first
+- **MANDATORY**: Test all UI changes in dark mode before light mode
+
+### Multi-Theme Implementation
+- **MANDATORY**: Use CSS custom properties in `src/app/globals.css` for theme colors
+- **MANDATORY**: When adding new themes, update these files simultaneously:
+  1. `src/app/globals.css` - Add CSS custom properties for new theme
+  2. `src/components/settings/ThemeSettings.tsx` - Add theme option to UI
+  3. `tailwind.config.ts` - Add theme colors if needed
+- **REQUIRED THEMES**: `dark`, `light`, `amoled`, `sea-blue`, `hello-kitty-pink`, `hacker-green`
+- **PROHIBITED**: Hardcoded color values - always use theme CSS custom properties
+
+### Theme Color Patterns
+```css
+/* Example theme implementation in globals.css */
+[data-theme="amoled"] {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 0%;
+}
+```
+
+## Supabase Connection Patterns (CRITICAL)
+
+### Client vs Server Helper Usage
+- **CRITICAL ERROR TO AVOID**: Never import server helpers in client components
+- **MANDATORY**: Use `src/lib/supabase/client.ts` helpers ONLY in client components
+- **MANDATORY**: Use `src/lib/supabase/server.ts` helpers ONLY in server components/actions
+- **CRITICAL**: `getCurrentUserId()` exists ONLY in server helpers, not client helpers
+
+### Database Operation Rules
+- **MANDATORY**: Server Actions for mutations (create, update, delete)
+- **MANDATORY**: Client-side helpers for data fetching in client components
+- **PROHIBITED**: Calling `getCurrentUserId()` from client components
+- **REQUIRED PATTERN**:
+```typescript
+// ✅ CORRECT - Server Action
+'use server'
+import { getCurrentUserId } from '@/lib/supabase/server'
+
+// ✅ CORRECT - Client Component
+'use client'
+import { supabaseHelpers } from '@/lib/supabase/client'
+```
+
+### Database Connection Debugging
+- **MANDATORY**: When task creation fails, first check import paths in `src/lib/supabase/tasksApi.ts`
+- **MANDATORY**: Verify authentication flow by checking Clerk user ID matches Supabase user ID
+- **MANDATORY**: Use Supabase MCP tools to verify database connectivity before code changes
+
+## Navigation and UX Patterns
+
+### Settings Page Navigation
+- **MANDATORY**: Every settings page must have clear exit mechanism
+- **MANDATORY**: Use back arrow icon in top-left with `router.back()` functionality
+- **PROHIBITED**: Settings pages without navigation exit
+- **REQUIRED PATTERN**:
+```tsx
+// Settings page header pattern
+<div className="flex items-center justify-between mb-6">
+  <Button variant="ghost" size="icon" onClick={() => router.back()}>
+    <ArrowLeft className="h-4 w-4" />
+  </Button>
+  <h1 className="text-lg font-semibold">Settings</h1>
+  <div className="w-10" /> {/* Spacer for centering */}
+</div>
+```
+
+### Tab Navigation
+- **MANDATORY**: Bottom tab bar must be fixed with `fixed bottom-0`
+- **MANDATORY**: Page content must account for tab bar height with `pb-20`
+- **PROHIBITED**: Content that overlaps with bottom tab bar
+- **PROHIBITED**: Horizontal tab switching that breaks accessibility
+
+## Component Performance Optimization
+
+### Large Component Rules (>500 lines)
+- **MANDATORY**: Use `React.memo()` for expensive re-renders
+- **MANDATORY**: Use `useMemo()` for expensive calculations
+- **MANDATORY**: Use `useCallback()` for event handlers passed to children
+- **EXAMPLE**: `StudentConnectionTab.tsx` requires optimization patterns
+
+### Loading States
+- **MANDATORY**: Skeleton UI for data loading states
+- **MANDATORY**: Error boundaries for async components
+- **MANDATORY**: Progressive loading for large lists
+- **PROHIBITED**: Blank screens during loading
+
+## AI Integration Patterns
+
+### AI Suggestions Integration
+- **MANDATORY**: AI suggestions must integrate into `TaskEventHub.tsx` without breaking existing flow
+- **MANDATORY**: Use `AITaskSuggestions.tsx` component as child of task input
+- **MANDATORY**: AI suggestions should be contextual and dismissible
+- **PROHIBITED**: AI suggestions that block primary task creation flow
+- **REQUIRED PATTERN**:
+```tsx
+// TaskEventHub integration pattern
+<div className="space-y-4">
+  <TaskInput {...taskInputProps} />
+  <AITaskSuggestions 
+    currentInput={taskInput}
+    onSuggestionSelect={handleSuggestionSelect}
+    className="border-t pt-4"
+  />
+</div>
+```
+
+### AI Component Performance
+- **MANDATORY**: Debounce AI API calls by 500ms minimum
+- **MANDATORY**: Cache AI suggestions to prevent redundant calls
+- **MANDATORY**: Show loading indicators for AI processing
+- **PROHIBITED**: AI calls on every keystroke
+
+## Error Prevention Rules
+
+### Pre-Implementation Checks
+- **MANDATORY**: Before modifying database code, verify client vs server helper usage
+- **MANDATORY**: Before theme changes, test in all theme variants
+- **MANDATORY**: Before UI changes, test mobile responsiveness and container constraints
+- **MANDATORY**: Before navigation changes, verify all exit mechanisms work
+
+### File Coordination Requirements
+- **CRITICAL**: When modifying themes, update ALL theme files simultaneously:
+  1. `src/app/globals.css`
+  2. `src/components/settings/ThemeSettings.tsx`
+  3. `tailwind.config.ts`
+  4. Any component using theme-specific styles
+
+- **CRITICAL**: When modifying database operations, check these files:
+  1. `src/lib/supabase/tasksApi.ts` - Verify correct helper imports
+  2. `src/lib/supabase/client.ts` - Client-side operations
+  3. `src/lib/supabase/server.ts` - Server-side operations
+  4. Related API routes or Server Actions
+
+### Testing Requirements
+- **MANDATORY**: Test theme changes in all available themes
+- **MANDATORY**: Test mobile responsiveness on 320px width minimum
+- **MANDATORY**: Test navigation flows including back/exit mechanisms
+- **MANDATORY**: Test database operations in development environment before deployment
+
+## Prohibited Actions
+
+### UI/UX Prohibitions
+- **NEVER** use fixed heights that break on different content lengths
+- **NEVER** allow content to bleed below bottom tab bar
+- **NEVER** implement hover-only interactions on mobile-first design
+- **NEVER** use more than 3 font sizes on a single screen
+- **NEVER** create navigation dead-ends (always provide exit mechanism)
+
+### Code Architecture Prohibitions
+- **NEVER** import server helpers in client components
+- **NEVER** call `getCurrentUserId()` from client-side code
+- **NEVER** use hardcoded colors instead of theme CSS custom properties
+- **NEVER** bypass TypeScript strict mode or use `any` types
+- **NEVER** modify database schema without coordinating with existing queries
+
+### Performance Prohibitions
+- **NEVER** make AI API calls on every keystroke without debouncing
+- **NEVER** load large datasets without pagination or virtualization
+- **NEVER** skip loading states for async operations
+- **NEVER** ignore React strict mode warnings
+
+## Development Workflow
+
+### Implementation Order
+1. **Database Operations**: Fix connection issues using correct helper imports
+2. **Theme System**: Implement multi-theme support with CSS custom properties
+3. **Navigation**: Add proper exit mechanisms to all pages
+4. **UI Constraints**: Implement container constraints and mobile-first optimization
+5. **Performance**: Optimize large components and loading states
+6. **AI Integration**: Add AI suggestions to task input flow
+
+### Quality Assurance Checklist
+- [ ] All imports use correct client vs server helpers
+- [ ] All themes work correctly with new changes
+- [ ] Mobile responsiveness tested at 320px width
+- [ ] Navigation exit mechanisms functional
+- [ ] No content bleeding below tab bar
+- [ ] AI suggestions integrate without breaking existing flow
+- [ ] TypeScript strict mode passes without errors
+- [ ] Loading states implemented for all async operations
+
+## Emergency Debugging
+
+### Database Connection Issues
+1. Check `src/lib/supabase/tasksApi.ts` imports - must use client helpers only
+2. Verify Clerk authentication integration
+3. Use Supabase MCP tools to verify database connectivity
+4. Check environment variables for correct Supabase project configuration
+
+### Theme System Issues
+1. Verify CSS custom properties exist in `src/app/globals.css`
+2. Check theme provider default value
+3. Test theme persistence in local storage
+4. Verify Tailwind config includes theme colors
+
+### Mobile UI Issues
+1. Test container constraints with `max-w-screen-sm mx-auto px-4`
+2. Verify bottom padding accounts for tab bar `pb-20`
+3. Check touch target sizes minimum `h-11`
+4. Test horizontal scrolling issues
+
+This document serves as the definitive guide for maintaining StudySpark's minimalist, mobile-first design while ensuring robust functionality and preventing common integration errors.
+
+---
+
+# StudySpark Development Standards (Extended)
+
+## Project Overview
+
+StudySpark is a React/Next.js study management app using Supabase (database), Clerk (authentication), Tailwind CSS (styling), and AI integration. **Critical constraint: Production app with existing users - avoid breaking changes.**
+
+## Architecture Rules
+
+### Database Architecture
+- **Supabase Project ID**: `onfnehxkglmvrorcvqcx` (ACTIVE_HEALTHY status verified)
+- **Authentication**: Clerk handles auth, Supabase handles data storage
+- **CRITICAL**: Never mix client and server Supabase helpers in same file
+- **Edge Functions**: Currently ZERO deployed - evaluate vs direct database calls for security
+
+### Authentication Flow
+- **Primary**: Clerk handles all authentication
+- **Integration**: Must configure Supabase client to use Clerk session tokens
+- **Required**: Clerk tokens must contain 'role' claim for RLS policies
+- **User Onboarding**: Data must sync from Clerk to Supabase users table
+
+## File Coordination Requirements
+
+### When Modifying Theme System
+**MUST update simultaneously:**
+- `src/app/globals.css` (theme definitions)
+- `src/components/settings/ThemeSettings.tsx` (theme selector)
+- `src/components/providers/theme-provider.tsx` (provider config)
+- `tailwind.config.ts` (if new theme variants needed)
+
+### When Modifying Database Operations
+**MUST check coordination:**
+- `src/lib/supabase/tasksApi.ts` (task operations)
+- `src/lib/supabase/client.ts` (client configuration)
+- `src/lib/supabase/server.ts` (server configuration if exists)
+- `supabase/functions/` (edge functions if implemented)
+
+### When Modifying Navigation
+**MUST update simultaneously:**
+- Target page component (add back button)
+- `src/components/layout/ConditionalHeader.tsx` (header visibility)
+- `src/app/layout.tsx` (if global navigation changes)
 
 ## Code Standards
 
-### TypeScript Rules
-
-#### Interface Definitions
-- **MUST define interfaces** for all component props
-- **MUST place interfaces** directly above component definition
-- **MUST use `interface` over `type`** for object shapes
-- **MUST export interfaces** when used across files
-
-```typescript
-interface UserProfileProps {
-  userId: string;
-  showActions?: boolean;
-}
-
-export const UserProfile: React.FC<UserProfileProps> = ({ userId, showActions = true }) => {
-  // Component implementation
-};
-```
-
-#### Import Organization
-- **MUST organize imports** in this exact order:
-  1. React and React-related imports
-  2. Third-party library imports
-  3. Internal components and utilities
-  4. Type-only imports with `type` keyword
-  5. Assets and styles
-
-```typescript
-import React, { useState, useEffect } from 'react';
-import { NextPage } from 'next';
-import { clsx } from 'clsx';
-import { Button } from '@/components/ui/button';
-import { getUserData } from '@/lib/api';
-import type { User } from '@/types/user';
-```
-
 ### Component Architecture
+- **CVA Pattern**: Use Class Variance Authority for component variants (8+ components already use this)
+- **Container Pattern**: `max-w-4xl mx-auto px-4` for content containers
+- **Mobile-First**: Design for mobile, enhance for desktop
+- **React.memo**: Use for expensive components (StudentConnectionTab needs this)
 
-#### Hook Usage
-- **MUST call all hooks** at the top level before any conditional logic
-- **MUST NOT call hooks** inside loops, conditions, or nested functions
-- **MUST use custom hooks** for complex state logic
+### Styling Standards
+- **Primary**: Tailwind CSS utility classes
+- **Themes**: CSS custom properties in `:root` and `[data-theme="name"]`
+- **Responsive**: Mobile breakpoints: `sm:768px, md:1024px, lg:1280px`
+- **Containers**: Prevent overflow with `overflow-hidden`, proper padding
 
-#### Component Structure
-```typescript
-export const ComponentName: React.FC<ComponentProps> = ({ prop1, prop2 }) => {
-  // 1. All hooks at top level
-  const [state, setState] = useState();
-  const { data, loading } = useCustomHook();
-  
-  // 2. Event handlers and computed values
-  const handleClick = () => { /* logic */ };
-  const computedValue = useMemo(() => { /* computation */ }, [dependencies]);
-  
-  // 3. Effects
-  useEffect(() => { /* effect logic */ }, [dependencies]);
-  
-  // 4. Conditional early returns
-  if (loading) return <LoadingSpinner />;
-  if (error) return <ErrorMessage />;
-  
-  // 5. Main render
-  return (
-    <div className="tailwind-classes">
-      {/* JSX content */}
-    </div>
-  );
-};
+### File Naming
+- **Components**: PascalCase (`TaskEventHub.tsx`)
+- **Pages**: Next.js convention (`page.tsx`, `layout.tsx`)
+- **Utilities**: camelCase (`tasksApi.ts`)
+- **Types**: Shared in `src/types/` directory
+
+## Implementation Standards
+
+### Database Operations
+- **Authentication Required**: All database operations must verify user auth
+- **Import Pattern**: Use server helpers for server operations, client helpers for client
+- **CRITICAL BUG**: `src/lib/supabase/tasksApi.ts` line 129 has import mismatch
+- **RLS Policies**: All tables have Row Level Security enabled
+- **Error Handling**: Always handle Supabase errors gracefully
+
+### UI/UX Standards
+- **Minimalist Design**: Reduce visual clutter, obvious user actions
+- **Content Constraints**: Never allow content to bleed off screen or below tab bar
+- **Loading States**: Always provide loading feedback for async operations
+- **Mobile Tab Bar**: Ensure 60px bottom padding for mobile navigation
+
+### AI Integration
+- **Existing Component**: `src/components/ai/AITaskSuggestions.tsx` (698 lines complete)
+- **Integration Point**: Must add to `src/components/dashboard/TaskEventHub.tsx`
+- **Requirement**: Must not break existing task/event creation functionality
+- **Data Flow**: AI suggestions → TaskEventHub → Task creation
+
+## Framework Usage Standards
+
+### Next.js App Router
+- **Server Components**: Default for data fetching and non-interactive components
+- **Client Components**: Use `'use client'` for interactivity, state, effects
+- **Layouts**: Use `layout.tsx` for shared UI structure
+- **Loading**: Use `loading.tsx` for loading states
+
+### Supabase Integration
+- **Client Creation**: Use appropriate helper for context (client vs server)
+- **Real-time**: Enable for tables that need live updates
+- **Auth Integration**: Configure to use Clerk tokens, not Supabase auth
+- **Edge Functions**: Evaluate for secure server-side operations
+
+### Clerk Authentication
+- **Session Management**: Use Clerk session tokens for Supabase access
+- **User Data**: Sync user metadata from Clerk to Supabase
+- **Onboarding**: Guide users through profile completion
+- **RLS Integration**: Ensure Clerk claims work with Supabase RLS
+
+## Key File Interaction Standards
+
+### Critical Dependencies
+**DO NOT modify without checking impacts:**
+- `src/lib/supabase/tasksApi.ts` affects task creation throughout app
+- `src/components/dashboard/TaskEventHub.tsx` affects AI integration
+- `src/app/globals.css` affects all component styling
+- `src/components/layout/ConditionalHeader.tsx` affects all page navigation
+
+### Component Hierarchy
 ```
-
-## Styling Guidelines
-
-### Tailwind CSS Rules
-
-#### Brand Colors
-- **MUST use StudySpark brand colors:**
-  - Primary Green: `hsl(142, 60%, 40%)`
-  - Hover Green: `hsl(142, 60%, 35%)`
-  - Background: `hsl(0, 0%, 100%)`
-  - Input Background: `hsl(0, 0%, 98%)`
-  - Border: `hsl(40, 30%, 80%)`
-
-#### Class Usage
-- **MUST prefer utility classes** over custom CSS
-- **MUST use `clsx` or `cn` utility** for conditional classes
-- **MUST use CVA** for component variants
-
-```typescript
-import { cva, type VariantProps } from 'class-variance-authority';
-
-const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-md font-medium transition-colors",
-  {
-    variants: {
-      variant: {
-        default: "bg-[hsl(142,60%,40%)] text-white hover:bg-[hsl(142,60%,35%)]",
-        secondary: "bg-[hsl(0,0%,98%)] text-[hsl(0,0%,10%)] hover:bg-[hsl(40,30%,85%)]",
-      },
-      size: {
-        default: "h-9 px-4 py-2",
-        lg: "h-11 px-8",
-      },
-    },
-  }
-);
+layout.tsx
+├── ConditionalHeader.tsx
+├── Dashboard components
+│   ├── TaskEventHub.tsx
+│   ├── StudentConnectionTab.tsx
+│   └── AI integration
+└── Settings components
+    └── ThemeSettings.tsx
 ```
-
-#### Prohibited Styling Practices
-- **NEVER use `@apply`** directive
-- **NEVER use arbitrary values** (`[color:#123456]`) except for brand colors
-- **NEVER use inline styles** unless absolutely necessary
-- **NEVER modify global CSS** without updating `src/app/globals.css`
-
-## Authentication Integration
-
-### Clerk Provider Rules
-
-#### Provider Setup
-- **MUST wrap entire app** with `ClerkProvider` in `src/app/layout.tsx`
-- **MUST use custom appearance** configuration matching StudySpark brand
-- **MUST maintain existing appearance object** when modifying Clerk styling
-
-#### Authentication Pages
-- **MUST use catch-all routes** for Clerk pages: `[[...sign-in]]/page.tsx`
-- **MUST place auth pages** in `src/app/sign-in/` and `src/app/sign-up/`
-- **MUST NOT modify** Clerk's routing patterns
-
-#### Custom Styling
-- **MUST maintain HSL color consistency** across all Clerk components
-- **MUST use existing border radius** (0.75rem for cards, 0.5rem for inputs)
-- **MUST preserve shadow styling** for consistency
-
-### User Context
-- **MUST use existing UserProvider** from `@/lib/user-context`
-- **MUST wrap UserProvider** inside ThemeProvider
-- **MUST NOT create duplicate** user state management
-
-## Component Development Patterns
-
-### UI Components
-
-#### Radix UI Integration
-- **MUST use Radix UI primitives** for complex components
-- **MUST style with Tailwind classes** following brand guidelines
-- **MUST export compound components** when using Radix primitives
-
-#### Component Composition
-- **MUST prefer composition** over inheritance
-- **MUST use forwardRef** for components that need ref access
-- **MUST implement proper TypeScript** for component props
-
-### Feature Components
-
-#### Dashboard Components
-- **MUST place in** `src/components/dashboard/`
-- **MUST follow dashboard layout** patterns from existing components
-- **MUST integrate with** gamification system when applicable
-
-#### Task Management
-- **MUST place in** `src/components/tasks/`
-- **MUST integrate with** existing task state management
-- **MUST follow task UI** patterns for consistency
-
-#### Gamification Features
-- **MUST place in** `src/components/gamification/`
-- **MUST use canvas-confetti** for celebration effects
-- **MUST maintain existing** progress tracking patterns
-
-## State Management
-
-### Provider Pattern
-- **MUST use Context API** for shared state
-- **MUST place providers** in `src/components/providers/`
-- **MUST follow existing provider** wrapping order in layout.tsx
-
-### Form Handling
-- **MUST use React Hook Form** for complex forms
-- **MUST validate on both** client and server
-- **MUST implement proper** error handling and loading states
-
-## Build and Development
-
-### Package Management
-- **MUST use Bun** as package manager
-- **MUST run commands** with `bunx` prefix
-- **MUST NOT use npm or yarn** commands
-
-### Development Commands
-- **Development:** `bun dev` (uses Turbopack)
-- **Build:** `bun run build`
-- **Linting:** `bun run lint` (uses Biome)
-- **Formatting:** `bun run format` (uses Biome)
-
-### Code Quality
-- **MUST use Biome** for linting and formatting
-- **MUST NOT configure** ESLint or Prettier
-- **MUST run TypeScript** check with linting: `bunx tsc --noEmit`
-
-## Multi-File Coordination Rules
-
-### Layout Modifications
-- **When modifying `src/app/layout.tsx`:**
-  - **MUST preserve** ClerkProvider appearance configuration
-  - **MUST maintain** provider wrapping order
-  - **MUST update** metadata for StudySpark branding
-
-### Theme Changes
-- **When modifying theme system:**
-  - **MUST update** `src/components/providers/theme-provider.tsx`
-  - **MUST maintain** Clerk appearance consistency
-  - **MUST update** CSS custom properties if needed
-
-### Component Dependencies
-- **When adding new UI components:**
-  - **MUST check** if Radix UI primitive exists
-  - **MUST create** in `src/components/ui/` if reusable
-  - **MUST export** from appropriate index file
-
-### Authentication Flow
-- **When modifying auth-related components:**
-  - **MUST test** both sign-in and sign-up flows
-  - **MUST verify** Clerk appearance consistency
-  - **MUST update** user context if needed
-
-## Prohibited Actions
-
-### File Organization
-- **NEVER create** components outside feature directories
-- **NEVER place** business logic in layout components
-- **NEVER mix** UI primitives with feature components
-
-### Styling
-- **NEVER override** StudySpark brand colors
-- **NEVER use** CSS-in-JS libraries
-- **NEVER create** custom CSS files without coordination
-
-### Dependencies
-- **NEVER add** ESLint or Prettier to project
-- **NEVER install** duplicate UI libraries (if Radix exists)
-- **NEVER replace** Bun with npm/yarn
-
-### Authentication
-- **NEVER bypass** Clerk authentication
-- **NEVER create** custom auth components
-- **NEVER modify** Clerk's core behavior
-
-### Performance
-- **NEVER import** entire icon libraries
-- **NEVER create** large bundle sizes
-- **NEVER skip** loading and error states
 
 ## AI Decision-Making Standards
 
-### When Adding Features
-1. **Check existing patterns** in similar feature directories
-2. **Verify Radix UI availability** before creating custom components
-3. **Maintain brand consistency** with existing color scheme
-4. **Follow established** file naming and organization
+### Database Architecture Decisions
+1. **Security First**: Edge functions > direct client database calls
+2. **Authentication**: Clerk integration > custom auth solutions
+3. **Performance**: Optimize for mobile first, desktop second
 
-### When Debugging
-1. **Check Biome output** first for linting errors
-2. **Verify TypeScript** compilation
-3. **Test authentication flow** if auth-related
-4. **Validate Tailwind classes** are properly applied
+### UI/UX Decisions
+1. **Simplicity**: Fewer options > feature bloat
+2. **Mobile**: Touch-friendly > desktop-optimized
+3. **Accessibility**: Screen reader support required
+4. **Theme**: Dark mode default, multiple theme options
 
-### When Refactoring
-1. **Preserve existing API** for components
-2. **Maintain file organization** structure
-3. **Keep provider wrapping** order intact
-4. **Update related components** simultaneously
-
-### Priority Order for Decisions
-1. **User experience** and accessibility
-2. **Brand consistency** and design system
-3. **TypeScript safety** and error handling
-4. **Performance** and bundle optimization
-5. **Code maintainability** and patterns 
-
-**AI Agent Operation Manual - Project-Specific Rules**
-
-## Critical Integration Rules
-
-### Clerk + Supabase Profile Synchronization
-
-- **MANDATORY**: When updating user profiles, ALWAYS update both Supabase `profiles` table AND Clerk `publicMetadata`
-- **Profile Creation Pattern**: 
-  - Webhooks create profiles in Supabase with `onboarding_completed = false`
-  - Onboarding completion MUST set both `profiles.onboarding_completed = true` AND `publicMetadata.onboardingComplete = true`
-- **Primary Key Consistency**: Always use `clerk_user_id` as the primary key in Supabase profiles table
-- **PROHIBITED**: Never update only one system without updating the other - this breaks middleware functionality
-
-### Row Level Security (RLS) Patterns
-
-- **User Access Pattern**: `(auth.jwt() ->> 'sub') = clerk_user_id`
-- **Service Role Operations**: Use `SUPABASE_SERVICE_ROLE_KEY` for Edge Functions and webhooks
-- **Client Operations**: Use `NEXT_PUBLIC_SUPABASE_ANON_KEY` for browser-based operations
-- **PROHIBITED**: Never bypass RLS policies or create queries that don't filter by user ownership
-
-### AI Pattern Engine Integration
-
-- **Type Consistency**: ALWAYS use interfaces from `src/types/ai.ts` - never create inline types
-- **Required Interfaces**: `ExtendedTask`, `UserAIPreferences`, `TimetableEntry`, `PatternData`, `AISuggestion`
-- **Pattern Engine Location**: All AI logic MUST be in `src/lib/ai/patternEngine.ts`
-- **PROHIBITED**: Never create AI-related types outside of `src/types/ai.ts`
-
-## Database Schema Management
-
-### Schema Modification Workflow
-
-- **Step 1**: Update Supabase database schema via MCP or SQL migrations
-- **Step 2**: Update corresponding TypeScript interfaces in `src/types/`
-- **Step 3**: Update RLS policies if adding user-related tables
-- **Step 4**: Test with actual user JWT tokens
-- **PROHIBITED**: Never modify database schema without updating TypeScript types
-
-### Table Relationship Rules
-
-- **User References**: Use `clerk_user_id TEXT` for Clerk-integrated tables, `user_id UUID` for legacy tables
-- **Foreign Keys**: Always reference the correct user identifier type
-- **AI Tables**: All AI-related tables must support both authenticated and anonymous users via `is_anonymous` flags
-
-## Component Development Standards
-
-### UI Component Patterns
-
-- **shadcn/ui Integration**: ALWAYS use existing shadcn/ui components before creating custom ones
-- **Component Creation**: When adding new shadcn/ui components, update `components.json`
-- **Styling**: Use Tailwind CSS classes, avoid custom CSS unless absolutely necessary
-- **Client vs Server**: Mark interactive components with `'use client'`, keep data-fetching components as Server Components
-
-### Form Handling Patterns
-
-- **Server Actions**: ALWAYS use Server Actions for form submissions that modify database
-- **Validation**: Use Zod schemas for all form validation
-- **Error Handling**: Return structured response objects: `{ success: boolean, error?: string, data?: any }`
-- **PROHIBITED**: Never use client-side only form submissions for database modifications
-
-## Authentication & Authorization
-
-### Clerk Integration Patterns
-
-- **User ID Extraction**: Use `auth().userId` in Server Components/Actions
-- **Client-Side Auth**: Use `useUser()` hook for client components
-- **Metadata Updates**: ALWAYS use `clerkClient.users.updateUserMetadata()` for profile changes
-- **PROHIBITED**: Never assume user is authenticated without checking `auth().userId`
-
-### Middleware Configuration
-
-- **Onboarding Redirect**: Middleware checks `publicMetadata.onboardingComplete`
-- **Protected Routes**: All `/dashboard/*` routes require authentication
-- **Public Routes**: `/`, `/about`, `/contact`, `/sign-in`, `/sign-up` are public
-- **PROHIBITED**: Never modify middleware without updating corresponding metadata patterns
-
-## Environment Variables Management
-
-### Variable Naming Patterns
-
-- **Client-Side**: `NEXT_PUBLIC_` prefix for browser-accessible variables
-- **Server-Only**: No prefix for server-only variables (API keys, secrets)
-- **Required Variables**:
-  - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
-  - `CLERK_SECRET_KEY`
-  - `NEXT_PUBLIC_SUPABASE_URL`
-  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-  - `SUPABASE_SERVICE_ROLE_KEY`
-  - `CLERK_WEBHOOK_SIGNING_SECRET`
-
-### Edge Function Variables
-
-- **Supabase Edge Functions**: Use `Deno.env.get()` to access environment variables
-- **Required for Webhooks**: `CLERK_WEBHOOK_SIGNING_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
-- **PROHIBITED**: Never hardcode API keys or use client-side variables in server-only contexts
-
-## AI Feature Development
-
-### Pattern Recognition Engine
-
-- **Input Validation**: ALWAYS validate inputs match `ExtendedTask[]` format before processing
-- **Timetable Integration**: Use dual storage (Supabase + localStorage) with fallback patterns
-- **Error Handling**: Implement graceful degradation when AI features fail
-- **PROHIBITED**: Never assume AI services are always available
-
-### Embedding and Vector Operations
-
-- **Vector Storage**: Use Supabase `ai_embeddings` table with proper user association
-- **Collaborative Insights**: Store in `ai_collaborative_insights` table with expiration dates
-- **Anonymous Support**: All AI features must work for both authenticated and anonymous users
-
-## File Structure Requirements
-
-### Directory Organization
-
-- **Components**: `/src/components/[feature]/` - group by feature, not by type
-- **Server Actions**: `_actions.ts` files in route directories
-- **Types**: All TypeScript interfaces in `/src/types/`
-- **Utils**: Feature-specific utilities in `/src/lib/[feature]/`
-- **PROHIBITED**: Never mix Server Actions with Client Components in the same file
-
-### Import Patterns
-
-- **React Imports**: React, then Next.js, then third-party, then internal
-- **Type Imports**: Use `import type { }` for type-only imports
-- **Client Components**: Import hooks only in client components
-- **PROHIBITED**: Never import server-only modules in client components
-
-## Testing and Deployment
-
-### Edge Function Deployment
-
-- **Manual Deployment**: Use Supabase Dashboard for Edge Function deployment
-- **Environment Setup**: Ensure all required environment variables are set in Supabase project
-- **Webhook Testing**: Test with actual Clerk webhooks, not just local simulation
-- **PROHIBITED**: Never deploy Edge Functions without proper error handling and logging
-
-### Database Migration Testing
-
-- **RLS Testing**: Test with actual JWT tokens from different users
-- **Policy Verification**: Ensure users can only access their own data
-- **Service Role Testing**: Verify Edge Functions can perform necessary operations
+### Error Handling Priority
+1. **User Experience**: Graceful degradation over error crashes
+2. **Data Integrity**: Prevent data loss over performance
+3. **Authentication**: Secure by default, convenience second
 
 ## Prohibited Actions
 
-### Critical Failures to Avoid
+### Critical Prohibitions
+- **NEVER** mix Supabase client/server helpers in same file
+- **NEVER** deploy without testing authentication flow
+- **NEVER** modify global styles without checking component impacts
+- **NEVER** remove existing functionality without explicit approval
+- **NEVER** hardcode database credentials or API keys
 
-- **NEVER** update Supabase profiles without updating Clerk metadata
-- **NEVER** create database queries that bypass RLS policies
-- **NEVER** use inline types for AI-related functionality
-- **NEVER** hardcode user IDs or API keys
-- **NEVER** deploy code without testing authentication flows
-- **NEVER** modify database schema without updating TypeScript types
-- **NEVER** create client-side only database modifications
-- **NEVER** assume AI services are always available
+### Theme System Prohibitions
+- **NEVER** use inline styles instead of theme variables
+- **NEVER** hardcode colors - use CSS custom properties
+- **NEVER** break accessibility contrast requirements
+- **NEVER** remove existing themes without migration plan
 
-### Data Consistency Rules
+### Mobile Design Prohibitions
+- **NEVER** allow horizontal scroll on mobile
+- **NEVER** make touch targets smaller than 44px
+- **NEVER** hide content behind navigation bars
+- **NEVER** ignore safe area insets on mobile devices
 
-- **NEVER** allow profile data to be inconsistent between Clerk and Supabase
-- **NEVER** create user-related data without proper user association
-- **NEVER** skip validation when handling external webhook data
-- **NEVER** expose sensitive data through RLS policy gaps
+### Database Operation Prohibitions
+- **NEVER** bypass RLS policies
+- **NEVER** expose sensitive data in client-side code
+- **NEVER** perform complex operations without error handling
+- **NEVER** ignore authentication requirements
 
-## Decision-Making Priorities
+## Current Known Issues
 
-### When in Doubt
+### Critical Issues
+1. **Task Creation**: `tasksApi.ts` import bug prevents task creation
+2. **Settings Navigation**: Users cannot exit settings page
+3. **Student Connection**: 684-line component not loading properly
+4. **UI Overflow**: Content bleeding off screen and below tab bar
+5. **AI Integration**: System not connected to TaskEventHub
+6. **Theme System**: Only 3 themes, needs 7 with dark default
 
-1. **Security First**: Always choose the more secure approach
-2. **Type Safety**: Prefer compile-time errors over runtime errors
-3. **User Experience**: Maintain functionality even when AI features fail
-4. **Data Consistency**: Ensure Clerk and Supabase remain synchronized
-5. **Performance**: Choose patterns that scale with user growth
+### Dependencies
+- **Database Fix**: Must resolve before AI integration
+- **Navigation Fix**: Independent of other changes
+- **Theme Expansion**: Can work in parallel with other tasks
+- **Container Constraints**: Must coordinate with existing layouts
 
-### Conflict Resolution
+## Implementation Cross-Reference
 
-- **Client vs Server**: Prefer Server Components for data operations
-- **Database vs Local Storage**: Use database for persistent data, local storage for user preferences
-- **Manual vs Automatic**: Prefer automatic solutions with manual fallbacks
-- **TypeScript vs JavaScript**: Always use TypeScript with strict type checking 
+### Before Making Changes
+1. **Check**: Will this affect authentication flow?
+2. **Check**: Will this change database operation patterns?
+3. **Check**: Will this impact existing component styling?
+4. **Check**: Will this break mobile responsiveness?
+5. **Check**: Will this affect other components that import this file?
+
+### After Making Changes
+1. **Verify**: Authentication still works end-to-end
+2. **Verify**: No new TypeScript errors introduced
+3. **Verify**: Mobile layout still functions correctly
+4. **Verify**: Theme switching still works
+5. **Verify**: No regressions in existing functionality
+
+### Testing Requirements
+- **Unit**: Individual component functionality
+- **Integration**: Component interaction and data flow
+- **E2E**: Complete user journeys (signup → task creation → AI suggestions)
+- **Mobile**: Touch interactions and responsive behavior
+- **Theme**: All 7 themes render correctly across components
+
+This document serves as the definitive guide for maintaining StudySpark's minimalist, mobile-first design while ensuring robust functionality and preventing common integration errors. 

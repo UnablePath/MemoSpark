@@ -1,0 +1,18 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Trophy Base -->
+  <rect x="30" y="60" width="20" height="8" rx="2" fill="#8B5CF6"/>
+  <rect x="25" y="68" width="30" height="4" rx="2" fill="#7C3AED"/>
+  
+  <!-- Trophy Cup -->
+  <path d="M20 25 L20 45 Q20 50 25 50 L55 50 Q60 50 60 45 L60 25 Q60 20 55 20 L25 20 Q20 20 20 25 Z" fill="#FCD34D"/>
+  <path d="M22 25 L22 43 Q22 47 26 47 L54 47 Q58 47 58 43 L58 25 Q58 22 55 22 L25 22 Q22 22 22 25 Z" fill="#F59E0B"/>
+  
+  <!-- Trophy Handles -->
+  <ellipse cx="15" cy="35" rx="5" ry="8" fill="#D1D5DB"/>
+  <ellipse cx="65" cy="35" rx="5" ry="8" fill="#D1D5DB"/>
+  
+  <!-- Stars -->
+  <polygon points="40,8 42,14 48,14 43,18 45,24 40,20 35,24 37,18 32,14 38,14" fill="#EF4444"/>
+  <polygon points="25,35 26,37 28,37 26.5,38.5 27,40 25,39 23,40 23.5,38.5 22,37 24,37" fill="#F97316"/>
+  <polygon points="55,35 56,37 58,37 56.5,38.5 57,40 55,39 53,40 53.5,38.5 52,37 54,37" fill="#F97316"/>
+</svg> 

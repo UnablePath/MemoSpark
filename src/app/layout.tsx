@@ -2,6 +2,7 @@ import "@/app/globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { QueryProvider } from "@/components/providers/query-provider";
 import { UserProvider } from "@/lib/user-context";
 import { AIProvider } from "@/lib/ai/aiContext";
 import ClientBody from "./ClientBody";
@@ -74,14 +75,16 @@ export default function RootLayout({
       <html lang="en" suppressHydrationWarning>
         <body className={inter.className}>
           <ThemeProvider>
-            <UserProvider>
-              <AIProvider>
-                <ClientBody>
-                  <ConditionalHeader />
-                  {children}
-                </ClientBody>
-              </AIProvider>
-            </UserProvider>
+            <QueryProvider>
+              <UserProvider>
+                <AIProvider>
+                  <ClientBody>
+                    <ConditionalHeader />
+                    {children}
+                  </ClientBody>
+                </AIProvider>
+              </UserProvider>
+            </QueryProvider>
           </ThemeProvider>
         </body>
       </html>

@@ -3,9 +3,8 @@
 import type React from 'react';
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react'
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-// Assuming this path for UserContext, please verify
 import { useUser } from '../user-context'; 
-import { supabase, supabaseHelpers } from '../supabase/client'; // Added Supabase imports
+import { supabase, supabaseHelpers } from '../supabase/client';
 import { PatternRecognitionEngine } from '../ai/patternEngine'; // Import the main engine
 import type { AISuggestion } from '@/types/ai'; // Import AISuggestion from centralized types
 

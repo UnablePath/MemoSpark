@@ -14,7 +14,13 @@ export default function LandingPage() {
   const router = useRouter();
   const [animationComplete, setAnimationComplete] = useState(false);
   const featuresRef = useRef<HTMLDivElement>(null);
-  const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setPrefersReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+  }, []);
 
   // Gradient colors for the background (green to beige)
   const gradientStyle = {

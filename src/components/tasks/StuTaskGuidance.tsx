@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import type React from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, useReducedMotion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { KoalaMascot } from '@/components/ui/koala-mascot';
 import { cn } from '@/lib/utils';
 import type { ExtendedTask } from '@/types/ai';
 import { 
-  UserContext, 
+  type UserContext, 
   getContextualMessage, 
   loadUserContext, 
   saveUserContext, 
@@ -176,7 +177,7 @@ export const StuTaskGuidance: React.FC<StuTaskGuidanceProps> = ({
     
     // Determine message subcategory based on context
     let subcategory = 'returning'; // default
-    let replacements: { [key: string]: string | number } = {};
+    const replacements: { [key: string]: string | number } = {};
     
     if (step === 'quickCapture') {
       if (context.isFirstTimeUser || context.totalTasks === 0) {

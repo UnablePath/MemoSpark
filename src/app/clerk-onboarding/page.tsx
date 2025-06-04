@@ -605,7 +605,7 @@ export default function ClerkOnboardingPage() {
                           min="1"
                           max="10"
                           value={aiPreferences.difficulty}
-                          onChange={(e) => setAiPreferences(prev => ({ ...prev, difficulty: parseInt(e.target.value) }))}
+                          onChange={(e) => setAiPreferences(prev => ({ ...prev, difficulty: Number.parseInt(e.target.value) }))}
                           className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                         />
                         <span className="text-xs text-muted-foreground">Hard</span>

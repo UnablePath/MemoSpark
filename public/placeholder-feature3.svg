@@ -1,0 +1,35 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Chart Background -->
+  <rect x="10" y="15" width="60" height="50" rx="4" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="2"/>
+  
+  <!-- Chart Bars -->
+  <rect x="18" y="45" width="8" height="15" rx="1" fill="#10B981"/>
+  <rect x="30" y="35" width="8" height="25" rx="1" fill="#3B82F6"/>
+  <rect x="42" y="25" width="8" height="35" rx="1" fill="#8B5CF6"/>
+  <rect x="54" y="40" width="8" height="20" rx="1" fill="#F59E0B"/>
+  
+  <!-- Chart Grid Lines -->
+  <line x1="15" y1="25" x2="65" y2="25" stroke="#F3F4F6" stroke-width="1"/>
+  <line x1="15" y1="35" x2="65" y2="35" stroke="#F3F4F6" stroke-width="1"/>
+  <line x1="15" y1="45" x2="65" y2="45" stroke="#F3F4F6" stroke-width="1"/>
+  <line x1="15" y1="55" x2="65" y2="55" stroke="#F3F4F6" stroke-width="1"/>
+  
+  <!-- Trend Line -->
+  <path d="M18 52 L30 42 L42 32 L54 47" stroke="#EF4444" stroke-width="2" fill="none" stroke-linecap="round"/>
+  
+  <!-- Data Points -->
+  <circle cx="18" cy="52" r="2" fill="#EF4444"/>
+  <circle cx="30" cy="42" r="2" fill="#EF4444"/>
+  <circle cx="42" cy="32" r="2" fill="#EF4444"/>
+  <circle cx="54" cy="47" r="2" fill="#EF4444"/>
+  
+  <!-- Progress Circle -->
+  <circle cx="55" cy="25" r="12" fill="none" stroke="#E5E7EB" stroke-width="3"/>
+  <circle cx="55" cy="25" r="12" fill="none" stroke="#10B981" stroke-width="3" 
+          stroke-dasharray="28.27" stroke-dashoffset="7" transform="rotate(-90 55 25)"/>
+  <text x="55" y="28" text-anchor="middle" font-family="Arial" font-size="8" font-weight="bold" fill="#374151">75%</text>
+  
+  <!-- Achievement Stars -->
+  <polygon points="25,8 26,11 29,11 27,13 28,16 25,14 22,16 23,13 21,11 24,11" fill="#FCD34D"/>
+  <polygon points="40,10 41,12 43,12 42,13.5 42.5,15 40,14 37.5,15 38,13.5 37,12 39,12" fill="#FCD34D"/>
+</svg> 

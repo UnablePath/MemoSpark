@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { TabContainer } from '@/components/layout/TabContainer';
 import { TabIndicator } from '@/components/layout/TabIndicator';
 import StudentConnectionTab from '@/components/home/StudentConnectionTab'; // Assuming this is correct
-import TaskEventTab from '@/components/tasks/TaskEventTab';         // Using TaskEventTab as per old dashboard
+import { TaskEventHub } from '@/components/tasks/TaskEventHub';         // Using new TaskEventHub component
 import RemindersTab from '@/components/reminders/RemindersTab';     // Using RemindersTab as per old dashboard
 import CrashoutTab from '@/components/dashboard/CrashoutTab'; // Import the new CrashoutTab
 import GamificationHub from '@/components/gamification/GamificationHub'; // Import GamificationHub
@@ -13,7 +13,7 @@ import { FaUserFriends, FaCalendarAlt, FaBell, FaSpa, FaGamepad } from 'react-ic
 // Define the order of tabs and their corresponding icons
 const TABS_CONFIG = [
   { key: 'connections', component: <StudentConnectionTab key="connections" />, icon: FaUserFriends },
-  { key: 'tasks', component: <TaskEventTab key="tasks" />, icon: FaCalendarAlt },
+  { key: 'tasks', component: <TaskEventHub key="tasks" />, icon: FaCalendarAlt },
   { key: 'reminders', component: <RemindersTab key="reminders" />, icon: FaBell },
   { key: 'crashout', component: <CrashoutTab key="crashout" />, icon: FaSpa },
   { key: 'gamification', component: <GamificationHub key="gamification" />, icon: FaGamepad }, // Add Gamification tab

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import type React from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Calendar, Clock, BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { addDays, format } from 'date-fns';
