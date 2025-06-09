@@ -83,12 +83,12 @@ function createServerSupabaseClient() {
       persistSession: false,
       autoRefreshToken: false,
     },
-    // Native Clerk-Supabase integration - no JWT template needed
+    // Native Clerk-Supabase integration - uses our JWT template
     accessToken: async () => {
       try {
         const { getToken } = await auth();
-        // Use native integration - no template parameter needed
-        const token = await getToken();
+        // Use our Supabase integration template
+        const token = await getToken({ template: 'supabase-integration' });
         return token;
       } catch (error) {
         console.warn('Failed to get Clerk session token:', error);
@@ -165,7 +165,7 @@ export async function completeUserProfileOnboarding(formData: FormData): Promise
 
         // First check if we can get a valid Clerk token for Supabase auth
         const { getToken } = await auth();
-        const clerkToken = await getToken({ template: 'supabase' });
+        const clerkToken = await getToken({ template: 'supabase-integration' });
         
         if (!clerkToken) {
           console.warn('No Clerk token available for Supabase - skipping profile sync');
