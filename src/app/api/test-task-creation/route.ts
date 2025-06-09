@@ -3,17 +3,74 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  return NextResponse.json({
-    message: 'Test Task Creation API',
-    description: 'This endpoint is used to test task creation with Clerk authentication',
-    usage: {
-      method: 'POST',
-      endpoint: '/api/test-task-creation',
-      authentication: 'Clerk session required',
-      response: 'Creates a test task and returns creation details'
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Test Task Creation</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .container { background: #f5f5f5; padding: 20px; border-radius: 8px; }
+        button { background: #2563eb; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #1d4ed8; }
+        button:disabled { background: #9ca3af; cursor: not-allowed; }
+        .result { margin-top: 20px; padding: 15px; background: white; border-radius: 6px; white-space: pre-wrap; font-family: monospace; }
+        .success { border-left: 4px solid #10b981; }
+        .error { border-left: 4px solid #ef4444; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>Test Task Creation API</h1>
+        <p>This will test the POST functionality of the task creation API.</p>
+        <p><strong>Make sure you're logged in!</strong></p>
+        
+        <button onclick="testTaskCreation()" id="testBtn">
+          Test Task Creation (POST)
+        </button>
+        
+        <div id="result"></div>
+      </div>
+
+      <script>
+        async function testTaskCreation() {
+          const btn = document.getElementById('testBtn');
+          const resultDiv = document.getElementById('result');
+          
+          btn.disabled = true;
+          btn.textContent = 'Testing...';
+          resultDiv.innerHTML = '';
+          
+          try {
+            const response = await fetch('/api/test-task-creation', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            const data = await response.json();
+            
+            resultDiv.className = response.ok ? 'result success' : 'result error';
+            resultDiv.textContent = JSON.stringify(data, null, 2);
+            
+          } catch (error) {
+            resultDiv.className = 'result error';
+            resultDiv.textContent = 'Error: ' + error.message;
+          } finally {
+            btn.disabled = false;
+            btn.textContent = 'Test Task Creation (POST)';
+          }
+        }
+      </script>
+    </body>
+    </html>
+  `;
+
+  return new Response(html, {
+    headers: {
+      'Content-Type': 'text/html',
     },
-    note: 'Use POST method to create a test task. This GET endpoint is for documentation only.',
-    timestamp: new Date().toISOString(),
   });
 }
 
@@ -42,6 +99,17 @@ export async function POST() {
       },
     });
 
+    console.log('Testing for user:', userId);
+
+    // FIRST: Check if user exists in profiles table (this reveals webhook issues)
+    const { data: userProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('clerk_user_id', userId)
+      .single();
+
+    console.log('User profile check:', { userProfile, profileError });
+
     // Test task creation
     const testTaskData = {
       title: `Test Task - ${new Date().toISOString()}`,
@@ -52,7 +120,6 @@ export async function POST() {
     };
 
     console.log('Creating test task with data:', testTaskData);
-    console.log('User ID:', userId);
 
     const { data: createdTask, error: createError } = await supabase
       .from('tasks')
@@ -67,6 +134,9 @@ export async function POST() {
         error: 'Failed to create task',
         details: createError,
         userId,
+        userProfile,
+        profileError: profileError?.message,
+        webhookStatus: userProfile ? 'User exists in Supabase - webhook working' : 'User NOT found in Supabase - webhook issue!',
         timestamp: new Date().toISOString(),
       }, { status: 400 });
     }
@@ -83,6 +153,9 @@ export async function POST() {
       allTasks,
       fetchError: fetchError?.message,
       userId,
+      userProfile,
+      profileError: profileError?.message,
+      webhookStatus: userProfile ? 'User exists in Supabase - webhook working' : 'User NOT found in Supabase - webhook issue!',
       timestamp: new Date().toISOString(),
     });
 
