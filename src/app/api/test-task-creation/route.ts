@@ -112,6 +112,7 @@ export async function POST() {
 
     // Test task creation
     const testTaskData = {
+      user_id: userId,
       title: `Test Task - ${new Date().toISOString()}`,
       description: 'This is a test task created via API to verify authentication',
       priority: 'medium',
