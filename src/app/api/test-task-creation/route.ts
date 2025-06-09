@@ -135,9 +135,10 @@ export async function POST() {
       }, { status: 400 });
     }
 
-    // Test task creation
+    // Test task creation with user from profiles table
     const testTaskData = {
-      user_id: userProfile.id, // Use the UUID from profiles table, not Clerk ID!
+      user_id: userProfile.id, // This should work now!
+      clerk_user_id: userId, // Also add clerk_user_id for backup
       title: `Test Task - ${new Date().toISOString()}`,
       description: 'This is a test task created via API to verify authentication',
       priority: 'medium',

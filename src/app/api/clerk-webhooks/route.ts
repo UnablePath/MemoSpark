@@ -145,6 +145,31 @@ async function handleUserCreated(supabase: any, userData: ClerkUser) {
       .filter(Boolean)
       .join(' ') || null;
     
+    // 1. Create user in the main 'users' table first (for foreign key references)
+    const userData_users = {
+      email: primaryEmail || null,
+      full_name: fullName,
+      year_of_study: null, // Will be filled during onboarding
+      subjects: [],
+      interests: [],
+      created_at: new Date(userData.created_at).toISOString(),
+      updated_at: new Date(userData.updated_at).toISOString(),
+    };
+
+    const { data: createdUser, error: userError } = await supabase
+      .from("users")
+      .insert(userData_users)
+      .select()
+      .single();
+
+    if (userError) {
+      console.error("Error creating user in users table:", userError);
+      throw userError;
+    }
+
+    console.log("User created in users table:", createdUser);
+
+    // 2. Create user profile in 'profiles' table (for Clerk integration)
     const profileData = {
       clerk_user_id: userData.id,
       email: primaryEmail || null,
@@ -155,17 +180,20 @@ async function handleUserCreated(supabase: any, userData: ClerkUser) {
       updated_at: new Date(userData.updated_at).toISOString(),
     };
 
-    const { data, error } = await supabase
+    const { data: createdProfile, error: profileError } = await supabase
       .from("profiles")
       .insert(profileData)
       .select();
 
-    if (error) {
-      console.error("Error creating profile:", error);
-      throw error;
+    if (profileError) {
+      console.error("Error creating profile:", profileError);
+      // If profile creation fails, we should clean up the user record
+      await supabase.from("users").delete().eq("id", createdUser.id);
+      throw profileError;
     }
 
-    console.log("Profile created successfully:", data);
+    console.log("Profile created successfully:", createdProfile);
+    console.log("User created in both tables successfully");
   } catch (error) {
     console.error("Error in handleUserCreated:", error);
     throw error;
