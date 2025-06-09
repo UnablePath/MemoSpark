@@ -101,14 +101,28 @@ export async function POST() {
 
     console.log('Testing for user:', userId);
 
+    // First, let's check the table structure
+    const { data: tableInfo, error: tableError } = await supabase
+      .from('profiles')
+      .select()
+      .limit(1);
+    
+    console.log('Table structure check:', {
+      sampleRecord: tableInfo?.[0],
+      availableFields: tableInfo?.[0] ? Object.keys(tableInfo[0]) : 'none',
+      tableError
+    });
+
     // FIRST: Check if user exists in profiles table (this reveals webhook issues)
     const { data: userProfile, error: profileError } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, clerk_user_id, email, full_name, *')
       .eq('clerk_user_id', userId)
       .single();
 
     console.log('User profile check:', { userProfile, profileError });
+    console.log('Profile ID:', userProfile?.id);
+    console.log('Available fields:', userProfile ? Object.keys(userProfile) : 'none');
 
     if (!userProfile) {
       return NextResponse.json({
