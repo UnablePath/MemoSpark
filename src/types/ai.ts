@@ -1,4 +1,4 @@
-// AI-specific TypeScript interfaces for StudySpark
+// AI-specific TypeScript interfaces for MemoSpark
 // Extends existing interfaces while maintaining backward compatibility
 
 // Base types for consistency

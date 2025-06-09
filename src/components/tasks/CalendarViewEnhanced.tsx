@@ -80,6 +80,7 @@ import {
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./calendar-styles.css";
+import { MagicCard } from '@/components/ui/magic-card';
 
 // Enhanced interface definitions with better typing
 interface CalendarEvent {
@@ -112,7 +113,7 @@ const priorityBadgeVariants = cva(
   {
     variants: {
       priority: {
-        low: "bg-[hsl(142,60%,40%)]/10 text-[hsl(142,60%,40%)] border border-[hsl(142,60%,40%)]/20",
+        low: "bg-primary/10 text-primary border border-primary/20",
         medium:
           "bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800",
         high: "bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800",
@@ -125,15 +126,15 @@ const priorityBadgeVariants = cva(
 );
 
 const actionButtonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(142,60%,40%)] focus-visible:ring-offset-2",
+  "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
   {
     variants: {
       variant: {
         primary:
-          "bg-[hsl(142,60%,40%)] text-white hover:bg-[hsl(142,60%,35%)] shadow-sm hover:shadow-md",
+          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md",
         secondary:
-          "bg-[hsl(0,0%,98%)] text-[hsl(0,0%,10%)] hover:bg-[hsl(40,30%,85%)] border border-[hsl(40,30%,80%)]",
-        ghost: "hover:bg-[hsl(142,60%,40%)]/10 text-[hsl(142,60%,40%)]",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border",
+        ghost: "hover:bg-accent/50 text-accent-foreground",
       },
       size: {
         sm: "h-8 px-3 text-sm",
@@ -149,17 +150,17 @@ const actionButtonVariants = cva(
 );
 
 const viewButtonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(142,60%,40%)] focus-visible:ring-offset-2",
+  "fc-button px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
-      state: {
-        active: "bg-[hsl(142,60%,40%)] text-white shadow-sm",
-        inactive:
-          "bg-[hsl(0,0%,98%)] text-[hsl(0,0%,45%)] hover:text-[hsl(0,0%,10%)] hover:bg-[hsl(142,60%,40%)]/10 border border-[hsl(40,30%,80%)]",
+      active: {
+        true: "fc-button-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary/90",
+        false:
+          "bg-muted text-muted-foreground hover:bg-muted/80",
       },
     },
     defaultVariants: {
-      state: "inactive",
+      active: false,
     },
   },
 );
@@ -180,9 +181,9 @@ const PRIORITY_COLORS: Record<
   { bg: string; border: string; text: string }
 > = {
   low: {
-    bg: "hsl(142, 60%, 40%)",
-    border: "hsl(142, 60%, 35%)",
-    text: "white",
+    bg: "hsl(var(--primary))",
+    border: "hsl(var(--primary))",
+    text: "hsl(var(--primary-foreground))",
   },
   medium: {
     bg: "hsl(45, 93%, 47%)",
@@ -190,9 +191,9 @@ const PRIORITY_COLORS: Record<
     text: "black",
   },
   high: {
-    bg: "hsl(0, 84%, 60%)",
-    border: "hsl(0, 84%, 55%)",
-    text: "white",
+    bg: "hsl(var(--destructive))",
+    border: "hsl(var(--destructive))",
+    text: "hsl(var(--destructive-foreground))",
   },
 } as const;
 
@@ -427,7 +428,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
               id="task-dialog-title"
               className="flex items-center gap-2"
             >
-              <IconComponent className="h-5 w-5 text-[hsl(142,60%,40%)]" />
+              <IconComponent className="h-5 w-5 text-primary" />
               {selectedTask.title}
             </DialogTitle>
             <DialogDescription id="task-dialog-description">
@@ -446,7 +447,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
               </Badge>
               <Badge variant="outline">{selectedTask.type}</Badge>
               {selectedTask.completed && (
-                <Badge className="bg-[hsl(142,60%,40%)] text-white">
+                <Badge className="bg-primary text-primary-foreground">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
                   Completed
                 </Badge>
@@ -455,10 +456,10 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
 
             {selectedTask.description && (
               <div>
-                <h4 className="text-sm font-medium text-[hsl(0,0%,10%)] mb-2">
+                <h4 className="text-sm font-medium text-foreground mb-2">
                   Description
                 </h4>
-                <p className="text-sm text-[hsl(0,0%,45%)] bg-[hsl(0,0%,98%)] p-3 rounded-md">
+                <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
                   {selectedTask.description}
                 </p>
               </div>
@@ -466,10 +467,10 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
 
             {selectedTask.due_date && (
               <div>
-                <h4 className="text-sm font-medium text-[hsl(0,0%,10%)] mb-2">
+                <h4 className="text-sm font-medium text-foreground mb-2">
                   Due Date
                 </h4>
-                <p className="text-sm text-[hsl(0,0%,45%)] flex items-center gap-2">
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
                   <Clock className="h-4 w-4" />
                   {format(parseISO(selectedTask.due_date), "PPP")}
                   {selectedTask.due_date.includes("T") && (
@@ -483,10 +484,10 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
 
             {isRecurringInstance(selectedTask) && (
               <div>
-                <h4 className="text-sm font-medium text-[hsl(0,0%,10%)] mb-2">
+                <h4 className="text-sm font-medium text-foreground mb-2">
                   Recurrence
                 </h4>
-                <p className="text-sm text-[hsl(0,0%,45%)] flex items-center gap-2">
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
                   <Repeat className="h-4 w-4" />
                   {getRecurrenceDescription(selectedTask.recurrence_rule || '')}
                 </p>
@@ -566,15 +567,24 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
                   label: "Day View",
                   shortcut: "Ctrl+3",
                 },
+                {
+                  value: "timetable" as const,
+                  label: "Timetable View",
+                  shortcut: "Ctrl+4",
+                },
               ].map(({ value, label, shortcut }) => (
                 <Button
                   key={value}
                   onClick={() => {
-                    handleViewChange(value);
+                    if (value === "timetable") {
+                      window.dispatchEvent(new CustomEvent('switchToTimetable'));
+                    } else {
+                      handleViewChange(value);
+                    }
                     setMobileNavOpen(false);
                   }}
                   className={viewButtonVariants({
-                    state: currentView === value ? "active" : "inactive",
+                    active: currentView === value,
                   })}
                   aria-label={`Switch to ${label} (${shortcut})`}
                 >
@@ -590,7 +600,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <h4 className="text-sm font-medium">Show Completed Tasks</h4>
-              <p className="text-xs text-[hsl(0,0%,45%)]">
+              <p className="text-xs text-muted-foreground">
                 Display completed tasks in calendar
               </p>
             </div>
@@ -633,10 +643,10 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
         {/* Enhanced header with better responsive design */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-[hsl(0,0%,10%)]">
+            <h2 className="text-2xl font-bold text-foreground">
               Calendar View
             </h2>
-            <p className="text-sm text-[hsl(0,0%,45%)]">
+            <p className="text-sm text-muted-foreground">
               View and manage your tasks in calendar format
             </p>
           </div>
@@ -656,12 +666,16 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
                   shortcut: "2",
                 },
                 { value: "timeGridDay" as const, label: "Day", shortcut: "3" },
+                { value: "timetable" as const, label: "Timetable", shortcut: "4" },
               ].map(({ value, label, shortcut }) => (
                 <Button
                   key={value}
-                  onClick={() => handleViewChange(value)}
+                  onClick={() => value === "timetable" ? 
+                    window.dispatchEvent(new CustomEvent('switchToTimetable')) :
+                    handleViewChange(value)
+                  }
                   className={viewButtonVariants({
-                    state: currentView === value ? "active" : "inactive",
+                    active: currentView === value,
                   })}
                   aria-label={`Switch to ${label} view (Ctrl+${shortcut})`}
                   title={`Ctrl+${shortcut}`}
@@ -681,7 +695,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
               />
               <label
                 htmlFor="show-completed"
-                className="text-sm text-[hsl(0,0%,45%)] cursor-pointer"
+                className="text-sm text-muted-foreground cursor-pointer"
               >
                 Show completed
               </label>
@@ -692,13 +706,9 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
         </div>
 
         {/* Enhanced calendar container with better accessibility */}
-        <Card className="shadow-sm border border-[hsl(40,30%,80%)]">
-          <CardContent className="p-0">
-            <div
-              className="calendar-container"
-              role="application"
-              aria-label="Task calendar grid"
-            >
+        <MagicCard className="w-full h-full rounded-lg overflow-hidden">
+          <Card className="w-full h-full border-0">
+            <CardContent className="p-4">
               <FullCalendar
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -747,10 +757,35 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
                     }
                   });
                 }}
+                viewDidMount={({ view, el }) => {
+                  // This is a hacky but effective way to style FullCalendar's toolbar buttons
+                  // since they don't accept `className` props directly.
+                  setTimeout(() => {
+                    const calendarEl = el;
+                    const toolbar = calendarEl?.querySelector('.fc-toolbar-chunk:last-child');
+                    if (toolbar) {
+                      const buttons = toolbar.querySelectorAll<HTMLButtonElement>('.fc-button');
+                      buttons.forEach((button: HTMLButtonElement) => {
+                        button.className = button.className.replace(/fc-button-primary|bg-\w+-\d+|text-\w+-\d+|hover:bg-\w+\/\d+|shadow-\w+/g, '').trim();
+                        
+                        const isDayGridMonth = button.classList.contains('fc-dayGridMonth-button');
+                        const isTimeGridWeek = button.classList.contains('fc-timeGridWeek-button');
+                        const isTimeGridDay = button.classList.contains('fc-timeGridDay-button');
+
+                        const isActive = 
+                          (view.type === 'dayGridMonth' && isDayGridMonth) ||
+                          (view.type === 'timeGridWeek' && isTimeGridWeek) ||
+                          (view.type === 'timeGridDay' && isTimeGridDay);
+
+                        button.className = cn(button.className, viewButtonVariants({ active: isActive }));
+                      });
+                    }
+                  }, 100);
+                }}
               />
-            </div>
           </CardContent>
         </Card>
+        </MagicCard>
 
         <TaskDetailsModal />
       </div>

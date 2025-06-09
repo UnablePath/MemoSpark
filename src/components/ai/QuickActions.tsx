@@ -23,10 +23,10 @@ const quickActionVariants = cva(
   {
     variants: {
       variant: {
-        primary: "bg-[hsl(142,60%,40%)] text-white hover:bg-[hsl(142,60%,35%)] shadow-lg",
+        primary: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 border",
-        outline: "border-2 border-[hsl(142,60%,40%)] text-[hsl(142,60%,40%)] hover:bg-[hsl(142,60%,40%)] hover:text-white",
-        ghost: "hover:bg-[hsl(142,60%,40%)]/10 text-[hsl(142,60%,40%)]",
+        outline: "border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground",
+        ghost: "hover:bg-primary/10 text-primary",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/80"
       },
       size: {
@@ -38,7 +38,7 @@ const quickActionVariants = cva(
       priority: {
         low: "opacity-80",
         medium: "",
-        high: "ring-2 ring-[hsl(142,60%,40%)]/20 shadow-md"
+        high: "ring-2 ring-primary/20 shadow-md"
       }
     },
     defaultVariants: {

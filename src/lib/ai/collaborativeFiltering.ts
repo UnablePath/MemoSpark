@@ -41,11 +41,11 @@ export interface MLSuggestion {
 }
 
 /**
- * Collaborative Filtering Service for StudySpark AI
+ * Collaborative Filtering Service for MemoSpark AI
  * Privacy-first implementation with local fallbacks
  */
 export class CollaborativeFilteringService {
-  private static readonly CACHE_KEY = 'studyspark_collaborative_cache';
+  private static readonly CACHE_KEY = 'memospark_collaborative_cache';
   private static readonly CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
   private static readonly MAX_SIMILAR_USERS = 10;
   private static readonly MIN_SIMILARITY_THRESHOLD = 0.3;

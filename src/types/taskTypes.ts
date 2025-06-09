@@ -1,4 +1,4 @@
-// Task and Event Type Definitions for StudySpark
+// Task and Event Type Definitions for MemoSpark
 // Updated to match enhanced database schema with existing tables
 
 export type Priority = 'low' | 'medium' | 'high';

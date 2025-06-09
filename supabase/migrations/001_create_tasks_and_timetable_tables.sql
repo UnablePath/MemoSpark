@@ -1,5 +1,5 @@
 -- Migration: Create tasks and timetable_entries tables with RLS and triggers
--- Description: Comprehensive backend foundation for StudySpark task and event system
+-- Description: Comprehensive backend foundation for MemoSpark task and event system
 
 -- Create ENUM types for better type safety
 CREATE TYPE priority_level AS ENUM ('low', 'medium', 'high');

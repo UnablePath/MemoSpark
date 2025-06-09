@@ -33,13 +33,20 @@ export async function OPTIONS() {
 
 export async function POST(req: NextRequest) {
   try {
+    // Detect environment for better logging
+    const environment = process.env.NODE_ENV === 'production' 
+      ? (req.url.includes('memospark.live') ? 'production' : 'preview')
+      : 'development';
+    
+    console.log(`[${environment.toUpperCase()}] Processing webhook request`);
+
     // Get environment variables
-    const CLERK_WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
+    const CLERK_WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SIGNING_SECRET;
     const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!CLERK_WEBHOOK_SECRET) {
-      console.error("Missing CLERK_WEBHOOK_SECRET environment variable");
+      console.error(`[${environment.toUpperCase()}] Missing CLERK_WEBHOOK_SIGNING_SECRET environment variable`);
       return NextResponse.json(
         { error: "Missing webhook secret" },
         { status: 500, headers: corsHeaders }
@@ -47,7 +54,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      console.error("Missing Supabase configuration");
+      console.error(`[${environment.toUpperCase()}] Missing Supabase configuration`);
       return NextResponse.json(
         { error: "Missing Supabase configuration" },
         { status: 500, headers: corsHeaders }
@@ -98,7 +105,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`Processing webhook event: ${event.type} for user: ${event.data.id}`);
+    console.log(`[${environment.toUpperCase()}] Processing webhook event: ${event.type} for user: ${event.data.id}`);
 
     // Process the webhook event
     switch (event.type) {

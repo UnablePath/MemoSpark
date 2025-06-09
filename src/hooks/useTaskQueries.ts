@@ -39,11 +39,12 @@ export const taskKeys = {
 
 /**
  * Hook to fetch all tasks with optional filtering
+ * Now uses Clerk authentication automatically
  */
-export const useFetchTasks = (filters?: TaskFilters) => {
+export const useFetchTasks = (filters?: TaskFilters, getToken?: () => Promise<string | null>) => {
   return useQuery({
     queryKey: taskKeys.list(filters),
-    queryFn: () => fetchTasks(filters),
+    queryFn: () => fetchTasks(filters, getToken),
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 10, // 10 minutes (formerly cacheTime)
     retry: (failureCount, error) => {
@@ -59,10 +60,10 @@ export const useFetchTasks = (filters?: TaskFilters) => {
 /**
  * Hook to get a specific task by ID
  */
-export const useGetTask = (id: string, enabled = true) => {
+export const useGetTask = (id: string, enabled = true, getToken?: () => Promise<string | null>) => {
   return useQuery({
     queryKey: taskKeys.detail(id),
-    queryFn: () => getTaskById(id),
+    queryFn: () => getTaskById(id, getToken),
     enabled: enabled && Boolean(id),
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 10, // 10 minutes
@@ -81,11 +82,12 @@ export const useGetTask = (id: string, enabled = true) => {
 export const useFetchTasksPaginated = (
   page = 0,
   limit = 20,
-  filters?: TaskFilters
+  filters?: TaskFilters,
+  getToken?: () => Promise<string | null>
 ) => {
   return useQuery({
     queryKey: taskKeys.paginated(page, limit, filters),
-    queryFn: () => fetchTasksPaginated(page, limit, filters),
+    queryFn: () => fetchTasksPaginated(page, limit, filters, getToken),
     staleTime: 1000 * 60 * 3, // 3 minutes for paginated data
     gcTime: 1000 * 60 * 8, // 8 minutes
     placeholderData: (previousData) => previousData, // Keep previous data while fetching new page
@@ -101,10 +103,10 @@ export const useFetchTasksPaginated = (
 /**
  * Hook to get dashboard counts
  */
-export const useDashboardCounts = () => {
+export const useDashboardCounts = (getToken?: () => Promise<string | null>) => {
   return useQuery({
     queryKey: taskKeys.dashboard(),
-    queryFn: getDashboardCounts,
+    queryFn: () => getDashboardCounts(getToken),
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 15, // 15 minutes
     retry: 2,
@@ -120,11 +122,11 @@ export const useDashboardCounts = () => {
 /**
  * Hook to create a new task with optimistic updates
  */
-export const useCreateTask = () => {
+export const useCreateTask = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (taskData: Omit<TaskInsert, 'user_id'>) => createTask(taskData),
+    mutationFn: (taskData: Omit<TaskInsert, 'user_id'>) => createTask(taskData, getToken),
     onMutate: async (newTaskData) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: taskKeys.lists() });

@@ -37,7 +37,7 @@ export interface StuPersonality {
 export const enhancedStuMessages: StuPersonality['messageCategories'] = {
   quickCapture: {
     firstTime: [
-      "Welcome to StudySpark! I'm Stu, your friendly study koala! 🐨 Let's create your very first task together!",
+      "Welcome to MemoSpark! I'm Stu, your friendly study koala! 🐨 Let's create your very first task together!",
       "Hi there! I'm excited to help you on your learning journey! What would you like to work on first? 🌟",
       "Welcome aboard! I'm here to make studying fun and organized. Ready to create your first task? 🚀"
     ],
@@ -230,7 +230,7 @@ export const updateStuPreferences = (
 export const saveUserContext = (context: UserContext): void => {
   if (typeof window !== 'undefined') {
     try {
-      localStorage.setItem('studyspark_user_context', JSON.stringify(context));
+      localStorage.setItem('memospark_user_context', JSON.stringify(context));
     } catch (error) {
       console.warn('Failed to save user context:', error);
     }
@@ -240,7 +240,7 @@ export const saveUserContext = (context: UserContext): void => {
 export const loadUserContext = (): UserContext => {
   if (typeof window !== 'undefined') {
     try {
-      const saved = localStorage.getItem('studyspark_user_context');
+      const saved = localStorage.getItem('memospark_user_context');
       if (saved) {
         return { ...getDefaultUserContext(), ...JSON.parse(saved) };
       }

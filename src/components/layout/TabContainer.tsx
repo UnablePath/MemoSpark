@@ -47,8 +47,6 @@ export function TabContainer({
 }: TabContainerProps) {
   const tabs = Children.toArray(children).filter(isValidElement);
   const [[internalIndex, direction], setInternalIndex] = useState([initialTab, 0]);
-  const isSwipingRef = useRef(false);
-  const swipeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const currentIndex = controlledIndex !== undefined ? controlledIndex : internalIndex;
 
@@ -59,73 +57,30 @@ export function TabContainer({
     }
   }, [controlledIndex, internalIndex]);
 
-  // Debounced tab change to prevent rapid fire swipes
   const changeTab = useCallback((newDirection: number) => {
-    // Prevent multiple rapid swipes
-    if (isSwipingRef.current) return;
-    
-    isSwipingRef.current = true;
-    
-    // Clear any existing timeout
-    if (swipeTimeoutRef.current) {
-      clearTimeout(swipeTimeoutRef.current);
-    }
-
     const nextIndex = (currentIndex + newDirection + tabs.length) % tabs.length;
     
     if (controlledIndex !== undefined) {
         onTabChange?.(nextIndex);
     } else {
-        const animationDirection = nextIndex > internalIndex ? 1 : (nextIndex < internalIndex ? -1 : 0);
+        const animationDirection = newDirection;
         setInternalIndex([nextIndex, animationDirection]);
         onTabChange?.(nextIndex);
     }
-
-    // Reset swipe lock after animation completes
-    swipeTimeoutRef.current = setTimeout(() => {
-      isSwipingRef.current = false;
-    }, 400); // Slightly longer than animation duration
   }, [currentIndex, tabs.length, controlledIndex, onTabChange, internalIndex]);
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (swipeTimeoutRef.current) {
-        clearTimeout(swipeTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Expand edge threshold by 10% as requested
-  const edgeThresholdPx = 55; // Increased from 50 to 55 (10% increase)
-
   const handlers = useSwipeable({
-    onSwipedLeft: (eventData: SwipeEventData) => {
-      if (!swipingEnabled || isSwipingRef.current) return;
-      
-      const containerWidth = (eventData.event.currentTarget as HTMLElement)?.offsetWidth;
-      if (!containerWidth) return;
-      
-      // More lenient swipe detection - increased area by 10%
-      const swipeThreshold = containerWidth * 0.1; // 10% of container width
-      if (eventData.initial[0] > containerWidth - (edgeThresholdPx + swipeThreshold)) {
+    onSwipedLeft: () => {
+      if (swipingEnabled) {
         changeTab(1);
       }
     },
-    onSwipedRight: (eventData: SwipeEventData) => {
-      if (!swipingEnabled || isSwipingRef.current) return;
-      
-      const containerWidth = (eventData.event.currentTarget as HTMLElement)?.offsetWidth;
-      if (!containerWidth) return;
-      
-      // More lenient swipe detection - increased area by 10%
-      const swipeThreshold = containerWidth * 0.1; // 10% of container width
-      if (eventData.initial[0] < edgeThresholdPx + swipeThreshold) {
+    onSwipedRight: () => {
+      if (swipingEnabled) {
         changeTab(-1);
       }
     },
-    // Add swipe distance threshold to improve detection
-    delta: 10, // Minimum distance for swipe
+    delta: 50, // Minimum distance for a swipe to be registered
     preventScrollOnSwipe: true,
     trackMouse: true
   });
@@ -137,7 +92,7 @@ export function TabContainer({
   const activeTabContent = tabs[currentIndex];
 
   return (
-    <div {...handlers} className="relative overflow-hidden w-full h-full flex-grow">
+    <div {...handlers} className="relative overflow-hidden w-full h-full flex-grow safe-scroll-area">
       <AnimatePresence initial={false} custom={direction} mode="wait">
         <motion.div
           key={currentIndex}
@@ -153,13 +108,11 @@ export function TabContainer({
             x: { type: 'spring', stiffness: 300, damping: 30 },
             opacity: { duration: 0.2 },
           }}
-          className="absolute w-full h-full"
-          // Prevent content from being interactable during transition
-          style={{ 
-            pointerEvents: isSwipingRef.current ? 'none' : 'auto'
-          }}
+          className="absolute w-full h-full overflow-y-auto overflow-x-hidden safe-scroll-area"
         >
-          {activeTabContent}
+          <div className="h-full w-full max-w-full">
+            {activeTabContent}
+          </div>
         </motion.div>
       </AnimatePresence>
     </div>

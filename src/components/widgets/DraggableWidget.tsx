@@ -164,7 +164,7 @@ export function DraggableWidget({
               <div className="text-[10px] text-muted-foreground mt-1">All caught up!</div>
             </div>
           )}
-          <div className="absolute bottom-2 text-[8px] font-medium">StudySpark</div>
+          <div className="absolute bottom-2 text-[8px] font-medium">MemoSpark</div>
         </motion.div>
       </div>
       <motion.div

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { StudySparkLogoSvg } from "@/components/ui/StudySparkLogoSvg";
+import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -54,7 +54,7 @@ const learningStyles = [
   { value: "Auditory", label: "Auditory", description: "Learn best through listening and verbal instruction" },
   { value: "Kinesthetic", label: "Kinesthetic", description: "Learn best through hands-on activities and movement" },
   { value: "Reading/Writing", label: "Reading/Writing", description: "Learn best through written materials and note-taking" },
-  { value: "Unspecified", label: "I'm not sure", description: "Let StudySpark help you discover your learning style" }
+        { value: "Unspecified", label: "I'm not sure", description: "Let MemoSpark help you discover your learning style" }
 ];
 
 // Helper to get item from localStorage
@@ -316,7 +316,7 @@ export default function ClerkOnboardingPage() {
      return (
       <div className="flex items-center justify-center h-screen bg-background">
         <div className="flex flex-col items-center gap-4">
-          <StudySparkLogoSvg height={60} />
+          <MemoSparkLogoSvg height={60} />
           <p className="text-muted-foreground animate-pulse">Loading...</p>
         </div>
       </div>
@@ -328,10 +328,10 @@ export default function ClerkOnboardingPage() {
       <a href="#main-content" className="sr-only focus:not-sr-only absolute top-2 left-2 z-50 bg-primary text-primary-foreground px-4 py-2 rounded focus:outline-dashed focus:outline-2 focus:outline-offset-2">Skip to main content</a>
       <Card id="main-content" className="w-full max-w-lg shadow-xl border-border/40 overflow-hidden">
         <CardHeader className="text-center pb-6 pt-8 space-y-4">
-          <div className="mx-auto mb-2 text-primary" role="img" aria-label="StudySpark Logo">
-            <StudySparkLogoSvg height={60} />
+                      <div className="mx-auto mb-2 text-primary" role="img" aria-label="MemoSpark Logo">
+            <MemoSparkLogoSvg height={60} />
           </div>
-          <CardTitle className="text-2xl font-bold focus:outline-dashed focus:outline-2" role="heading" aria-level={1} tabIndex={0}>Welcome to StudySpark!</CardTitle>
+          <CardTitle className="text-2xl font-bold focus:outline-dashed focus:outline-2" role="heading" aria-level={1} tabIndex={0}>Welcome to MemoSpark!</CardTitle>
           <CardDescription className="text-base focus:outline-dashed focus:outline-2" tabIndex={0}>
             Let's personalize your learning experience in just a few steps.
           </CardDescription>

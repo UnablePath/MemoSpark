@@ -1,4 +1,4 @@
-# StudySpark Product Requirements Document (PRD)
+# MemoSpark Product Requirements Document (PRD)
 
 ## 1. Problem/Opportunity
 
@@ -37,7 +37,7 @@ The global education technology market is valued at over $340 billion, with stud
 - **Study Apps**: Forest, StudyBlue (limited social features, basic gamification)
 - **Social Learning**: Discord servers, GroupMe (unstructured, no task integration)
 
-### StudySpark Differentiators
+### MemoSpark Differentiators
 - **Integrated Social-Academic Experience**: Combines task management with meaningful peer connections
 - **AI-Powered Personalization**: Machine learning that adapts to individual study patterns
 - **Emotional Wellness Focus**: Dedicated stress relief features including the "crashout room"
@@ -46,7 +46,7 @@ The global education technology market is valued at over $340 billion, with stud
 
 ## 4. Proposed Solution/Elevator Pitch
 
-StudySpark is a mobile-first, AI-powered student productivity platform that combines intelligent task management, social academic networking, and wellness features into a single, engaging experience. Using machine learning to understand student patterns, Snapchat-inspired UX, and an interactive mascot tutorial system, StudySpark helps students stay organized, connected, and motivated throughout their academic journey.
+MemoSpark is a mobile-first, AI-powered student productivity platform that combines intelligent task management, social academic networking, and wellness features into a single, engaging experience. Using machine learning to understand student patterns, Snapchat-inspired UX, and an interactive mascot tutorial system, MemoSpark helps students stay organized, connected, and motivated throughout their academic journey.
 
 ### Top 3 MVP Value Props
 1. **Smart Scheduling**: AI learns your habits and suggests optimal times for tasks and study sessions

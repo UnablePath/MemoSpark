@@ -1,6 +1,6 @@
 # A string used to distinguish different Supabase projects on the same machine.
 # Not required if you have only one Supabase project set up on your machine.
-project_id = "StudySpark"
+project_id = "MemoSpark"
 
 [api]
 enabled = true
@@ -235,6 +235,13 @@ enabled = false
 client_id = ""
 secret = "env(SUPABASE_AUTH_EXTERNAL_ZOOM_SECRET)"
 redirect_uri = ""
+
+# Third-party authentication provider integration
+# Configure Clerk as a third-party auth provider for local development
+[auth.third_party.clerk]
+enabled = true
+# Clerk domain for local development - will be overridden in production
+domain = "example.clerk.accounts.dev"
 
 [analytics]
 enabled = false

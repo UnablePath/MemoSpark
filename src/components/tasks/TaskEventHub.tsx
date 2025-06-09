@@ -1,623 +1,588 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
-import type { TimetableEntry } from "@/types/taskTypes";
-import {
-  AlertTriangle,
-  Calendar,
-  Clock,
-  Eye,
-  List,
-  Plus,
-  Settings,
-} from "lucide-react";
-import type React from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarViewEnhanced } from "./CalendarViewEnhanced";
-import { ListView } from "./ListView";
-import { TaskForm } from "./TaskForm";
-import { TimetableEntryForm } from "./TimetableEntryForm";
-import { TimetableView } from "./TimetableView";
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { Calendar, LayoutList, Plus, Grid3X3, GraduationCap, Brain, ChevronRight, ChevronLeft } from 'lucide-react';
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern";
-// Magic UI imports
-import { BlurFade } from "@/components/ui/blur-fade";
-import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
-import { ShimmerButton } from "@/components/ui/shimmer-button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { ListView } from './ListView';
+import { CalendarViewEnhanced } from './CalendarViewEnhanced';
+import { TimetableView } from './TimetableView';
+import { TaskForm } from './TaskForm';
+import { TimetableEntryForm } from './TimetableEntryForm';
+import { useTaskStore } from '@/hooks/useTaskStore';
+import { useToast } from '@/components/ui/use-toast';
+import { ShimmerButton } from '@/components/ui/shimmer-button';
+import { InteractiveHoverButton } from '@/components/ui/interactive-hover-button';
+import { SuggestionList } from '@/components/ai/SuggestionList';
+import type { AISuggestion } from '@/types/ai';
 
-// CVA for component variants
-import { type VariantProps, cva } from "class-variance-authority";
+// Sample AI suggestions for task creation workflow integration
+const getTaskCreationSuggestions = (): AISuggestion[] => [
+  {
+    id: 'task-1',
+    type: 'task_suggestion',
+    title: 'Start your morning math session',
+    description: 'Based on your patterns, you\'re most productive at math between 9-11 AM. Create a calculus practice task.',
+    priority: 'high',
+    confidence: 0.85,
+    reasoning: 'Your completion rate is 23% higher during morning hours for math subjects.',
+    duration: 90,
+    subject: 'Mathematics',
+    metadata: {
+      category: 'productivity',
+      tags: ['morning', 'mathematics', 'focus'],
+      difficulty: 6,
+      estimatedBenefit: 0.75,
+      requiredAction: 'immediate'
+    },
+    createdAt: new Date().toISOString(),
+    acceptanceStatus: 'pending'
+  },
+  {
+    id: 'task-2',
+    type: 'study_time',
+    title: 'Schedule your physics review',
+    description: 'You have a physics quiz next week. Creating a daily review task now will improve your preparation.',
+    priority: 'medium',
+    confidence: 0.78,
+    reasoning: 'Spaced repetition shows 40% better retention for physics concepts.',
+    duration: 45,
+    subject: 'Physics',
+    metadata: {
+      category: 'academic',
+      tags: ['physics', 'review', 'quiz'],
+      difficulty: 5,
+      estimatedBenefit: 0.8,
+      requiredAction: 'scheduled'
+    },
+    createdAt: new Date(Date.now() - 300000).toISOString(),
+    acceptanceStatus: 'pending'
+  },
+  {
+    id: 'task-3',
+    type: 'schedule_optimization',
+    title: 'Block time for deep work',
+    description: 'Create a 2-hour focused study block for your most challenging subject today.',
+    priority: 'medium',
+    confidence: 0.72,
+    reasoning: 'Deep work blocks show 50% better learning outcomes than fragmented study sessions.',
+    duration: 120,
+    metadata: {
+      category: 'productivity',
+      tags: ['deep-work', 'focus', 'productivity'],
+      estimatedBenefit: 0.85,
+      requiredAction: 'optional'
+    },
+    createdAt: new Date(Date.now() - 600000).toISOString(),
+    acceptanceStatus: 'pending'
+  }
+];
 
 // CVA variants for view tabs
 const viewTabVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(142,60%,40%)] focus-visible:ring-offset-2",
+  "inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
   {
     variants: {
       state: {
-        active: "bg-[hsl(142,60%,40%)] text-white shadow-sm",
-        inactive:
-          "text-[hsl(0,0%,45%)] hover:text-[hsl(0,0%,10%)] hover:bg-[hsl(142,60%,40%)]/10",
+        active: "bg-primary text-primary-foreground shadow-sm",
+        inactive: "hover:bg-accent hover:text-accent-foreground",
       },
-    },
-    defaultVariants: {
-      state: "inactive",
     },
   },
 );
 
 // CVA variants for action buttons
 const actionButtonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(142,60%,40%)] focus-visible:ring-offset-2",
+  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        primary:
-          "bg-[hsl(142,60%,40%)] text-white hover:bg-[hsl(142,60%,35%)] shadow-sm hover:shadow-md",
+        default:
+          "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline:
+          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
         secondary:
-          "bg-[hsl(0,0%,98%)] text-[hsl(0,0%,10%)] hover:bg-[hsl(40,30%,85%)] border border-[hsl(40,30%,80%)]",
-        shimmer: "bg-[hsl(142,60%,40%)] text-white hover:bg-[hsl(142,60%,35%)]",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+        shimmer: "text-white", // Specific for ShimmerButton
       },
       size: {
-        sm: "h-8 px-3 text-sm",
-        default: "h-9 px-4 py-2",
-        lg: "h-11 px-8",
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
+        icon: "h-10 w-10",
       },
     },
     defaultVariants: {
-      variant: "primary",
+      variant: "default",
       size: "default",
     },
   },
 );
 
-// View types for the hub
-type ViewType = "list" | "calendar" | "timetable";
+type ViewType = 'list' | 'calendar' | 'timetable';
 
-// Form types for dialogs
-type FormType = "task" | "timetable" | null;
-
-// Enhanced interface definitions
-interface TaskEventHubProps {
-  className?: string;
-  initialView?: ViewType;
-  onViewChange?: (view: ViewType) => void;
-  disabledViews?: ViewType[];
-}
-
-interface ViewConfig {
-  icon: React.ComponentType<{ className?: string }>;
+interface ViewOption {
+  id: ViewType;
   label: string;
+  icon: React.ElementType;
   description: string;
-  shortcut: string;
-  ariaLabel: string;
 }
 
-// Enhanced state management interfaces
-interface HubState {
-  activeView: ViewType;
-  openForm: FormType;
-  editingTaskId: string | null;
-  editingTimetableId: string | null;
-  isLoading: boolean;
-  error: string | null;
+interface TaskEventHubProps {
+  initialView?: ViewType;
 }
 
-// Enhanced view configuration with better accessibility
-const VIEW_CONFIG: Record<ViewType, ViewConfig> = {
-  list: {
-    icon: List,
-    label: "List View",
-    description:
-      "View tasks in a detailed list format with filtering and sorting options",
-    shortcut: "L",
-    ariaLabel: "Switch to list view showing tasks in a detailed list format",
-  },
-  calendar: {
-    icon: Calendar,
-    label: "Calendar View",
-    description: "View tasks in a calendar layout with date-based navigation",
-    shortcut: "C",
-    ariaLabel: "Switch to calendar view showing tasks by date",
-  },
-  timetable: {
-    icon: Clock,
-    label: "Timetable View",
-    description: "View your class schedule with weekly time slots",
-    shortcut: "T",
-    ariaLabel: "Switch to timetable view showing your class schedule",
-  },
-} as const;
+export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list' }) => {
+  const [currentView, setCurrentView] = useState<ViewType>(initialView);
+  const [isTaskFormOpen, setTaskFormOpen] = useState(false);
+  const [isTimetableFormOpen, setTimetableFormOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [selectedTimetableEntry, setSelectedTimetableEntry] = useState<any>(null);
+  
+  // AI Suggestions state
+  const [showAISuggestions, setShowAISuggestions] = useState(false);
+  const [aiSuggestions, setAISuggestions] = useState<AISuggestion[]>(() => getTaskCreationSuggestions());
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
-export const TaskEventHub: React.FC<TaskEventHubProps> = ({
-  className,
-  initialView = "list",
-  onViewChange,
-  disabledViews = [],
-}) => {
-  // Enhanced state management with error handling
-  const [state, setState] = useState<HubState>({
-    activeView: initialView,
-    openForm: null,
-    editingTaskId: null,
-    editingTimetableId: null,
-    isLoading: false,
-    error: null,
-  });
+  const { tasks, addTask, updateTask, deleteTask } = useTaskStore();
+  const { toast } = useToast();
+  
+  const viewOptions: ViewOption[] = useMemo(() => [
+    { id: 'list', label: 'List View', icon: LayoutList, description: 'View tasks in a sequential, organized list.' },
+    { id: 'calendar', label: 'Calendar', icon: Calendar, description: 'View and manage tasks in a calendar format.' },
+    { id: 'timetable', label: 'Timetable', icon: Grid3X3, description: 'View and manage your class schedule.' },
+  ], []);
 
-  // Memoized view options for performance
-  const availableViews = useMemo(() => {
-    return (Object.entries(VIEW_CONFIG) as [ViewType, ViewConfig][]).filter(
-      ([view]) => !disabledViews.includes(view),
+  const handleViewChange = (view: ViewType) => {
+    setCurrentView(view);
+  };
+
+  const openTaskForm = (task: any = null) => {
+    setSelectedTask(task);
+    setTaskFormOpen(true);
+  };
+
+  const closeTaskForm = () => {
+    setTaskFormOpen(false);
+    setSelectedTask(null);
+  };
+
+  const openTimetableForm = (entry: any = null) => {
+    setSelectedTimetableEntry(entry);
+    setTimetableFormOpen(true);
+  };
+
+  const closeTimetableForm = () => {
+    setTimetableFormOpen(false);
+    setSelectedTimetableEntry(null);
+  };
+
+  const handleTaskFormSuccess = () => {
+    closeTaskForm();
+    toast({ 
+      title: selectedTask?.id ? 'Task updated successfully' : 'Task added successfully' 
+    });
+  };
+
+  const handleTimetableFormSubmit = () => {
+    // TimetableEntryForm handles its own submission
+    closeTimetableForm();
+    toast({ title: selectedTimetableEntry ? 'Class updated successfully' : 'Class added successfully' });
+  };
+
+  const handleDelete = async (taskId: string) => {
+    try {
+      await deleteTask(taskId);
+      toast({ title: 'Task deleted successfully' });
+    } catch (error) {
+      toast({ title: 'Error deleting task', description: (error as Error).message, variant: 'destructive' });
+    }
+  };
+
+  // AI Suggestions handlers
+  const handleAcceptSuggestion = useCallback(async (suggestionId: string) => {
+    const suggestion = aiSuggestions.find(s => s.id === suggestionId);
+    if (!suggestion) return;
+
+    try {
+      // Create a task based on the AI suggestion
+      const taskData = {
+        title: suggestion.title,
+        description: suggestion.description,
+        priority: suggestion.priority || 'medium',
+        type: 'academic' as const,
+        subject: suggestion.subject,
+        completed: false,
+        due_date: suggestion.suggestedTime ? new Date(suggestion.suggestedTime).toISOString() : undefined,
+        reminder_settings: {
+          enabled: true,
+          offset_minutes: 15,
+          type: 'notification' as const,
+        },
+      };
+
+      await addTask(taskData);
+      
+      // Update suggestion status
+      setAISuggestions(prev => 
+        prev.map(s => 
+          s.id === suggestionId 
+            ? { ...s, acceptanceStatus: 'accepted' as const, respondedAt: new Date().toISOString() }
+            : s
+        )
+      );
+
+      toast({ 
+        title: 'Task created from AI suggestion', 
+        description: `"${suggestion.title}" has been added to your tasks.` 
+      });
+    } catch (error) {
+      toast({ 
+        title: 'Failed to create task from suggestion', 
+        description: (error as Error).message, 
+        variant: 'destructive' 
+      });
+    }
+  }, [aiSuggestions, addTask, toast]);
+
+  const handleRejectSuggestion = useCallback((suggestionId: string) => {
+    setAISuggestions(prev => 
+      prev.map(s => 
+        s.id === suggestionId 
+          ? { ...s, acceptanceStatus: 'rejected' as const, respondedAt: new Date().toISOString() }
+          : s
+      )
     );
-  }, [disabledViews]);
+    toast({ title: 'Suggestion dismissed' });
+  }, [toast]);
 
-  // Enhanced view switching with error handling and external callback
-  const handleViewChange = useCallback(
-    (view: ViewType) => {
-      if (disabledViews.includes(view)) {
-        console.warn(`View ${view} is disabled`);
-        return;
-      }
+  const handleRefreshSuggestions = useCallback(() => {
+    setIsLoadingSuggestions(true);
+    setTimeout(() => {
+      setAISuggestions(getTaskCreationSuggestions());
+      setIsLoadingSuggestions(false);
+      toast({ title: 'AI suggestions refreshed' });
+    }, 1000);
+  }, [toast]);
 
-      setState((prev) => ({ ...prev, activeView: view, error: null }));
-      onViewChange?.(view);
+  const toggleAISuggestions = useCallback(() => {
+    setShowAISuggestions(prev => !prev);
+  }, []);
 
-      // Announce view change for screen readers
-      const announcement = `Switched to ${VIEW_CONFIG[view].label}`;
-      const liveRegion = document.querySelector('[aria-live="polite"]');
-      if (liveRegion) {
-        liveRegion.textContent = announcement;
-      }
-    },
-    [disabledViews, onViewChange],
-  );
-
-  // Enhanced keyboard navigation with better accessibility
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Only handle if no input is focused and modifiers are pressed
-      if (
-        (event.target as HTMLElement)?.tagName === "INPUT" ||
-        (event.target as HTMLElement)?.tagName === "TEXTAREA" ||
-        (event.target as HTMLElement)?.contentEditable === "true"
-      ) {
-        return;
+      if (event.ctrlKey && event.key === 'n') {
+        event.preventDefault();
+        if (currentView === 'timetable') {
+          openTimetableForm();
+        } else {
+          openTaskForm();
+        }
       }
-
-      if (event.ctrlKey || event.metaKey) {
-        let handled = false;
-
-        switch (event.key.toLowerCase()) {
-          case "l":
-            if (!disabledViews.includes("list")) {
-              handleViewChange("list");
-              handled = true;
-            }
-            break;
-          case "c":
-            if (!disabledViews.includes("calendar")) {
-              handleViewChange("calendar");
-              handled = true;
-            }
-            break;
-          case "t":
-            if (!disabledViews.includes("timetable")) {
-              handleViewChange("timetable");
-              handled = true;
-            }
-            break;
-          case "n":
-            openTaskForm();
-            handled = true;
-            break;
-        }
-
-        if (handled) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
+      if (event.metaKey && event.key === 'k') {
+        event.preventDefault();
+        const currentIndex = viewOptions.findIndex(v => v.id === currentView);
+        const nextIndex = (currentIndex + 1) % viewOptions.length;
+        setCurrentView(viewOptions[nextIndex].id);
+      }
+      // View switching shortcuts
+      if (event.ctrlKey && event.key === '1') {
+        event.preventDefault();
+        setCurrentView('list');
+      }
+      if (event.ctrlKey && event.key === '2') {
+        event.preventDefault();
+        setCurrentView('calendar');
+      }
+      if (event.ctrlKey && event.key === '3') {
+        event.preventDefault();
+        setCurrentView('timetable');
+      }
+      // AI Suggestions shortcut
+      if (event.ctrlKey && event.key === 'i') {
+        event.preventDefault();
+        toggleAISuggestions();
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleViewChange, disabledViews]);
+    const handleSwitchToTimetable = () => {
+      setCurrentView('timetable');
+    };
 
-  // Enhanced form dialog handlers with error handling
-  const openTaskForm = useCallback((taskId?: string) => {
-    setState((prev) => ({
-      ...prev,
-      editingTaskId: taskId || null,
-      openForm: "task",
-      error: null,
-    }));
-  }, []);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('switchToTimetable', handleSwitchToTimetable);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('switchToTimetable', handleSwitchToTimetable);
+    };
+  }, [currentView, viewOptions, toggleAISuggestions]);
 
-  const openTimetableForm = useCallback(
-    (timetableId?: string | TimetableEntry) => {
-      try {
-        const id =
-          typeof timetableId === "string" ? timetableId : timetableId?.id;
-        setState((prev) => ({
-          ...prev,
-          editingTimetableId: id || null,
-          openForm: "timetable",
-          error: null,
-        }));
-      } catch (error) {
-        console.error("Error opening timetable form:", error);
-        setState((prev) => ({
-          ...prev,
-          error: "Failed to open timetable form",
-        }));
-      }
-    },
-    [],
-  );
-
-  const closeForm = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      openForm: null,
-      editingTaskId: null,
-      editingTimetableId: null,
-      error: null,
-    }));
-  }, []);
-
-  // Enhanced form success handlers
-  const handleTaskFormSuccess = useCallback(() => {
-    closeForm();
-
-    // Announce success for screen readers
-    const announcement = state.editingTaskId
-      ? "Task updated successfully"
-      : "Task created successfully";
-    const liveRegion = document.querySelector('[aria-live="polite"]');
-    if (liveRegion) {
-      liveRegion.textContent = announcement;
-    }
-  }, [closeForm, state.editingTaskId]);
-
-  const handleTimetableFormSuccess = useCallback(() => {
-    closeForm();
-
-    // Announce success for screen readers
-    const announcement = state.editingTimetableId
-      ? "Class updated successfully"
-      : "Class added successfully";
-    const liveRegion = document.querySelector('[aria-live="polite"]');
-    if (liveRegion) {
-      liveRegion.textContent = announcement;
-    }
-  }, [closeForm, state.editingTimetableId]);
-
-  // Enhanced error handling for view content
-  const renderViewContent = useCallback(() => {
-    if (state.isLoading) {
+  const renderAddButton = () => {
+    if (currentView === 'timetable') {
       return (
-        <div className="space-y-4 p-6">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-24 w-3/4" />
-        </div>
+        <ShimmerButton
+          onClick={() => openTimetableForm()}
+          className="whitespace-nowrap"
+          aria-label="Add new class (Ctrl+N)"
+        >
+          <GraduationCap className="h-4 w-4 mr-2" />
+          <span className="hidden sm:inline">Add Class</span>
+          <span className="sm:hidden">Add</span>
+        </ShimmerButton>
       );
     }
 
-    if (state.error) {
-      return (
-        <div className="p-6">
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="flex items-center justify-between">
-              <span>{state.error}</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setState((prev) => ({ ...prev, error: null }))}
-                className="ml-2"
+    return (
+      <ShimmerButton
+        onClick={() => openTaskForm()}
+        className="whitespace-nowrap"
+        aria-label="Create new task (Ctrl+N)"
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        <span className="hidden sm:inline">Add Task</span>
+        <span className="sm:hidden">Add</span>
+      </ShimmerButton>
+    );
+  };
+
+  return (
+    <div className="flex flex-col h-full p-4 md:p-6">
+      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+        <div className="flex-1">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+            Manage your tasks
+          </h2>
+          <p className="text-muted-foreground mt-1">
+            Your all-in-one productivity hub.
+          </p>
+        </div>
+        <div className="flex w-full md:w-auto items-center gap-4">
+          {renderAddButton()}
+
+          {/* AI Suggestions Toggle */}
+          <Button
+            variant={showAISuggestions ? "default" : "outline"}
+            size="default"
+            onClick={toggleAISuggestions}
+            className={cn(
+              "whitespace-nowrap transition-all duration-200",
+              showAISuggestions && "bg-primary hover:bg-primary/90 text-primary-foreground"
+            )}
+            aria-label="Toggle AI Suggestions"
+          >
+            <Brain className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">
+              {showAISuggestions ? 'Hide AI' : 'AI Suggestions'}
+            </span>
+            <span className="sm:hidden">AI</span>
+          </Button>
+
+          {/* Desktop view switcher */}
+          <div className="hidden md:flex items-center gap-1 rounded-md bg-muted p-1 group">
+            {viewOptions.map((option) => (
+              <InteractiveHoverButton
+                key={option.id}
+                onClick={() => handleViewChange(option.id)}
               >
-                Dismiss
-              </Button>
-            </AlertDescription>
-          </Alert>
+                <div
+                  className={cn(
+                    viewTabVariants({
+                      state: currentView === option.id ? "active" : "inactive",
+                    }),
+                  )}
+                >
+                  <option.icon className="h-4 w-4" />
+                  <span className="hidden lg:inline">{option.label}</span>
+                </div>
+              </InteractiveHoverButton>
+            ))}
+            <span className="text-sm text-muted-foreground pl-2 pr-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-card px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                <span className="text-xs">⌘</span>K
+              </kbd>
+              <span className="mx-1 text-xs">•</span>
+              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-card px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                <span className="text-xs">⌃</span>I
+              </kbd>
+              <span className="text-xs ml-1">AI</span>
+            </span>
+          </div>
+
+          {/* Mobile view switcher - icons only */}
+          <div className="flex md:hidden items-center gap-1 rounded-md bg-muted p-1">
+            {viewOptions.map((option) => (
+              <InteractiveHoverButton
+                key={option.id}
+                onClick={() => handleViewChange(option.id)}
+              >
+                <div
+                  className={cn(
+                    viewTabVariants({
+                      state: currentView === option.id ? "active" : "inactive",
+                    }),
+                    "px-2 py-2" // Smaller padding for mobile icons
+                  )}
+                  title={option.label}
+                >
+                  <option.icon className="h-4 w-4" />
+                </div>
+              </InteractiveHoverButton>
+            ))}
+          </div>
         </div>
-      );
-    }
+      </header>
 
-    try {
-      switch (state.activeView) {
-        case "list":
-          return (
-            <BlurFade delay={0.1}>
+      <div className="flex flex-grow gap-6 overflow-hidden">
+        {/* Main Content Area */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentView}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2 }}
+            className={cn(
+              "flex-grow overflow-auto transition-all duration-300",
+              showAISuggestions ? "lg:mr-0" : "mr-0"
+            )}
+          >
+            {currentView === 'list' && (
               <ListView
-                onEditTask={openTaskForm}
+                tasks={tasks}
+                onEdit={openTaskForm}
+                onDelete={handleDelete}
               />
-            </BlurFade>
-          );
-
-        case "calendar":
-          return (
-            <BlurFade delay={0.1}>
-              <CalendarViewEnhanced
-                onEditTask={openTaskForm}
-              />
-            </BlurFade>
-          );
-
-        case "timetable":
-          return (
-            <BlurFade delay={0.1}>
-              <TimetableView
+            )}
+            {currentView === 'calendar' && (
+              <CalendarViewEnhanced onEditTask={openTaskForm} />
+            )}
+            {currentView === 'timetable' && (
+              <TimetableView 
                 onEditEntry={openTimetableForm}
                 onAddEntry={() => openTimetableForm()}
               />
-            </BlurFade>
-          );
+            )}
+          </motion.div>
+        </AnimatePresence>
 
-        default:
-          return (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center space-y-2">
-                <Eye className="h-8 w-8 text-[hsl(0,0%,45%)] mx-auto" />
-                <p className="text-[hsl(0,0%,45%)] text-sm">
-                  Select a view to get started
-                </p>
-                <p className="text-xs text-[hsl(0,0%,60%)]">
-                  Use the tabs above or keyboard shortcuts
-                </p>
-              </div>
-            </div>
-          );
-      }
-    } catch (error) {
-      console.error("Error rendering view content:", error);
-      return (
-        <div className="flex flex-col items-center justify-center py-12 space-y-4">
-          <AlertTriangle className="h-8 w-8 text-red-500" />
-          <div className="text-center space-y-2">
-            <p className="text-red-600 text-sm font-medium">
-              Error loading {VIEW_CONFIG[state.activeView].label.toLowerCase()}
-            </p>
-            <p className="text-[hsl(0,0%,45%)] text-xs max-w-md">
-              There was an issue loading this view. Please try refreshing the
-              page or selecting a different view.
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.location.reload()}
-              className="mt-2"
+        {/* AI Suggestions Sidebar */}
+        <AnimatePresence>
+          {showAISuggestions && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: "auto", opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="hidden lg:block w-80 xl:w-96 flex-shrink-0 overflow-hidden"
             >
-              Refresh Page
-            </Button>
-          </div>
-        </div>
-      );
-    }
-  }, [state, openTaskForm, openTimetableForm]);
-
-  return (
-    <>
-      {/* ARIA Live Region for announcements */}
-      <div
-        aria-live="polite"
-        aria-atomic="true"
-        className="sr-only"
-        role="status"
-      />
-
-      <BlurFade delay={0.05} className={cn("space-y-6", className)}>
-        {/* Enhanced header with improved responsive design */}
-        <Card className="relative overflow-hidden">
-          <AnimatedGridPattern
-            width={30}
-            height={30}
-            className="absolute inset-0 opacity-20"
-            numSquares={20}
-            maxOpacity={0.1}
-          />
-
-          <CardHeader className="relative">
-            <div className="flex flex-col sm:flex-row lg:flex-row items-start lg:items-center justify-between gap-4">
-              <div className="space-y-1 min-w-0 flex-1">
-                <CardTitle className="text-xl font-semibold text-[hsl(0,0%,10%)] truncate">
-                  Tasks & Events
-                </CardTitle>
-                <p className="text-sm text-[hsl(0,0%,45%)] line-clamp-2">
-                  Manage your tasks and schedule in one place
-                </p>
-              </div>
-
-              {/* Enhanced responsive action buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                <ShimmerButton
-                  onClick={() => openTaskForm()}
-                  className={cn(
-                    actionButtonVariants({
-                      variant: "shimmer",
-                      size: "default",
-                    }),
-                    "w-full sm:w-auto min-w-[120px]",
-                  )}
-                  shimmerColor="#ffffff"
-                  background="hsl(142, 60%, 40%)"
-                  shimmerDuration="2s"
-                  aria-label="Create new task (Ctrl+N)"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Add Task</span>
-                </ShimmerButton>
-
-                <Button
-                  onClick={() => openTimetableForm()}
-                  className={cn(
-                    actionButtonVariants({ variant: "secondary" }),
-                    "w-full sm:w-auto min-w-[120px]",
-                  )}
-                  aria-label="Add new class to timetable"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Add Class</span>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-
-          {/* Enhanced view switching with improved mobile experience */}
-          <CardContent className="pt-0">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex flex-wrap gap-1 p-1 bg-[hsl(0,0%,98%)] rounded-lg border border-[hsl(40,30%,80%)] flex-1">
-                {availableViews.map(([view, config]) => {
-                  const Icon = config.icon;
-                  const isActive = state.activeView === view;
-
-                  return (
-                    <button
-                      key={view}
-                      onClick={() => handleViewChange(view)}
-                      className={cn(
-                        viewTabVariants({
-                          state: isActive ? "active" : "inactive",
-                        }),
-                        "flex-1 sm:flex-none min-w-0",
-                      )}
-                      aria-pressed={isActive}
-                      aria-label={config.ariaLabel}
-                      title={`${config.label} - ${config.description}`}
+              <div className="h-full bg-card border rounded-lg p-4 overflow-y-auto">
+                <div className="sticky top-0 bg-card pb-4 mb-4 border-b z-10">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <Brain className="h-5 w-5 text-primary" />
+                      AI Suggestions
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={toggleAISuggestions}
+                      className="opacity-70 hover:opacity-100"
                     >
-                      <Icon
-                        className="h-4 w-4 flex-shrink-0"
-                        aria-hidden="true"
-                      />
-                      <span className="truncate">{config.label}</span>
-
-                      {/* Enhanced keyboard shortcut indicator */}
-                      <kbd className="hidden lg:inline-flex items-center rounded border border-[hsl(40,30%,80%)] bg-white px-1.5 py-0.5 text-xs text-[hsl(0,0%,45%)] ml-2">
-                        <span className="text-xs">⌘</span>
-                        {config.shortcut}
-                      </kbd>
-                    </button>
-                  );
-                })}
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Smart recommendations for your workflow
+                  </p>
+                </div>
+                
+                <SuggestionList
+                  suggestions={aiSuggestions.filter(s => s.acceptanceStatus === 'pending')}
+                  onAcceptSuggestion={handleAcceptSuggestion}
+                  onRejectSuggestion={handleRejectSuggestion}
+                  onRefresh={handleRefreshSuggestions}
+                  title=""
+                  showHeader={false}
+                  showReasoning={true}
+                  isLoading={isLoadingSuggestions}
+                  layout="default"
+                  maxHeight="none"
+                  className="space-y-3"
+                />
               </div>
-            </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            {/* Enhanced view description with better responsive behavior */}
-            <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <p className="text-xs text-[hsl(0,0%,45%)] line-clamp-2">
-                {VIEW_CONFIG[state.activeView].description}
-              </p>
-
-              {/* Keyboard shortcuts hint for desktop */}
-              <p className="hidden lg:block text-xs text-[hsl(0,0%,60%)] whitespace-nowrap">
-                Use Ctrl+L/C/T to switch views, Ctrl+N for new task
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Enhanced main content with better loading and error states */}
-        <Card className="min-h-[600px] relative">
-          <CardContent className="p-0">
-            <div
-              className="w-full h-full"
-              role="tabpanel"
-              aria-labelledby={`tab-${state.activeView}`}
-              aria-label={`${VIEW_CONFIG[state.activeView].label} content`}
+        {/* Mobile AI Suggestions Overlay */}
+        {showAISuggestions && (
+          <div className="lg:hidden fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-end">
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="w-full max-h-[70vh] bg-card border-t rounded-t-lg overflow-hidden"
             >
-              {renderViewContent()}
-            </div>
-          </CardContent>
-        </Card>
+              <div className="p-4 border-b">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <Brain className="h-5 w-5 text-primary" />
+                    AI Suggestions
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleAISuggestions}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="p-4 overflow-y-auto">
+                <SuggestionList
+                  suggestions={aiSuggestions.filter(s => s.acceptanceStatus === 'pending')}
+                  onAcceptSuggestion={handleAcceptSuggestion}
+                  onRejectSuggestion={handleRejectSuggestion}
+                  onRefresh={handleRefreshSuggestions}
+                  title=""
+                  showHeader={false}
+                  showReasoning={true}
+                  isLoading={isLoadingSuggestions}
+                  layout="compact"
+                  maxHeight="none"
+                />
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </div>
 
-        {/* Enhanced dialogs with better accessibility and responsive design */}
-        <Dialog
-          open={state.openForm === "task"}
-          onOpenChange={() => closeForm()}
-        >
-          <DialogContent className="max-w-2xl max-h-[90vh] w-[95vw] overflow-hidden flex flex-col">
-            <DialogHeader className="flex-shrink-0">
-              <DialogTitle className="text-xl font-semibold">
-                {state.editingTaskId ? "Edit Task" : "Create New Task"}
-              </DialogTitle>
-              <DialogDescription>
-                {state.editingTaskId
-                  ? "Update your task details below. All changes will be saved automatically."
-                  : "Fill in the details to create a new task. Required fields are marked with an asterisk."}
-              </DialogDescription>
-            </DialogHeader>
+      {/* Task Form Dialog */}
+      {isTaskFormOpen && (
+                  <TaskForm
+            taskId={selectedTask?.id}
+            onSuccess={handleTaskFormSuccess}
+            onCancel={closeTaskForm}
+          />
+      )}
 
-            <div className="flex-1 overflow-y-auto px-1">
-              <TaskForm
-                taskId={state.editingTaskId}
-                onSuccess={handleTaskFormSuccess}
-                onCancel={closeForm}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog
-          open={state.openForm === "timetable"}
-          onOpenChange={() => closeForm()}
-        >
-          <DialogContent className="max-w-2xl max-h-[90vh] w-[95vw] overflow-hidden flex flex-col">
-            <DialogHeader className="flex-shrink-0">
-              <DialogTitle className="text-xl font-semibold">
-                {state.editingTimetableId ? "Edit Class" : "Add New Class"}
-              </DialogTitle>
-              <DialogDescription>
-                {state.editingTimetableId
-                  ? "Update your class details below. Changes will be reflected in your timetable immediately."
-                  : "Fill in the details to add a new class to your timetable. All fields are optional except course name."}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="flex-1 overflow-y-auto px-1">
-              <TimetableEntryForm
-                entryId={state.editingTimetableId}
-                onSuccess={handleTimetableFormSuccess}
-                onCancel={closeForm}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Enhanced keyboard shortcuts documentation for screen readers */}
-        <div className="sr-only" role="region" aria-label="Keyboard shortcuts">
-          <h3>Available Keyboard Shortcuts</h3>
-          <dl>
-            <div>
-              <dt>Ctrl+L or Cmd+L</dt>
-              <dd>Switch to List View</dd>
-            </div>
-            <div>
-              <dt>Ctrl+C or Cmd+C</dt>
-              <dd>Switch to Calendar View</dd>
-            </div>
-            <div>
-              <dt>Ctrl+T or Cmd+T</dt>
-              <dd>Switch to Timetable View</dd>
-            </div>
-            <div>
-              <dt>Ctrl+N or Cmd+N</dt>
-              <dd>Create New Task</dd>
-            </div>
-          </dl>
-        </div>
-      </BlurFade>
-    </>
+      {/* Timetable Entry Form Dialog */}
+      {isTimetableFormOpen && (
+        <TimetableEntryForm
+          entryId={selectedTimetableEntry?.id}
+          onSuccess={handleTimetableFormSubmit}
+          onCancel={closeTimetableForm}
+        />
+      )}
+    </div>
   );
 };

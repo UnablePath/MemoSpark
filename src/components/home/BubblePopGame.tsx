@@ -246,7 +246,7 @@ export function BubblePopGame() {
   };
 
   return (
-    <div className="relative w-full h-[400px] md:h-[500px] my-8 select-none overflow-hidden rounded-lg shadow-xl border border-primary/30 bg-gradient-to-br from-slate-800 via-gray-900 to-black text-slate-100">
+    <div className="relative w-full h-[400px] md:h-[500px] my-8 select-none overflow-hidden rounded-lg shadow-xl border border-primary/30 bg-gradient-to-br from-background via-muted to-card text-foreground">
       {/* Spiked Barrier - React-based rendering */}
       <div
         style={{ height: `${SPIKED_BARRIER_HEIGHT}px` }}
@@ -332,12 +332,12 @@ export function BubblePopGame() {
         )}
         {!gameActive && !gameOver && (
             <div className="text-center">
-                <h2 className="text-5xl font-extrabold mb-3 text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-cyan-400 to-blue-500">Bubble Dodger!</h2>
-                <p className="text-slate-300 mb-6 text-lg">Pop bubbles, dodge the spikes!</p>
+                <h2 className="text-5xl font-extrabold mb-3 text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-primary/60">Bubble Dodger!</h2>
+                <p className="text-muted-foreground mb-6 text-lg">Pop bubbles, dodge the spikes!</p>
                 <Button 
                     onClick={startGame} 
                     size="lg" 
-                    className="pointer-events-auto bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white shadow-2xl transform hover:scale-105 transition-transform duration-150 text-2xl px-10 py-7"
+                    className="pointer-events-auto bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-2xl transform hover:scale-105 transition-transform duration-150 text-2xl px-10 py-7"
                 >
                     Start Game
                 </Button>

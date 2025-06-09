@@ -1,12 +1,12 @@
 "use client";
 
 import type React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon, Clock, AlertCircle, Repeat, Info, Target } from 'lucide-react';
+import { CalendarIcon, Clock, AlertCircle, Repeat, Info, Target, Brain, Sparkles } from 'lucide-react';
 import { useCreateTask, useUpdateTask, useGetTask } from '@/hooks/useTaskQueries';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { SuggestionCard } from '@/components/ai/SuggestionCard';
+import type { AISuggestion } from '@/types/ai';
 import type {
   TaskFormData,
   Priority,
@@ -127,6 +129,205 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   // State for date/time picker
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [timeValue, setTimeValue] = useState('09:00');
+
+  // AI Suggestions state
+  const [showAISuggestions, setShowAISuggestions] = useState(false);
+  const [aiSuggestions, setAISuggestions] = useState<AISuggestion[]>([]);
+  const [appliedSuggestions, setAppliedSuggestions] = useState<Set<string>>(new Set());
+
+  // Watch form values for AI suggestions - use individual watches to avoid array reference changes
+  const watchedTitle = form.watch('title');
+  const watchedSubject = form.watch('subject');
+  const watchedType = form.watch('type');
+  
+  // Generate contextual AI suggestions based on form input
+  const generateContextualSuggestions = useCallback((title: string, subject: string, type: string): AISuggestion[] => {
+    const suggestions: AISuggestion[] = [];
+    const titleLower = title.toLowerCase();
+    const subjectLower = subject.toLowerCase();
+
+    // Early return if no input
+    if (!title.trim() && !subject.trim()) return [];
+
+    // Title-based suggestions
+    if (titleLower.includes('math') || subjectLower.includes('math')) {
+      suggestions.push({
+        id: 'math-suggestion-1',
+        type: 'task_suggestion',
+        title: 'Schedule spaced practice sessions',
+        description: 'For math topics, breaking into 30-minute practice sessions over multiple days improves retention by 40%.',
+        priority: 'medium',
+        confidence: 0.85,
+        reasoning: 'Research shows spaced repetition is highly effective for mathematical concepts.',
+        metadata: {
+          category: 'academic',
+          tags: ['math', 'practice', 'spaced-repetition'],
+          estimatedBenefit: 0.8,
+          requiredAction: 'optional'
+        },
+        createdAt: new Date().toISOString(),
+        acceptanceStatus: 'pending'
+      });
+    }
+
+    if (titleLower.includes('study') || titleLower.includes('review')) {
+      suggestions.push({
+        id: 'study-suggestion-1',
+        type: 'study_time',
+        title: 'Add active recall techniques',
+        description: 'Include flashcards or practice questions in your study session for better retention.',
+        priority: 'high',
+        confidence: 0.92,
+        reasoning: 'Active recall improves learning effectiveness by 50% compared to passive reading.',
+        metadata: {
+          category: 'productivity',
+          tags: ['study', 'active-recall', 'flashcards'],
+          estimatedBenefit: 0.9,
+          requiredAction: 'immediate'
+        },
+        createdAt: new Date().toISOString(),
+        acceptanceStatus: 'pending'
+      });
+    }
+
+    if (titleLower.includes('project') || titleLower.includes('assignment')) {
+      suggestions.push({
+        id: 'project-suggestion-1',
+        type: 'schedule_optimization',
+        title: 'Break into smaller milestones',
+        description: 'Split this into 3-4 smaller tasks with specific deadlines to avoid last-minute stress.',
+        priority: 'high',
+        confidence: 0.88,
+        reasoning: 'Breaking large projects into smaller tasks increases completion rates by 60%.',
+        metadata: {
+          category: 'productivity',
+          tags: ['project', 'milestones', 'planning'],
+          estimatedBenefit: 0.85,
+          requiredAction: 'immediate'
+        },
+        createdAt: new Date().toISOString(),
+        acceptanceStatus: 'pending'
+      });
+    }
+
+    // Subject-based suggestions
+    if (subjectLower.includes('physics')) {
+      suggestions.push({
+        id: 'physics-suggestion-1',
+        type: 'difficulty_adjustment',
+        title: 'Start with concept review',
+        description: 'Begin with fundamental concepts before tackling complex problems to build confidence.',
+        priority: 'medium',
+        confidence: 0.78,
+        reasoning: 'Physics concepts build on each other - solid foundations improve problem-solving success.',
+        metadata: {
+          category: 'academic',
+          tags: ['physics', 'concepts', 'foundation'],
+          estimatedBenefit: 0.75,
+          requiredAction: 'optional'
+        },
+        createdAt: new Date().toISOString(),
+        acceptanceStatus: 'pending'
+      });
+    }
+
+    // General productivity suggestions
+    if (type === 'academic' && suggestions.length === 0 && title.trim()) {
+      suggestions.push({
+        id: 'general-academic-1',
+        type: 'study_time',
+        title: 'Set a focused time block',
+        description: 'Academic tasks benefit from dedicated 45-90 minute focused sessions with short breaks.',
+        priority: 'medium',
+        confidence: 0.82,
+        reasoning: 'Focused time blocks improve academic performance and reduce cognitive fatigue.',
+        metadata: {
+          category: 'productivity',
+          tags: ['focus', 'time-block', 'academic'],
+          estimatedBenefit: 0.7,
+          requiredAction: 'optional'
+        },
+        createdAt: new Date().toISOString(),
+        acceptanceStatus: 'pending'
+      });
+    }
+
+    return suggestions.slice(0, 2); // Limit to 2 suggestions to avoid overwhelming
+  }, []);
+  
+  // Generate contextual suggestions based on form input
+  const contextualSuggestions = useMemo(() => {
+    const suggestions = generateContextualSuggestions(
+      watchedTitle || '', 
+      watchedSubject || '', 
+      watchedType || ''
+    );
+    
+    return suggestions.filter(
+      suggestion => !appliedSuggestions.has(suggestion.id)
+    );
+  }, [watchedTitle, watchedSubject, watchedType, appliedSuggestions, generateContextualSuggestions]);
+
+  // Update AI suggestions when contextual suggestions change
+  useEffect(() => {
+    setAISuggestions(contextualSuggestions);
+    if (contextualSuggestions.length > 0 && watchedTitle) {
+      setShowAISuggestions(true);
+    }
+  }, [contextualSuggestions, watchedTitle]);
+
+  // AI suggestion handlers
+  const handleAcceptSuggestion = useCallback((suggestionId: string) => {
+    const suggestion = aiSuggestions.find(s => s.id === suggestionId);
+    if (!suggestion) return;
+
+    // Apply suggestion to form
+    if (suggestion.type === 'task_suggestion' && suggestion.metadata?.tags?.includes('spaced-repetition')) {
+      // Suggest adding recurring sessions
+      form.setValue('recurrence_settings.frequency', 'daily');
+      form.setValue('recurrence_settings.interval', 2); // Every other day
+    }
+    
+    if (suggestion.metadata?.tags?.includes('active-recall')) {
+      // Enhance description with active recall techniques
+      const currentDesc = form.getValues('description') || '';
+      const enhancedDesc = currentDesc + 
+        (currentDesc ? '\n\n' : '') + 
+        '📚 Include active recall techniques:\n' +
+        '• Create flashcards for key concepts\n' +
+        '• Practice problems without looking at solutions\n' +
+        '• Explain concepts out loud';
+      form.setValue('description', enhancedDesc);
+    }
+
+    if (suggestion.metadata?.tags?.includes('milestones')) {
+      // Suggest breaking into phases
+      const currentDesc = form.getValues('description') || '';
+      const enhancedDesc = currentDesc + 
+        (currentDesc ? '\n\n' : '') + 
+        '🎯 Project Milestones:\n' +
+        '• Phase 1: Research and planning\n' +
+        '• Phase 2: Initial implementation\n' +
+        '• Phase 3: Review and refinement\n' +
+        '• Phase 4: Final submission';
+      form.setValue('description', enhancedDesc);
+    }
+
+    // Mark suggestion as applied
+    setAppliedSuggestions(prev => new Set([...prev, suggestionId]));
+    
+    // Remove from current suggestions
+    setAISuggestions(prev => prev.filter(s => s.id !== suggestionId));
+  }, [aiSuggestions, form]);
+
+  const handleRejectSuggestion = useCallback((suggestionId: string) => {
+    setAISuggestions(prev => prev.filter(s => s.id !== suggestionId));
+    setAppliedSuggestions(prev => new Set([...prev, suggestionId]));
+  }, []);
+
+  const toggleAISuggestions = useCallback(() => {
+    setShowAISuggestions(prev => !prev);
+  }, []);
 
   // Load existing task data for editing
   useEffect(() => {
@@ -221,24 +422,52 @@ export const TaskForm: React.FC<TaskFormProps> = ({
     isLoadingTask;
 
   return (
-    <div className={cn("w-full max-w-2xl mx-auto", className)}>
-      <Form {...form}>
-        <form 
-          onSubmit={form.handleSubmit(onSubmit)} 
-          className="space-y-6"
-          role="form"
-          aria-label={taskId ? "Edit task form" : "Create new task form"}
-        >
-          {/* Form Header */}
-          <div className="text-center space-y-2">
-            <h2 className="text-xl sm:text-2xl font-semibold">
-              {taskId ? 'Edit Task' : 'Create New Task'}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {taskId ? 'Update your task details below' : 'Fill in the details to create a new task'}
-            </p>
-            <Separator className="mt-4" />
-          </div>
+    <div className={cn("w-full max-w-4xl mx-auto", className)}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Form */}
+        <div className="lg:col-span-2">
+          <Form {...form}>
+            <form 
+              onSubmit={form.handleSubmit(onSubmit)} 
+              className="space-y-6"
+              role="form"
+              aria-label={taskId ? "Edit task form" : "Create new task form"}
+            >
+              {/* Form Header */}
+              <div className="text-center space-y-2">
+                <div className="flex items-center justify-center gap-2">
+                  <h2 className="text-xl sm:text-2xl font-semibold">
+                    {taskId ? 'Edit Task' : 'Create New Task'}
+                  </h2>
+                  {!taskId && aiSuggestions.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={toggleAISuggestions}
+                      className={cn(
+                        "ml-2 transition-colors",
+                        showAISuggestions ? "text-primary" : "text-muted-foreground"
+                      )}
+                    >
+                      <Brain className="h-4 w-4 mr-1" />
+                      <span className="hidden sm:inline">
+                        {showAISuggestions ? 'Hide' : 'Show'} AI Tips
+                      </span>
+                      <span className="sm:hidden">AI</span>
+                    </Button>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {taskId ? 'Update your task details below' : 'Fill in the details to create a new task'}
+                  {!taskId && aiSuggestions.length > 0 && (
+                    <span className="block mt-1 text-primary font-medium">
+                      💡 AI suggestions available as you type
+                    </span>
+                  )}
+                </p>
+                <Separator className="mt-4" />
+              </div>
 
           {/* Basic Information Section */}
           <section aria-labelledby="basic-info-heading">
@@ -858,5 +1087,65 @@ export const TaskForm: React.FC<TaskFormProps> = ({
         </form>
       </Form>
     </div>
+
+    {/* AI Suggestions Sidebar */}
+    {!taskId && (
+      <div className="lg:col-span-1">
+        <div className={cn(
+          "sticky top-6 transition-all duration-300 z-10",
+          showAISuggestions && aiSuggestions.length > 0 ? "opacity-100" : "opacity-0 pointer-events-none lg:pointer-events-auto lg:opacity-30"
+        )}>
+                      <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-background shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-sm font-semibold text-primary">
+                      AI Suggestions
+                    </CardTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Smart tips for your task
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3 max-h-96 overflow-y-auto">
+              {aiSuggestions.length > 0 ? (
+                <>
+                  {aiSuggestions.map((suggestion) => (
+                    <div key={suggestion.id} className="group">
+                      <SuggestionCard
+                        suggestion={suggestion}
+                        onAccept={handleAcceptSuggestion}
+                        onReject={handleRejectSuggestion}
+                        showReasoning={false}
+                        compact={true}
+                      />
+                    </div>
+                  ))}
+                  <div className="text-xs text-muted-foreground text-center pt-2 border-t">
+                    <span className="flex items-center justify-center gap-1">
+                      <Brain className="h-3 w-3" />
+                      Suggestions update as you type
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  <Brain className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">
+                    Start typing to see AI suggestions
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )}
+  </div>
+</div>
   );
 }; 

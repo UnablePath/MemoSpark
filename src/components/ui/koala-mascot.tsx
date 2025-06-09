@@ -29,7 +29,7 @@ interface KoalaMascotProps extends VariantProps<typeof koalaMascotVariants> {
 export const KoalaMascot: React.FC<KoalaMascotProps> = ({
   size,
   className,
-  'aria-label': ariaLabel = 'Stu, the StudySpark Mascot',
+  'aria-label': ariaLabel = 'Stu, the MemoSpark Mascot',
 }) => {
   const titleId = React.useId();
 

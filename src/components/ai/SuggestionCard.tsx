@@ -13,13 +13,13 @@ const suggestionCardVariants = cva(
   {
     variants: {
       confidence: {
-        high: "border-l-4 border-l-[hsl(142,60%,40%)] bg-gradient-to-r from-[hsl(142,60%,97%)] to-white dark:from-[hsl(142,60%,8%)] dark:to-card",
-        medium: "border-l-4 border-l-[hsl(40,60%,60%)] bg-gradient-to-r from-[hsl(40,60%,97%)] to-white dark:from-[hsl(40,60%,8%)] dark:to-card", 
-        low: "border-l-4 border-l-muted-foreground bg-gradient-to-r from-muted/30 to-white dark:from-muted/20 dark:to-card"
+        high: "border-l-4 border-l-primary bg-gradient-to-r from-primary/5 to-background",
+        medium: "border-l-4 border-l-amber-500 bg-gradient-to-r from-amber-500/5 to-background", 
+        low: "border-l-4 border-l-muted-foreground bg-gradient-to-r from-muted/30 to-background"
       },
       priority: {
         urgent: "ring-2 ring-destructive/20 shadow-md",
-        high: "ring-1 ring-[hsl(142,60%,40%)]/20",
+        high: "ring-1 ring-primary/20",
         medium: "ring-1 ring-muted/30",
         low: "border"
       },
@@ -50,8 +50,8 @@ const confidenceBadgeVariants = cva(
   {
     variants: {
       confidence: {
-        high: "bg-[hsl(142,60%,40%)] text-white",
-        medium: "bg-[hsl(40,60%,60%)] text-white",
+        high: "bg-primary text-primary-foreground",
+        medium: "bg-amber-500 text-white",
         low: "bg-muted text-muted-foreground"
       }
     }
@@ -153,8 +153,8 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({
           <div className="flex items-center gap-3 flex-1">
             <div className={cn(
               "flex items-center justify-center w-8 h-8 rounded-full",
-              suggestionConfidence === 'high' ? "bg-[hsl(142,60%,40%)]/10 text-[hsl(142,60%,40%)]" :
-              suggestionConfidence === 'medium' ? "bg-[hsl(40,60%,60%)]/10 text-[hsl(40,60%,60%)]" :
+              suggestionConfidence === 'high' ? "bg-primary/10 text-primary" :
+              suggestionConfidence === 'medium' ? "bg-amber-500/10 text-amber-600" :
               "bg-muted text-muted-foreground"
             )}>
               <IconComponent className="w-4 h-4" />
@@ -169,7 +169,7 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({
               size="sm"
               variant="ghost"
               onClick={() => onAccept(suggestion.id)}
-              className="h-8 w-8 p-0 text-[hsl(142,60%,40%)] hover:bg-[hsl(142,60%,40%)]/10"
+              className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
               aria-label={`Accept suggestion: ${suggestion.title}`}
             >
               <CheckCircle className="w-4 h-4" />
@@ -204,8 +204,8 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({
           <div className="flex items-center gap-3">
             <div className={cn(
               "flex items-center justify-center w-10 h-10 rounded-xl",
-              suggestionConfidence === 'high' ? "bg-[hsl(142,60%,40%)]/10 text-[hsl(142,60%,40%)]" :
-              suggestionConfidence === 'medium' ? "bg-[hsl(40,60%,60%)]/10 text-[hsl(40,60%,60%)]" :
+              suggestionConfidence === 'high' ? "bg-primary/10 text-primary" :
+              suggestionConfidence === 'medium' ? "bg-amber-500/10 text-amber-600" :
               "bg-muted text-muted-foreground"
             )}>
               <IconComponent className="w-5 h-5" />
@@ -232,7 +232,7 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({
           {suggestion.metadata?.estimatedBenefit && (
             <div className="text-right">
               <div className="text-xs text-muted-foreground">Benefit</div>
-              <div className="text-sm font-medium text-[hsl(142,60%,40%)]">
+              <div className="text-sm font-medium text-primary">
                 +{Math.round(suggestion.metadata.estimatedBenefit * 100)}%
               </div>
             </div>
@@ -310,7 +310,7 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({
             <Button
               size="sm"
               onClick={() => onAccept(suggestion.id)}
-              className="bg-[hsl(142,60%,40%)] hover:bg-[hsl(142,60%,35%)] text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
               aria-label={`Accept suggestion: ${suggestion.title}`}
             >
               <CheckCircle className="w-4 h-4 mr-1" />
@@ -321,7 +321,7 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({
       </CardFooter>
 
       {/* Subtle hover effect overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[hsl(142,60%,40%)]/0 to-[hsl(142,60%,40%)]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-primary/0 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
     </Card>
   );
 }; 

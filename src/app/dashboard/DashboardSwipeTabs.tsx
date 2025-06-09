@@ -121,7 +121,7 @@ export function DashboardSwipeTabs() {
         role="tablist"
         aria-orientation="horizontal"
         aria-label="Dashboard Navigation"
-        className="flex justify-around items-center p-2 border-t bg-background"
+        className="flex justify-around items-center p-2 border-t bg-background flex-shrink-0 pb-safe-bottom safe-scroll-area"
         onKeyDown={handleKeyDown}
       >
         {currentTabsConfig.map((tab, index) => {
@@ -141,7 +141,7 @@ export function DashboardSwipeTabs() {
               aria-controls={panelId}
               tabIndex={isActive ? 0 : -1} // Only active tab is in tab order initially
               onClick={() => handleTabChange(index)}
-              className={`p-2 rounded-md transition-colors duration-200 ${isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'}`}
+              className={`touch-target p-2 rounded-md transition-colors duration-200 ${isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'}`}
               aria-label={`Go to ${tab.key} tab`}
             >
               <Icon className="h-6 w-6" aria-hidden="true" /> {/* Icons are decorative due to aria-label on button */}

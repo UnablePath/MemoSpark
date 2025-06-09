@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import Link from 'next/link';
 // import { Button } from "@/components/ui/button"; // No longer needed for Profile/Settings icons
-import { StudySparkLogoSvg } from "@/components/ui/StudySparkLogoSvg";
+import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
 // import ProfileHeader from "@/components/profile/ProfileHeader"; // To be replaced by UserButton from layout + specific icons
 import DashboardSwipeTabs from './DashboardSwipeTabs';
 import { SignedIn, UserButton } from "@clerk/nextjs"; // Import SignedIn and UserButton
@@ -18,12 +18,12 @@ export default function DashboardPage() {
   const constraintsRef = useRef(null);
 
   return (
-    <div ref={constraintsRef} className="flex flex-col h-screen bg-background relative overflow-hidden">
+    <div ref={constraintsRef} className="app-container flex flex-col h-screen bg-background">
       {/* ConditionalHeader is now disabled for /dashboard */}
       {/* Integrated header elements for dashboard: Logo and UserButton */}
-      <div className="flex items-center justify-between p-4 border-b border-border bg-background flex-shrink-0">
-        <Link href="/" aria-label="StudySpark Homepage" className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md">
-          <StudySparkLogoSvg height={36} /> 
+      <div className="flex items-center justify-between px-2 py-3 lg:px-4 border-b border-border bg-background flex-shrink-0 pt-safe-top">
+        <Link href="/" aria-label="MemoSpark Homepage" className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md">
+          <MemoSparkLogoSvg height={42} /> 
         </Link>
         <SignedIn>
           <UserButton afterSignOutUrl="/">
@@ -31,12 +31,11 @@ export default function DashboardPage() {
             <UserButton.UserProfileLink label="Settings" url="/settings" labelIcon={<SettingsIcon className="h-4 w-4" />} />
           </UserButton>
         </SignedIn>
-        </div>
+      </div>
       
       <a href="#main-dashboard-content" className="sr-only focus:not-sr-only absolute top-2 left-2 z-50 bg-primary text-primary-foreground px-4 py-2 rounded focus:outline-dashed focus:outline-2 focus:outline-offset-2">Skip to main content</a>
       
-      <main id="main-dashboard-content" className="flex-1 overflow-y-auto">
-        {/* Removed pt-4 to reduce space below the now shorter header */}
+      <main id="main-dashboard-content" className="flex-1 overflow-hidden">
         <h1 className="sr-only">User Dashboard</h1>
         <DashboardSwipeTabs />
       </main>

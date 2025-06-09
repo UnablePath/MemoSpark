@@ -1,14 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { StudySparkLogoSvg } from '@/components/ui/StudySparkLogoSvg';
+import { MemoSparkLogoSvg } from '@/components/ui/MemoSparkLogoSvg';
 import { Button } from '@/components/ui/button';
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Menu, X } from 'lucide-react';
-import { useState } from 'react';
-
+import { useState } from 'react'
 export function HomepageNavbar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -22,13 +21,13 @@ export function HomepageNavbar() {
     <nav className="bg-background/90 backdrop-blur-lg fixed top-0 left-0 right-0 z-50 border-b border-border/40 shadow-sm">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 md:h-20">
         <div className="flex items-center gap-2">
-          <Link href="/" className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md" aria-label="StudySpark Home">
-            <StudySparkLogoSvg height={32} />
+          <Link href="/" className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md" aria-label="MemoSpark Home">
+            <MemoSparkLogoSvg height={32} />
           </Link>
           <Link
             href="/coming-soon"
             className="text-xs text-muted-foreground hover:text-primary transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background rounded-sm"
-            aria-label="Learn more about PromptU, the creators of StudySpark (Coming Soon)"
+            aria-label="Learn more about PromptU, the creators of MemoSpark (Coming Soon)"
           >
             by PromptU
           </Link>
@@ -104,7 +103,7 @@ export function HomepageNavbar() {
               href="/coming-soon"
               onClick={() => setIsMobileMenuOpen(false)}
               className="block px-3 py-2 rounded-md text-base font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background"
-              aria-label="Learn more about PromptU, the creators of StudySpark (Coming Soon)"
+              aria-label="Learn more about PromptU, the creators of MemoSpark (Coming Soon)"
             >
               by PromptU
             </Link>

@@ -1,8 +1,8 @@
-# StudySpark Development Rules
+# MemoSpark Development Rules
 
 ## Project Overview
 
-StudySpark is a mobile-first AI-powered study companion built with Next.js 15 App Router, TypeScript, Tailwind CSS, Supabase database, and Clerk authentication. **CRITICAL REQUIREMENT**: Default dark mode with minimalist design that prevents UI clutter and content bleeding.
+MemoSpark is a mobile-first AI-powered study companion built with Next.js 15 App Router, TypeScript, Tailwind CSS, Supabase database, and Clerk authentication. **CRITICAL REQUIREMENT**: Default dark mode with minimalist design that prevents UI clutter and content bleeding.
 
 ## Architecture Standards
 
@@ -250,15 +250,15 @@ import { supabaseHelpers } from '@/lib/supabase/client'
 3. Check touch target sizes minimum `h-11`
 4. Test horizontal scrolling issues
 
-This document serves as the definitive guide for maintaining StudySpark's minimalist, mobile-first design while ensuring robust functionality and preventing common integration errors.
+This document serves as the definitive guide for maintaining MemoSpark's minimalist, mobile-first design while ensuring robust functionality and preventing common integration errors.
 
 ---
 
-# StudySpark Development Standards (Extended)
+# MemoSpark Development Standards (Extended)
 
 ## Project Overview
 
-StudySpark is a React/Next.js study management app using Supabase (database), Clerk (authentication), Tailwind CSS (styling), and AI integration. **Critical constraint: Production app with existing users - avoid breaking changes.**
+MemoSpark is a React/Next.js study management app using Supabase (database), Clerk (authentication), Tailwind CSS (styling), and AI integration. **Critical constraint: Production app with existing users - avoid breaking changes.**
 
 ## Architecture Rules
 
@@ -462,4 +462,4 @@ layout.tsx
 - **Mobile**: Touch interactions and responsive behavior
 - **Theme**: All 7 themes render correctly across components
 
-This document serves as the definitive guide for maintaining StudySpark's minimalist, mobile-first design while ensuring robust functionality and preventing common integration errors. 
+This document serves as the definitive guide for maintaining MemoSpark's minimalist, mobile-first design while ensuring robust functionality and preventing common integration errors. 

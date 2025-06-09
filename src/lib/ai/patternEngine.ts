@@ -51,8 +51,8 @@ export interface UserPreferences {
 }
 
 export class PatternRecognitionEngine {
-  private static readonly STORAGE_KEY = 'studyspark_ai_patterns';
-  private static readonly PREFERENCES_KEY = 'studyspark_user_preferences';
+  private static readonly STORAGE_KEY = 'memospark_ai_patterns';
+  private static readonly PREFERENCES_KEY = 'memospark_user_preferences';
   private static readonly MAX_STORAGE_SIZE = 5 * 1024 * 1024; // 5MB limit
   private patterns: PatternData | null = null;
   private supabase: SupabaseClient | null; // Add Supabase client instance variable
@@ -816,7 +816,7 @@ export class PatternRecognitionEngine {
     }
 
     try {
-      const storageKey = `studyspark_timetable_${userId}`;
+      const storageKey = `memospark_timetable_${userId}`;
       const timetableData = {
         userId,
         timetable,
@@ -840,7 +840,7 @@ export class PatternRecognitionEngine {
     }
 
     try {
-      const storageKey = `studyspark_timetable_${userId}`;
+      const storageKey = `memospark_timetable_${userId}`;
       const stored = localStorage.getItem(storageKey);
       
       if (!stored) {

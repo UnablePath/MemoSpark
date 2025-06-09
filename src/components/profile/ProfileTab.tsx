@@ -36,7 +36,7 @@ const ProfileTab = () => {
 
   // Load profile from localStorage on component mount
   useEffect(() => {
-    const savedProfile = localStorage.getItem("studyspark_profile");
+    const savedProfile = localStorage.getItem("memospark_profile");
     if (savedProfile) {
       try {
         const parsedProfile = JSON.parse(savedProfile);
@@ -124,7 +124,7 @@ const ProfileTab = () => {
     };
 
     // Save to localStorage
-    localStorage.setItem("studyspark_profile", JSON.stringify(updatedProfile));
+          localStorage.setItem("memospark_profile", JSON.stringify(updatedProfile));
 
     setProfile(updatedProfile);
     setIsEditing(false);
@@ -139,7 +139,7 @@ const ProfileTab = () => {
   // Cancel editing
   const handleCancelEdit = () => {
     // Reload the saved profile
-    const savedProfile = localStorage.getItem("studyspark_profile");
+    const savedProfile = localStorage.getItem("memospark_profile");
     if (savedProfile) {
       const parsedProfile = JSON.parse(savedProfile);
       setProfile(parsedProfile);

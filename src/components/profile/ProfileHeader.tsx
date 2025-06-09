@@ -42,7 +42,7 @@ export const ProfileHeader = () => {
   // Handle Sign Out
   const handleSignOut = () => {
     // Clear the profile from local storage upon sign out
-    localStorage.removeItem('studyspark_profile');
+          localStorage.removeItem('memospark_profile');
     // Reset profile state in context so UI updates immediately
     resetProfile();
     router.push('/login'); // Redirect to login

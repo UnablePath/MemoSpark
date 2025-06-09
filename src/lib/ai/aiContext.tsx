@@ -54,7 +54,7 @@ export const AIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [userPreferences, setUserPreferences] = useLocalStorage<UserAIPreferences>(
-    'studyspark_ai_user_profiles', // Changed local storage key to reflect table
+    'memospark_ai_user_profiles', // Changed local storage key to reflect table
     defaultUserAIPreferences
   );
   // const { profile } = useUser(); // We might not need profile from UserContext if we fetch auth user directly

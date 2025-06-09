@@ -1,6 +1,6 @@
 /**
  * Data Access Layer Test Suite
- * Comprehensive tests for StudySpark's Supabase + React Query implementation
+ * Comprehensive tests for MemoSpark's Supabase + React Query implementation
  */
 
 // Simple test runner - can be run with Node.js directly

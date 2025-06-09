@@ -37,7 +37,7 @@ const headerVariants = cva(
       style: {
         default: "bg-muted/30",
         minimal: "bg-transparent border-0 p-2",
-        highlighted: "bg-[hsl(142,60%,97%)] border-[hsl(142,60%,40%)]/20 dark:bg-[hsl(142,60%,8%)]"
+        highlighted: "bg-primary/5 border-primary/20"
       }
     },
     defaultVariants: {
@@ -127,7 +127,7 @@ export const SuggestionList: React.FC<SuggestionListProps> = ({
         {showHeader && (
           <div className={cn(headerVariants({ style: headerStyle }))}>
             <div className="flex items-center gap-3">
-              <RefreshCw className="w-4 h-4 animate-spin text-[hsl(142,60%,40%)]" />
+              <RefreshCw className="w-4 h-4 animate-spin text-primary" />
               <h3 className="font-semibold text-sm">Loading suggestions...</h3>
             </div>
           </div>
@@ -156,7 +156,7 @@ export const SuggestionList: React.FC<SuggestionListProps> = ({
             
             {stats.total > 0 && (
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center px-2 py-1 rounded-full bg-[hsl(142,60%,40%)] text-white text-xs font-medium">
+                <span className="inline-flex items-center px-2 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium">
                   {stats.total}
                 </span>
                 {stats.high > 0 && (

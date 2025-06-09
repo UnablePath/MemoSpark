@@ -37,10 +37,13 @@ export const timetableKeys = {
 /**
  * Hook to fetch all timetable entries with optional filtering
  */
-export const useFetchTimetableEntries = (filters?: TimetableEntryFilters) => {
+export const useFetchTimetableEntries = (
+  filters?: TimetableEntryFilters,
+  getToken?: () => Promise<string | null>
+) => {
   return useQuery({
     queryKey: timetableKeys.list(filters),
-    queryFn: () => fetchTimetableEntries(filters),
+    queryFn: () => fetchTimetableEntries(filters, getToken),
     staleTime: 1000 * 60 * 10, // 10 minutes - timetable changes less frequently
     gcTime: 1000 * 60 * 20, // 20 minutes
     retry: (failureCount, error) => {
@@ -56,10 +59,14 @@ export const useFetchTimetableEntries = (filters?: TimetableEntryFilters) => {
 /**
  * Hook to get a specific timetable entry by ID
  */
-export const useGetTimetableEntry = (id: string, enabled = true) => {
+export const useGetTimetableEntry = (
+  id: string, 
+  enabled = true,
+  getToken?: () => Promise<string | null>
+) => {
   return useQuery({
     queryKey: timetableKeys.detail(id),
-    queryFn: () => getTimetableEntryById(id),
+    queryFn: () => getTimetableEntryById(id, getToken),
     enabled: enabled && Boolean(id),
     staleTime: 1000 * 60 * 10, // 10 minutes
     gcTime: 1000 * 60 * 20, // 20 minutes
@@ -78,11 +85,12 @@ export const useGetTimetableEntry = (id: string, enabled = true) => {
 export const useFetchTimetableEntriesPaginated = (
   page = 0,
   limit = 20,
-  filters?: TimetableEntryFilters
+  filters?: TimetableEntryFilters,
+  getToken?: () => Promise<string | null>
 ) => {
   return useQuery({
     queryKey: timetableKeys.paginated(page, limit, filters),
-    queryFn: () => fetchTimetableEntriesPaginated(page, limit, filters),
+    queryFn: () => fetchTimetableEntriesPaginated(page, limit, filters, getToken),
     staleTime: 1000 * 60 * 8, // 8 minutes for paginated data
     gcTime: 1000 * 60 * 15, // 15 minutes
     placeholderData: (previousData) => previousData, // Keep previous data while fetching new page
@@ -98,8 +106,8 @@ export const useFetchTimetableEntriesPaginated = (
 /**
  * Hook to get active semester timetable entries
  */
-export const useActiveTimetableEntries = () => {
-  return useFetchTimetableEntries({ semester_active: true });
+export const useActiveTimetableEntries = (getToken?: () => Promise<string | null>) => {
+  return useFetchTimetableEntries({ semester_active: true }, getToken);
 };
 
 // ========================================
@@ -109,12 +117,12 @@ export const useActiveTimetableEntries = () => {
 /**
  * Hook to create a new timetable entry with optimistic updates
  */
-export const useCreateTimetableEntry = () => {
+export const useCreateTimetableEntry = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (entryData: Omit<TimetableEntryInsert, 'user_id'>) => 
-      createTimetableEntry(entryData),
+      createTimetableEntry(entryData, getToken),
     onMutate: async (newEntryData) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: timetableKeys.lists() });
@@ -175,12 +183,12 @@ export const useCreateTimetableEntry = () => {
 /**
  * Hook to update a timetable entry with optimistic updates
  */
-export const useUpdateTimetableEntry = () => {
+export const useUpdateTimetableEntry = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: TimetableEntryUpdate }) =>
-      updateTimetableEntry(id, updates),
+      updateTimetableEntry(id, updates, getToken),
     onMutate: async ({ id, updates }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: timetableKeys.detail(id) });
@@ -243,11 +251,11 @@ export const useUpdateTimetableEntry = () => {
 /**
  * Hook to delete a timetable entry with optimistic updates
  */
-export const useDeleteTimetableEntry = () => {
+export const useDeleteTimetableEntry = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => deleteTimetableEntry(id),
+    mutationFn: (id: string) => deleteTimetableEntry(id, getToken),
     onMutate: async (id) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: timetableKeys.lists() });
@@ -307,20 +315,20 @@ export const useInvalidateTimetableQueries = () => {
 /**
  * Hook to prefetch timetable data
  */
-export const usePrefetchTimetable = () => {
+export const usePrefetchTimetable = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
 
   return {
     prefetchEntry: (id: string) =>
       queryClient.prefetchQuery({
         queryKey: timetableKeys.detail(id),
-        queryFn: () => getTimetableEntryById(id),
+        queryFn: () => getTimetableEntryById(id, getToken),
         staleTime: 1000 * 60 * 10,
       }),
     prefetchEntries: (filters?: TimetableEntryFilters) =>
       queryClient.prefetchQuery({
         queryKey: timetableKeys.list(filters),
-        queryFn: () => fetchTimetableEntries(filters),
+        queryFn: () => fetchTimetableEntries(filters, getToken),
         staleTime: 1000 * 60 * 10,
       }),
   };
@@ -329,10 +337,13 @@ export const usePrefetchTimetable = () => {
 /**
  * Hook to get timetable entries by day of week
  */
-export const useTimetableByDay = (dayOfWeek: string) => {
+export const useTimetableByDay = (
+  dayOfWeek: string,
+  getToken?: () => Promise<string | null>
+) => {
   const { data: allEntries = [], ...rest } = useFetchTimetableEntries({
     semester_active: true,
-  });
+  }, getToken);
 
   const entriesForDay = allEntries.filter(entry => 
     entry.days_of_week.includes(dayOfWeek.toLowerCase())
@@ -347,18 +358,18 @@ export const useTimetableByDay = (dayOfWeek: string) => {
 /**
  * Hook to get current day's timetable entries
  */
-export const useTodaysTimetable = () => {
+export const useTodaysTimetable = (getToken?: () => Promise<string | null>) => {
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-  return useTimetableByDay(today);
+  return useTimetableByDay(today, getToken);
 };
 
 /**
  * Hook to get upcoming timetable entries for the week
  */
-export const useWeeklyTimetable = () => {
+export const useWeeklyTimetable = (getToken?: () => Promise<string | null>) => {
   const { data: allEntries = [], ...rest } = useFetchTimetableEntries({
     semester_active: true,
-  });
+  }, getToken);
 
   // Group entries by day of week
   const weeklySchedule = allEntries.reduce((acc, entry) => {

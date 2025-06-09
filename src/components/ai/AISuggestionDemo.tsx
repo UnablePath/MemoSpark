@@ -146,7 +146,7 @@ export const AISuggestionDemo: React.FC = () => {
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold text-foreground">AI Suggestion Components Demo</h1>
         <p className="text-muted-foreground">
-          Interactive demonstration of StudySpark's AI suggestion system
+          Interactive demonstration of MemoSpark's AI suggestion system
         </p>
       </div>
 
@@ -246,7 +246,7 @@ export const AISuggestionDemo: React.FC = () => {
         <h3 className="font-medium mb-2">Demo Statistics</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
-            <div className="font-medium text-[hsl(142,60%,40%)]">
+            <div className="font-medium text-primary">
               {suggestions.filter(s => s.acceptanceStatus === 'accepted').length}
             </div>
             <div className="text-muted-foreground">Accepted</div>

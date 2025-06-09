@@ -1,4 +1,4 @@
-# StudySpark MVP Development Plan - 1.5 Weeks (4-Person Team)
+# MemoSpark MVP Development Plan - 1.5 Weeks (4-Person Team)
 
 ## Team Structure & Responsibilities
 

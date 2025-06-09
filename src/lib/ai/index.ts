@@ -366,7 +366,7 @@ export class StudySparkAI {
    */
   private calculateStorageUsage(): number {
     try {
-      const stored = localStorage.getItem('studyspark_ai_patterns');
+      const stored = localStorage.getItem('memospark_ai_patterns');
       return stored ? new Blob([stored]).size : 0;
     } catch (error) {
       return 0;
@@ -517,4 +517,6 @@ export const AIUtils = {
 };
 
 // Export singleton instance
-export const studySparkAI = new StudySparkAI(); 
+export const memoSparkAI = new StudySparkAI();
+// Maintain backwards compatibility
+export const studySparkAI = memoSparkAI; 

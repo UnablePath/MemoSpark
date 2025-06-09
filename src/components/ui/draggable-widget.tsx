@@ -117,7 +117,7 @@ const DraggableWidget: React.FC<DraggableWidgetProps> = ({
               <KoalaMascot size="md" />
             </div>
           )}
-          <div className="absolute bottom-2 text-[10px] font-medium">StudySpark</div>
+          <div className="absolute bottom-2 text-[10px] font-medium">MemoSpark</div>
         </div>
       </motion.div>
     </div>

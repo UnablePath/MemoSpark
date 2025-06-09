@@ -14,24 +14,72 @@ const DEFAULT_AI_CONFIG: SupabaseAIConfig = {
   syncFrequency: 'manual',
 };
 
-// Create Supabase client only if environment variables are available
-export const supabase = (supabaseUrl && supabaseAnonKey) 
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
+/**
+ * Create Supabase client with Clerk integration
+ * Uses Clerk session tokens for authentication when available
+ */
+function createSupabaseClient() {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return null;
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false, // Clerk handles session persistence
+      autoRefreshToken: false, // Clerk handles token refresh
+    },
+    global: {
+      headers: {
+        'Authorization': `Bearer ${supabaseAnonKey}`, // Default to anon key
       },
-      realtime: {
-        params: {
-          eventsPerSecond: 2, // Rate limit for real-time updates
-        },
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 2, // Rate limit for real-time updates
       },
-    })
-  : null;
+    },
+  });
+}
+
+// Create base Supabase client
+export const supabase = createSupabaseClient();
+
+/**
+ * Create authenticated Supabase client using Clerk session tokens
+ * Follows official Supabase-Clerk integration pattern
+ */
+export function createAuthenticatedSupabaseClient(getToken?: () => Promise<string | null>) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return null;
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false, // Clerk handles session persistence
+      autoRefreshToken: false, // Clerk handles token refresh
+    },
+    // Session accessed from Clerk SDK, either as Clerk.session (vanilla JavaScript) 
+    // or useAuth (React) - follows official Supabase documentation pattern
+    accessToken: async () => {
+      try {
+        const token = getToken ? await getToken() : null;
+        return token;
+      } catch (error) {
+        console.warn('Failed to get Clerk session token:', error);
+        return null;
+      }
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 2, // Rate limit for real-time updates
+      },
+    },
+  });
+}
 
 // AI configuration management
 class SupabaseAIConfigManager {
-  private static readonly CONFIG_KEY = 'studyspark_supabase_ai_config';
+  private static readonly CONFIG_KEY = 'memospark_supabase_ai_config';
   private config: SupabaseAIConfig;
 
   constructor() {
@@ -281,6 +329,38 @@ export interface AICollaborativeInsight {
   created_at: string;
   expires_at?: string;
   is_active: boolean;
+}
+
+/**
+ * React hook to get authenticated Supabase client with Clerk integration
+ * 
+ * Usage in React components:
+ * ```typescript
+ * import { useAuth } from '@clerk/nextjs';
+ * import { useSupabaseClient } from '@/lib/supabase/client';
+ * 
+ * function MyComponent() {
+ *   const { getToken } = useAuth();
+ *   const supabase = useSupabaseClient(getToken);
+ *   
+ *   // Use supabase client for database operations
+ *   const { data, error } = await supabase.from('tasks').select('*');
+ * }
+ * ```
+ */
+export function useSupabaseClient(getToken?: () => Promise<string | null>) {
+  // Server-side: return base client
+  if (typeof window === 'undefined') {
+    return supabase;
+  }
+  
+  // Client-side: create authenticated client if getToken is provided
+  if (getToken) {
+    return createAuthenticatedSupabaseClient(getToken);
+  }
+  
+  // Fallback to base client for non-authenticated operations
+  return supabase;
 }
 
 // Database table names

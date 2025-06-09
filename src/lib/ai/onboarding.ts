@@ -123,9 +123,14 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
   }
 ];
 
+/**
+ * This class ensures that new users are guided through an initial setup
+ * process to configure their AI preferences, which enhances the quality
+ * of personalized suggestions from day one.
+ */
 export class OnboardingManager {
-  private static readonly ONBOARDING_COMPLETED_KEY = 'studyspark_onboarding_completed';
-  private static readonly ONBOARDING_RESPONSES_KEY = 'studyspark_onboarding_responses';
+  private static readonly ONBOARDING_COMPLETED_KEY = 'memospark_onboarding_completed';
+  private static readonly ONBOARDING_RESPONSES_KEY = 'memospark_onboarding_responses';
 
   /**
    * Check if user has completed onboarding

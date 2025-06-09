@@ -1,4 +1,4 @@
-import { studySparkAI, AIUtils, OnboardingManager, type Task, type ClassTimetableEntry } from './index';
+import { memoSparkAI, AIUtils, OnboardingManager, type Task, type ClassTimetableEntry } from './index';
 
 // Test data to verify enhanced first-day AI functionality
 const testTasks: Task[] = [
@@ -88,7 +88,7 @@ export async function testFirstDayExperience() {
   
   // Test 1: Quick setup for new users
   console.log('\n1️⃣ Testing Quick Setup from Timetable');
-  const quickPreferences = studySparkAI.quickSetupForNewUser(testTimetable, 'morning');
+  const quickPreferences = memoSparkAI.quickSetupForNewUser(testTimetable, 'morning');
   console.log('Quick setup preferences:', {
     studyTimePreference: quickPreferences.studyTimePreference,
     availableStudyHours: quickPreferences.availableStudyHours,
@@ -97,9 +97,9 @@ export async function testFirstDayExperience() {
 
   // Test 2: Generate first-day suggestions
   console.log('\n2️⃣ Testing First-Day Suggestions');
-  const firstDaySuggestions = studySparkAI.getFirstDaySuggestions(testTasks, testTimetable, quickPreferences);
+  const firstDaySuggestions = memoSparkAI.getFirstDaySuggestions(testTasks, testTimetable, quickPreferences);
   console.log(`Generated ${firstDaySuggestions.length} suggestions for new user:`);
-  firstDaySuggestions.forEach((suggestion, index) => {
+  firstDaySuggestions.forEach((suggestion: any, index: number) => {
     console.log(`   ${index + 1}. ${suggestion.title} (${suggestion.type}, confidence: ${Math.round(suggestion.confidence * 100)}%)`);
     console.log(`      ${suggestion.description}`);
     console.log(`      Priority: ${suggestion.priority} | Estimated benefit: ${Math.round(suggestion.metadata.estimatedBenefit * 100)}%`);
@@ -120,7 +120,7 @@ export async function testFirstDayExperience() {
     { questionId: 'studyGoals', value: ['Improve grades', 'Better time management'] }
   ];
 
-  const onboardingResult = studySparkAI.completeOnboarding(onboardingResponses);
+  const onboardingResult = memoSparkAI.completeOnboarding(onboardingResponses);
   console.log('Onboarding completion result:', {
     success: onboardingResult.success,
     errorsCount: onboardingResult.errors.length,
@@ -130,7 +130,7 @@ export async function testFirstDayExperience() {
 
   // Test 4: Generate recommendations with full preferences
   console.log('\n4️⃣ Testing Full AI Recommendations');
-  const fullRecommendations = await studySparkAI.generateRecommendations(
+  const fullRecommendations = await memoSparkAI.generateRecommendations(
     testTasks, 
     'test-user-123', 
     testTimetable, 
@@ -156,8 +156,8 @@ export async function testFirstDayExperience() {
 
   // Test 6: System health and validation
   console.log('\n6️⃣ Testing System Health');
-  const systemHealth = studySparkAI.getSystemHealth();
-  const taskValidation = studySparkAI.validateTaskData(testTasks);
+  const systemHealth = memoSparkAI.getSystemHealth();
+  const taskValidation = memoSparkAI.validateTaskData(testTasks);
   
   console.log('System health:', {
     hasPatterns: systemHealth.hasPatterns,
@@ -201,12 +201,12 @@ export async function testAIPerformance() {
   
   // Test pattern analysis speed
   const analysisStart = Date.now();
-  const patterns = await studySparkAI.generateRecommendations(testTasks, 'perf-test', testTimetable);
+  const patterns = await memoSparkAI.generateRecommendations(testTasks, 'perf-test', testTimetable);
   const analysisTime = Date.now() - analysisStart;
   
   // Test suggestion generation speed
   const suggestionStart = Date.now();
-  const quickSuggestions = studySparkAI.getFirstDaySuggestions(testTasks, testTimetable);
+  const quickSuggestions = memoSparkAI.getFirstDaySuggestions(testTasks, testTimetable);
   const suggestionTime = Date.now() - suggestionStart;
   
   const totalTime = Date.now() - startTime;

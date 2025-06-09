@@ -155,7 +155,7 @@ export const StuTaskGuidance: React.FC<StuTaskGuidanceProps> = ({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
-        colors: ['#16a34a', '#22c55e', '#4ade80', '#86efac'] // StudySpark green variants
+        colors: ['#16a34a', '#22c55e', '#4ade80', '#86efac'] // MemoSpark green variants
       });
     } catch (error) {
       console.warn('Failed to load confetti:', error);

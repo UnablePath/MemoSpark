@@ -170,13 +170,13 @@ export interface ClassTimetableEntry {
 
 // CVA variants following shrimp-rules.md brand colors
 const viewModeButtonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(142,60%,40%)] focus-visible:ring-offset-2",
+  "inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
   {
     variants: {
       state: {
-        active: "bg-[hsl(142,60%,40%)] text-white shadow-sm",
+        active: "bg-primary text-primary-foreground shadow-sm",
         inactive:
-          "bg-[hsl(0,0%,98%)] text-[hsl(0,0%,45%)] hover:text-[hsl(0,0%,10%)] hover:bg-[hsl(142,60%,40%)]/10 border border-[hsl(40,30%,80%)]",
+          "bg-muted text-muted-foreground hover:text-foreground hover:bg-primary/10 border border-border",
       },
     },
     defaultVariants: {
@@ -189,7 +189,7 @@ const viewModeButtonVariants = cva(
 const priorityBadgeVariants = cva("h-3 w-3 rounded-full flex-shrink-0", {
   variants: {
     priority: {
-      low: "bg-[hsl(142,60%,40%)]",
+      low: "bg-primary",
       medium: "bg-amber-500",
       high: "bg-red-500",
     },
@@ -205,9 +205,9 @@ const taskCardVariants = cva(
   {
     variants: {
       type: {
-        regular: "bg-white border-[hsl(40,30%,80%)]",
-        recurring: "bg-[hsl(142,60%,40%)]/5 border-[hsl(142,60%,40%)]/20",
-        completed: "bg-[hsl(0,0%,98%)] border-[hsl(40,30%,80%)] opacity-75",
+        regular: "bg-card border-border",
+        recurring: "bg-primary/5 border-primary/20",
+        completed: "bg-muted border-border opacity-75",
       },
     },
     defaultVariants: {
@@ -218,17 +218,17 @@ const taskCardVariants = cva(
 
 // CVA variants for action buttons
 const actionButtonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(142,60%,40%)] focus-visible:ring-offset-2",
+  "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
   {
     variants: {
       variant: {
         primary:
-          "bg-[hsl(142,60%,40%)] text-white hover:bg-[hsl(142,60%,35%)] shadow-sm hover:shadow-md",
+          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md",
         secondary:
-          "bg-[hsl(0,0%,98%)] text-[hsl(0,0%,10%)] hover:bg-[hsl(40,30%,85%)] border border-[hsl(40,30%,80%)]",
-        ghost: "hover:bg-[hsl(142,60%,40%)]/10 text-[hsl(142,60%,40%)]",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border",
+        ghost: "hover:bg-primary/10 text-primary",
         destructive:
-          "bg-red-500 text-white hover:bg-red-600 shadow-sm hover:shadow-md",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm hover:shadow-md",
       },
       size: {
         sm: "h-8 px-3 text-sm",
@@ -249,7 +249,7 @@ const PREDEFINED_TIMETABLE_COLORS: string[] = [
   "bg-amber-500",
   "bg-yellow-500",
   "bg-lime-500",
-  "bg-[hsl(142,60%,40%)]",
+  "bg-primary",
   "bg-emerald-500",
   "bg-teal-500",
   "bg-cyan-500",
@@ -569,7 +569,7 @@ const exportTimetableToICal = (entries: ClassTimetableEntry[]): string => {
   const массовыхСобытий = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    `PRODID:-//StudySpark//TimetableExporter//EN`,
+    `PRODID:-//MemoSpark//TimetableExporter//EN`,
     `CALSCALE:GREGORIAN`,
     `METHOD:PUBLISH`,
     `X-WR-CALNAME:Class Timetable`,
@@ -965,13 +965,13 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
   const getPriorityColor = (priority: Priority) => {
     switch (priority) {
       case "high":
-        return "bg-red-500";
+        return "bg-destructive";
       case "medium":
         return "bg-amber-500";
       case "low":
-        return "bg-[hsl(142,60%,40%)]";
+        return "bg-primary";
       default:
-        return "bg-gray-400";
+        return "bg-muted";
     }
   };
 
@@ -1126,7 +1126,7 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
       });
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.setAttribute("download", "StudySpark_Timetable.ics");
+      link.setAttribute("download", "MemoSpark_Timetable.ics");
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1271,7 +1271,7 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
             onTaskCreate={handleEnhancedTaskCreate}
           />
 
-          <div className="flex gap-1 p-1 bg-[hsl(0,0%,98%)] rounded-lg border border-[hsl(40,30%,80%)] mb-6">
+          <div className="flex gap-1 p-1 bg-muted/50 rounded-lg border border-border mb-6">
             <button
               onClick={() =>
                 setState((prev) => ({ ...prev, viewMode: "list", error: null }))

@@ -4,7 +4,6 @@ import { auth, clerkClient } from '@clerk/nextjs/server'
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { redirect } from 'next/navigation'
 
 // Zod schema for form validation
 const OnboardingFormSchema = z.object({
@@ -67,6 +66,38 @@ type ActionResponse = {
   fieldErrors?: Record<string, string[]>;
 };
 
+/**
+ * Create authenticated Supabase client for server actions
+ * Uses official Clerk-Supabase native integration (no JWT template needed)
+ */
+function createServerSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase configuration');
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    // Native Clerk-Supabase integration - no JWT template needed
+    accessToken: async () => {
+      try {
+        const { getToken } = await auth();
+        // Use native integration - no template parameter needed
+        const token = await getToken();
+        return token;
+      } catch (error) {
+        console.warn('Failed to get Clerk session token:', error);
+        return null;
+      }
+    },
+  });
+}
+
 export async function completeUserProfileOnboarding(formData: FormData): Promise<ActionResponse> {
   try {
     // 1. Get authenticated user
@@ -79,19 +110,7 @@ export async function completeUserProfileOnboarding(formData: FormData): Promise
       };
     }
 
-    // 2. Validate environment variables
-    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      console.error("Missing Supabase configuration in environment variables");
-      return { 
-        error: 'Server configuration error. Please contact support.',
-        success: false 
-      };
-    }
-
-    // 3. Extract and validate form data using Zod
+    // 2. Extract and validate form data using Zod
     const rawFormData = {
       name: formData.get('name') as string || '',
       email: formData.get('email') as string || '',
@@ -124,19 +143,9 @@ export async function completeUserProfileOnboarding(formData: FormData): Promise
 
     const validatedData: OnboardingFormData = validationResult.data;
 
-    // 4. Initialize Supabase client with service role
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
-
-    // 5. Get Clerk client
-    const client = await clerkClient();
-
     try {
-      // 6. Update Clerk user metadata first
+      // 3. Update Clerk user metadata first - this drives onboarding completion
+      const client = await clerkClient();
       await client.users.updateUser(userId, {
         publicMetadata: {
           onboardingComplete: true,
@@ -150,69 +159,65 @@ export async function completeUserProfileOnboarding(formData: FormData): Promise
         },
       });
 
-      // 7. Prepare Supabase profile data
-      const profileData = {
-        clerk_user_id: userId,
-        email: validatedData.email,
-        full_name: validatedData.name,
-        year_of_study: validatedData.yearOfStudy,
-        learning_style: validatedData.learningStyle,
-        subjects: validatedData.subjects,
-        interests: validatedData.interests,
-        ai_preferences: validatedData.aiPreferences,
-        onboarding_completed: true,
-        updated_at: new Date().toISOString(),
-      };
+      // 4. Sync profile to Supabase (optional - Clerk is source of truth)
+      try {
+        const supabase = createServerSupabaseClient();
 
-      // 8. Check if profile exists and update/insert accordingly
-      const { data: existingProfile, error: fetchError } = await supabase
-        .from('profiles')
-        .select('clerk_user_id')
-        .eq('clerk_user_id', userId)
-        .single();
+        // First check if we can get a valid Clerk token for Supabase auth
+        const { getToken } = await auth();
+        const clerkToken = await getToken({ template: 'supabase' });
+        
+        if (!clerkToken) {
+          console.warn('No Clerk token available for Supabase - skipping profile sync');
+          // Still mark onboarding as complete since Clerk metadata is the source of truth
+        } else {
+          // 5. Use upsert to handle both insert and update cases
+          // RLS policies will automatically filter by the authenticated user (Clerk JWT)
+          const profileData = {
+            clerk_user_id: userId,
+            email: validatedData.email,
+            full_name: validatedData.name,
+            year_of_study: validatedData.yearOfStudy,
+            learning_style: validatedData.learningStyle,
+            subjects: validatedData.subjects,
+            interests: validatedData.interests,
+            ai_preferences: validatedData.aiPreferences,
+            onboarding_completed: true,
+            updated_at: new Date().toISOString(),
+          };
 
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = no rows found
-        console.error("Error checking existing profile:", fetchError);
-        throw new Error('Database error while checking profile existence');
+          const { error: supabaseError } = await supabase
+            .from('profiles')
+            .upsert(profileData, {
+              onConflict: 'clerk_user_id'
+            });
+
+          if (supabaseError) {
+            console.error("Error syncing profile to Supabase:", supabaseError);
+            // Don't fail the entire operation if Supabase sync fails
+            // The Clerk metadata is the source of truth for onboarding completion
+            console.warn('Profile sync failed, but onboarding marked complete in Clerk');
+          } else {
+            console.log('Profile successfully synced to Supabase');
+          }
+        }
+      } catch (supabaseError) {
+        console.error("Error in Supabase operations:", supabaseError);
+        console.warn('Supabase sync failed, but onboarding marked complete in Clerk');
       }
 
-      let supabaseResult;
-      if (existingProfile) {
-        // Update existing profile
-        supabaseResult = await supabase
-          .from('profiles')
-          .update(profileData)
-          .eq('clerk_user_id', userId)
-          .select()
-          .single();
-      } else {
-        // Insert new profile
-        supabaseResult = await supabase
-          .from('profiles')
-          .insert(profileData)
-          .select()
-          .single();
-      }
-
-      if (supabaseResult.error) {
-        console.error("Error syncing profile to Supabase:", supabaseResult.error);
-        throw new Error('Failed to save profile data to database');
-      }
-
-      console.log("Profile synced to Supabase successfully:", supabaseResult.data);
-
-      // 9. Revalidate relevant paths for cache invalidation
+      // 6. Revalidate relevant paths for cache invalidation
       revalidatePath('/dashboard');
       revalidatePath('/profile');
       revalidatePath('/');
 
       return { 
         success: true,
-        message: "Onboarding completed successfully! Welcome to StudySpark."
+        message: "Onboarding completed successfully! Welcome to MemoSpark."
       };
       
     } catch (clerkOrSupabaseError) {
-      console.error("Error in Clerk or Supabase operations:", clerkOrSupabaseError);
+      console.error("Error in onboarding operations:", clerkOrSupabaseError);
       
       // Check if it's a Clerk API error
       if (clerkOrSupabaseError && typeof clerkOrSupabaseError === 'object' && 'errors' in clerkOrSupabaseError) {

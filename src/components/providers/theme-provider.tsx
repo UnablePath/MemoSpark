@@ -30,8 +30,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   // Load accessibility options from localStorage on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const savedAppearance = localStorage.getItem("studyspark_appearance");
-      const savedAccessibility = localStorage.getItem("studyspark_accessibility");
+      const savedAppearance = localStorage.getItem("memospark_appearance");
+      const savedAccessibility = localStorage.getItem("memospark_accessibility");
 
       try {
         if (savedAppearance) {
@@ -89,17 +89,17 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     if (typeof window !== "undefined") {
       try {
         if (option === "highContrast" || option === "reducedMotion") {
-          const savedAppearance = localStorage.getItem("studyspark_appearance");
+          const savedAppearance = localStorage.getItem("memospark_appearance");
           const appearanceSettings = savedAppearance ? JSON.parse(savedAppearance) : {};
           localStorage.setItem(
-            "studyspark_appearance",
+            "memospark_appearance",
             JSON.stringify({ ...appearanceSettings, [option]: value })
           );
         } else if (option === "largeText") {
-          const savedAccessibility = localStorage.getItem("studyspark_accessibility");
+          const savedAccessibility = localStorage.getItem("memospark_accessibility");
           const accessibilitySettings = savedAccessibility ? JSON.parse(savedAccessibility) : {};
           localStorage.setItem(
-            "studyspark_accessibility",
+            "memospark_accessibility",
             JSON.stringify({ ...accessibilitySettings, [option]: value })
           );
         }
@@ -118,9 +118,22 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     >
       <NextThemesProvider
         attribute="class"
-        defaultTheme="light"
+        defaultTheme="dark"
         enableSystem
         disableTransitionOnChange
+        themes={[
+          'light', 
+          'dark', 
+          'theme-amoled', 
+          'theme-sea-blue', 
+          'theme-hello-kitty-pink', 
+          'theme-hacker-green',
+          'theme-void-purple',
+          'theme-sunset-orange',
+          'theme-midnight-blue',
+          'theme-cherry-blossom',
+          'theme-carbon'
+        ]}
       >
         {children}
       </NextThemesProvider>

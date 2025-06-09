@@ -1,4 +1,4 @@
-import { supabase, supabaseHelpers } from './client';
+import { supabase, supabaseHelpers, createAuthenticatedSupabaseClient } from './client';
 import type {
   Task,
   TaskInsert,
@@ -44,15 +44,36 @@ const ensureSupabaseClient = () => {
   return supabase;
 };
 
+/**
+ * Get authenticated Supabase client with Clerk token
+ * Uses the new Clerk-Supabase integration for automatic authentication
+ */
+const getAuthenticatedClient = (getToken?: () => Promise<string | null>) => {
+  if (getToken) {
+    const authenticatedClient = createAuthenticatedSupabaseClient(getToken);
+    if (!authenticatedClient) {
+      throw new SupabaseApiError('Failed to create authenticated Supabase client');
+    }
+    return authenticatedClient;
+  }
+  
+  // Fallback to base client (for server-side or non-authenticated operations)
+  return ensureSupabaseClient();
+};
+
 // ========================================
 // TASK API FUNCTIONS
 // ========================================
 
 /**
  * Fetch all tasks for the authenticated user with optional filtering
+ * Now uses Clerk-Supabase integration for automatic authentication
  */
-export const fetchTasks = async (filters?: TaskFilters): Promise<Task[]> => {
-  const client = ensureSupabaseClient();
+export const fetchTasks = async (
+  filters?: TaskFilters, 
+  getToken?: () => Promise<string | null>
+): Promise<Task[]> => {
+  const client = getAuthenticatedClient(getToken);
 
   try {
     let query = client
@@ -105,8 +126,11 @@ export const fetchTasks = async (filters?: TaskFilters): Promise<Task[]> => {
 /**
  * Get a specific task by ID
  */
-export const getTaskById = async (id: string): Promise<Task | null> => {
-  const client = ensureSupabaseClient();
+export const getTaskById = async (
+  id: string, 
+  getToken?: () => Promise<string | null>
+): Promise<Task | null> => {
+  const client = getAuthenticatedClient(getToken);
 
   try {
     const { data, error } = await client
@@ -131,35 +155,24 @@ export const getTaskById = async (id: string): Promise<Task | null> => {
 
 /**
  * Create a new task
+ * Now uses Clerk-Supabase integration - RLS policies handle user authentication automatically
  */
 export const createTask = async (
-  taskData: Omit<TaskInsert, 'user_id'>
+  taskData: Omit<TaskInsert, 'user_id'>,
+  getToken?: () => Promise<string | null>
 ): Promise<Task> => {
-  const client = ensureSupabaseClient();
+  const client = getAuthenticatedClient(getToken);
 
   try {
-    const clerkUserId = await supabaseHelpers.getCurrentUserId();
-    if (!clerkUserId) {
-      throw new SupabaseApiError('User not authenticated with Clerk');
-    }
-
-    // Ensure user profile exists in Supabase
-    await supabaseHelpers.ensureUserExists();
-
-    // Get the Supabase user profile to get the internal user_id
-    const profile = await supabaseHelpers.getCurrentUserProfile();
-    if (!profile) {
-      throw new SupabaseApiError('User profile not found - please complete onboarding');
-    }
-
-    const insertData: TaskInsert = {
+    // With Clerk-Supabase integration, RLS policies automatically handle user authentication
+    // No need for manual user lookup - the JWT token contains the user information
+    const insertData = {
       ...taskData,
-      user_id: profile.id, // Use the Supabase profile ID
       // Convert Date objects to ISO strings if present
       due_date: taskData.due_date && typeof taskData.due_date === 'object' && 'toISOString' in taskData.due_date
         ? (taskData.due_date as Date).toISOString() 
         : taskData.due_date,
-    };
+    } as TaskInsert;
 
     const { data, error } = await client
       .from('tasks')
@@ -183,9 +196,10 @@ export const createTask = async (
  */
 export const updateTask = async (
   id: string,
-  updates: TaskUpdate
+  updates: TaskUpdate,
+  getToken?: () => Promise<string | null>
 ): Promise<Task> => {
-  const client = ensureSupabaseClient();
+  const client = getAuthenticatedClient(getToken);
 
   try {
     const updateData = {
@@ -217,8 +231,11 @@ export const updateTask = async (
 /**
  * Delete a task
  */
-export const deleteTask = async (id: string): Promise<void> => {
-  const client = ensureSupabaseClient();
+export const deleteTask = async (
+  id: string, 
+  getToken?: () => Promise<string | null>
+): Promise<void> => {
+  const client = getAuthenticatedClient(getToken);
 
   try {
     const { error } = await client
@@ -238,17 +255,18 @@ export const deleteTask = async (id: string): Promise<void> => {
 /**
  * Toggle task completion status
  */
-export const toggleTaskCompletion = async (id: string): Promise<Task> => {
-  const client = ensureSupabaseClient();
-
+export const toggleTaskCompletion = async (
+  id: string, 
+  getToken?: () => Promise<string | null>
+): Promise<Task> => {
   try {
     // First get the current task to know its completion status
-    const currentTask = await getTaskById(id);
+    const currentTask = await getTaskById(id, getToken);
     if (!currentTask) {
       throw new SupabaseApiError('Task not found');
     }
 
-    return await updateTask(id, { completed: !currentTask.completed });
+    return await updateTask(id, { completed: !currentTask.completed }, getToken);
   } catch (error) {
     if (error instanceof SupabaseApiError) throw error;
     return handleSupabaseError(error, 'toggle task completion');
@@ -261,9 +279,10 @@ export const toggleTaskCompletion = async (id: string): Promise<Task> => {
 export const fetchTasksPaginated = async (
   page = 0,
   limit = 20,
-  filters?: TaskFilters
+  filters?: TaskFilters,
+  getToken?: () => Promise<string | null>
 ): Promise<TasksResponse> => {
-  const client = ensureSupabaseClient();
+  const client = getAuthenticatedClient(getToken);
 
   try {
     const startRange = page * limit;
@@ -328,9 +347,10 @@ export const fetchTasksPaginated = async (
  * Fetch all timetable entries for the authenticated user with optional filtering
  */
 export const fetchTimetableEntries = async (
-  filters?: TimetableEntryFilters
+  filters?: TimetableEntryFilters,
+  getToken?: () => Promise<string | null>
 ): Promise<TimetableEntry[]> => {
-  const client = ensureSupabaseClient();
+  const client = getAuthenticatedClient(getToken);
 
   try {
     let query = client
@@ -373,8 +393,11 @@ export const fetchTimetableEntries = async (
 /**
  * Get a specific timetable entry by ID
  */
-export const getTimetableEntryById = async (id: string): Promise<TimetableEntry | null> => {
-  const client = ensureSupabaseClient();
+export const getTimetableEntryById = async (
+  id: string, 
+  getToken?: () => Promise<string | null>
+): Promise<TimetableEntry | null> => {
+  const client = getAuthenticatedClient(getToken);
 
   try {
     const { data, error } = await client
@@ -399,30 +422,19 @@ export const getTimetableEntryById = async (id: string): Promise<TimetableEntry 
 
 /**
  * Create a new timetable entry
+ * Now uses Clerk-Supabase integration - RLS policies handle user authentication automatically
  */
 export const createTimetableEntry = async (
-  entryData: Omit<TimetableEntryInsert, 'user_id'>
+  entryData: Omit<TimetableEntryInsert, 'user_id'>,
+  getToken?: () => Promise<string | null>
 ): Promise<TimetableEntry> => {
-  const client = ensureSupabaseClient();
+  const client = getAuthenticatedClient(getToken);
 
   try {
-    const clerkUserId = await supabaseHelpers.getCurrentUserId();
-    if (!clerkUserId) {
-      throw new SupabaseApiError('User not authenticated with Clerk');
-    }
-
-    // Ensure user profile exists in Supabase
-    await supabaseHelpers.ensureUserExists();
-
-    // Get the Supabase user profile to get the internal user_id for foreign key
-    const profile = await supabaseHelpers.getCurrentUserProfile();
-    if (!profile || !profile.id) { // Ensure profile and profile.id exist
-      throw new SupabaseApiError('User profile not found or incomplete - please complete onboarding');
-    }
-
-    const insertData: TimetableEntryInsert = {
+    // With Clerk-Supabase integration, RLS policies automatically handle user authentication
+    // No need for manual user lookup - the JWT token contains the user information
+    const insertData = {
       ...entryData,
-      user_id: profile.id, // Use the Supabase profile ID (which is profile.id)
       // Convert Date objects to ISO strings if present
       semester_start_date: entryData.semester_start_date && typeof entryData.semester_start_date === 'object' && 'toISOString' in entryData.semester_start_date
         ? (entryData.semester_start_date as Date).toISOString().split('T')[0] 
@@ -430,7 +442,7 @@ export const createTimetableEntry = async (
       semester_end_date: entryData.semester_end_date && typeof entryData.semester_end_date === 'object' && 'toISOString' in entryData.semester_end_date
         ? (entryData.semester_end_date as Date).toISOString().split('T')[0] 
         : entryData.semester_end_date,
-    };
+    } as TimetableEntryInsert;
 
     const { data, error } = await client
       .from('timetable_entries')
@@ -454,9 +466,10 @@ export const createTimetableEntry = async (
  */
 export const updateTimetableEntry = async (
   id: string,
-  updates: TimetableEntryUpdate
+  updates: TimetableEntryUpdate,
+  getToken?: () => Promise<string | null>
 ): Promise<TimetableEntry> => {
-  const client = ensureSupabaseClient();
+  const client = getAuthenticatedClient(getToken);
 
   try {
     const updateData = {
@@ -491,8 +504,11 @@ export const updateTimetableEntry = async (
 /**
  * Delete a timetable entry
  */
-export const deleteTimetableEntry = async (id: string): Promise<void> => {
-  const client = ensureSupabaseClient();
+export const deleteTimetableEntry = async (
+  id: string, 
+  getToken?: () => Promise<string | null>
+): Promise<void> => {
+  const client = getAuthenticatedClient(getToken);
 
   try {
     const { error } = await client
@@ -515,9 +531,10 @@ export const deleteTimetableEntry = async (id: string): Promise<void> => {
 export const fetchTimetableEntriesPaginated = async (
   page = 0,
   limit = 20,
-  filters?: TimetableEntryFilters
+  filters?: TimetableEntryFilters,
+  getToken?: () => Promise<string | null>
 ): Promise<TimetableEntriesResponse> => {
-  const client = ensureSupabaseClient();
+  const client = getAuthenticatedClient(getToken);
 
   try {
     const startRange = page * limit;
@@ -571,13 +588,15 @@ export const fetchTimetableEntriesPaginated = async (
 /**
  * Get count of tasks and timetable entries for dashboard summary
  */
-export const getDashboardCounts = async (): Promise<{
+export const getDashboardCounts = async (
+  getToken?: () => Promise<string | null>
+): Promise<{
   totalTasks: number;
   completedTasks: number;
   pendingTasks: number;
   totalTimetableEntries: number;
 }> => {
-  const client = ensureSupabaseClient();
+  const client = getAuthenticatedClient(getToken);
 
   try {
     const [tasksResult, completedTasksResult, timetableResult] = await Promise.all([
@@ -653,29 +672,16 @@ export interface AISuggestionFeedbackInsert {
  * Save user feedback for an AI suggestion
  */
 export const saveAISuggestionFeedback = async (
-  feedbackData: AISuggestionFeedbackInsert
+  feedbackData: AISuggestionFeedbackInsert,
+  getToken?: () => Promise<string | null>
 ): Promise<AISuggestionFeedback> => {
-  const client = ensureSupabaseClient();
+  const client = getAuthenticatedClient(getToken);
 
   try {
-    const clerkUserId = await supabaseHelpers.getCurrentUserId();
-    if (!clerkUserId) {
-      throw new SupabaseApiError('User not authenticated with Clerk');
-    }
-
-    // Ensure user profile exists in Supabase, which also creates a basic profile if missing.
-    // This step is important if feedback can be given before full onboarding.
-    await supabaseHelpers.ensureUserExists(); 
-
-    // Get the Supabase user profile to get the internal user_id for foreign key
-    const profile = await supabaseHelpers.getCurrentUserProfile();
-    if (!profile || !profile.id) {
-      throw new SupabaseApiError('User profile not found or incomplete - unable to save feedback. Please complete onboarding.');
-    }
-
+    // With Clerk-Supabase integration, RLS policies automatically handle user authentication
+    // No need for manual user lookup - the JWT token contains the user information
     const insertData = {
       ...feedbackData,
-      user_id: profile.id, // Use the Supabase profile ID (which is profile.id)
       suggestion_context: feedbackData.suggestion_context || {},
     };
 
@@ -699,13 +705,16 @@ export const saveAISuggestionFeedback = async (
 /**
  * Get user feedback for AI suggestions with optional filtering
  */
-export const getAISuggestionFeedback = async (filters?: {
-  suggestion_type?: string;
-  feedback?: 'liked' | 'disliked';
-  limit?: number;
-  days_back?: number;
-}): Promise<AISuggestionFeedback[]> => {
-  const client = ensureSupabaseClient();
+export const getAISuggestionFeedback = async (
+  filters?: {
+    suggestion_type?: string;
+    feedback?: 'liked' | 'disliked';
+    limit?: number;
+    days_back?: number;
+  },
+  getToken?: () => Promise<string | null>
+): Promise<AISuggestionFeedback[]> => {
+  const client = getAuthenticatedClient(getToken);
 
   try {
     let query = client
@@ -746,14 +755,16 @@ export const getAISuggestionFeedback = async (filters?: {
 /**
  * Get feedback summary/analytics for AI suggestions
  */
-export const getAISuggestionFeedbackSummary = async (): Promise<{
+export const getAISuggestionFeedbackSummary = async (
+  getToken?: () => Promise<string | null>
+): Promise<{
   totalFeedback: number;
   likedCount: number;
   dislikedCount: number;
   likeRatio: number;
   byType: Record<string, { liked: number; disliked: number; ratio: number }>;
 }> => {
-  const client = ensureSupabaseClient();
+  const client = getAuthenticatedClient(getToken);
 
   try {
     const { data, error } = await client
@@ -808,27 +819,20 @@ export const getAISuggestionFeedbackSummary = async (): Promise<{
  */
 export const updateAISuggestionFeedback = async (
   suggestionId: string,
-  feedback: 'liked' | 'disliked'
+  feedback: 'liked' | 'disliked',
+  getToken?: () => Promise<string | null>
 ): Promise<AISuggestionFeedback> => {
-  const client = ensureSupabaseClient();
+  const client = getAuthenticatedClient(getToken);
 
   try {
-    const clerkUserId = await supabaseHelpers.getCurrentUserId();
-    if (!clerkUserId) {
-      throw new SupabaseApiError('User not authenticated with Clerk');
-    }
-
-    const profile = await supabaseHelpers.getCurrentUserProfile();
-    if (!profile || !profile.id) {
-      throw new SupabaseApiError('User profile not found - unable to update feedback.');
-    }
+    // With Clerk-Supabase integration, RLS policies automatically handle user authentication
+    // No need for manual user lookup - the JWT token contains the user information
 
     // Try to update existing feedback first
     const { data: existingData, error: existingError } = await client
       .from('ai_suggestion_feedback')
       .select('id')
       .eq('suggestion_id', suggestionId)
-      .eq('user_id', profile.id) // Use Supabase profile ID
       .single();
 
     if (existingData) {
@@ -860,29 +864,20 @@ export const updateAISuggestionFeedback = async (
 /**
  * Delete AI suggestion feedback
  */
-export const deleteAISuggestionFeedback = async (suggestionId: string): Promise<void> => {
-  const client = ensureSupabaseClient();
+export const deleteAISuggestionFeedback = async (
+  suggestionId: string, 
+  getToken?: () => Promise<string | null>
+): Promise<void> => {
+  const client = getAuthenticatedClient(getToken);
 
   try {
-    const clerkUserId = await supabaseHelpers.getCurrentUserId();
-    if (!clerkUserId) {
-      throw new SupabaseApiError('User not authenticated with Clerk');
-    }
-    
-    const profile = await supabaseHelpers.getCurrentUserProfile();
-    if (!profile || !profile.id) {
-      // If profile doesn't exist, there's no feedback to delete for this user.
-      // This can be treated as a success or a specific error, 
-      // but for deletion, it implies the resource is already gone.
-      console.warn('User profile not found; no feedback to delete.')
-      return; 
-    }
+    // With Clerk-Supabase integration, RLS policies automatically handle user authentication
+    // No need for manual user lookup - the JWT token contains the user information
 
     const { error } = await client
       .from('ai_suggestion_feedback')
       .delete()
-      .eq('suggestion_id', suggestionId)
-      .eq('user_id', profile.id); // Use Supabase profile ID
+      .eq('suggestion_id', suggestionId);
 
     if (error) {
       handleSupabaseError(error, 'delete AI suggestion feedback');
@@ -896,7 +891,9 @@ export const deleteAISuggestionFeedback = async (suggestionId: string): Promise<
 /**
  * Get enhanced user context for AI suggestions
  */
-export const getEnhancedUserContext = async (): Promise<{
+export const getEnhancedUserContext = async (
+  getToken?: () => Promise<string | null>
+): Promise<{
   recentTasks: Task[];
   recentCompletedTasks: Task[];
   upcomingTasks: Task[];
@@ -909,7 +906,7 @@ export const getEnhancedUserContext = async (): Promise<{
     preferredTypes: string[];
   };
 }> => {
-  const client = ensureSupabaseClient();
+  const client = getAuthenticatedClient(getToken);
 
   try {
     // Get recent tasks (last 14 days)
@@ -950,7 +947,7 @@ export const getEnhancedUserContext = async (): Promise<{
         .eq('is_active', true)
         .order('created_at', { ascending: false }),
       
-      getAISuggestionFeedbackSummary()
+      getAISuggestionFeedbackSummary(getToken)
     ]);
 
     const recentTasks = recentTasksResult.data || [];

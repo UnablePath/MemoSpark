@@ -147,8 +147,22 @@ describe('Task Lifecycle Integration Tests', () => {
       };
       addMockTask(testTask);
       
-      // Test ListView
-      renderWithProviders(<ListView />);
+      // Test ListView - transform task to match ListView interface
+      const listViewTask = {
+        id: testTask.id,
+        title: testTask.title,
+        description: testTask.description,
+        dueDate: new Date(testTask.due_date),
+        completed: testTask.completed,
+        priority: testTask.priority as 'low' | 'medium' | 'high'
+      };
+      renderWithProviders(
+        <ListView 
+          tasks={[listViewTask]} 
+          onEdit={() => {}} 
+          onDelete={async () => {}} 
+        />
+      );
       
       await waitFor(() => {
         expect(screen.getByText('View Integration Test')).toBeInTheDocument();
@@ -179,24 +193,44 @@ describe('Task Lifecycle Integration Tests', () => {
         {
           id: 'low-priority',
           title: 'Low Priority Task',
+          description: 'Test task with low priority',
           priority: 'low',
           type: 'personal',
           completed: false,
           user_id: 'test-user-id',
+          due_date: undefined,
         },
         {
           id: 'high-priority',
           title: 'High Priority Task',
+          description: 'Test task with high priority',
           priority: 'high',
           type: 'academic',
           completed: false,
           user_id: 'test-user-id',
+          due_date: undefined,
         },
       ];
       
       tasks.forEach(addMockTask);
       
-      renderWithProviders(<ListView />);
+      // Transform tasks to match ListView interface
+      const listViewTasks = tasks.map(task => ({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        dueDate: task.due_date ? new Date(task.due_date) : undefined,
+        completed: task.completed,
+        priority: task.priority as 'low' | 'medium' | 'high'
+      }));
+      
+      renderWithProviders(
+        <ListView 
+          tasks={listViewTasks} 
+          onEdit={() => {}} 
+          onDelete={async () => {}} 
+        />
+      );
       
       // Wait for tasks to load
       await waitFor(() => {
@@ -228,10 +262,27 @@ describe('Task Lifecycle Integration Tests', () => {
         type: 'academic',
         completed: false,
         user_id: 'test-user-id',
+        due_date: undefined,
       };
       addMockTask(testTask);
       
-      renderWithProviders(<ListView />);
+      // Transform task to match ListView interface
+      const listViewTask = {
+        id: testTask.id,
+        title: testTask.title,
+        description: testTask.description,
+        dueDate: testTask.due_date ? new Date(testTask.due_date) : undefined,
+        completed: testTask.completed,
+        priority: testTask.priority as 'low' | 'medium' | 'high'
+      };
+      
+      renderWithProviders(
+        <ListView 
+          tasks={[listViewTask]} 
+          onEdit={() => {}} 
+          onDelete={async () => {}} 
+        />
+      );
       
       // Find the task and its completion checkbox
       await waitFor(() => {
@@ -267,10 +318,27 @@ describe('Task Lifecycle Integration Tests', () => {
         type: 'personal',
         completed: true,
         user_id: 'test-user-id',
+        due_date: undefined,
       };
       addMockTask(completedTask);
       
-      renderWithProviders(<ListView />);
+      // Transform task to match ListView interface
+      const listViewTask = {
+        id: completedTask.id,
+        title: completedTask.title,
+        description: completedTask.description,
+        dueDate: completedTask.due_date ? new Date(completedTask.due_date) : undefined,
+        completed: completedTask.completed,
+        priority: completedTask.priority as 'low' | 'medium' | 'high'
+      };
+      
+      renderWithProviders(
+        <ListView 
+          tasks={[listViewTask]} 
+          onEdit={() => {}} 
+          onDelete={async () => {}} 
+        />
+      );
       
       await waitFor(() => {
         const taskElement = screen.getByText('Already Completed Task').closest('[data-testid="task-item"]');
@@ -291,10 +359,27 @@ describe('Task Lifecycle Integration Tests', () => {
         type: 'personal',
         completed: false,
         user_id: 'test-user-id',
+        due_date: undefined,
       };
       addMockTask(editableTask);
       
-      renderWithProviders(<ListView />);
+      // Transform task to match ListView interface
+      const listViewTask = {
+        id: editableTask.id,
+        title: editableTask.title,
+        description: editableTask.description,
+        dueDate: editableTask.due_date ? new Date(editableTask.due_date) : undefined,
+        completed: editableTask.completed,
+        priority: editableTask.priority as 'low' | 'medium' | 'high'
+      };
+      
+      renderWithProviders(
+        <ListView 
+          tasks={[listViewTask]} 
+          onEdit={() => {}} 
+          onDelete={async () => {}} 
+        />
+      );
       
       // Find and click edit button
       await waitFor(() => {
@@ -346,10 +431,27 @@ describe('Task Lifecycle Integration Tests', () => {
         type: 'academic',
         completed: false,
         user_id: 'test-user-id',
+        due_date: undefined,
       };
       addMockTask(deletableTask);
       
-      renderWithProviders(<ListView />);
+      // Transform task to match ListView interface
+      const listViewTask = {
+        id: deletableTask.id,
+        title: deletableTask.title,
+        description: deletableTask.description,
+        dueDate: deletableTask.due_date ? new Date(deletableTask.due_date) : undefined,
+        completed: deletableTask.completed,
+        priority: deletableTask.priority as 'low' | 'medium' | 'high'
+      };
+      
+      renderWithProviders(
+        <ListView 
+          tasks={[listViewTask]} 
+          onEdit={() => {}} 
+          onDelete={async () => {}} 
+        />
+      );
       
       await waitFor(() => {
         expect(screen.getByText('Task to Delete')).toBeInTheDocument();
@@ -386,7 +488,13 @@ describe('Task Lifecycle Integration Tests', () => {
         })
       );
       
-      renderWithProviders(<ListView />);
+      renderWithProviders(
+        <ListView 
+          tasks={[]} 
+          onEdit={() => {}} 
+          onDelete={async () => {}} 
+        />
+      );
       
       await waitFor(() => {
         expect(screen.getByText(/failed to load tasks/i)).toBeInTheDocument();
@@ -403,7 +511,13 @@ describe('Task Lifecycle Integration Tests', () => {
         })
       );
       
-      renderWithProviders(<ListView />);
+      renderWithProviders(
+        <ListView 
+          tasks={[]} 
+          onEdit={() => {}} 
+          onDelete={async () => {}} 
+        />
+      );
       
       // Should show loading state initially
       expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
@@ -459,7 +573,13 @@ describe('Task Lifecycle Integration Tests', () => {
         })
       );
       
-      renderWithProviders(<ListView />);
+      renderWithProviders(
+        <ListView 
+          tasks={[]} 
+          onEdit={() => {}} 
+          onDelete={async () => {}} 
+        />
+      );
       
       // Should show error first
       await waitFor(() => {

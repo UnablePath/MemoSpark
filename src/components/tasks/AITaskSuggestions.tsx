@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { SuggestionCard } from '@/components/ai/SuggestionCard';
 import { cn } from '@/lib/utils';
-import { StudySparkAI } from '@/lib/ai';
+import { memoSparkAI, StudySparkAI } from '@/lib/ai';
 import type { StudySuggestion } from '@/lib/ai/suggestionEngine';
 import type { ExtendedTask, AISuggestion, SuggestionType } from '@/types/ai';
 import { useEnhancedUserContext, useSaveAISuggestionFeedback } from '@/lib/hooks/queries';
@@ -75,7 +75,7 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastGenerationTime, setLastGenerationTime] = useState<Date | null>(null);
-  const [studySparkAI] = useState(() => new StudySparkAI());
+  const [aiInstance] = useState(() => memoSparkAI);
   
   // Enhanced caching and performance state
   const [suggestionCache, setSuggestionCache] = useState<Map<string, {
@@ -93,7 +93,7 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
 
   // Enhanced suggestion generation with better context and feedback filtering
   const generateTaskSuggestions = useCallback(async () => {
-    if (loading || !studySparkAI) return;
+    if (loading || !aiInstance) return;
 
     const cacheKey = `suggestions-${JSON.stringify(currentTask)}-${maxSuggestions}`;
     
@@ -142,14 +142,14 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
         feedbackSummary: enhancedContext?.feedbackSummary,
       };
 
-      // Use StudySparkAI to generate intelligent suggestions with retry logic
+              // Use MemoSparkAI to generate intelligent suggestions with retry logic
       let result;
       let retryAttempts = 0;
       const maxRetries = 2;
 
       while (retryAttempts <= maxRetries) {
         try {
-          result = await studySparkAI.generateIntelligentSuggestions(
+          result = await aiInstance.generateIntelligentSuggestions(
             enhancedContext?.upcomingTasks?.map(convertTaskToExtendedTask) || [],
             'current-user', // In real app, would use actual user ID
             context
@@ -226,7 +226,7 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
       setLoadingStates(prev => ({ ...prev, [cacheKey]: false }));
       setLoading(false);
     }
-  }, [currentTask, maxSuggestions, studySparkAI, suggestionCache, retryCount, userAcceptanceHistory, enhancedContext]);
+      }, [currentTask, maxSuggestions, aiInstance, suggestionCache, retryCount, userAcceptanceHistory, enhancedContext]);
 
   // Trigger suggestions when context is loaded and current task changes
   useEffect(() => {
@@ -392,7 +392,7 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
       priority: suggestion.priority as 'low' | 'medium' | 'high' | undefined,
       confidence: suggestion.confidence,
       reasoning: suggestion.reasoning,
-      source: 'StudySparkAI',
+              source: 'MemoSparkAI',
       createdAt: new Date().toISOString(),
       applicationAction: getApplicationAction(mappedType),
       suggestedChanges: await generateSuggestedChanges(suggestion, task),
