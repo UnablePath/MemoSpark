@@ -110,9 +110,20 @@ export async function POST() {
 
     console.log('User profile check:', { userProfile, profileError });
 
+    if (!userProfile) {
+      return NextResponse.json({
+        success: false,
+        error: 'User profile not found in Supabase',
+        details: profileError,
+        userId,
+        webhookStatus: 'User NOT found in Supabase - webhook issue!',
+        timestamp: new Date().toISOString(),
+      }, { status: 400 });
+    }
+
     // Test task creation
     const testTaskData = {
-      user_id: userId,
+      user_id: userProfile.id, // Use the UUID from profiles table, not Clerk ID!
       title: `Test Task - ${new Date().toISOString()}`,
       description: 'This is a test task created via API to verify authentication',
       priority: 'medium',
