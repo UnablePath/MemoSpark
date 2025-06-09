@@ -2,6 +2,21 @@ import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
+export async function GET() {
+  return NextResponse.json({
+    message: 'Test Task Creation API',
+    description: 'This endpoint is used to test task creation with Clerk authentication',
+    usage: {
+      method: 'POST',
+      endpoint: '/api/test-task-creation',
+      authentication: 'Clerk session required',
+      response: 'Creates a test task and returns creation details'
+    },
+    note: 'Use POST method to create a test task. This GET endpoint is for documentation only.',
+    timestamp: new Date().toISOString(),
+  });
+}
+
 export async function POST() {
   try {
     // Get Clerk authentication
