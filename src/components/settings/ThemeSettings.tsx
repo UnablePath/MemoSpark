@@ -162,12 +162,12 @@ export const ThemeSettings: React.FC = () => {
             <div key={category} className="space-y-3">
               <div className="flex items-center gap-2">
                 <span className="text-lg">
-                  {category === 'default' && 'D'}
-                  {category === 'minimal' && 'M'}
-                  {category === 'nature' && 'N'}
-                  {category === 'cosmic' && 'C'}
-                  {category === 'playful' && 'P'}
-                  {category === 'retro' && 'R'}
+                  {category === 'default' && '🏠'}
+                  {category === 'minimal' && '✨'}
+                  {category === 'nature' && '🌊'}
+                  {category === 'cosmic' && '🌌'}
+                  {category === 'playful' && '🎨'}
+                  {category === 'retro' && '📺'}
                 </span>
                 <h4 className="font-medium text-sm uppercase tracking-wide text-muted-foreground">
                   {category === 'default' && 'Default'}
@@ -293,4 +293,4 @@ export const ThemeSettings: React.FC = () => {
   );
 };
 
-export default ThemeSettings; 
+export default ThemeSettings;
