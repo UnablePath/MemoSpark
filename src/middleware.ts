@@ -13,8 +13,14 @@ const isPublicRoute = createRouteMatcher([
 export default clerkMiddleware(async (auth, req: NextRequest) => {
   const { userId, sessionClaims, redirectToSignIn } = await auth();
 
-  // For users visiting /clerk-onboarding, don't try to redirect
+  // For users visiting /clerk-onboarding, check if they've already completed it
   if (userId && isOnboardingRoute(req)) {
+    // If user has already completed onboarding, redirect to dashboard
+    if (sessionClaims?.metadata?.onboardingComplete) {
+      const dashboardUrl = new URL('/dashboard', req.url)
+      return NextResponse.redirect(dashboardUrl)
+    }
+    // If not completed, allow access to onboarding
     return NextResponse.next()
   }
 
