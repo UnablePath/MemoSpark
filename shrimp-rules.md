@@ -330,6 +330,9 @@ MemoSpark is a React/Next.js study management app using Supabase (database), Cle
 - **Content Constraints**: Never allow content to bleed off screen or below tab bar
 - **Loading States**: Always provide loading feedback for async operations
 - **Mobile Tab Bar**: Ensure 60px bottom padding for mobile navigation
+- **Snapchat-Style UI**: Use Snapchat-inspired design patterns for modern, engaging interfaces
+- **Glassmorphism Usage**: Apply glassmorphism effects selectively to specific UI elements (modals, cards, overlays) rather than overall design
+- **Crashout Room Design**: Should have edgy, expressive personality matching the venting/emotional nature - not calm or overly polished
 
 ### AI Integration
 - **Existing Component**: `src/components/ai/AITaskSuggestions.tsx` (698 lines complete)

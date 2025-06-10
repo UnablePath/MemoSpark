@@ -153,7 +153,7 @@ export function TabContainer({
 
   return (
     <div {...handlers} className="relative overflow-hidden w-full h-full flex-grow safe-scroll-area">
-      <AnimatePresence initial={false} custom={direction} mode="wait">
+      <AnimatePresence initial={false} custom={direction} mode="popLayout">
         <motion.div
           key={currentIndex}
           role="tabpanel"
