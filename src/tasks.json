@@ -1,533 +1,346 @@
 {
   "tasks": [
     {
-<<<<<<< Updated upstream
-      "id": "88cc80c5-eec7-4bb9-b18c-32a460f1c7e0",
-      "name": "Fix Hardcoded Button Colors and CVA Variants",
-      "description": "Replace all hardcoded HSL color values with theme CSS custom properties in button components and CVA variants to ensure proper theme integration. This critical task addresses inconsistent theming across multiple components.",
-      "notes": "This task is critical for theme consistency. All button variants must use CSS custom properties to properly inherit theme colors.",
-      "status": "completed",
-=======
-<<<<<<< Updated upstream
       "id": "ff6b61b1-32a1-4a86-9da2-db3a5eba32a7",
       "name": "Remove Mock Data and MSW Infrastructure",
       "description": "Clean up all mock/sample data across the application to prepare for real data integration. This includes removing hardcoded arrays, MSW handlers, and sample student data from components and hooks.",
       "notes": "Keep error boundaries and loading states intact. Ensure components don't crash when data is empty.",
       "status": "pending",
->>>>>>> Stashed changes
       "dependencies": [],
-      "createdAt": "2025-06-08T21:06:41.766Z",
-      "updatedAt": "2025-06-08T21:20:49.357Z",
+      "createdAt": "2025-06-10T20:59:40.278Z",
+      "updatedAt": "2025-06-10T20:59:40.278Z",
       "relatedFiles": [
         {
-          "path": "src/components/tasks/TaskEventTab.tsx",
+          "path": "src/mocks/handlers.ts",
           "type": "TO_MODIFY",
-          "description": "Fix hardcoded colors in CVA variants",
-          "lineStart": 169,
-          "lineEnd": 240
+          "description": "Disable or remove MSW mock handlers"
         },
         {
-          "path": "src/components/ai/QuickActions.tsx",
+          "path": "src/hooks/useStudentConnection.ts",
           "type": "TO_MODIFY",
-          "description": "Update quickActionVariants to use theme variables",
-          "lineStart": 19,
-          "lineEnd": 50
+          "description": "Remove sample student data arrays"
         },
         {
-          "path": "src/app/layout.tsx",
+          "path": "src/components/reminders/RemindersTab.tsx",
           "type": "TO_MODIFY",
-          "description": "Update Clerk appearance hardcoded colors",
-          "lineStart": 17,
-          "lineEnd": 60
+          "description": "Remove mock reminders and achievements data"
         },
         {
-          "path": "src/app/sign-in/[[...sign-in]]/page.tsx",
+          "path": "src/components/gamification/GamificationHub.tsx",
           "type": "TO_MODIFY",
-          "description": "Fix Clerk appearance colors",
-          "lineStart": 4,
-          "lineEnd": 47
-        },
-        {
-          "path": "src/app/sign-up/[[...sign-up]]/page.tsx",
-          "type": "TO_MODIFY",
-          "description": "Fix Clerk appearance colors",
-          "lineStart": 4,
-          "lineEnd": 47
-        }
-      ],
-      "implementationGuide": "1. Update TaskEventTab.tsx CVA variants: Replace 'bg-[hsl(142,60%,40%)]' with 'bg-primary', 'text-white' with 'text-primary-foreground', 'ring-[hsl(142,60%,40%)]' with 'ring-ring'\\n2. Fix QuickActions.tsx quickActionVariants: Replace hardcoded HSL values with theme variables\\n3. Update Clerk appearance objects in layout.tsx, sign-in/page.tsx, sign-up/page.tsx: Replace hardcoded values with theme-aware alternatives\\n4. Ensure all CVA focus states use 'ring-ring' instead of hardcoded colors\\n5. Test button appearance across different themes to verify proper color inheritance",
-      "verificationCriteria": "All button components properly inherit theme colors without hardcoded HSL values. Test by switching between different themes and verify buttons change colors appropriately. No hardcoded 'hsl(142,60%,40%)' should remain in CVA variants.",
-      "analysisResult": "Comprehensive theme system update ensuring all UI elements work with themes, creating light variants for all dark themes, improving default dark mode contrast, and maintaining text visibility with WCAG AA compliance. The implementation leverages existing CSS custom properties, CVA patterns, and theme utility functions while fixing hardcoded color usage across the codebase.",
-      "summary": "Successfully replaced all hardcoded HSL color values with theme CSS custom properties across all CVA components and Clerk appearance objects. Fixed TaskEventTab.tsx CVA variants (viewModeButtonVariants, priorityBadgeVariants, taskCardVariants, actionButtonVariants), QuickActions.tsx quickActionVariants, and all Clerk appearance objects in layout.tsx, sign-in/page.tsx, and sign-up/page.tsx. All buttons now properly inherit theme colors through CSS custom properties like bg-primary, text-primary-foreground, border-border, etc. Build verification successful.",
-      "completedAt": "2025-06-08T21:20:49.355Z"
-    },
-    {
-      "id": "5e308aba-eba0-4990-91cb-1d346c8d8a0a",
-      "name": "Enhance Default Dark Mode Contrast",
-      "description": "Improve the default dark theme contrast ratios to ensure better text visibility and WCAG AA compliance. This involves adjusting foreground, border, and muted text colors for optimal accessibility.",
-      "notes": "Focus on maintaining the existing dark aesthetic while significantly improving text contrast and border visibility for better accessibility.",
-      "status": "completed",
-      "dependencies": [],
-      "createdAt": "2025-06-08T21:06:41.766Z",
-      "updatedAt": "2025-06-08T21:30:11.876Z",
-      "relatedFiles": [
-        {
-          "path": "src/app/globals.css",
-          "type": "TO_MODIFY",
-          "description": "Enhance default dark theme contrast values",
-          "lineStart": 43,
-          "lineEnd": 75
-        },
-        {
-          "path": "src/lib/theme-utils.ts",
-          "type": "REFERENCE",
-          "description": "Use ThemeValidator for contrast validation",
-          "lineStart": 209,
-          "lineEnd": 254
-        }
-      ],
-      "implementationGuide": "1. Update .dark theme in globals.css:\\n   - Increase --foreground from '0 0% 95%' to '0 0% 98%' for better text visibility\\n   - Enhance --border from current value to '0 0% 30%' for more visible borders\\n   - Improve --muted-foreground from '0 0% 70%' to '0 0% 75%' for better secondary text\\n   - Adjust --secondary and --accent backgrounds for better contrast\\n2. Use ThemeValidator.validateAccessibility() to verify contrast ratios meet 4.5:1 minimum\\n3. Test text readability across different interface elements\\n4. Ensure all text elements maintain visibility in enhanced dark mode",
-      "verificationCriteria": "Default dark theme achieves WCAG AA compliance (4.5:1 contrast ratio) for all text/background combinations. Text is clearly visible on all interface elements. Enhanced borders are visible without being overpowering.",
-      "analysisResult": "Comprehensive theme system update ensuring all UI elements work with themes, creating light variants for all dark themes, improving default dark mode contrast, and maintaining text visibility with WCAG AA compliance. The implementation leverages existing CSS custom properties, CVA patterns, and theme utility functions while fixing hardcoded color usage across the codebase.",
-      "summary": "Successfully enhanced the default dark theme contrast to meet WCAG AA accessibility standards. Improved foreground text from 95% to 98% brightness, enhanced borders to 30% lightness for better visibility, brightened muted text from 70% to 75%, and optimized primary/secondary color combinations for better contrast ratios. Added accessibility validation test function to verify compliance. Build verification successful and all text elements now maintain excellent visibility in the enhanced dark mode.",
-      "completedAt": "2025-06-08T21:30:11.875Z"
-    },
-    {
-      "id": "3b7b8142-9db1-4119-853d-2574fabe3d97",
-      "name": "Generate Light Theme Variants",
-      "description": "Create light theme variants for all existing dark themes using the theme generation utilities. This doubles the theme options available to users while maintaining design consistency and accessibility.",
-      "notes": "Light themes should maintain the color personality of their dark counterparts while providing appropriate contrast for light backgrounds. Use colorUtils functions for accurate color manipulation.",
-      "status": "completed",
-      "dependencies": [
-        {
-          "taskId": "5e308aba-eba0-4990-91cb-1d346c8d8a0a"
-        }
-      ],
-      "createdAt": "2025-06-08T21:06:41.766Z",
-      "updatedAt": "2025-06-08T21:56:21.013Z",
-      "relatedFiles": [
-        {
-          "path": "src/lib/theme-utils.ts",
-          "type": "TO_MODIFY",
-          "description": "Add generateLightVariant function to ThemeGenerator",
-          "lineStart": 111,
-          "lineEnd": 178
-        },
-        {
-          "path": "src/app/globals.css",
-          "type": "TO_MODIFY",
-          "description": "Add light theme CSS custom properties",
-          "lineStart": 360,
-          "lineEnd": 361
-        }
-      ],
-<<<<<<< Updated upstream
-      "implementationGuide": "1. Create generateLightVariant function in ThemeGenerator class:\\n   - Invert background/foreground lightness values (dark 10% becomes light 90%)\\n   - Maintain primary color hues while adjusting lightness for light backgrounds\\n   - Adjust border and muted colors for light theme contrast\\n   - Ensure proper text/background contrast ratios\\n2. Generate light variants for all 10 existing dark themes:\\n   - light (counterpart to dark)\\n   - theme-amoled-light, theme-carbon-light, theme-sea-blue-light\\n   - theme-midnight-blue-light, theme-void-purple-light, theme-sunset-orange-light\\n   - theme-hello-kitty-pink-light, theme-cherry-blossom-light, theme-hacker-green-light\\n3. Add new CSS custom property definitions to globals.css\\n4. Validate accessibility compliance for all light themes",
-      "verificationCriteria": "All 10 light theme variants are properly generated with appropriate contrast ratios. Each light theme maintains the color personality of its dark counterpart. All light themes pass WCAG AA accessibility validation.",
-      "analysisResult": "Comprehensive theme system update ensuring all UI elements work with themes, creating light variants for all dark themes, improving default dark mode contrast, and maintaining text visibility with WCAG AA compliance. The implementation leverages existing CSS custom properties, CVA patterns, and theme utility functions while fixing hardcoded color usage across the codebase.",
-      "summary": "Successfully generated comprehensive light theme variants for all 10 dark themes. Implemented sophisticated color conversion logic with ThemeGenerator.generateLightVariant() including background/foreground inversion, primary color darkening for light background contrast, and standardized light grays. All themes maintain their unique color personalities while providing WCAG-compliant contrast ratios. Created complete CSS with proper class names (.light, .theme-amoled-light, etc.) covering all color variables including chart colors. Build verification successful - ready for theme settings UI integration.",
-      "completedAt": "2025-06-08T21:56:20.976Z"
-    },
-    {
-      "id": "4e8d44d0-3bde-412b-a5df-80d4d5a1e532",
-      "name": "Update Theme Settings Interface",
-      "description": "Enhance the ThemeSettings component to display light/dark variants and provide an improved user interface for theme selection. This includes updating theme definitions and organizing themes by light/dark variants.",
-      "notes": "The interface should make it clear which themes are light vs dark variants while maintaining the existing category organization (default, minimal, nature, cosmic, playful, retro).",
-      "status": "completed",
-      "dependencies": [
-        {
-          "taskId": "3b7b8142-9db1-4119-853d-2574fabe3d97"
-        }
-      ],
-      "createdAt": "2025-06-08T21:06:41.766Z",
-      "updatedAt": "2025-06-08T22:22:57.509Z",
-      "relatedFiles": [
-        {
-          "path": "src/components/settings/ThemeSettings.tsx",
-          "type": "TO_MODIFY",
-          "description": "Add light theme variants and enhance UI",
-          "lineStart": 11,
-          "lineEnd": 217
-        }
-      ],
-      "implementationGuide": "1. Update customThemes array in ThemeSettings.tsx:\\n   - Add all new light theme definitions with proper preview colors\\n   - Organize themes by light/dark pairs with clear naming\\n   - Add light variant preview colors (inverted from dark versions)\\n2. Enhance theme selection interface:\\n   - Group themes by base name with light/dark toggle options\\n   - Add visual indicators for light vs dark variants\\n   - Improve theme preview with both light and dark color samples\\n3. Update theme switching logic to handle light variants\\n4. Add accessibility information for each theme variant\\n5. Test theme switching functionality with new variants",
-      "verificationCriteria": "Theme settings interface displays all light and dark variants with clear visual distinction. Users can easily switch between light/dark versions of each theme. Theme previews accurately represent the actual theme colors.",
-      "analysisResult": "Comprehensive theme system update ensuring all UI elements work with themes, creating light variants for all dark themes, improving default dark mode contrast, and maintaining text visibility with WCAG AA compliance. The implementation leverages existing CSS custom properties, CVA patterns, and theme utility functions while fixing hardcoded color usage across the codebase.",
-      "summary": "Successfully updated ThemeSettings component with comprehensive light/dark theme pair support. Implemented theme mode toggle allowing users to switch between light and dark variants across all themes. Added complete theme pair definitions including all 10 theme families with both light and dark variants. Enhanced UI with visual indicators showing current mode (Sun/Moon icons), dual preview showing both light and dark colors for each theme, and improved accessibility with proper ARIA labels. Theme switching logic handles seamless transitions between light/dark variants of the same theme family. Interface clearly displays light vs dark distinctions while maintaining existing category organization and user experience patterns.",
-      "completedAt": "2025-06-08T22:22:57.507Z"
-    },
-    {
-      "id": "f14baeaf-9129-4e03-ab20-dfe2d38184d7",
-      "name": "Ensure Universal Button Theme Integration",
-      "description": "Audit and update all remaining UI components to ensure proper theme integration, focusing on components that may have been missed in the initial hardcoded color fix. This includes third-party component styling and edge cases.",
-      "notes": "This comprehensive audit ensures no UI elements are left with hardcoded colors. Pay special attention to third-party component integrations and dynamic content.",
-      "status": "completed",
-      "dependencies": [
-        {
-          "taskId": "88cc80c5-eec7-4bb9-b18c-32a460f1c7e0"
-        }
-      ],
-      "createdAt": "2025-06-08T21:06:41.766Z",
-      "updatedAt": "2025-06-08T22:52:54.635Z",
-      "relatedFiles": [
-        {
-          "path": "src/components/tasks/calendar-styles.css",
-          "type": "REFERENCE",
-          "description": "FullCalendar already uses theme variables properly",
-          "lineStart": 1,
-          "lineEnd": 15
-        },
-        {
-          "path": "src/components/ui/shimmer-button.tsx",
-          "type": "TO_MODIFY",
-          "description": "Verify theme integration for shimmer effects",
-          "lineStart": 40,
-          "lineEnd": 50
-        },
-        {
-          "path": "src/components/ui/interactive-hover-button.tsx",
-          "type": "REFERENCE",
-          "description": "Already uses theme variables properly",
-          "lineStart": 15,
-          "lineEnd": 25
-        },
-        {
-          "path": "src/components/home/BubblePopGame.tsx",
-          "type": "TO_MODIFY",
-          "description": "Update hardcoded gradient colors to be theme-aware",
-          "lineStart": 330,
-          "lineEnd": 345
-        }
-      ],
-      "implementationGuide": "1. Audit all remaining components for hardcoded colors:\\n   - Search codebase for remaining 'hsl(142,60%,40%)' patterns\\n   - Check ShimmerButton, InteractiveHoverButton, and other UI components\\n   - Verify FullCalendar styling uses theme variables properly\\n2. Update calendar-styles.css to ensure all FullCalendar elements inherit theme properly\\n3. Check homepage components (BubblePopGame, etc.) for theme compliance\\n4. Update any remaining hardcoded colors in navigation and layout components\\n5. Test button functionality across all pages: dashboard, tasks, settings, profile\\n6. Verify theme transitions work smoothly for all interactive elements",
-      "verificationCriteria": "All UI components across the entire application properly inherit theme colors. No hardcoded color values remain in any component. Theme switching works seamlessly across all pages and interactive elements.",
-      "analysisResult": "Comprehensive theme system update ensuring all UI elements work with themes, creating light variants for all dark themes, improving default dark mode contrast, and maintaining text visibility with WCAG AA compliance. The implementation leverages existing CSS custom properties, CVA patterns, and theme utility functions while fixing hardcoded color usage across the codebase.",
-      "summary": "Successfully completed comprehensive audit and update of all UI components to ensure proper theme integration. Replaced all hardcoded hsl(142,60%,40%) color references with theme-aware CSS custom properties (bg-primary, text-primary, etc.) across TaskForm.tsx, TaskEventTab.tsx, TaskEventHub.tsx, CalendarViewEnhanced.tsx, SuggestionCard.tsx, SuggestionList.tsx, AISuggestionDemo.tsx, and BubblePopGame.tsx. Updated CVA variants, button styling, and gradient backgrounds to use semantic theme tokens. Verified FullCalendar styling already uses theme variables properly. All components now properly inherit theme colors and theme switching works seamlessly across all pages and interactive elements. Build compilation successful.",
-      "completedAt": "2025-06-08T22:52:54.577Z"
-    },
-    {
-      "id": "31d262ea-7a4b-45a3-8e7b-4797c007bc61",
-      "name": "Comprehensive Theme Accessibility Validation",
-      "description": "Implement comprehensive accessibility testing for all theme variants using the existing validation utilities. This ensures all 20+ themes meet WCAG AA standards and provides accessibility feedback to users.",
-      "notes": "This validation ensures all themes are accessible to users with visual impairments. Any themes that fail accessibility tests should be automatically adjusted using the color utility functions.",
-      "status": "pending",
-      "dependencies": [
-        {
-          "taskId": "3b7b8142-9db1-4119-853d-2574fabe3d97"
-        },
-        {
-          "taskId": "4e8d44d0-3bde-412b-a5df-80d4d5a1e532"
-        }
-      ],
-      "createdAt": "2025-06-08T21:06:41.766Z",
-      "updatedAt": "2025-06-08T21:06:41.766Z",
-      "relatedFiles": [
-        {
-          "path": "src/lib/theme-utils.ts",
-          "type": "REFERENCE",
-          "description": "Use existing validation functions",
-          "lineStart": 183,
-          "lineEnd": 254
-        },
-        {
-          "path": "src/components/settings/AccessibilitySettings.tsx",
-          "type": "TO_MODIFY",
-          "description": "Add theme accessibility information",
-          "lineStart": 1,
-          "lineEnd": 50
-        }
-      ],
-      "implementationGuide": "1. Create comprehensive theme testing script using ThemeValidator:\\n   - Test all 20+ theme variants (10 dark + 10 light)\\n   - Validate contrast ratios for all text/background combinations\\n   - Generate accessibility reports for each theme\\n2. Use colorUtils.adjustContrast() to auto-fix any failing combinations\\n3. Add accessibility indicators to theme selection interface:\\n   - Show AA/AAA compliance status for each theme\\n   - Display contrast ratio information\\n   - Highlight themes with accessibility issues\\n4. Create accessibility testing documentation\\n5. Implement automated testing for future theme additions\\n6. Test with screen readers and high contrast mode",
-      "verificationCriteria": "All 20+ theme variants achieve WCAG AA compliance. Accessibility information is clearly displayed in the theme selection interface. Any theme with contrast issues is automatically corrected or clearly marked with warnings.",
-      "analysisResult": "Comprehensive theme system update ensuring all UI elements work with themes, creating light variants for all dark themes, improving default dark mode contrast, and maintaining text visibility with WCAG AA compliance. The implementation leverages existing CSS custom properties, CVA patterns, and theme utility functions while fixing hardcoded color usage across the codebase."
-=======
-      "implementationGuide": "1. Update memoSparkClerkAppearance in clerk-appearance.ts with backdrop-blur and transparency\\n2. Add glassy effects using backdrop-filter CSS properties\\n3. Enhance contrast ratios for accessibility compliance\\n4. Implement theme-aware color adjustments (black text on light, white text on dark)\\n5. Test with all theme variants (dark, light, amoled, etc.)\\n6. Add smooth transitions for theme changes\\n7. Ensure glass effects work across different browsers\\n\\nPseudocode:\\n```typescript\\nexport const memoSparkClerkAppearance: Appearance = {\\n  variables: {\\n    colorBackground: 'rgba(255, 255, 255, 0.8)', // Translucent white\\n    colorText: 'hsl(0, 0%, 9%)', // High contrast black\\n  },\\n  elements: {\\n    rootBox: {\\n      backgroundColor: 'rgba(255, 255, 255, 0.8)',\\n      backdropFilter: 'blur(12px) saturate(180%)',\\n      border: '1px solid rgba(255, 255, 255, 0.3)',\\n      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',\\n    },\\n    formFieldInput: {\\n      backgroundColor: 'rgba(255, 255, 255, 0.9)',\\n      backdropFilter: 'blur(8px)',\\n      border: '1px solid rgba(0, 0, 0, 0.1)',\\n      color: 'hsl(0, 0%, 9%)', // High contrast text\\n    }\\n  }\\n};\\n\\nexport const memoSparkClerkAppearanceDark: Appearance = {\\n  variables: {\\n    colorBackground: 'rgba(0, 0, 0, 0.8)', // Translucent black\\n    colorText: 'hsl(0, 0%, 95%)', // High contrast white\\n  },\\n  elements: {\\n    rootBox: {\\n      backgroundColor: 'rgba(0, 0, 0, 0.8)',\\n      backdropFilter: 'blur(12px) saturate(180%)',\\n      border: '1px solid rgba(255, 255, 255, 0.1)',\\n    }\\n  }\\n};\\n```",
-      "verificationCriteria": "Clerk components display glassy backgrounds correctly. Text contrast meets accessibility standards. Glass effects work across all themes. Theme switching maintains visual consistency. Browser compatibility verified for major browsers.",
-      "analysisResult": "Transform StudySpark from demo application to production-ready system by removing all mock content, rebuilding reminders and achievements with real data architecture, implementing crashout room functionality, and enhancing Clerk component styling with glassy backgrounds and proper theme contrast. This comprehensive overhaul maintains existing performance optimizations while establishing proper data flow through Supabase integration."
-=======
-      "id": "d6505b59-2469-45df-a929-f5bce1880b1e",
-      "name": "Create Secure AI API Endpoints with Server-Side Processing",
-      "description": "Implement server-side API routes for AI suggestions processing following the project's established patterns. Create /api/ai/suggestions route with proper authentication, tier checking, and rate limiting. Move TieredAIService logic to server-side while maintaining client-side hooks for UI state management.",
-      "notes": "Critical security fix - moves AI processing and API keys to server-side. Must maintain compatibility with existing useTieredAI hook.",
-      "status": "completed",
-      "dependencies": [],
-      "createdAt": "2025-06-10T12:45:25.334Z",
-      "updatedAt": "2025-06-10T21:44:42.646Z",
-      "relatedFiles": [
-        {
-          "path": "src/app/api/ai/suggestions/route.ts",
-          "type": "CREATE",
-          "description": "Main AI suggestions API endpoint"
-        },
-        {
-          "path": "src/lib/ai/TieredAIService.ts",
-          "type": "TO_MODIFY",
-          "description": "Refactor for server-side usage",
-          "lineStart": 100,
-          "lineEnd": 200
-        },
-        {
-          "path": "src/app/api/test-auth/route.ts",
-          "type": "REFERENCE",
-          "description": "Authentication pattern to follow"
-        },
-        {
-          "path": "src/hooks/useTieredAI.ts",
-          "type": "TO_MODIFY",
-          "description": "Update to call API endpoints",
-          "lineStart": 80,
-          "lineEnd": 130
-        }
-      ],
-      "implementationGuide": "Follow existing API pattern from /api/test-auth/route.ts: \\n1. Create /api/ai/suggestions/route.ts with POST handler\\n2. Implement Clerk authentication with { userId, getToken } = await auth()\\n3. Use createClient with accessToken: async () => getToken()\\n4. Move TieredAIService.generateSuggestions to server-side\\n5. Add proper error handling following NextResponse.json pattern\\n6. Implement server-side rate limiting checks\\n7. Return properly typed responses with tier information\\n\\nPseudocode:\\n```typescript\\nexport async function POST(request: Request) {\\n  const { userId, getToken } = await auth();\\n  if (!userId) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });\\n  \\n  const supabase = createClient(url, key, { accessToken: async () => getToken() });\\n  const tierManager = new SubscriptionTierManager(supabase);\\n  \\n  // Check tier access and usage limits\\n  const accessCheck = await tierManager.canUserMakeAIRequest(userId, feature);\\n  if (!accessCheck.can_proceed) return upgradeRequired();\\n  \\n  // Process AI request server-side\\n  const suggestions = await processAIRequest(request, userId);\\n  \\n  // Track usage\\n  await usageTracker.incrementUsage(userId, feature);\\n  \\n  return NextResponse.json({ success: true, data: suggestions });\\n}\\n```",
-      "verificationCriteria": "1. API endpoint responds correctly with proper authentication\\n2. Server-side tier checking and rate limiting works\\n3. Client-side hook successfully calls API\\n4. API keys and sensitive data not exposed to client\\n5. Error handling follows project patterns\\n6. Performance under 2 seconds for suggestions",
-      "analysisResult": "Create a production-ready AI tier system that securely integrates with backend APIs, includes comprehensive testing, and requires specific manual user configuration. The system must move from client-side only implementation to proper server-side architecture while maintaining existing project patterns and ensuring security, performance, and scalability.",
-      "summary": "Successfully implemented secure AI API endpoints with server-side processing. Created /api/ai/suggestions route with proper authentication, tier checking, and rate limiting. Updated useTieredAI hook to call server-side API instead of client-side service. API keys and sensitive processing moved to server-side. Authentication follows project patterns using Clerk. Tier checking and usage tracking implemented directly in API route. Error handling and response format match project standards. Build successfully completes without errors.",
-      "completedAt": "2025-06-10T21:44:42.642Z"
-    },
-    {
-      "id": "96d5ea7d-fa4e-4650-84a8-953cc76909d6",
-      "name": "Database Schema Validation and Migration",
-      "description": "Validate and apply the subscription management database schema to development/staging environments. Ensure proper table creation, RLS policies, indexes, and default tier data. Verify Clerk user integration and data access patterns work correctly.",
-      "notes": "Must coordinate with user for database access. Requires Supabase project credentials and proper permissions.",
-      "status": "pending",
-      "dependencies": [],
-      "createdAt": "2025-06-10T12:45:25.334Z",
-      "updatedAt": "2025-06-10T12:45:25.334Z",
-      "relatedFiles": [
-        {
-          "path": "src/lib/subscription/schema.sql",
-          "type": "REFERENCE",
-          "description": "Database schema to apply"
-        },
-        {
-          "path": "supabase/migrations/",
-          "type": "CREATE",
-          "description": "Migration files for version control"
-        },
-        {
-          "path": "src/lib/supabase/client.ts",
-          "type": "REFERENCE",
-          "description": "Database connection configuration"
-        }
-      ],
-      "implementationGuide": "Use existing schema from /lib/subscription/schema.sql:\\n1. Verify Supabase connection and credentials\\n2. Apply schema migration using Supabase CLI or dashboard\\n3. Verify table creation: subscription_tiers, user_subscriptions, ai_usage_tracking\\n4. Test RLS policies with authenticated requests\\n5. Verify indexes are created for performance\\n6. Insert default tier configurations\\n7. Test Clerk user_id mapping to Supabase profiles\\n\\nPseudocode for verification:\\n```bash\\n# Apply schema\\nsupabase db push\\n\\n# Verify tables exist\\nsupabase db diff\\n\\n# Test RLS policies\\nsupabase db test\\n```\\n\\nVerification queries:\\n```sql\\n-- Check tables exist\\nSELECT table_name FROM information_schema.tables WHERE table_schema = 'public';\\n\\n-- Verify RLS policies\\nSELECT * FROM pg_policies WHERE tablename IN ('subscription_tiers', 'user_subscriptions', 'ai_usage_tracking');\\n\\n-- Check default tiers\\nSELECT * FROM subscription_tiers;\\n```",
-      "verificationCriteria": "1. All tables created successfully in database\\n2. RLS policies active and working correctly\\n3. Indexes created for performance optimization\\n4. Default subscription tiers inserted\\n5. Clerk user authentication maps to profiles table\\n6. Database queries perform under 100ms\\n7. Connection pooling configured properly",
-      "analysisResult": "Create a production-ready AI tier system that securely integrates with backend APIs, includes comprehensive testing, and requires specific manual user configuration. The system must move from client-side only implementation to proper server-side architecture while maintaining existing project patterns and ensuring security, performance, and scalability."
-    },
-    {
-      "id": "d5b5ef6d-7619-4480-ae08-a3c2910f9baa",
-      "name": "Merge AI Services Architecture and Eliminate Duplication",
-      "description": "Integrate TieredAIService with existing SupabaseAIService to eliminate duplicate functionality. Create unified AI service that combines tier awareness with existing ML capabilities. Refactor client-side AI context to work with new architecture.",
-      "notes": "Major refactoring task. Must maintain existing API compatibility while consolidating duplicate services.",
-      "status": "pending",
-      "dependencies": [
-        {
-          "taskId": "d6505b59-2469-45df-a929-f5bce1880b1e"
-        }
-      ],
-      "createdAt": "2025-06-10T12:45:25.334Z",
-      "updatedAt": "2025-06-10T12:45:25.334Z",
-      "relatedFiles": [
-        {
-          "path": "src/lib/ai/TieredAIService.ts",
-          "type": "TO_MODIFY",
-          "description": "Merge with SupabaseAIService"
-        },
-        {
-          "path": "src/lib/supabase/aiIntegration.ts",
-          "type": "TO_MODIFY",
-          "description": "Integrate tier awareness"
-        },
-        {
-          "path": "src/lib/ai/aiContext.tsx",
-          "type": "TO_MODIFY",
-          "description": "Update to use unified service"
-        },
-        {
-          "path": "src/lib/ai/UnifiedAIService.ts",
-          "type": "CREATE",
-          "description": "New consolidated AI service"
-        },
-        {
-          "path": "src/types/ai.ts",
-          "type": "TO_MODIFY",
-          "description": "Update interfaces for unified service"
-        }
-      ],
-      "implementationGuide": "Analyze existing AI services and merge strategically:\\n1. Review SupabaseAIService in /lib/supabase/aiIntegration.ts\\n2. Identify overlapping functionality with TieredAIService\\n3. Create new UnifiedAIService that combines both:\\n   - Tier checking from TieredAIService\\n   - ML capabilities from SupabaseAIService\\n   - Collaborative filtering integration\\n4. Update AIContext provider to use unified service\\n5. Maintain backward compatibility with existing hooks\\n6. Remove duplicate code and consolidate interfaces\\n\\nPseudocode for UnifiedAIService:\\n```typescript\\nclass UnifiedAIService {\\n  private tierManager: SubscriptionTierManager;\\n  private mlService: SupabaseAIService;\\n  private collaborativeService: CollaborativeFilteringService;\\n  \\n  async generateSuggestions(request: TierAwareAIRequest) {\\n    // Check tier access\\n    const accessCheck = await this.tierManager.checkAccess();\\n    if (!accessCheck.canProceed) return upgradeResponse();\\n    \\n    // Route to appropriate service based on tier\\n    if (request.tier === 'premium') {\\n      return this.mlService.getAdvancedSuggestions();\\n    } else {\\n      return this.mlService.getBasicSuggestions();\\n    }\\n  }\\n}\\n```",
-      "verificationCriteria": "1. No duplicate AI processing logic remains\\n2. All existing AI features continue to work\\n3. Tier awareness properly integrated with ML features\\n4. Client hooks maintain same interface\\n5. Performance improved with consolidated architecture\\n6. Memory usage optimized by eliminating duplicates",
-      "analysisResult": "Create a production-ready AI tier system that securely integrates with backend APIs, includes comprehensive testing, and requires specific manual user configuration. The system must move from client-side only implementation to proper server-side architecture while maintaining existing project patterns and ensuring security, performance, and scalability."
-    },
-    {
-      "id": "8dc4697f-13e1-426d-bf57-0092d28936f2",
-      "name": "Comprehensive Integration Testing Suite",
-      "description": "Create comprehensive test suite covering full API flows, authentication, tier checking, rate limiting, and error handling. Fix existing test failures and add integration tests for complete request/response cycles. Include performance testing under realistic loads.",
-      "notes": "Requires database test environment and proper test user setup. Must cover both happy path and error scenarios.",
-      "status": "pending",
-      "dependencies": [
-        {
-          "taskId": "d6505b59-2469-45df-a929-f5bce1880b1e"
-        },
-        {
-          "taskId": "96d5ea7d-fa4e-4650-84a8-953cc76909d6"
-        }
-      ],
-      "createdAt": "2025-06-10T12:45:25.334Z",
-      "updatedAt": "2025-06-10T12:45:25.334Z",
-      "relatedFiles": [
-        {
-          "path": "__tests__/ai-tier-system.test.ts",
-          "type": "TO_MODIFY",
-          "description": "Expand existing tests"
-        },
-        {
-          "path": "__tests__/integration/ai-api.test.ts",
-          "type": "CREATE",
-          "description": "New API integration tests"
-        },
-        {
-          "path": "src/lib/testing/ai-test-utils.ts",
-          "type": "TO_MODIFY",
-          "description": "Add API testing utilities"
+          "description": "Remove mock shop items and achievements"
         },
         {
           "path": "src/test-setup.ts",
-          "type": "REFERENCE",
-          "description": "Test environment setup"
+          "type": "TO_MODIFY",
+          "description": "Update test mocks for real data flow"
         }
       ],
-      "implementationGuide": "Build on existing test infrastructure in __tests__/ai-tier-system.test.ts:\\n1. Fix Headers mock issues (COMPLETED in test-setup.ts)\\n2. Add API endpoint integration tests\\n3. Create realistic test scenarios for each tier\\n4. Test authentication flow with Clerk tokens\\n5. Test rate limiting and usage tracking\\n6. Add performance benchmarks\\n7. Test error conditions and edge cases\\n\\nTest structure:\\n```typescript\\ndescribe('AI Tier System Integration', () => {\\n  test('Free tier basic suggestions via API', async () => {\\n    const response = await fetch('/api/ai/suggestions', {\\n      method: 'POST',\\n      headers: { Authorization: `Bearer ${freeUserToken}` },\\n      body: JSON.stringify({ feature: 'basic_suggestions' })\\n    });\\n    expect(response.status).toBe(200);\\n    const data = await response.json();\\n    expect(data.suggestions).toHaveLength(3); // Free tier limit\\n  });\\n  \\n  test('Premium tier advanced suggestions', async () => {\\n    // Test premium features and higher limits\\n  });\\n  \\n  test('Rate limiting enforcement', async () => {\\n    // Test daily limit enforcement\\n  });\\n});\\n```",
-      "verificationCriteria": "1. All existing tests pass without failures\\n2. API integration tests cover all endpoints\\n3. Authentication and authorization properly tested\\n4. Rate limiting and tier enforcement verified\\n5. Performance tests show <2 second response times\\n6. Error handling tests pass for all scenarios\\n7. Test coverage >90% for critical paths",
-      "analysisResult": "Create a production-ready AI tier system that securely integrates with backend APIs, includes comprehensive testing, and requires specific manual user configuration. The system must move from client-side only implementation to proper server-side architecture while maintaining existing project patterns and ensuring security, performance, and scalability."
+      "implementationGuide": "1. Remove mock data arrays from StudentConnectionTab.tsx, RemindersTab.tsx, GamificationHub.tsx\\n2. Delete or disable MSW handlers in mocks/handlers.ts\\n3. Remove sample student data from useStudentConnection.ts hook\\n4. Clean up test setup mock configurations that won't be needed\\n5. Update components to handle empty states gracefully\\n\\nPseudocode:\\n```\\n// Remove mock arrays\\nconst mockReminders = [...] // DELETE THIS\\nconst sampleStudents = [...] // DELETE THIS\\n\\n// Update hooks to return empty/loading states\\nfunction useStudentData() {\\n  return { students: [], loading: true, error: null }\\n}\\n```",
+      "verificationCriteria": "All components render without errors when no data is present. No hardcoded mock data remains in production code. Loading and empty states display correctly.",
+      "analysisResult": "Transform StudySpark from demo application to production-ready system by removing all mock content, rebuilding reminders and achievements with real data architecture, implementing crashout room functionality, and enhancing Clerk component styling with glassy backgrounds and proper theme contrast. This comprehensive overhaul maintains existing performance optimizations while establishing proper data flow through Supabase integration."
     },
     {
-      "id": "15c3f7a2-2b6b-4ef7-8462-d5b20257d2d2",
-      "name": "Performance Optimization and Caching Implementation",
-      "description": "Implement production-grade performance optimizations including request caching, database query optimization, connection pooling, and tier checking cache. Add monitoring and logging for performance tracking.",
-      "notes": "Critical for production performance. Must measure before/after performance improvements.",
+      "id": "db44c0d6-6b5a-489e-9a82-85b9ca0c9952",
+      "name": "Design Database Schema for Reminders and Achievements",
+      "description": "Create comprehensive Supabase database schema for real reminders, achievements, user progress tracking, and crashout room forum functionality. Design tables with proper relationships and indexes for optimal performance.",
+      "notes": "Follow Supabase best practices for RLS and indexing. Consider data migration strategy if needed.",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-06-10T20:59:40.278Z",
+      "updatedAt": "2025-06-10T21:07:00.256Z",
+      "relatedFiles": [
+        {
+          "path": "supabase/migrations",
+          "type": "CREATE",
+          "description": "New migration files for database schema"
+        },
+        {
+          "path": "src/types/database.ts",
+          "type": "TO_MODIFY",
+          "description": "Update TypeScript types for new tables"
+        }
+      ],
+      "implementationGuide": "1. Create reminders table with fields: id, user_id, title, description, due_date, completed, priority, points, created_at\n2. Create achievements table: id, name, description, icon, type, criteria, points_reward\n3. Create user_achievements table: id, user_id, achievement_id, earned_at, progress, max_progress\n4. Create user_stats table: id, user_id, total_points, current_streak, coins, level, last_activity\n5. Create crashout_posts table: id, user_id, content, mood, privacy_level, is_anonymous, created_at, updated_at\n6. Create post_reactions table: id, post_id, user_id, reaction_type, created_at\n7. Create user_mood_tracking table: id, user_id, mood, intensity, timestamp, notes\n8. Add proper foreign key constraints and indexes\n9. Set up RLS policies for user data protection and privacy controls\n10. Create database functions for post moderation and content filtering\n\nPseudocode schema:\n```sql\nCREATE TABLE reminders (\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  user_id UUID REFERENCES auth.users(id),\n  title TEXT NOT NULL,\n  due_date TIMESTAMPTZ,\n  completed BOOLEAN DEFAULT false,\n  points INTEGER DEFAULT 0\n);\n\nCREATE TABLE achievements (\n  id UUID PRIMARY KEY,\n  name TEXT NOT NULL,\n  description TEXT,\n  type TEXT CHECK (type IN ('streak', 'task_completion', 'social', 'wellness'))\n);\n\nCREATE TABLE crashout_posts (\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  user_id UUID REFERENCES auth.users(id),\n  content TEXT NOT NULL,\n  mood TEXT CHECK (mood IN ('stressed', 'overwhelmed', 'frustrated', 'anxious', 'exhausted')),\n  privacy_level TEXT CHECK (privacy_level IN ('private', 'public', 'anonymous')) DEFAULT 'public',\n  is_anonymous BOOLEAN DEFAULT false,\n  is_flagged BOOLEAN DEFAULT false,\n  created_at TIMESTAMPTZ DEFAULT NOW(),\n  updated_at TIMESTAMPTZ DEFAULT NOW()\n);\n\nCREATE TABLE post_reactions (\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  post_id UUID REFERENCES crashout_posts(id) ON DELETE CASCADE,\n  user_id UUID REFERENCES auth.users(id),\n  reaction_type TEXT CHECK (reaction_type IN ('heart', 'hug', 'understanding', 'you_got_this')),\n  created_at TIMESTAMPTZ DEFAULT NOW(),\n  UNIQUE(post_id, user_id, reaction_type)\n);\n\nCREATE TABLE user_mood_tracking (\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  user_id UUID REFERENCES auth.users(id),\n  mood TEXT NOT NULL,\n  intensity INTEGER CHECK (intensity BETWEEN 1 AND 10),\n  timestamp TIMESTAMPTZ DEFAULT NOW(),\n  notes TEXT\n);\n\n-- RLS Policies for privacy\nALTER TABLE crashout_posts ENABLE ROW LEVEL SECURITY;\n\nCREATE POLICY \"Users can view public posts\" ON crashout_posts\n  FOR SELECT USING (privacy_level = 'public' OR privacy_level = 'anonymous');\n\nCREATE POLICY \"Users can view their own posts\" ON crashout_posts\n  FOR SELECT USING (auth.uid() = user_id);\n\nCREATE POLICY \"Users can insert their own posts\" ON crashout_posts\n  FOR INSERT WITH CHECK (auth.uid() = user_id);\n\n-- Indexes for performance\nCREATE INDEX idx_crashout_posts_created_at ON crashout_posts(created_at DESC);\nCREATE INDEX idx_crashout_posts_privacy ON crashout_posts(privacy_level, created_at DESC);\nCREATE INDEX idx_post_reactions_post_id ON post_reactions(post_id);\n```",
+      "verificationCriteria": "Database schema created successfully with all tables, relationships, and RLS policies. TypeScript types generated correctly. No migration errors in Supabase.",
+      "analysisResult": "Transform StudySpark from demo application to production-ready system by removing all mock content, rebuilding reminders and achievements with real data architecture, implementing crashout room functionality, and enhancing Clerk component styling with glassy backgrounds and proper theme contrast. This comprehensive overhaul maintains existing performance optimizations while establishing proper data flow through Supabase integration."
+    },
+    {
+      "id": "6a56ffb9-d7b5-4228-8237-a2f008f0cf5b",
+      "name": "Implement Reminders API Layer",
+      "description": "Create comprehensive API layer for reminders CRUD operations using existing Supabase helper patterns. Include real-time subscriptions and proper error handling.",
+      "notes": "Use existing authentication patterns. Implement proper TypeScript interfaces. Include optimistic updates for better UX.",
       "status": "pending",
       "dependencies": [
         {
-          "taskId": "96d5ea7d-fa4e-4650-84a8-953cc76909d6"
-        },
-        {
-          "taskId": "d5b5ef6d-7619-4480-ae08-a3c2910f9baa"
+          "taskId": "db44c0d6-6b5a-489e-9a82-85b9ca0c9952"
         }
       ],
-      "createdAt": "2025-06-10T12:45:25.334Z",
-      "updatedAt": "2025-06-10T12:45:25.334Z",
+      "createdAt": "2025-06-10T20:59:40.278Z",
+      "updatedAt": "2025-06-10T20:59:40.278Z",
       "relatedFiles": [
         {
-          "path": "src/lib/cache/CacheManager.ts",
+          "path": "src/lib/supabase/remindersApi.ts",
           "type": "CREATE",
-          "description": "Centralized caching service"
+          "description": "New API layer for reminders operations"
         },
         {
-          "path": "src/lib/ai/performance/monitoring.ts",
+          "path": "src/lib/supabase/client.ts",
+          "type": "TO_MODIFY",
+          "description": "Add client-side reminder helpers"
+        },
+        {
+          "path": "src/lib/supabase/server.ts",
+          "type": "TO_MODIFY",
+          "description": "Add server-side reminder actions"
+        },
+        {
+          "path": "src/types/reminders.ts",
           "type": "CREATE",
-          "description": "Performance monitoring utilities"
-        },
-        {
-          "path": "src/lib/subscription/SubscriptionTierManager.ts",
-          "type": "TO_MODIFY",
-          "description": "Add caching to tier checks"
-        },
-        {
-          "path": "src/app/api/ai/suggestions/route.ts",
-          "type": "TO_MODIFY",
-          "description": "Add response caching"
+          "description": "TypeScript interfaces for reminders"
         }
       ],
-      "implementationGuide": "Implement multi-layer caching and optimization:\\n1. Add Redis/memory cache for subscription tier checks\\n2. Implement request deduplication for AI suggestions\\n3. Optimize database queries with proper indexes\\n4. Add connection pooling for ML service APIs\\n5. Implement response caching with appropriate TTLs\\n6. Add performance monitoring and metrics\\n\\nCaching implementation:\\n```typescript\\nclass CacheManager {\\n  private tierCache = new Map<string, {tier: SubscriptionTier, expiry: number}>();\\n  private suggestionsCache = new Map<string, {data: any, expiry: number}>();\\n  \\n  async getTierWithCache(userId: string): Promise<SubscriptionTier> {\\n    const cached = this.tierCache.get(userId);\\n    if (cached && cached.expiry > Date.now()) {\\n      return cached.tier;\\n    }\\n    \\n    const tier = await this.fetchTierFromDB(userId);\\n    this.tierCache.set(userId, {\\n      tier,\\n      expiry: Date.now() + (5 * 60 * 1000) // 5 minute cache\\n    });\\n    return tier;\\n  }\\n}\\n```\\n\\nDatabase optimization:\\n```sql\\n-- Add composite indexes\\nCREATE INDEX idx_ai_usage_user_date ON ai_usage_tracking(clerk_user_id, usage_date);\\nCREATE INDEX idx_subscriptions_user_status ON user_subscriptions(clerk_user_id, status);\\n```",
-      "verificationCriteria": "1. Tier checking response time <100ms with cache\\n2. AI suggestions response time <2 seconds\\n3. Database query performance optimized with indexes\\n4. Memory usage stable under load\\n5. Cache hit rate >80% for tier checks\\n6. No memory leaks in caching layer\\n7. Performance monitoring data collected",
-      "analysisResult": "Create a production-ready AI tier system that securely integrates with backend APIs, includes comprehensive testing, and requires specific manual user configuration. The system must move from client-side only implementation to proper server-side architecture while maintaining existing project patterns and ensuring security, performance, and scalability."
+      "implementationGuide": "1. Create remindersApi.ts following existing tasksApi.ts patterns\\n2. Implement CRUD operations: createReminder, updateReminder, deleteReminder, fetchReminders\\n3. Add real-time subscription for reminder updates\\n4. Implement due date notifications and overdue calculations\\n5. Add bulk operations for completing multiple reminders\\n6. Follow client/server helper separation patterns\\n\\nPseudocode:\\n```typescript\\n// Client helper\\nexport async function fetchUserReminders(userId: string) {\\n  const { data, error } = await supabase\\n    .from('reminders')\\n    .select('*')\\n    .eq('user_id', userId)\\n    .order('due_date', { ascending: true });\\n  return { data, error };\\n}\\n\\n// Server action\\nexport async function createReminder(formData: FormData) {\\n  const userId = await getCurrentUserId();\\n  // validation and creation logic\\n}\\n```",
+      "verificationCriteria": "All CRUD operations work correctly. Real-time updates function properly. Error handling covers edge cases. TypeScript compilation succeeds without errors.",
+      "analysisResult": "Transform StudySpark from demo application to production-ready system by removing all mock content, rebuilding reminders and achievements with real data architecture, implementing crashout room functionality, and enhancing Clerk component styling with glassy backgrounds and proper theme contrast. This comprehensive overhaul maintains existing performance optimizations while establishing proper data flow through Supabase integration."
     },
     {
-      "id": "6fed9c8e-c519-49a4-ae91-21976d7bfebf",
-      "name": "Security Audit and Production Environment Setup",
-      "description": "Conduct comprehensive security review, configure production environment variables, set up monitoring and logging, and prepare deployment pipeline. Ensure all sensitive data is properly secured and API endpoints are protected.",
-      "notes": "Requires coordination with DevOps for infrastructure setup. Must include proper secret management.",
+      "id": "1ed3aa74-0c7e-423f-aab2-0f10badc9193",
+      "name": "Implement Achievements and Gamification API",
+      "description": "Create robust achievements system with progress tracking, automatic unlocking, and gamification features including points, streaks, and leaderboards.",
+      "notes": "Consider performance optimization for achievement checking. Implement caching for leaderboards. Use transactions for points updates.",
       "status": "pending",
       "dependencies": [
         {
-          "taskId": "d6505b59-2469-45df-a929-f5bce1880b1e"
-        },
-        {
-          "taskId": "15c3f7a2-2b6b-4ef7-8462-d5b20257d2d2"
+          "taskId": "db44c0d6-6b5a-489e-9a82-85b9ca0c9952"
         }
       ],
-      "createdAt": "2025-06-10T12:45:25.334Z",
-      "updatedAt": "2025-06-10T12:45:25.334Z",
+      "createdAt": "2025-06-10T20:59:40.278Z",
+      "updatedAt": "2025-06-10T20:59:40.278Z",
       "relatedFiles": [
         {
-          "path": ".env.production",
+          "path": "src/lib/supabase/achievementsApi.ts",
           "type": "CREATE",
-          "description": "Production environment variables"
+          "description": "Achievement system API layer"
         },
         {
-          "path": "src/lib/security/validation.ts",
+          "path": "src/lib/supabase/gamificationApi.ts",
           "type": "CREATE",
-          "description": "Input validation utilities"
+          "description": "Gamification features API"
         },
         {
-          "path": "src/lib/monitoring/logger.ts",
+          "path": "src/types/achievements.ts",
           "type": "CREATE",
-          "description": "Production logging setup"
+          "description": "Achievement and gamification types"
         },
         {
-          "path": "next.config.js",
-          "type": "TO_MODIFY",
-          "description": "Production configuration"
+          "path": "src/lib/hooks/useAchievements.ts",
+          "type": "CREATE",
+          "description": "React hooks for achievements"
         }
       ],
-      "implementationGuide": "Complete security and production readiness checklist:\\n1. Security audit of API endpoints and authentication\\n2. Validate RLS policies prevent unauthorized access\\n3. Review and secure environment variable handling\\n4. Set up proper logging for production monitoring\\n5. Configure rate limiting at infrastructure level\\n6. Implement error monitoring with proper alerting\\n7. Prepare deployment configuration and rollback procedures\\n\\nSecurity checklist:\\n```typescript\\n// Input validation\\nconst validateAIRequest = (request: any) => {\\n  if (!request.userId || typeof request.userId !== 'string') {\\n    throw new Error('Invalid user ID');\\n  }\\n  if (!request.feature || !VALID_FEATURES.includes(request.feature)) {\\n    throw new Error('Invalid feature type');\\n  }\\n  // Additional validation...\\n};\\n\\n// Rate limiting\\nconst rateLimiter = {\\n  windowMs: 15 * 60 * 1000, // 15 minutes\\n  max: 100, // limit each IP to 100 requests per windowMs\\n  message: 'Too many requests from this IP'\\n};\\n```\\n\\nEnvironment configuration:\\n```bash\\n# Production environment variables\\nNEXT_PUBLIC_SUPABASE_URL=\\nNEXT_PUBLIC_SUPABASE_ANON_KEY=\\nSUPABASE_SERVICE_ROLE_KEY=\\nCLERK_SECRET_KEY=\\nHUGGINGFACE_API_KEY=\\nREDIS_URL=\\n```",
-      "verificationCriteria": "1. All API endpoints properly authenticated\\n2. RLS policies prevent unauthorized data access\\n3. Input validation blocks malicious requests\\n4. Rate limiting configured at multiple levels\\n5. Sensitive data not exposed in client bundles\\n6. Monitoring and alerting properly configured\\n7. Deployment pipeline tested with rollback capability",
-      "analysisResult": "Create a production-ready AI tier system that securely integrates with backend APIs, includes comprehensive testing, and requires specific manual user configuration. The system must move from client-side only implementation to proper server-side architecture while maintaining existing project patterns and ensuring security, performance, and scalability."
+      "implementationGuide": "1. Create achievementsApi.ts for achievement-related operations\\n2. Implement achievement progress tracking and automatic unlocking\\n3. Add points calculation and streak management\\n4. Create leaderboard functionality with privacy controls\\n5. Implement achievement notification system\\n6. Add user statistics aggregation and caching\\n\\nPseudocode:\\n```typescript\\nexport async function checkAchievementProgress(userId: string, action: UserAction) {\\n  // Calculate progress for relevant achievements\\n  const achievements = await getEligibleAchievements(action.type);\\n  \\n  for (const achievement of achievements) {\\n    const progress = await calculateProgress(userId, achievement);\\n    if (progress >= achievement.criteria) {\\n      await unlockAchievement(userId, achievement.id);\\n    }\\n  }\\n}\\n\\nexport async function updateUserStats(userId: string, pointsEarned: number) {\\n  // Update total points, streak, level calculations\\n}\\n```",
+      "verificationCriteria": "Achievement unlocking works automatically. Points and streak calculations are accurate. Leaderboard updates in real-time. Performance remains optimal with multiple users.",
+      "analysisResult": "Transform StudySpark from demo application to production-ready system by removing all mock content, rebuilding reminders and achievements with real data architecture, implementing crashout room functionality, and enhancing Clerk component styling with glassy backgrounds and proper theme contrast. This comprehensive overhaul maintains existing performance optimizations while establishing proper data flow through Supabase integration."
     },
     {
-      "id": "53f7c428-e088-4f06-8fba-bc027efcb8f3",
-      "name": "Manual User Testing and Subscription Flow Validation",
-      "description": "Coordinate with user to test complete subscription flows, payment integration setup, tier upgrades, and feature access validation. This task requires manual user involvement for payment setup, database configuration, and real-world usage testing.",
-      "notes": "This task requires significant user involvement and cannot be automated. User must have access to payment processing, production database, and external API services.",
+      "id": "dbac0d85-943e-4143-8417-9a42ce80255b",
+      "name": "Rebuild RemindersTab with Real Data",
+      "description": "Completely rebuild the RemindersTab component to use real data from Supabase, replacing all mock data with dynamic content, proper loading states, and real-time updates.",
+      "notes": "Preserve existing UI/UX design and Stu mascot functionality. Ensure smooth transitions between states. Test with various data volumes.",
       "status": "pending",
       "dependencies": [
         {
-          "taskId": "6fed9c8e-c519-49a4-ae91-21976d7bfebf"
+          "taskId": "6a56ffb9-d7b5-4228-8237-a2f008f0cf5b"
         },
         {
-          "taskId": "8dc4697f-13e1-426d-bf57-0092d28936f2"
+          "taskId": "1ed3aa74-0c7e-423f-aab2-0f10badc9193"
         }
       ],
-      "createdAt": "2025-06-10T12:45:25.334Z",
-      "updatedAt": "2025-06-10T12:45:25.334Z",
+      "createdAt": "2025-06-10T20:59:40.278Z",
+      "updatedAt": "2025-06-10T20:59:40.278Z",
       "relatedFiles": [
         {
-          "path": "DEPLOYMENT_GUIDE.md",
-          "type": "CREATE",
-          "description": "Step-by-step user deployment instructions"
-        },
-        {
-          "path": "src/components/subscription/UpgradeFlow.tsx",
+          "path": "src/components/reminders/RemindersTab.tsx",
           "type": "TO_MODIFY",
-          "description": "Payment integration UI"
+          "description": "Complete rebuild with real data integration"
         },
         {
-          "path": "src/lib/stripe/config.ts",
+          "path": "src/hooks/useReminders.ts",
           "type": "CREATE",
-          "description": "Stripe payment configuration"
+          "description": "Custom hook for reminders data management"
         },
         {
-          "path": "MANUAL_TESTING_CHECKLIST.md",
+          "path": "src/components/reminders/RemindersSkeleton.tsx",
           "type": "CREATE",
-          "description": "User testing scenarios"
+          "description": "Loading skeleton component"
         }
       ],
-      "implementationGuide": "User-coordinated testing and setup activities:\\n\\n**USER REQUIRED ACTIONS:**\\n1. Set up Stripe account and configure payment processing\\n2. Configure production Supabase database credentials\\n3. Set up HuggingFace API account and obtain API keys\\n4. Test user registration and profile creation flow\\n5. Manually test subscription upgrade process\\n6. Validate tier-specific feature access restrictions\\n7. Test error scenarios and user experience\\n\\n**TESTING SCENARIOS:**\\n```\\nScenario 1: New User Onboarding\\n- User creates account via Clerk\\n- Profile created in Supabase with free tier\\n- Basic AI suggestions work correctly\\n- Upgrade prompts shown for premium features\\n\\nScenario 2: Subscription Upgrade\\n- User clicks upgrade to premium\\n- Stripe payment flow completes successfully\\n- User tier updated in database\\n- Premium features immediately accessible\\n\\nScenario 3: Usage Limits\\n- Free user reaches daily AI request limit\\n- Further requests blocked with upgrade prompt\\n- Premium user has higher limits working\\n\\nScenario 4: Error Handling\\n- Network failures handled gracefully\\n- Payment failures show proper error messages\\n- Database connection issues don't crash app\\n```\\n\\n**USER SETUP CHECKLIST:**\\n- [ ] Stripe account configured with webhook endpoints\\n- [ ] Supabase production database accessible\\n- [ ] API keys for ML services obtained\\n- [ ] Domain and SSL certificates configured\\n- [ ] Email delivery service for notifications",
-      "verificationCriteria": "1. User can successfully create account and access free features\\n2. Subscription upgrade flow works end-to-end\\n3. Payment processing integrates correctly with tier management\\n4. Tier-specific features properly enforced\\n5. Usage limits work correctly for each tier\\n6. Error messages are user-friendly and actionable\\n7. User can downgrade/cancel subscription if needed\\n8. All edge cases handled gracefully",
-      "analysisResult": "Create a production-ready AI tier system that securely integrates with backend APIs, includes comprehensive testing, and requires specific manual user configuration. The system must move from client-side only implementation to proper server-side architecture while maintaining existing project patterns and ensuring security, performance, and scalability."
->>>>>>> Stashed changes
->>>>>>> Stashed changes
+      "implementationGuide": "1. Replace mock data with API calls to fetch user reminders\\n2. Implement real-time subscription for reminder updates\\n3. Add proper loading skeletons and error boundaries\\n4. Implement reminder completion with optimistic updates\\n5. Add due date calculations and overdue indicators\\n6. Integrate with achievement system for completion rewards\\n7. Maintain existing Stu mascot interactions but with real data context\\n\\nPseudocode:\\n```typescript\\nfunction RemindersTab() {\\n  const { reminders, loading, error, updateReminder } = useReminders();\\n  const { user } = useUser();\\n  \\n  const handleComplete = async (reminderId: string) => {\\n    // Optimistic update\\n    await updateReminder(reminderId, { completed: true });\\n    // Check for achievements\\n    await checkAchievementProgress(user.id, 'reminder_completed');\\n  };\\n  \\n  if (loading) return <RemindersSkeleton />;\\n  if (error) return <ErrorBoundary />;\\n  \\n  return <RemindersList reminders={reminders} onComplete={handleComplete} />;\\n}\\n```",
+      "verificationCriteria": "Reminders load from database correctly. Real-time updates work seamlessly. Completion triggers achievement checks. Loading and error states display properly. Stu mascot interactions remain functional.",
+      "analysisResult": "Transform StudySpark from demo application to production-ready system by removing all mock content, rebuilding reminders and achievements with real data architecture, implementing crashout room functionality, and enhancing Clerk component styling with glassy backgrounds and proper theme contrast. This comprehensive overhaul maintains existing performance optimizations while establishing proper data flow through Supabase integration."
+    },
+    {
+      "id": "e5427492-9bee-44a9-8b40-ba1399313292",
+      "name": "Rebuild GamificationHub with Real Data",
+      "description": "Transform the GamificationHub component to use real user statistics, achievements, and leaderboard data, creating a dynamic and engaging gamification experience.",
+      "notes": "Maintain existing UI design patterns. Add smooth animations for achievement unlocks. Ensure leaderboard privacy controls.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "1ed3aa74-0c7e-423f-aab2-0f10badc9193"
+        }
+      ],
+      "createdAt": "2025-06-10T20:59:40.278Z",
+      "updatedAt": "2025-06-10T20:59:40.278Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/gamification/GamificationHub.tsx",
+          "type": "TO_MODIFY",
+          "description": "Complete rebuild with real data"
+        },
+        {
+          "path": "src/hooks/useUserStats.ts",
+          "type": "CREATE",
+          "description": "Hook for user statistics"
+        },
+        {
+          "path": "src/hooks/useLeaderboard.ts",
+          "type": "CREATE",
+          "description": "Hook for leaderboard data"
+        },
+        {
+          "path": "src/components/gamification/AchievementNotification.tsx",
+          "type": "CREATE",
+          "description": "Achievement unlock notification component"
+        }
+      ],
+      "implementationGuide": "1. Replace mock user stats with real data from database\\n2. Implement dynamic leaderboard with real user rankings\\n3. Connect achievement system with progress tracking\\n4. Add real-time updates for statistics changes\\n5. Implement proper error handling and loading states\\n6. Add achievement unlock animations and notifications\\n7. Create virtual shop with real coin economy\\n\\nPseudocode:\\n```typescript\\nfunction GamificationHub() {\\n  const { userStats, loading: statsLoading } = useUserStats();\\n  const { achievements, loading: achievementsLoading } = useAchievements();\\n  const { leaderboard, loading: leaderboardLoading } = useLeaderboard();\\n  \\n  const handleShopPurchase = async (itemId: string, cost: number) => {\\n    if (userStats.coins >= cost) {\\n      await purchaseItem(itemId, cost);\\n      await updateUserStats({ coins: userStats.coins - cost });\\n    }\\n  };\\n  \\n  return (\\n    <div className=\\\"space-y-6\\\">\\n      <UserStatsCard stats={userStats} loading={statsLoading} />\\n      <LeaderboardCard data={leaderboard} loading={leaderboardLoading} />\\n      <AchievementsGrid achievements={achievements} loading={achievementsLoading} />\\n      <VirtualShop onPurchase={handleShopPurchase} />\\n    </div>\\n  );\\n}\\n```",
+      "verificationCriteria": "User statistics display real data. Leaderboard ranks correctly. Achievement progress tracks accurately. Shop transactions work with real coin balance. Real-time updates function properly.",
+      "analysisResult": "Transform StudySpark from demo application to production-ready system by removing all mock content, rebuilding reminders and achievements with real data architecture, implementing crashout room functionality, and enhancing Clerk component styling with glassy backgrounds and proper theme contrast. This comprehensive overhaul maintains existing performance optimizations while establishing proper data flow through Supabase integration."
+    },
+    {
+      "id": "98f7a038-82ef-40fb-89fd-ca52cf062f73",
+      "name": "Create Crashout Room Forum Component",
+      "description": "Design and implement a crashout room forum with Snapchat-inspired UI where users can vent their frustrations through private or public posts. Create an edgy, expressive interface that matches the emotional, raw nature of venting with optional relaxation features.",
+      "notes": "Focus on bold, expressive Snapchat-style design with high contrast, vibrant colors, and edgy personality. Use glassmorphism sparingly for specific UI elements only. Ensure the design feels raw and authentic for emotional venting while maintaining supportive community atmosphere.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "1ed3aa74-0c7e-423f-aab2-0f10badc9193"
+        }
+      ],
+      "createdAt": "2025-06-10T20:59:40.278Z",
+      "updatedAt": "2025-06-10T21:20:20.031Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/crashout/CrashoutRoomTab.tsx",
+          "type": "CREATE",
+          "description": "Main crashout room component with forum and relaxation features"
+        },
+        {
+          "path": "src/components/crashout/PostComposer.tsx",
+          "type": "CREATE",
+          "description": "Beautiful post creation component with mood selection and privacy controls"
+        },
+        {
+          "path": "src/components/crashout/PostFeed.tsx",
+          "type": "CREATE",
+          "description": "Real-time feed of crashout posts with stunning card layouts"
+        },
+        {
+          "path": "src/components/crashout/PostCard.tsx",
+          "type": "CREATE",
+          "description": "Individual post card with glassmorphism design and reactions"
+        },
+        {
+          "path": "src/components/crashout/RelaxationCorner.tsx",
+          "type": "CREATE",
+          "description": "Calming relaxation features and breathing exercises"
+        },
+        {
+          "path": "src/components/crashout/FloatingParticles.tsx",
+          "type": "CREATE",
+          "description": "Beautiful background animation effects"
+        },
+        {
+          "path": "src/components/crashout/MoodSelector.tsx",
+          "type": "CREATE",
+          "description": "Emoji-based mood selection component"
+        },
+        {
+          "path": "src/hooks/useCrashoutPosts.ts",
+          "type": "CREATE",
+          "description": "Custom hook for crashout forum data management"
+        },
+        {
+          "path": "src/lib/supabase/crashoutApi.ts",
+          "type": "CREATE",
+          "description": "API layer for crashout room forum functionality"
+        }
+      ],
+      "implementationGuide": "1. Create CrashoutRoomTab with Snapchat-style UI design patterns\n2. Implement bold, expressive posting system with privacy controls (private/public/anonymous)\n3. Design vibrant, high-contrast post cards with mood-based styling and bold typography\n4. Add anonymous posting with edgy avatars and usernames\n5. Create relaxation corner with quick-access breathing exercises\n6. Implement real-time feed with engaging interactions and reactions\n7. Add mood tracking with expressive emoji and color schemes\n8. Design stunning visual hierarchy with bold colors, strong shadows, and dynamic layouts\n9. Include content moderation and community guidelines for supportive venting\n\nUI/UX Design - Snapchat Style:\n- **Bold, vibrant colors** with high contrast and dynamic gradients\n- **Strong typography** with varied font weights and sizes for impact\n- **Card-based layout** with rounded corners, strong shadows, and bright accents\n- **Emoji-heavy interface** for mood expression and reactions\n- **Quick gestures** and interactions (swipe, tap, hold)\n- **Stories-style** chronological feed with engaging visual hierarchy\n- **Bright accent colors** on dark backgrounds for posts and interactions\n- **Chunky, rounded buttons** with strong hover/press states\n- **Dynamic animations** that feel snappy and responsive\n- **Bold iconography** with filled icons and strong visual weight\n\nForum Features:\n- Rich text posting with bold emoji reactions and mood indicators\n- Privacy modes: Private Journal, Public Vent, Anonymous Crashout\n- Post categories with vibrant color coding: Academic Stress (red), Personal Drama (purple), Deadline Panic (orange), General Chaos (blue)\n- Expressive reactions: 🔥 Fire, 💯 Mood, 😤 Same, ❤️ Support, 🫂 Hug\n- Real-time feed with bold card layouts and strong visual hierarchy\n- Anonymous avatars with edgy generated names and bold profile colors\n\nRelaxation Corner (Subtle Integration):\n- Quick-access floating action button for breathing exercises\n- Simple, clean breathing guide with bold, easy-to-read instructions\n- Minimal visual distractions when in relaxation mode\n- Quick return to forum mode\n\nVisual Design Patterns:\n- **Card shadows**: Strong drop shadows (shadow-lg, shadow-xl) for depth\n- **Color scheme**: Bold accent colors (bright blues, purples, oranges) on dark/neutral backgrounds  \n- **Typography**: Mix of bold headings (font-bold, text-xl) with readable body text\n- **Borders**: Thick accent borders (border-l-4) for mood categorization\n- **Buttons**: Chunky, rounded buttons with solid colors and strong hover states\n- **Spacing**: Generous padding and margins for touch-friendly interactions\n- **Icons**: Bold, filled icons with high visual impact\n\nPseudocode:\n```typescript\nfunction CrashoutRoomTab() {\n  const [posts, setPosts] = useState([]);\n  const [isRelaxMode, setIsRelaxMode] = useState(false);\n  \n  const moodStyles = {\n    stressed: { \n      bg: 'bg-red-500', \n      border: 'border-l-red-400', \n      text: 'text-red-100',\n      emoji: '😤',\n      label: 'STRESSED AF'\n    },\n    overwhelmed: { \n      bg: 'bg-purple-500', \n      border: 'border-l-purple-400',\n      text: 'text-purple-100', \n      emoji: '😵‍💫',\n      label: 'OVERWHELMED'\n    },\n    frustrated: { \n      bg: 'bg-orange-500', \n      border: 'border-l-orange-400',\n      text: 'text-orange-100',\n      emoji: '🤬', \n      label: 'FRUSTRATED'\n    }\n  };\n\n  return (\n    <div className=\"min-h-screen bg-gray-900 text-white\">\n      {/* Bold header with Snapchat-style design */}\n      <header className=\"bg-gradient-to-r from-purple-600 to-blue-600 p-6 shadow-xl\">\n        <h1 className=\"text-3xl font-bold text-center\">CRASHOUT ROOM 🔥</h1>\n        <p className=\"text-center text-purple-100 font-medium\">Let it all out</p>\n      </header>\n\n      {isRelaxMode ? (\n        <RelaxationMode onExit={() => setIsRelaxMode(false)} />\n      ) : (\n        <div className=\"space-y-6 p-4\">\n          <PostComposer moodStyles={moodStyles} onPost={handlePost} />\n          <PostFeed posts={posts} moodStyles={moodStyles} onReaction={handleReaction} />\n        </div>\n      )}\n\n      {/* Bold floating action button */}\n      <button \n        onClick={() => setIsRelaxMode(!isRelaxMode)}\n        className=\"fixed bottom-20 right-4 w-14 h-14 bg-blue-500 hover:bg-blue-400 \n                   rounded-full shadow-xl flex items-center justify-center text-2xl\n                   transform hover:scale-110 transition-all duration-200\"\n      >\n        {isRelaxMode ? '🔥' : '🧘'}\n      </button>\n    </div>\n  );\n}\n\nfunction PostCard({ post, moodStyles, onReaction }) {\n  const mood = moodStyles[post.mood];\n  \n  return (\n    <div className={`${mood.bg} rounded-2xl p-6 shadow-xl ${mood.border} border-l-8 \n                     transform hover:scale-[1.02] transition-all duration-200`}>\n      <div className=\"flex items-start space-x-4\">\n        <div className=\"w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center text-2xl\">\n          {mood.emoji}\n        </div>\n        \n        <div className=\"flex-1\">\n          <div className=\"flex items-center justify-between mb-2\">\n            <span className=\"font-bold text-lg\">\n              {post.isAnonymous ? 'Anonymous Crasher' : post.author}\n            </span>\n            <span className=\"bg-black/20 px-3 py-1 rounded-full text-sm font-bold\">\n              {mood.label}\n            </span>\n          </div>\n          \n          <p className=\"text-lg leading-relaxed mb-4\">{post.content}</p>\n          \n          <div className=\"flex space-x-3\">\n            {['🔥', '💯', '😤', '❤️', '🫂'].map(emoji => (\n              <button \n                key={emoji}\n                onClick={() => onReaction(post.id, emoji)}\n                className=\"bg-black/20 hover:bg-black/40 px-4 py-2 rounded-full \n                         text-lg font-bold transition-all duration-150 \n                         hover:scale-110 active:scale-95\"\n              >\n                {emoji} {post.reactions[emoji] || 0}\n              </button>\n            ))}\n          </div>\n        </div>\n      </div>\n    </div>\n  );\n}\n```",
+      "verificationCriteria": "Crashout room provides beautiful forum experience for venting. Privacy controls work correctly (private/public/anonymous). Relaxation features are easily accessible. Real-time updates function for public posts. Visual design is stunning with proper glassmorphism effects. Content moderation prevents harmful posts.",
+      "analysisResult": "Transform StudySpark from demo application to production-ready system by removing all mock content, rebuilding reminders and achievements with real data architecture, implementing crashout room functionality, and enhancing Clerk component styling with glassy backgrounds and proper theme contrast. This comprehensive overhaul maintains existing performance optimizations while establishing proper data flow through Supabase integration."
+    },
+    {
+      "id": "2c42bdb7-5e7d-49ed-9b63-fd88b41f07a6",
+      "name": "Integrate Crashout Room into Dashboard Navigation",
+      "description": "Add the Crashout Room tab to the existing dashboard tab navigation system, ensuring proper routing, state management, and consistent user experience.",
+      "notes": "Maintain existing tab switching performance. Ensure icon consistency with design system. Test on mobile devices for touch navigation.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "98f7a038-82ef-40fb-89fd-ca52cf062f73"
+        }
+      ],
+      "createdAt": "2025-06-10T20:59:40.278Z",
+      "updatedAt": "2025-06-10T20:59:40.278Z",
+      "relatedFiles": [
+        {
+          "path": "src/app/dashboard/DashboardSwipeTabs.tsx",
+          "type": "TO_MODIFY",
+          "description": "Add crashout room to tab navigation"
+        },
+        {
+          "path": "src/components/layout/TabContainer.tsx",
+          "type": "TO_MODIFY",
+          "description": "Update tab container for 5 tabs"
+        }
+      ],
+      "implementationGuide": "1. Add CrashoutRoomTab to DashboardSwipeTabs.tsx following existing patterns\\n2. Update tab navigation to include 5th tab (connections, tasks, reminders, crashout, gamification)\\n3. Add appropriate icon for crashout room tab (relaxation/wellness themed)\\n4. Ensure proper state preservation when switching between tabs\\n5. Update tab indicators and swipe navigation\\n6. Add proper accessibility labels and keyboard navigation\\n7. Test tab switching performance with new component\\n\\nPseudocode:\\n```typescript\\nconst tabs = [\\n  { id: 'connections', component: StudentConnectionTab, icon: Users },\\n  { id: 'tasks', component: TaskEventHub, icon: CheckSquare },\\n  { id: 'reminders', component: RemindersTab, icon: Bell },\\n  { id: 'crashout', component: CrashoutRoomTab, icon: Heart }, // NEW\\n  { id: 'gamification', component: GamificationHub, icon: Trophy }\\n];\\n\\nfunction DashboardSwipeTabs() {\\n  const [activeTab, setActiveTab] = useState(0);\\n  \\n  return (\\n    <div className=\\\"flex flex-col h-full\\\">\\n      <TabContent tabs={tabs} activeIndex={activeTab} />\\n      <TabNavigation tabs={tabs} activeIndex={activeTab} onChange={setActiveTab} />\\n    </div>\\n  );\\n}\\n```",
+      "verificationCriteria": "Crashout room tab appears in navigation. Tab switching works smoothly. State preservation functions correctly. Accessibility features work properly. Mobile touch navigation responds correctly.",
+      "analysisResult": "Transform StudySpark from demo application to production-ready system by removing all mock content, rebuilding reminders and achievements with real data architecture, implementing crashout room functionality, and enhancing Clerk component styling with glassy backgrounds and proper theme contrast. This comprehensive overhaul maintains existing performance optimizations while establishing proper data flow through Supabase integration."
+    },
+    {
+      "id": "c7d802c3-7052-4b46-bb8f-4b9e59484548",
+      "name": "Enhance Clerk Components with Glassy Styling",
+      "description": "Update Clerk component appearance configurations to include glassy/translucent backgrounds with proper theme-aware contrast, maintaining accessibility while improving visual appeal.",
+      "notes": "Test contrast ratios with WebAIM tools. Ensure glass effects degrade gracefully on older browsers. Verify theme switching maintains glass effects.",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-06-10T20:59:40.279Z",
+      "updatedAt": "2025-06-10T20:59:40.279Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/clerk-appearance.ts",
+          "type": "TO_MODIFY",
+          "description": "Add glassy effects and enhanced contrast"
+        },
+        {
+          "path": "src/components/providers/clerk-theme-provider.tsx",
+          "type": "TO_MODIFY",
+          "description": "Ensure theme switching works with glass effects"
+        },
+        {
+          "path": "src/app/globals.css",
+          "type": "TO_MODIFY",
+          "description": "Add CSS custom properties for glass effects if needed"
+        }
+      ],
+      "implementationGuide": "1. Update memoSparkClerkAppearance in clerk-appearance.ts with backdrop-blur and transparency\\n2. Add glassy effects using backdrop-filter CSS properties\\n3. Enhance contrast ratios for accessibility compliance\\n4. Implement theme-aware color adjustments (black text on light, white text on dark)\\n5. Test with all theme variants (dark, light, amoled, etc.)\\n6. Add smooth transitions for theme changes\\n7. Ensure glass effects work across different browsers\\n\\nPseudocode:\\n```typescript\\nexport const memoSparkClerkAppearance: Appearance = {\\n  variables: {\\n    colorBackground: 'rgba(255, 255, 255, 0.8)', // Translucent white\\n    colorText: 'hsl(0, 0%, 9%)', // High contrast black\\n  },\\n  elements: {\\n    rootBox: {\\n      backgroundColor: 'rgba(255, 255, 255, 0.8)',\\n      backdropFilter: 'blur(12px) saturate(180%)',\\n      border: '1px solid rgba(255, 255, 255, 0.3)',\\n      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',\\n    },\\n    formFieldInput: {\\n      backgroundColor: 'rgba(255, 255, 255, 0.9)',\\n      backdropFilter: 'blur(8px)',\\n      border: '1px solid rgba(0, 0, 0, 0.1)',\\n      color: 'hsl(0, 0%, 9%)', // High contrast text\\n    }\\n  }\\n};\\n\\nexport const memoSparkClerkAppearanceDark: Appearance = {\\n  variables: {\\n    colorBackground: 'rgba(0, 0, 0, 0.8)', // Translucent black\\n    colorText: 'hsl(0, 0%, 95%)', // High contrast white\\n  },\\n  elements: {\\n    rootBox: {\\n      backgroundColor: 'rgba(0, 0, 0, 0.8)',\\n      backdropFilter: 'blur(12px) saturate(180%)',\\n      border: '1px solid rgba(255, 255, 255, 0.1)',\\n    }\\n  }\\n};\\n```",
+      "verificationCriteria": "Clerk components display glassy backgrounds correctly. Text contrast meets accessibility standards. Glass effects work across all themes. Theme switching maintains visual consistency. Browser compatibility verified for major browsers.",
+      "analysisResult": "Transform StudySpark from demo application to production-ready system by removing all mock content, rebuilding reminders and achievements with real data architecture, implementing crashout room functionality, and enhancing Clerk component styling with glassy backgrounds and proper theme contrast. This comprehensive overhaul maintains existing performance optimizations while establishing proper data flow through Supabase integration."
     }
   ]
 }

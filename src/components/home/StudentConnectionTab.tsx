@@ -8,14 +8,15 @@ import { FaSearch, FaPlus, FaComment, FaTimes, FaUndo } from "react-icons/fa";
 import { motion, AnimatePresence } from 'framer-motion';
 import { ActivityFeedPlaceholder } from './ActivityFeedPlaceholder';
 import { StudyGroupHubPlaceholder } from './StudyGroupHubPlaceholder';
-// @ts-ignore
-import confetti from 'canvas-confetti';
 import type { Student, SwipeHistoryItem } from '@/types/student';
 import { useStudentData, useLocalStorageState, useChatMessages } from '@/hooks/useStudentConnection';
 
 // Lazy load heavy components for better performance
 const StudentCard = lazy(() => import('./StudentCard'));
 const ChatModal = lazy(() => import('./ChatModal'));
+
+// Dynamic import for confetti to reduce bundle size
+const loadConfetti = () => import('canvas-confetti');
 
 interface StudentConnectionTabProps {
   onViewModeChange?: (isSwipeMode: boolean) => void;
@@ -55,7 +56,7 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
   const [swipeHistory, setSwipeHistory] = useLocalStorageState<SwipeHistoryItem[]>('swipeHistory', []);
 
   // Chat functionality
-  const { chatMessages, sendMessage } = useChatMessages();
+  const { chatMessages, sendMessage, getMessagesForStudent } = useChatMessages();
 
   // Refs
   const swipeTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -70,33 +71,41 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
     onViewModeChange?.(viewMode === 'swipe');
   }, [viewMode, onViewModeChange]);
 
-  // Memoized computations for performance
+  // Optimized memoized computations for performance
   const filteredStudents = useMemo(() => {
-    if (!students.length) return [];
+    if (!students?.length) return [];
+    
+    if (!searchQuery.trim()) return students;
     
     const query = searchQuery.toLowerCase();
-    return students.filter(student => 
-      student.name.toLowerCase().includes(query) ||
-      student.subjects.some(subject => subject.toLowerCase().includes(query)) ||
-      student.interests.some(interest => interest.toLowerCase().includes(query))
-    );
+    return students.filter(student => {
+      const nameMatch = student.name?.toLowerCase().includes(query);
+      const subjectMatch = student.subjects?.some(subject => 
+        subject?.toLowerCase().includes(query)
+      );
+      const interestMatch = student.interests?.some(interest => 
+        interest?.toLowerCase().includes(query)
+      );
+      return nameMatch || subjectMatch || interestMatch;
+    });
   }, [students, searchQuery]);
 
   const selectedStudent = useMemo(() => 
-    students.find(student => student.id === selectedStudentId) || null,
+    students?.find(student => student.id === selectedStudentId) || null,
     [students, selectedStudentId]
   );
 
   const availableStudents = useMemo(() => 
-    filteredStudents.filter(s => !swipedIds.includes(s.id)),
+    filteredStudents?.filter(s => !swipedIds.includes(s.id)) || [],
     [filteredStudents, swipedIds]
   );
 
-  // Confetti effect
+  // Optimized confetti effect with dynamic import
   useEffect(() => {
     if (showConfetti) {
+      loadConfetti().then((confetti) => {
       try {
-      confetti({
+          confetti.default({
         particleCount: 80,
         spread: 70,
         origin: { y: 0.6 },
@@ -104,6 +113,10 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
       } catch (error) {
         console.warn('Confetti effect failed:', error);
       }
+      }).catch(() => {
+        console.warn('Failed to load confetti module');
+      });
+      
       const timer = setTimeout(() => setShowConfetti(false), 1200);
       return () => clearTimeout(timer);
     }
@@ -123,7 +136,7 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
   // Event handlers with proper error handling
   const handleSwipe = (direction: 'left' | 'right', student: Student) => {
     try {
-    if (typeof navigator.vibrate === 'function') {
+      if (typeof navigator?.vibrate === 'function') {
       navigator.vibrate(50);
     }
       
@@ -150,7 +163,7 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
 
   const handleRewind = () => {
     try {
-    if (typeof navigator.vibrate === 'function') {
+      if (typeof navigator?.vibrate === 'function') {
       navigator.vibrate([20, 30, 20]);
     }
       
@@ -167,7 +180,7 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
     setSwipedIds(ids => ids.filter(id => id !== last.id));
     setSwipeHistory(hist => hist.slice(0, -1));
       
-      const studentName = students.find(s => s.id === last.id)?.name || 'the student';
+      const studentName = students?.find(s => s.id === last.id)?.name || 'the student';
     const rewindMessage = `Rewound ${last.action === 'connect' ? 'connection with' : 'skip for'} ${studentName}.`;
     setLastAction(rewindMessage);
     setStatusMessage(rewindMessage);
@@ -198,7 +211,7 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
   // Show loading state
   if (loading) {
     return (
-      <div className="flex flex-col h-full p-1 md:p-2 bg-gradient-to-br from-slate-900 via-slate-800 to-gray-900 text-slate-100 rounded-lg shadow-2xl overflow-hidden">
+      <div className="flex flex-col h-full p-4 bg-background text-foreground rounded-lg overflow-hidden">
         <LoadingSpinner />
       </div>
     );
@@ -207,20 +220,20 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
   // Show error state
   if (error) {
     return (
-      <div className="flex flex-col h-full p-1 md:p-2 bg-gradient-to-br from-slate-900 via-slate-800 to-gray-900 text-slate-100 rounded-lg shadow-2xl overflow-hidden">
+      <div className="flex flex-col h-full p-4 bg-background text-foreground rounded-lg overflow-hidden">
         <ErrorDisplay error={error} onRetry={retryLoad} />
-            </div>
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full p-1 md:p-2 bg-gradient-to-br from-slate-900 via-slate-800 to-gray-900 text-slate-100 rounded-lg shadow-2xl overflow-hidden">
+    <div className="flex flex-col h-full p-4 bg-background text-foreground rounded-lg overflow-hidden">
       {/* Header and Controls */}
-      <div className="flex-shrink-0 p-3 md:p-4 border-b border-slate-700 shadow-md bg-slate-800/50 rounded-t-lg">
+      <div className="flex-shrink-0 p-4 border-b border-border shadow-md bg-muted/50 rounded-lg mb-4">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-          <h2 className="text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-cyan-300 to-teal-400 self-center">
-            Connect & Collaborate
-          </h2>
+                      <h2 className="text-xl md:text-2xl font-bold text-primary self-center">
+              Connect & Collaborate
+            </h2>
           <div className="flex items-center gap-2 md:gap-3">
             {viewMode === 'grid' && (
               <div className="relative flex-grow max-w-xs">
@@ -229,10 +242,10 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
                   placeholder="Search students..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-3 py-2 text-sm bg-slate-700 border-slate-600 placeholder-slate-400 text-slate-100 rounded-md focus:ring-cyan-500 focus:border-cyan-500"
+                  className="pl-9 pr-3 py-2 text-sm bg-background border-border placeholder-muted-foreground text-foreground rounded-md focus:ring-primary focus:border-primary"
                   aria-label="Search students"
                 />
-                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
             )}
             <Button
@@ -243,7 +256,7 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
               }}
               variant="outline"
               size="sm"
-              className="bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-300 hover:text-sky-300 transition-all duration-150"
+              className="bg-background hover:bg-muted border-border text-foreground hover:text-primary transition-all duration-150"
               aria-label={viewMode === 'grid' ? "Switch to Swipe Mode" : "Switch to Grid View"}
             >
               {viewMode === 'grid' ? "✨ Swipe Mode" : "📊 Grid View"}
@@ -286,7 +299,7 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
           {selectedStudentId && selectedStudent && (
             <ChatModal
               student={selectedStudent}
-              messages={chatMessages[selectedStudentId] || []}
+              messages={getMessagesForStudent(selectedStudentId)}
               onSendMessage={handleSendMessage}
               onClose={closeChat}
             />
@@ -309,13 +322,13 @@ const GridView = React.memo(({
 }) => (
   <div className="flex flex-col gap-6">
             <section aria-labelledby="student-discovery-heading">
-      <h3 id="student-discovery-heading" className="text-xl font-semibold mb-4 text-sky-300">
+      <h3 id="student-discovery-heading" className="text-xl font-semibold mb-4 text-primary">
         Discover Connections
       </h3>
               {availableStudents.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                   {filteredStudents.map((student) => (
-            <Suspense key={student.id} fallback={<div className="h-48 bg-slate-700 animate-pulse rounded-lg" />}>
+            <Suspense key={student.id} fallback={<div className="h-48 bg-muted animate-pulse rounded-lg" />}>
               <StudentCard 
                 student={student} 
                 isSwipeMode={false} 
@@ -325,21 +338,21 @@ const GridView = React.memo(({
                   ))}
                 </div>
               ) : (
-        <p className="text-center text-slate-400 py-8">
+        <p className="text-center text-muted-foreground py-8">
           No students match your current search or all students have been viewed.
         </p>
               )}
             </section>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-700/50 mt-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-border/50 mt-6">
               <section aria-labelledby="activity-feed-heading">
-        <h3 id="activity-feed-heading" className="text-lg font-semibold mb-3 text-sky-400">
+        <h3 id="activity-feed-heading" className="text-lg font-semibold mb-3 text-primary">
           Latest Activity
         </h3>
                  <ActivityFeedPlaceholder />
               </section>
               <section aria-labelledby="study-group-hub-heading">
-        <h3 id="study-group-hub-heading" className="text-lg font-semibold mb-3 text-teal-400">
+        <h3 id="study-group-hub-heading" className="text-lg font-semibold mb-3 text-primary">
           Study Groups
         </h3>
                 <StudyGroupHubPlaceholder />
@@ -370,7 +383,7 @@ const SwipeView = React.memo(({
           <div ref={swipeCardFocusRef} tabIndex={-1} className="outline-none flex flex-col items-center justify-center h-full relative">
             <AnimatePresence initial={false} custom={tinderExitDirection}>
               {availableStudents.length > 0 ? (
-        <Suspense fallback={<div className="h-96 bg-slate-700 animate-pulse rounded-lg" />}>
+        <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
                 <StudentCard
                   key={availableStudents[0].id}
                   student={availableStudents[0]}
@@ -386,17 +399,17 @@ const SwipeView = React.memo(({
                 />
         </Suspense>
               ) : (
-                <Card className="text-center p-6 md:p-10 bg-slate-800 border-slate-700 shadow-xl rounded-xl">
+        <Card className="text-center p-6 md:p-10 bg-card border shadow-xl rounded-xl">
                   <CardHeader>
-            <CardTitle className="text-2xl md:text-3xl font-bold text-sky-400">
+            <CardTitle className="text-2xl md:text-3xl font-bold text-primary">
               That's everyone for now!
             </CardTitle>
-                    <CardDescription className="text-slate-400 text-sm md:text-base mt-2">
+            <CardDescription className="text-muted-foreground text-sm md:text-base mt-2">
                       You've swiped through all available student profiles. Check back later for new connections or try adjusting your search filters in grid view.
                     </CardDescription>
                   </CardHeader>
                   {swipeHistory.length > 0 && (
-            <Button onClick={onRewind} variant="outline" className="mt-4 bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-300">
+            <Button onClick={onRewind} variant="outline" className="mt-4">
                         <FaUndo className="mr-2" /> Rewind Last Swipe
                      </Button>
                   )}
@@ -438,7 +451,7 @@ const SwipeView = React.memo(({
             onClick={onRewind} 
                      variant="outline" 
                      size="icon" 
-                     className="bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-full p-2 md:p-3 shadow-md transform transition-transform hover:scale-110"
+            className="bg-muted hover:bg-muted/80 rounded-full p-2 md:p-3 shadow-md transform transition-transform hover:scale-110"
                      aria-label="Rewind last swipe"
                    >
                      <FaUndo className="h-4 w-4 md:h-5 md:w-5" />
@@ -448,7 +461,7 @@ const SwipeView = React.memo(({
             )}
     
             {lastAction && (
-      <p className="mt-4 text-sm text-slate-400 bg-slate-700/50 px-3 py-1 rounded-md">
+      <p className="mt-4 text-sm text-muted-foreground bg-muted/50 px-3 py-1 rounded-md">
         {lastAction}
       </p>
             )}

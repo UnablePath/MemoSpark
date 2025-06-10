@@ -58,7 +58,7 @@ export {
 };
 
 // Main AI service class that orchestrates pattern analysis and suggestion generation
-export class StudySparkAI {
+export class MemoSparkAI {
   private patternEngine: PatternRecognitionEngine;
   private suggestionEngine: SuggestionEngine;
 
@@ -517,7 +517,7 @@ export const AIUtils = {
 };
 
 // Export singleton instance
-export const memoSparkAI = new StudySparkAI();
+export const memoSparkAI = new MemoSparkAI();
 // Maintain backwards compatibility
 export const studySparkAI = memoSparkAI;
 

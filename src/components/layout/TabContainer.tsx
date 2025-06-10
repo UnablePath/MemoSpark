@@ -70,14 +70,74 @@ export function TabContainer({
   }, [currentIndex, tabs.length, controlledIndex, onTabChange, internalIndex]);
 
   const handlers = useSwipeable({
-    onSwipedLeft: () => {
-      if (swipingEnabled) {
-        changeTab(1);
+    onSwipeStart: (eventData: SwipeEventData) => {
+      // Only allow swipes that start from the outer third of the screen
+      const event = eventData.event as TouchEvent | MouseEvent;
+      let startX: number;
+      
+      if ('touches' in event && event.touches.length > 0) {
+        // Touch event
+        startX = event.touches[0].clientX;
+      } else if ('clientX' in event) {
+        // Mouse event
+        startX = event.clientX;
+      } else {
+        return; // Unknown event type, allow swipe
+      }
+      
+      const screenWidth = window.innerWidth;
+      
+      // Check if swipe starts in outer third (left 1/3 or right 1/3)
+      const isInOuterThird = startX <= screenWidth / 3 || startX >= (screenWidth * 2) / 3;
+      
+      if (!isInOuterThird) {
+        // Prevent swipe if not in outer third
+        eventData.event.preventDefault();
+        return;
       }
     },
-    onSwipedRight: () => {
+    onSwipedLeft: (eventData: SwipeEventData) => {
       if (swipingEnabled) {
-        changeTab(-1);
+        const event = eventData.event as TouchEvent | MouseEvent;
+        let startX: number;
+        
+        if ('touches' in event && event.touches.length > 0) {
+          startX = event.touches[0].clientX;
+        } else if ('clientX' in event) {
+          startX = event.clientX;
+        } else {
+          changeTab(1);
+          return;
+        }
+        
+        const screenWidth = window.innerWidth;
+        const isInOuterThird = startX <= screenWidth / 3 || startX >= (screenWidth * 2) / 3;
+        
+        if (isInOuterThird) {
+          changeTab(1);
+        }
+      }
+    },
+    onSwipedRight: (eventData: SwipeEventData) => {
+      if (swipingEnabled) {
+        const event = eventData.event as TouchEvent | MouseEvent;
+        let startX: number;
+        
+        if ('touches' in event && event.touches.length > 0) {
+          startX = event.touches[0].clientX;
+        } else if ('clientX' in event) {
+          startX = event.clientX;
+        } else {
+          changeTab(-1);
+          return;
+        }
+        
+        const screenWidth = window.innerWidth;
+        const isInOuterThird = startX <= screenWidth / 3 || startX >= (screenWidth * 2) / 3;
+        
+        if (isInOuterThird) {
+          changeTab(-1);
+        }
       }
     },
     delta: 50, // Minimum distance for a swipe to be registered
@@ -93,7 +153,7 @@ export function TabContainer({
 
   return (
     <div {...handlers} className="relative overflow-hidden w-full h-full flex-grow safe-scroll-area">
-      <AnimatePresence initial={false} custom={direction} mode="wait">
+      <AnimatePresence initial={false} custom={direction} mode="popLayout">
         <motion.div
           key={currentIndex}
           role="tabpanel"

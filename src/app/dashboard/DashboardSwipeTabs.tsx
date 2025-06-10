@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { TabContainer } from '@/components/layout/TabContainer';
 import { TabIndicator } from '@/components/layout/TabIndicator';
 import StudentConnectionTab from '@/components/home/StudentConnectionTab';
@@ -20,24 +20,27 @@ const USE_DEBUG_COMPONENT = false;
 
 // Define the order of tabs and their corresponding icons
 const TABS_CONFIG = [
-  { key: 'connections', component: <StudentConnectionTab key="connections" />, icon: FaUserFriends },
-  { key: 'tasks', component: <TaskEventHub key="tasks" />, icon: FaCalendarAlt },
-  { key: 'reminders', component: <RemindersTab key="reminders" />, icon: FaBell },
-  { key: 'crashout', component: <CrashoutTab key="crashout" />, icon: FaSpa },
-  { key: 'gamification', component: <GamificationHub key="gamification" />, icon: FaGamepad },
+  { 
+    key: 'connections', 
+    component: USE_DEBUG_COMPONENT ? ConnectionsDebug : StudentConnectionTab, 
+    icon: FaUserFriends 
+  },
+  { key: 'tasks', component: TaskEventHub, icon: FaCalendarAlt },
+  { key: 'reminders', component: RemindersTab, icon: FaBell },
+  { key: 'crashout', component: CrashoutTab, icon: FaSpa },
+  { key: 'gamification', component: GamificationHub, icon: FaGamepad },
 ];
 
-const TABS = TABS_CONFIG.map(tab => tab.component);
-
 export function DashboardSwipeTabs() {
-  const [activeTabIndex, setActiveTabIndex] = useState(1); // Start on TaskTab (middle)
+  const [persistentActiveTab, setPersistentActiveTab] = useLocalStorageState<number>('dashboard_active_tab', 0);
+  const [activeTabIndex, setActiveTabIndex] = useState(persistentActiveTab);
   const [isTinderModeActive, setIsTinderModeActive] = useState(false);
   const tablistRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   
   // Tier-aware features with backwards compatibility
   const tieredAI = useTieredAI ? useTieredAI() : { userTier: 'free', isFeatureAvailable: () => true };
-  const { userTier, isFeatureAvailable } = tieredAI;
+  const { userTier } = tieredAI;
 
   useEffect(() => {
     tabRefs.current = tabRefs.current.slice(0, TABS_CONFIG.length);
@@ -53,38 +56,53 @@ export function DashboardSwipeTabs() {
   };
 
   const handleTabChange = (index: number) => {
+    if (index < 0 || index >= TABS_CONFIG.length) return;
+
     const newActiveTabConfig = TABS_CONFIG[index];
-    
-    // Check if this is a premium feature and user has access
     const isPremiumFeature = newActiveTabConfig?.key === 'gamification' || newActiveTabConfig?.key === 'crashout';
     const hasAccess = isPremiumFeature ? userTier !== 'free' : true;
     
     if (isPremiumFeature && !hasAccess) {
-      // Show upgrade prompt instead of switching tabs
+      // Maybe show an upgrade modal in the future
+      console.log("Upgrade required to access this feature.");
       return;
     }
     
     if (newActiveTabConfig?.key !== 'connections') {
       setIsTinderModeActive(false);
     }
-
+    
     setActiveTabIndex(index);
+    setPersistentActiveTab(index);
+    console.log(`Switching to tab: ${newActiveTabConfig?.key} (index: ${index})`);
   };
 
-  // Re-define TABS_CONFIG with props for connections tab
-  const currentTabsConfig = TABS_CONFIG.map(tabConfig => {
-    if (tabConfig.key === 'connections') {
-      if (React.isValidElement(tabConfig.component)) {
-        return {
-          ...tabConfig,
-          component: React.cloneElement(tabConfig.component as React.ReactElement<any>, { 
-            onViewModeChange: handleStudentTabViewModeChange 
-          }),
-        };
+  // Memoize rendered components to prevent unnecessary re-renders and maintain state
+  const memoizedTabComponents = useMemo(() => {
+    return TABS_CONFIG.map((tabConfig) => {
+      const TabComponent = tabConfig.component;
+      
+      if (tabConfig.key === 'connections') {
+        return (
+          <div key={`${tabConfig.key}-persistent`} className="h-full w-full">
+            <ConnectionsErrorBoundary>
+              {USE_DEBUG_COMPONENT ? (
+                <TabComponent />
+              ) : (
+                <TabComponent onViewModeChange={handleStudentTabViewModeChange} />
+              )}
+            </ConnectionsErrorBoundary>
+          </div>
+        );
       }
-    }
-    return tabConfig;
-  });
+      
+      return (
+        <div key={`${tabConfig.key}-persistent`} className="h-full w-full">
+          <TabComponent />
+        </div>
+      );
+    });
+  }, []);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (!tablistRef.current) return;
@@ -97,10 +115,6 @@ export function DashboardSwipeTabs() {
       nextIndex = currentIndex >= 0 ? (currentIndex + 1) % tabs.length : 0;
     } else if (event.key === 'ArrowLeft') {
       nextIndex = currentIndex >= 0 ? (currentIndex - 1 + tabs.length) % tabs.length : 0;
-    } else if (event.key === 'Home') {
-      nextIndex = 0;
-    } else if (event.key === 'End') {
-      nextIndex = tabs.length - 1;
     }
 
     if (nextIndex !== -1) {
@@ -118,10 +132,10 @@ export function DashboardSwipeTabs() {
         activeIndex={activeTabIndex}
         onTabChange={handleTabChange}
         swipingEnabled={!isTinderModeActive}
-        panelIds={currentTabsConfig.map((tab, index) => `dashboard-panel-${tab.key}-${index}`)}
-        tabIds={currentTabsConfig.map((tab, index) => `dashboard-tab-${tab.key}-${index}`)}
+        panelIds={TABS_CONFIG.map((tab, index) => `dashboard-panel-${tab.key}-${index}`)}
+        tabIds={TABS_CONFIG.map((tab, index) => `dashboard-tab-${tab.key}-${index}`)}
       >
-        {currentTabsConfig.map(tab => tab.component)}
+        {memoizedTabComponents}
       </TabContainer>
 
       {/* Icon Bar / Tab List */}
@@ -133,13 +147,9 @@ export function DashboardSwipeTabs() {
         className="flex justify-around items-center p-2 border-t bg-background flex-shrink-0 pb-safe-bottom safe-scroll-area"
         onKeyDown={handleKeyDown}
       >
-        {currentTabsConfig.map((tab, index) => {
+        {TABS_CONFIG.map((tab, index) => {
           const Icon = tab.icon;
           const isActive = index === activeTabIndex;
-          const tabId = `dashboard-tab-${tab.key}-${index}`;
-          const panelId = `dashboard-panel-${tab.key}-${index}`;
-
-          // Check if this tab requires premium access
           const isPremiumFeature = tab.key === 'gamification' || tab.key === 'crashout';
           const hasAccess = isPremiumFeature ? userTier !== 'free' : true;
           
@@ -147,25 +157,23 @@ export function DashboardSwipeTabs() {
             <button
               key={tab.key}
               ref={el => { tabRefs.current[index] = el; }}
-              id={tabId}
+              id={`dashboard-tab-${tab.key}-${index}`}
               role="tab"
               type="button"
               aria-selected={isActive}
-              aria-controls={panelId}
+              aria-controls={`dashboard-panel-${tab.key}-${index}`}
               tabIndex={isActive ? 0 : -1}
               onClick={() => handleTabChange(index)}
               className={`relative touch-target p-2 rounded-md transition-colors duration-200 ${
-                isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'
-              } ${!hasAccess ? 'opacity-50' : ''}`}
+                isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'
+              } ${!hasAccess ? 'opacity-50 cursor-not-allowed' : ''}`}
               aria-label={`Go to ${tab.key} tab${!hasAccess ? ' (Premium required)' : ''}`}
-              disabled={!hasAccess}
+              disabled={!hasAccess && isPremiumFeature}
             >
-              <div className="relative">
-                <Icon className="h-6 w-6" aria-hidden="true" />
-                {isPremiumFeature && !hasAccess && (
-                  <Crown className="absolute -top-1 -right-1 h-3 w-3 text-yellow-500" />
-                )}
-              </div>
+              <Icon className="h-6 w-6" aria-hidden="true" />
+              {isPremiumFeature && !hasAccess && (
+                <Crown className="absolute -top-1 -right-1 h-3 w-3 text-yellow-500" />
+              )}
             </button>
           );
         })}
@@ -174,7 +182,7 @@ export function DashboardSwipeTabs() {
       {/* Tab Indicator */}
       <TabIndicator 
         activeIndex={activeTabIndex} 
-        totalTabs={currentTabsConfig.length} 
+        totalTabs={TABS_CONFIG.length} 
         className="absolute bottom-16 left-1/2 transform -translate-x-1/2"
       />
     </div>

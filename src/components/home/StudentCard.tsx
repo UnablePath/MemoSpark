@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, MotionProps } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -36,26 +36,130 @@ const StudentCard = React.memo<StudentCardProps>(({
   drag,
   style
 }) => {
+  const checkSwipeZone = (event: any) => {
+    if (!isSwipeMode || !drag) return true;
+    
+    // Get the starting position of the touch/mouse event
+    const clientX = event.clientX || (event.touches && event.touches[0]?.clientX);
+    if (!clientX) return true;
+    
+    const screenWidth = window.innerWidth;
+    // Only allow swipes from outer third of screen
+    return clientX <= screenWidth / 3 || clientX >= (screenWidth * 2) / 3;
+  };
+
+  const cardClassName = cn(
+    "bg-card border rounded-xl shadow-lg overflow-hidden",
+    "flex flex-col",
+    isSwipeMode 
+      ? "absolute w-full h-full cursor-grab active:cursor-grabbing" 
+      : "hover:shadow-xl transition-shadow duration-200"
+  );
+
+  // If drag is enabled, use motion.div with proper props
+  if (drag) {
   return (
     <motion.div
       drag={drag}
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-      onDragEnd={(event, info) => {
-        if (drag && onSwipe) {
-          if (info.offset.x > 100) onSwipe('right');
-          else if (info.offset.x < -100) onSwipe('left');
+        dragElastic={0.1}
+      onDragStart={(event) => {
+        if (!checkSwipeZone(event)) {
+          return false;
         }
       }}
-      className={cn(
-        "bg-card border rounded-xl shadow-lg overflow-hidden",
-        "flex flex-col",
-        isSwipeMode 
-          ? "absolute w-full h-full cursor-grab active:cursor-grabbing" 
-          : "hover:shadow-xl transition-shadow duration-200"
-      )}
-      style={style}
-      layout
-    >
+      onDragEnd={(event, info) => {
+          if (onSwipe && checkSwipeZone(event)) {
+          if (Math.abs(info.offset.x) > 100) {
+            if (info.offset.x > 100) onSwipe('right');
+            else if (info.offset.x < -100) onSwipe('left');
+          }
+        }
+      }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className={cardClassName}
+        style={style}
+      >
+        <CardHeader className="flex flex-row items-start gap-3 p-4">
+          <Avatar className="h-16 w-16 border-2 border-primary/50">
+            <AvatarImage src={student.avatar || undefined} alt={student.name} />
+            <AvatarFallback className="text-xl bg-muted text-muted-foreground">
+              {getInitials(student.name)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <CardTitle className="text-xl font-bold tracking-tight">{student.name}</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">{student.year}</CardDescription>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {student.subjects?.slice(0, 2).map((subject, index) => (
+                <Badge key={index} variant="secondary" className="text-xs px-1.5 py-0.5">
+                  {subject}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="p-4 pt-0 flex-grow">
+          <div>
+            <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Interests</h4>
+            <div className="flex flex-wrap gap-1.5">
+              {student.interests?.slice(0, 3).map((interest, index) => (
+                <Badge key={index} variant="outline" className="text-xs px-1.5 py-0.5">
+                  {interest}
+                </Badge>
+              ))}
+              {(student.interests?.length || 0) > 3 && (
+                <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                  +{(student.interests?.length || 0) - 3} more
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          {student.achievements && student.achievements.length > 0 && (
+            <div className="mt-3">
+              <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1.5 flex items-center">
+                <FaTrophy className="mr-1.5 h-3 w-3 text-amber-500" /> Achievements
+              </h4>
+              <div className="flex flex-wrap gap-2 items-center">
+                {student.achievements.slice(0, 3).map((ach) => (
+                  <Badge 
+                    key={ach.id} 
+                    variant="default" 
+                    className="bg-amber-100 text-amber-700 border-amber-300 hover:bg-amber-200 text-xs px-2 py-1 flex items-center gap-1 group"
+                    title={`${ach.name} - ${ach.description} (Earned: ${new Date(ach.dateEarned).toLocaleDateString()})`}
+                  >
+                    <span className="text-base leading-none">{ach.icon}</span>
+                    <span className="truncate group-hover:whitespace-normal group-hover:overflow-visible">
+                      {ach.name}
+                    </span>
+                  </Badge>
+                ))}
+                {student.achievements.length > 3 && (
+                  <Badge variant="outline" className="text-xs px-1.5 py-0.5 border-dashed border-muted-foreground/50">
+                    +{student.achievements.length - 3} more
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+
+        {!isSwipeMode && onOpenChat && (
+          <CardFooter className="p-4 pt-2 border-t bg-muted/50">
+            <Button className="w-full" onClick={onOpenChat} variant="default">
+              <FaComment className="mr-2 h-4 w-4" /> View Profile / Chat
+            </Button>
+          </CardFooter>
+        )}
+      </motion.div>
+    );
+  }
+
+  // Regular div for non-draggable cards
+  return (
+    <div className={cardClassName} style={style}>
       <CardHeader className="flex flex-row items-start gap-3 p-4">
         <Avatar className="h-16 w-16 border-2 border-primary/50">
           <AvatarImage src={student.avatar || undefined} alt={student.name} />
@@ -67,7 +171,7 @@ const StudentCard = React.memo<StudentCardProps>(({
           <CardTitle className="text-xl font-bold tracking-tight">{student.name}</CardTitle>
           <CardDescription className="text-sm text-muted-foreground">{student.year}</CardDescription>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {student.subjects.slice(0, 2).map((subject, index) => (
+            {student.subjects?.slice(0, 2).map((subject, index) => (
               <Badge key={index} variant="secondary" className="text-xs px-1.5 py-0.5">
                 {subject}
               </Badge>
@@ -80,14 +184,14 @@ const StudentCard = React.memo<StudentCardProps>(({
         <div>
           <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1">Interests</h4>
           <div className="flex flex-wrap gap-1.5">
-            {student.interests.slice(0, 3).map((interest, index) => (
+            {student.interests?.slice(0, 3).map((interest, index) => (
               <Badge key={index} variant="outline" className="text-xs px-1.5 py-0.5">
                 {interest}
               </Badge>
             ))}
-            {student.interests.length > 3 && (
+            {(student.interests?.length || 0) > 3 && (
               <Badge variant="outline" className="text-xs px-1.5 py-0.5">
-                +{student.interests.length - 3} more
+                +{(student.interests?.length || 0) - 3} more
               </Badge>
             )}
           </div>
@@ -129,7 +233,7 @@ const StudentCard = React.memo<StudentCardProps>(({
           </Button>
         </CardFooter>
       )}
-    </motion.div>
+    </div>
   );
 });
 

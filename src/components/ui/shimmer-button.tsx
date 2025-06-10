@@ -18,11 +18,11 @@ export const ShimmerButton = React.forwardRef<
 >(
   (
     {
-      shimmerColor = "#ffffff",
+      shimmerColor = "hsl(var(--primary-foreground))",
       shimmerSize = "0.05em",
       shimmerDuration = "3s",
-      borderRadius = "100px",
-      background = "rgba(0, 0, 0, 1)",
+      borderRadius = "0.5rem",
+      background = "hsl(var(--primary))",
       className,
       children,
       ...props
@@ -42,8 +42,9 @@ export const ShimmerButton = React.forwardRef<
           } as CSSProperties
         }
         className={cn(
-          "group relative z-0 flex cursor-pointer items-center justify-center overflow-hidden whitespace-nowrap border border-white/10 px-6 py-3 text-white [background:var(--bg)] [border-radius:var(--radius)] dark:text-black",
+          "group relative z-0 flex cursor-pointer items-center justify-center overflow-hidden whitespace-nowrap border border-primary/20 px-6 py-3 text-primary-foreground [background:var(--bg)] [border-radius:var(--radius)]",
           "transform-gpu transition-transform duration-300 ease-in-out active:translate-y-px",
+          "hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary",
           className,
         )}
         ref={ref}
@@ -69,16 +70,16 @@ export const ShimmerButton = React.forwardRef<
           className={cn(
             "insert-0 absolute size-full",
 
-            "rounded-2xl px-4 py-1.5 text-sm font-medium shadow-[inset_0_-8px_10px_#ffffff1f]",
+            "rounded-lg px-4 py-1.5 text-sm font-medium shadow-[inset_0_-8px_10px_rgba(255,255,255,0.1)]",
 
             // transition
             "transform-gpu transition-all duration-300 ease-in-out",
 
             // on hover
-            "group-hover:shadow-[inset_0_-6px_10px_#ffffff3f]",
+            "group-hover:shadow-[inset_0_-6px_10px_rgba(255,255,255,0.2)]",
 
             // on click
-            "group-active:shadow-[inset_0_-10px_10px_#ffffff3f]",
+            "group-active:shadow-[inset_0_-10px_10px_rgba(255,255,255,0.2)]",
           )}
         />
 

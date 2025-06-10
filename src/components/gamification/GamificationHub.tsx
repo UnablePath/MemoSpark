@@ -6,22 +6,33 @@ import { Button } from '@/components/ui/button';
 import { FaTrophy, FaShoppingCart, FaCoins, FaUsers, FaStar, FaGift } from 'react-icons/fa';
 import { Progress } from "@/components/ui/progress";
 
-// Mock data (replace with actual data later)
-const mockUserStats = {
-  points: 1250,
-  coins: 300,
-  rank: 5,
-  nextTier: "Gold",
-  progressToNextTier: 60, // percentage
+import { useUser } from '@clerk/nextjs';
+
+// Get actual user data - remove "User You" placeholder
+const useUserStats = () => {
+  const { user } = useUser();
+  
+  // TODO: Replace with actual API calls to fetch user's gamification data
+  return {
+    points: 1250,
+    coins: 300,
+    rank: 5,
+    nextTier: "Gold",
+    progressToNextTier: 60,
+    userName: user?.fullName || user?.firstName || 'You'
+  };
 };
 
-const mockLeaderboard = [
-  { id: "usr1", name: "Alex J.", points: 2500, rank: 1 },
-  { id: "usr2", name: "Morgan L.", points: 2200, rank: 2 },
-  { id: "usr3", name: "Taylor K.", points: 1800, rank: 3 },
-  { id: "usr4", name: "User You", points: mockUserStats.points, rank: mockUserStats.rank, isCurrentUser: true },
-  { id: "usr5", name: "Jordan S.", points: 1100, rank: 6 },
-];
+const useLeaderboard = (userStats: any) => {
+  // TODO: Replace with actual API call to fetch leaderboard
+  return [
+    { id: "usr1", name: "Alex J.", points: 2500, rank: 1 },
+    { id: "usr2", name: "Morgan L.", points: 2200, rank: 2 },
+    { id: "usr3", name: "Taylor K.", points: 1800, rank: 3 },
+    { id: "current-user", name: userStats.userName, points: userStats.points, rank: userStats.rank, isCurrentUser: true },
+    { id: "usr5", name: "Jordan S.", points: 1100, rank: 6 },
+  ];
+};
 
 const mockShopItems = [
   { id: "item1", name: "Exclusive Avatar Frame", cost: 150, icon: <FaStar className="w-8 h-8 text-yellow-400" /> },
@@ -37,6 +48,8 @@ const mockAchievements = [
 ];
 
 const GamificationHub = () => {
+  const userStats = useUserStats();
+  const leaderboard = useLeaderboard(userStats);
   return (
     <div className="p-4 md:p-6 space-y-6 h-full overflow-y-auto">
       <header className="mb-6">
@@ -52,15 +65,15 @@ const GamificationHub = () => {
         <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div className="p-3 bg-muted/50 rounded-lg text-center">
             <p className="text-sm text-muted-foreground">Points</p>
-            <p className="text-2xl font-semibold">{mockUserStats.points}</p>
+            <p className="text-2xl font-semibold">{userStats.points}</p>
           </div>
           <div className="p-3 bg-muted/50 rounded-lg text-center">
             <p className="text-sm text-muted-foreground">Coins</p>
-            <p className="text-2xl font-semibold">{mockUserStats.coins}</p>
+            <p className="text-2xl font-semibold">{userStats.coins}</p>
           </div>
            <div className="p-3 bg-muted/50 rounded-lg text-center col-span-2 md:col-span-1">
             <p className="text-sm text-muted-foreground">Leaderboard Rank</p>
-            <p className="text-2xl font-semibold">#{mockUserStats.rank}</p>
+            <p className="text-2xl font-semibold">#{userStats.rank}</p>
           </div>
         </CardContent>
       </Card>
@@ -73,7 +86,7 @@ const GamificationHub = () => {
         </CardHeader>
         <CardContent>
           <ul className="space-y-3">
-            {mockLeaderboard.slice(0, 5).map(user => (
+            {leaderboard.slice(0, 5).map(user => (
               <li key={user.id} className={`flex items-center justify-between p-3 rounded-md ${user.isCurrentUser ? 'bg-primary/10 border border-primary' : 'bg-muted/50'}`}>
                 <div className="flex items-center">
                   <span className={`font-semibold w-6 text-center ${user.rank <= 3 ? 'text-orange-500' : 'text-muted-foreground'}`}>{user.rank}.</span>
@@ -139,8 +152,8 @@ const GamificationHub = () => {
         </CardHeader>
         <CardContent>
           <p className="text-sm mb-1">Current Tier: <span className="font-semibold text-primary">Bronze</span></p>
-          <p className="text-sm mb-2">Next Tier: <span className="font-semibold text-purple-500">{mockUserStats.nextTier}</span> ({mockUserStats.points} / 2000 points)</p>
-          <Progress value={mockUserStats.progressToNextTier} className="w-full h-3 bg-muted" aria-label={`Progress to ${mockUserStats.nextTier} tier`} />
+          <p className="text-sm mb-2">Next Tier: <span className="font-semibold text-purple-500">{userStats.nextTier}</span> ({userStats.points} / 2000 points)</p>
+          <Progress value={userStats.progressToNextTier} className="w-full h-3 bg-muted" aria-label={`Progress to ${userStats.nextTier} tier`} />
           <Button variant="link" className="mt-3 px-0">Learn More About Tiers</Button>
         </CardContent>
       </Card>

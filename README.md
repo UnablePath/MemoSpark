@@ -2,7 +2,7 @@
 
 MemoSpark is a mobile and web-based platform designed to combat student forgetfulness by integrating engagement directly into their digital experience. The app enhances student engagement and time management through an intuitive interface inspired by Snapchat, featuring three primary tabs.
 
-![MemoSpark](public/StudySpark.svg)
+![MemoSpark](public/images/memospark-preview.png)
 
 ## Features
 
@@ -47,8 +47,8 @@ MemoSpark is a mobile and web-based platform designed to combat student forgetfu
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/memo-spark.git
-cd memo-spark
+git clone https://github.com/yourusername/memospark.git
+cd memospark
 ```
 
 2. Install dependencies:
@@ -66,7 +66,7 @@ bun run dev
 ## Project Structure
 
 ```
-memo-spark/
+memospark/
 ├── public/              # Static assets
 ├── src/
 │   ├── app/             # Next.js app directory
