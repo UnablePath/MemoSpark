@@ -19,56 +19,70 @@ import { InteractiveHoverButton } from '@/components/ui/interactive-hover-button
 import { SuggestionList } from '@/components/ai/SuggestionList';
 import type { AISuggestion } from '@/types/ai';
 
-// Sample AI suggestions for task creation workflow integration
-const getTaskCreationSuggestions = (): AISuggestion[] => [
-  {
-    id: 'task-1',
-    type: 'task_suggestion',
-    title: 'Start your morning math session',
-    description: 'Based on your patterns, you\'re most productive at math between 9-11 AM. Create a calculus practice task.',
-    priority: 'high',
-    confidence: 0.85,
-    reasoning: 'Your completion rate is 23% higher during morning hours for math subjects.',
-    duration: 90,
-    subject: 'Mathematics',
-    metadata: {
-      category: 'productivity',
-      tags: ['morning', 'mathematics', 'focus'],
-      difficulty: 6,
-      estimatedBenefit: 0.75,
-      requiredAction: 'immediate'
-    },
-    createdAt: new Date().toISOString(),
-    acceptanceStatus: 'pending'
-  },
-  {
-    id: 'task-2',
-    type: 'study_time',
-    title: 'Schedule your physics review',
-    description: 'You have a physics quiz next week. Creating a daily review task now will improve your preparation.',
-    priority: 'medium',
-    confidence: 0.78,
-    reasoning: 'Spaced repetition shows 40% better retention for physics concepts.',
-    duration: 45,
-    subject: 'Physics',
-    metadata: {
-      category: 'academic',
-      tags: ['physics', 'review', 'quiz'],
-      difficulty: 5,
-      estimatedBenefit: 0.8,
-      requiredAction: 'scheduled'
-    },
-    createdAt: new Date(Date.now() - 300000).toISOString(),
-    acceptanceStatus: 'pending'
-  },
-  {
-    id: 'task-3',
+import { useUser } from '@clerk/nextjs';
+
+// Dynamic AI suggestions based on user context and time of day
+const getTaskCreationSuggestions = (userName?: string): AISuggestion[] => {
+  const currentHour = new Date().getHours();
+  const isEvening = currentHour >= 17;
+  const isMorning = currentHour >= 6 && currentHour < 12;
+  const userFirstName = userName?.split(' ')[0] || 'there';
+  
+  const suggestions: AISuggestion[] = [];
+  
+  if (isMorning) {
+    suggestions.push({
+      id: 'morning-focus',
+      type: 'task_suggestion',
+      title: `Good morning, ${userFirstName}! Start with a focused study session`,
+      description: 'Morning is an excellent time for deep learning. Consider tackling your most challenging subject first.',
+      priority: 'high',
+      confidence: 0.85,
+      reasoning: 'Studies show that cognitive performance is typically highest in the morning hours.',
+      duration: 90,
+      metadata: {
+        category: 'productivity',
+        tags: ['morning', 'focus', 'deep-work'],
+        difficulty: 6,
+        estimatedBenefit: 0.8,
+        requiredAction: 'immediate'
+      },
+      createdAt: new Date().toISOString(),
+      acceptanceStatus: 'pending'
+    });
+  }
+  
+  if (isEvening) {
+    suggestions.push({
+      id: 'evening-review',
+      type: 'study_time',
+      title: `Evening review session`,
+      description: 'Perfect time to review what you learned today and prepare for tomorrow.',
+      priority: 'medium',
+      confidence: 0.78,
+      reasoning: 'Evening review helps consolidate daily learning and improves retention.',
+      duration: 45,
+      metadata: {
+        category: 'academic',
+        tags: ['review', 'consolidation', 'evening'],
+        difficulty: 4,
+        estimatedBenefit: 0.7,
+        requiredAction: 'scheduled'
+      },
+      createdAt: new Date(Date.now() - 300000).toISOString(),
+      acceptanceStatus: 'pending'
+    });
+  }
+  
+  // General productivity suggestion
+  suggestions.push({
+    id: 'productivity-block',
     type: 'schedule_optimization',
-    title: 'Block time for deep work',
-    description: 'Create a 2-hour focused study block for your most challenging subject today.',
+    title: 'Create a focused study block',
+    description: 'Block out uninterrupted time for deep work on your most important tasks.',
     priority: 'medium',
     confidence: 0.72,
-    reasoning: 'Deep work blocks show 50% better learning outcomes than fragmented study sessions.',
+    reasoning: 'Focused study blocks lead to better learning outcomes than fragmented sessions.',
     duration: 120,
     metadata: {
       category: 'productivity',
@@ -78,8 +92,10 @@ const getTaskCreationSuggestions = (): AISuggestion[] => [
     },
     createdAt: new Date(Date.now() - 600000).toISOString(),
     acceptanceStatus: 'pending'
-  }
-];
+  });
+  
+  return suggestions;
+};
 
 // CVA variants for view tabs
 const viewTabVariants = cva(
@@ -140,6 +156,7 @@ interface TaskEventHubProps {
 }
 
 export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list' }) => {
+  const { user } = useUser();
   const [currentView, setCurrentView] = useState<ViewType>(initialView);
   const [isTaskFormOpen, setTaskFormOpen] = useState(false);
   const [isTimetableFormOpen, setTimetableFormOpen] = useState(false);
@@ -148,11 +165,21 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
   
   // AI Suggestions state
   const [showAISuggestions, setShowAISuggestions] = useState(false);
-  const [aiSuggestions, setAISuggestions] = useState<AISuggestion[]>(() => getTaskCreationSuggestions());
+  const [aiSuggestions, setAISuggestions] = useState<AISuggestion[]>(() => 
+    getTaskCreationSuggestions(user?.fullName || user?.firstName || undefined)
+  );
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   const { tasks, addTask, updateTask, deleteTask } = useTaskStore();
   const { toast } = useToast();
+  
+  // Update AI suggestions when user data changes
+  useEffect(() => {
+    if (user) {
+      const userName = user.fullName || user.firstName || 'User';
+      setAISuggestions(getTaskCreationSuggestions(userName));
+    }
+  }, [user]);
   
   const viewOptions: ViewOption[] = useMemo(() => [
     { id: 'list', label: 'List View', icon: LayoutList, description: 'View tasks in a sequential, organized list.' },

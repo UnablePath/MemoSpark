@@ -456,7 +456,10 @@ export default function ClerkOnboardingPage() {
                     setFormError(null);
                   }}
                   className={cn(
-                    "w-full h-11 text-base bg-gradient-to-r from-blue-50 via-white to-pink-50 border-2 border-primary/20 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 focus:outline-dashed focus:outline-2 focus:outline-offset-2 appearance-none",
+                    "w-full h-11 text-base bg-background text-foreground border-2 border-border rounded-xl shadow-sm hover:shadow-md transition-all duration-200 focus:outline-dashed focus:outline-2 focus:outline-offset-2 focus:border-primary focus:ring-1 focus:ring-primary",
+                    "dark:bg-card dark:text-card-foreground dark:border-border",
+                    "[&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert-0",
+                    "dark:[&::-webkit-calendar-picker-indicator]:brightness-0 dark:[&::-webkit-calendar-picker-indicator]:invert",
                     fieldErrors.birthDate ? "border-red-500 focus:border-red-500" : ""
                   )}
                   min={MIN_DATE_STR}

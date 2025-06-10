@@ -198,7 +198,7 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
   // Show loading state
   if (loading) {
     return (
-      <div className="flex flex-col h-full p-1 md:p-2 bg-gradient-to-br from-slate-900 via-slate-800 to-gray-900 text-slate-100 rounded-lg shadow-2xl overflow-hidden">
+      <div className="flex flex-col h-full p-4 bg-background text-foreground rounded-lg overflow-hidden">
         <LoadingSpinner />
       </div>
     );
@@ -207,20 +207,20 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
   // Show error state
   if (error) {
     return (
-      <div className="flex flex-col h-full p-1 md:p-2 bg-gradient-to-br from-slate-900 via-slate-800 to-gray-900 text-slate-100 rounded-lg shadow-2xl overflow-hidden">
+      <div className="flex flex-col h-full p-4 bg-background text-foreground rounded-lg overflow-hidden">
         <ErrorDisplay error={error} onRetry={retryLoad} />
-            </div>
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full p-1 md:p-2 bg-gradient-to-br from-slate-900 via-slate-800 to-gray-900 text-slate-100 rounded-lg shadow-2xl overflow-hidden">
+    <div className="flex flex-col h-full p-4 bg-background text-foreground rounded-lg overflow-hidden">
       {/* Header and Controls */}
-      <div className="flex-shrink-0 p-3 md:p-4 border-b border-slate-700 shadow-md bg-slate-800/50 rounded-t-lg">
+      <div className="flex-shrink-0 p-4 border-b border-border shadow-md bg-muted/50 rounded-lg mb-4">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-          <h2 className="text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-cyan-300 to-teal-400 self-center">
-            Connect & Collaborate
-          </h2>
+                      <h2 className="text-xl md:text-2xl font-bold text-primary self-center">
+              Connect & Collaborate
+            </h2>
           <div className="flex items-center gap-2 md:gap-3">
             {viewMode === 'grid' && (
               <div className="relative flex-grow max-w-xs">
@@ -229,10 +229,10 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
                   placeholder="Search students..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-3 py-2 text-sm bg-slate-700 border-slate-600 placeholder-slate-400 text-slate-100 rounded-md focus:ring-cyan-500 focus:border-cyan-500"
+                  className="pl-9 pr-3 py-2 text-sm bg-background border-border placeholder-muted-foreground text-foreground rounded-md focus:ring-primary focus:border-primary"
                   aria-label="Search students"
                 />
-                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
             )}
             <Button
@@ -243,7 +243,7 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
               }}
               variant="outline"
               size="sm"
-              className="bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-300 hover:text-sky-300 transition-all duration-150"
+              className="bg-background hover:bg-muted border-border text-foreground hover:text-primary transition-all duration-150"
               aria-label={viewMode === 'grid' ? "Switch to Swipe Mode" : "Switch to Grid View"}
             >
               {viewMode === 'grid' ? "✨ Swipe Mode" : "📊 Grid View"}
@@ -309,7 +309,7 @@ const GridView = React.memo(({
 }) => (
   <div className="flex flex-col gap-6">
             <section aria-labelledby="student-discovery-heading">
-      <h3 id="student-discovery-heading" className="text-xl font-semibold mb-4 text-sky-300">
+      <h3 id="student-discovery-heading" className="text-xl font-semibold mb-4 text-primary">
         Discover Connections
       </h3>
               {availableStudents.length > 0 ? (

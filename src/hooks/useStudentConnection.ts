@@ -1,58 +1,67 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useUser } from '@clerk/nextjs';
 import type { Student, Message, SwipeHistoryItem } from '@/types/student';
 
-// Mock data (would be fetched from API in real app)
-const mockStudents: Student[] = [
-  {
-    id: "1",
-    name: "Alex Johnson",
-    year: "Sophomore",
-    subjects: ["Mathematics", "Physics"],
-    interests: ["Chess", "Hiking"],
-    avatar: null,
-    achievements: [
-      { id: "a1", name: "Math Whiz", icon: "🏆", description: "Top score in Calculus quiz", dateEarned: "2023-10-15" },
-      { id: "a2", name: "Debate Champion", icon: "🗣️", description: "Won the inter-college debate", dateEarned: "2023-11-05" },
-    ],
-  },
-  {
-    id: "2",
-    name: "Morgan Lee",
-    year: "Junior",
-    subjects: ["Computer Science", "Data Science"],
-    interests: ["Gaming", "Programming"],
-    avatar: null,
-    achievements: [
-      { id: "a3", name: "Code Ninja", icon: "💻", description: "Completed 100 coding challenges", dateEarned: "2023-09-20" },
-    ],
-  },
-  {
-    id: "3",
-    name: "Taylor Kim",
-    year: "Freshman",
-    subjects: ["Biology", "Chemistry"],
-    interests: ["Music", "Swimming"],
-    avatar: null,
-    achievements: [
-      { id: "a4", name: "Lab Assistant", icon: "🔬", description: "Assisted in 3 research projects", dateEarned: "2023-12-01" },
-      { id: "a5", name: "Melody Maker", icon: "🎵", description: "Composed an original song", dateEarned: "2023-11-22" },
-      { id: "a6", name: "Aqua Star", icon: "🏊", description: "Gold in 100m freestyle", dateEarned: "2023-10-30" },
-    ],
-  },
-  {
-    id: "4",
-    name: "Jordan Smith",
-    year: "Senior",
-    subjects: ["Psychology", "Sociology"],
-    interests: ["Reading", "Yoga"],
-    avatar: null,
-    achievements: [
-      { id: "a7", name: "Bookworm", icon: "📚", description: "Read 50 books this year", dateEarned: "2023-12-10" },
-    ],
-  },
-];
+// Helper function to generate sample student data based on real user data patterns
+const generateSampleStudents = (excludeUserId?: string): Student[] => {
+  // This would be replaced with actual API calls in production
+  const sampleStudents: Student[] = [
+    {
+      id: "sample-1",
+      name: "Alex Johnson",
+      year: "Sophomore",
+      subjects: ["Mathematics", "Physics"],
+      interests: ["Chess", "Hiking"],
+      avatar: null,
+      achievements: [
+        { id: "a1", name: "Math Whiz", icon: "🏆", description: "Top score in Calculus quiz", dateEarned: "2023-10-15" },
+        { id: "a2", name: "Debate Champion", icon: "🗣️", description: "Won the inter-college debate", dateEarned: "2023-11-05" },
+      ],
+    },
+    {
+      id: "sample-2",
+      name: "Morgan Lee",
+      year: "Junior",
+      subjects: ["Computer Science", "Data Science"],
+      interests: ["Gaming", "Programming"],
+      avatar: null,
+      achievements: [
+        { id: "a3", name: "Code Ninja", icon: "💻", description: "Completed 100 coding challenges", dateEarned: "2023-09-20" },
+      ],
+    },
+    {
+      id: "sample-3",
+      name: "Taylor Kim",
+      year: "Freshman",
+      subjects: ["Biology", "Chemistry"],
+      interests: ["Music", "Swimming"],
+      avatar: null,
+      achievements: [
+        { id: "a4", name: "Lab Assistant", icon: "🔬", description: "Assisted in 3 research projects", dateEarned: "2023-12-01" },
+        { id: "a5", name: "Melody Maker", icon: "🎵", description: "Composed an original song", dateEarned: "2023-11-22" },
+        { id: "a6", name: "Aqua Star", icon: "🏊", description: "Gold in 100m freestyle", dateEarned: "2023-10-30" },
+      ],
+    },
+    {
+      id: "sample-4",
+      name: "Jordan Smith",
+      year: "Senior",
+      subjects: ["Psychology", "Sociology"],
+      interests: ["Reading", "Yoga"],
+      avatar: null,
+      achievements: [
+        { id: "a7", name: "Bookworm", icon: "📚", description: "Read 50 books this year", dateEarned: "2023-12-10" },
+      ],
+    },
+  ];
+
+  // Filter out current user if provided
+  return excludeUserId 
+    ? sampleStudents.filter(student => student.id !== excludeUserId)
+    : sampleStudents;
+};
 
 // Custom hook for localStorage state management
 export const useLocalStorageState = <T>(key: string, defaultValue: T) => {
@@ -86,6 +95,7 @@ export const useLocalStorageState = <T>(key: string, defaultValue: T) => {
 
 // Custom hook for student data fetching
 export const useStudentData = () => {
+  const { user, isLoaded } = useUser();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
@@ -94,9 +104,26 @@ export const useStudentData = () => {
     try {
       setLoading(true);
       setError(null);
-      // Simulate API call delay
+      
+      // Wait for user to be loaded
+      if (!isLoaded) {
+        return;
+      }
+
+      // Simulate API call delay - in production, this would fetch from your student API
       await new Promise(resolve => setTimeout(resolve, 500));
-      setStudents(mockStudents);
+      
+      // Get students excluding current user
+      const currentUserId = user?.id;
+      const studentList = generateSampleStudents(currentUserId);
+      
+      // TODO: Replace with actual API call to fetch students
+      // const response = await fetch('/api/students', {
+      //   headers: { Authorization: `Bearer ${await getToken()}` }
+      // });
+      // const studentList = await response.json();
+      
+      setStudents(studentList);
     } catch (err) {
       setError('Failed to load students. Please try again.');
       console.error('Error loading students:', err);
@@ -106,8 +133,10 @@ export const useStudentData = () => {
   };
 
   useEffect(() => {
-    loadStudents();
-  }, []);
+    if (isLoaded) {
+      loadStudents();
+    }
+  }, [isLoaded, user?.id]);
 
   const retryLoad = () => {
     loadStudents();

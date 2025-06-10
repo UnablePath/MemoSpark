@@ -1,8 +1,8 @@
-# StudySpark
+# MemoSpark
 
-StudySpark is a mobile and web-based platform designed to combat student forgetfulness by integrating engagement directly into their digital experience. The app enhances student engagement and time management through an intuitive interface inspired by Snapchat, featuring three primary tabs.
+MemoSpark is a mobile and web-based platform designed to combat student forgetfulness by integrating engagement directly into their digital experience. The app enhances student engagement and time management through an intuitive interface inspired by Snapchat, featuring three primary tabs.
 
-![StudySpark](public/images/studyspark-preview.png)
+![MemoSpark](public/images/memospark-preview.png)
 
 ## Features
 
@@ -47,8 +47,8 @@ StudySpark is a mobile and web-based platform designed to combat student forgetf
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/studyspark.git
-cd studyspark
+git clone https://github.com/yourusername/memospark.git
+cd memospark
 ```
 
 2. Install dependencies:
@@ -66,7 +66,7 @@ bun run dev
 ## Project Structure
 
 ```
-studyspark/
+memospark/
 ├── public/              # Static assets
 ├── src/
 │   ├── app/             # Next.js app directory
@@ -148,5 +148,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Acknowledgments
 
-- StudySpark mascot "Stu" the Koala designed for optimal student engagement
+- MemoSpark mascot "Stu" the Koala designed for optimal student engagement
 - Inspired by the intuitive UX of social media apps like Snapchat

@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { SuggestionCard } from '@/components/ai/SuggestionCard';
 import { cn } from '@/lib/utils';
-import { memoSparkAI, StudySparkAI } from '@/lib/ai';
+import { memoSparkAI, MemoSparkAI } from '@/lib/ai';
 import type { StudySuggestion } from '@/lib/ai/suggestionEngine';
 import type { ExtendedTask, AISuggestion, SuggestionType } from '@/types/ai';
 import { useEnhancedUserContext, useSaveAISuggestionFeedback } from '@/lib/hooks/queries';
@@ -136,7 +136,7 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
         recentActivity: enhancedContext?.recentTasks?.map(convertTaskToExtendedTask) || [],
         recentCompletedTasks: enhancedContext?.recentCompletedTasks?.map(convertTaskToExtendedTask) || [],
         timetableEntries: enhancedContext?.timetableEntries || [],
-        userPreferences: StudySparkAI.getDefaultPreferences(),
+        userPreferences: MemoSparkAI.getDefaultPreferences(),
         taskContext: currentTask,
         suggestionTypes: ['task_enhancement', 'time_optimization', 'priority_adjustment', 'subject_focus'],
         feedbackSummary: enhancedContext?.feedbackSummary,

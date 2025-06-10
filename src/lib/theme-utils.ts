@@ -423,8 +423,8 @@ export const BUILT_IN_THEMES: ThemeManifest[] = [
   {
     id: 'dark',
     name: 'Default Dark',
-    description: 'The classic StudySpark dark theme',
-    author: 'StudySpark Team',
+    description: 'The classic MemoSpark dark theme',
+    author: 'MemoSpark Team',
     version: '1.0.0',
     category: 'default',
     previewColors: ['#1a1a1a', '#ffffff', '#22c55e'],

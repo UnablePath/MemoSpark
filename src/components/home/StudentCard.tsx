@@ -36,14 +36,35 @@ const StudentCard = React.memo<StudentCardProps>(({
   drag,
   style
 }) => {
+  const checkSwipeZone = (event: any) => {
+    if (!isSwipeMode || !drag) return true;
+    
+    // Get the starting position of the touch/mouse event
+    const clientX = event.clientX || (event.touches && event.touches[0]?.clientX);
+    if (!clientX) return true;
+    
+    const screenWidth = window.innerWidth;
+    // Only allow swipes from outer third of screen
+    return clientX <= screenWidth / 3 || clientX >= (screenWidth * 2) / 3;
+  };
+
   return (
     <motion.div
       drag={drag}
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+      onDragStart={(event) => {
+        // Prevent drag if not in outer third
+        if (!checkSwipeZone(event)) {
+          return false;
+        }
+      }}
       onDragEnd={(event, info) => {
-        if (drag && onSwipe) {
-          if (info.offset.x > 100) onSwipe('right');
-          else if (info.offset.x < -100) onSwipe('left');
+        if (drag && onSwipe && checkSwipeZone(event)) {
+          // Only trigger swipe if drag started in outer third and moved significantly
+          if (Math.abs(info.offset.x) > 100) {
+            if (info.offset.x > 100) onSwipe('right');
+            else if (info.offset.x < -100) onSwipe('left');
+          }
         }
       }}
       className={cn(

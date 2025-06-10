@@ -43,17 +43,25 @@ export function DashboardSwipeTabs() {
   };
 
   const handleTabChange = (index: number) => {
+    // Ensure index is valid
+    if (index < 0 || index >= TABS_CONFIG.length) {
+      console.warn(`Invalid tab index: ${index}`);
+      return;
+    }
+
     const newActiveTabConfig = TABS_CONFIG[index];
+    
+    // Handle tinder mode state based on tab
     if (newActiveTabConfig?.key !== 'connections') {
       // If switching to a tab that is not connections, disable Tinder mode for swiping
       setIsTinderModeActive(false);
     }
-    // If switching TO connections tab, the StudentConnectionTab's useEffect will call
-    // handleStudentTabViewModeChange and set isTinderModeActive appropriately.
-    // However, we also need to consider the initial state or direct calls to handleStudentTabViewModeChange.
-    // The logic in handleStudentTabViewModeChange should be sufficient if called correctly.
-
+    
+    // Update active tab index
     setActiveTabIndex(index);
+    
+    // Debug logging for tab changes
+    console.log(`Switching to tab: ${newActiveTabConfig?.key} (index: ${index})`);
   };
 
   // Re-define TABS_CONFIG and TABS to include the prop. 
