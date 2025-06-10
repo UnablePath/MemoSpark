@@ -155,29 +155,21 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
   const { tasks, addTask, updateTask, deleteTask } = useTaskStore();
   const { toast } = useToast();
   
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
+  // Tier-aware AI integration with backwards compatibility
+  const tieredAI = useTieredAI ? useTieredAI() : null;
+  const { 
+    userTier = 'free', 
+    usage = { requestsUsed: 0, requestsRemaining: 10, dailyLimit: 10, featureAvailable: true }, 
+    isLoading: isTierLoading = false, 
+    generateSuggestions = null, 
+    isFeatureAvailable = () => true,
+    tierLimits = {}
+  } = tieredAI || {};
+
   // Update AI suggestions when user data changes
   useEffect(() => {
-    if (user) {
-      const userName = user.fullName || user.firstName || 'User';
-      setAISuggestions(getTaskCreationSuggestions(userName));
-    }
-  }, [user]);
-=======
-  // Tier-aware AI integration
-  const { 
-    userTier, 
-    usage, 
-    isLoading: isTierLoading, 
-    generateSuggestions, 
-    isFeatureAvailable,
-    tierLimits 
-  } = useTieredAI();
->>>>>>> Stashed changes
-  
->>>>>>> Stashed changes
+    setAISuggestions(getTaskCreationSuggestions());
+  }, []);
   const viewOptions: ViewOption[] = useMemo(() => [
     { id: 'list', label: 'List View', icon: LayoutList, description: 'View tasks in a sequential, organized list.' },
     { id: 'calendar', label: 'Calendar', icon: Calendar, description: 'View and manage tasks in a calendar format.' },
@@ -186,7 +178,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
 
   // Tier-aware AI suggestions generation
   const generateTierAwareSuggestions = useCallback(async () => {
-    if (!isFeatureAvailable('basic_suggestions')) {
+    if (!isFeatureAvailable('basic_suggestions') || !generateSuggestions) {
       return;
     }
 

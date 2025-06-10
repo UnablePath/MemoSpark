@@ -2,7 +2,18 @@
 
 ## Project Overview
 
-MemoSpark is a mobile-first AI-powered study companion built with Next.js 15 App Router, TypeScript, Tailwind CSS, Supabase database, and Clerk authentication. **CRITICAL REQUIREMENT**: Default dark mode with minimalist design that prevents UI clutter and content bleeding.
+MemoSpark is a React/Next.js study management app using Supabase (database), Clerk (authentication), and Tailwind CSS. **CRITICAL REQUIREMENT**: Never allow content to bleed off screen or below tab bar.
+
+## **Content Constraints** (CRITICAL)
+- **Content Constraints**: Never allow content to bleed off screen or below tab bar  
+- **Loading States**: Always provide loading feedback for async operations
+- **Mobile Tab Bar**: Ensure 60px bottom padding for mobile navigation
+- **Snapchat-Style UI**: Use Snapchat-inspired design patterns for modern, engaging interfaces  
+- **Glassmorphism Usage**: Apply glassmorphism effects selectively to specific UI elements (modals, cards, overlays) rather than overall design
+- **Crashout Room Design**: Should have edgy, expressive personality matching the venting/emotional nature - not aim or overly polished
+
+## AI Integration
+- **Existing Component**: `src/components/ai/AITaskSuggestions.tsx` (698 lines complete)
 
 ## Architecture Standards
 

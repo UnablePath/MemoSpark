@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 import type { Appearance } from '@clerk/types';
 
 // Shared Clerk appearance configuration with improved contrast and MemoSpark branding
@@ -221,7 +220,4 @@ export const memoSparkClerkAppearanceDark: Appearance = {
     socialButtonsPlacement: 'bottom' as const,
     socialButtonsVariant: 'blockButton' as const,
   },
-} as const; 
-=======
- 
->>>>>>> Stashed changes
+} as const;
