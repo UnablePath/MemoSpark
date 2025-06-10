@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { TabContainer } from '@/components/layout/TabContainer';
 import { TabIndicator } from '@/components/layout/TabIndicator';
 import StudentConnectionTab from '@/components/home/StudentConnectionTab'; // Assuming this is correct
-import TaskEventTab from '@/components/tasks/TaskEventTab';         // Using TaskEventTab as per old dashboard
+import { TaskEventHub } from '@/components/tasks/TaskEventHub';         // Using new TaskEventHub component
 import RemindersTab from '@/components/reminders/RemindersTab';     // Using RemindersTab as per old dashboard
 import CrashoutTab from '@/components/dashboard/CrashoutTab'; // Import the new CrashoutTab
 import GamificationHub from '@/components/gamification/GamificationHub'; // Import GamificationHub
@@ -13,7 +13,7 @@ import { FaUserFriends, FaCalendarAlt, FaBell, FaSpa, FaGamepad } from 'react-ic
 // Define the order of tabs and their corresponding icons
 const TABS_CONFIG = [
   { key: 'connections', component: <StudentConnectionTab key="connections" />, icon: FaUserFriends },
-  { key: 'tasks', component: <TaskEventTab key="tasks" />, icon: FaCalendarAlt },
+  { key: 'tasks', component: <TaskEventHub key="tasks" />, icon: FaCalendarAlt },
   { key: 'reminders', component: <RemindersTab key="reminders" />, icon: FaBell },
   { key: 'crashout', component: <CrashoutTab key="crashout" />, icon: FaSpa },
   { key: 'gamification', component: <GamificationHub key="gamification" />, icon: FaGamepad }, // Add Gamification tab
@@ -121,7 +121,7 @@ export function DashboardSwipeTabs() {
         role="tablist"
         aria-orientation="horizontal"
         aria-label="Dashboard Navigation"
-        className="flex justify-around items-center p-2 border-t bg-background"
+        className="flex justify-around items-center p-2 border-t bg-background flex-shrink-0 pb-safe-bottom safe-scroll-area"
         onKeyDown={handleKeyDown}
       >
         {currentTabsConfig.map((tab, index) => {
@@ -141,7 +141,7 @@ export function DashboardSwipeTabs() {
               aria-controls={panelId}
               tabIndex={isActive ? 0 : -1} // Only active tab is in tab order initially
               onClick={() => handleTabChange(index)}
-              className={`p-2 rounded-md transition-colors duration-200 ${isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'}`}
+              className={`touch-target p-2 rounded-md transition-colors duration-200 ${isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'}`}
               aria-label={`Go to ${tab.key} tab`}
             >
               <Icon className="h-6 w-6" aria-hidden="true" /> {/* Icons are decorative due to aria-label on button */}

@@ -17,7 +17,9 @@ export function TabIndicator({ count, activeIndex }: TabIndicatorProps) {
           className="w-2.5 h-2.5 rounded-full"
           initial={false}
           animate={{
-            backgroundColor: index === activeIndex ? '#3b82f6' /* blue-500 */ : '#d1d5db' /* gray-300 */,
+            backgroundColor: index === activeIndex 
+              ? 'hsl(var(--primary))' 
+              : 'hsl(var(--muted))',
             scale: index === activeIndex ? 1.2 : 1,
           }}
           transition={{ duration: 0.2 }}

@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, type PanInfo } from 'framer-motion';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import KoalaMascot from './koala-mascot';
+import { KoalaMascot } from './koala-mascot';
 
 interface DraggableWidgetProps {
   task?: {
@@ -101,7 +101,7 @@ const DraggableWidget: React.FC<DraggableWidgetProps> = ({
             <>
               <div className="absolute top-0 left-0 w-full h-2 bg-secondary" />
               <div className="flex flex-col items-center justify-center h-full px-1">
-                <KoalaMascot size={48} className="absolute top-3 opacity-40" />
+                <KoalaMascot size="sm" className="absolute top-3 opacity-40" />
                 <div className="text-center px-1 mt-8 w-full">
                   <div className="text-xs font-semibold line-clamp-2 overflow-hidden">{task.title}</div>
                   <div className="text-[10px] text-muted-foreground mt-1">
@@ -114,10 +114,10 @@ const DraggableWidget: React.FC<DraggableWidgetProps> = ({
           ) : (
             <div className="text-center px-2">
               <div className="text-sm font-semibold">No tasks</div>
-              <KoalaMascot size={60} />
+              <KoalaMascot size="md" />
             </div>
           )}
-          <div className="absolute bottom-2 text-[10px] font-medium">StudySpark</div>
+          <div className="absolute bottom-2 text-[10px] font-medium">MemoSpark</div>
         </div>
       </motion.div>
     </div>

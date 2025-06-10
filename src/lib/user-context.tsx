@@ -1,7 +1,9 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { toast } from "sonner";
+import type { UserAIPreferences } from "@/types/ai";
+import { defaultAIPreferences } from "@/types/ai";
 
 // Define user profile interface
 export interface UserProfile {
@@ -13,6 +15,11 @@ export interface UserProfile {
   avatar?: string | null;
   birthDate?: string | null;
   bio?: string;
+  // AI-specific fields (optional for backward compatibility)
+  aiPreferences?: UserAIPreferences;
+  aiEnabled?: boolean; // Quick toggle for all AI features
+  onboardingCompleted?: boolean; // Track if AI onboarding was completed
+  lastAIInteraction?: string; // ISO date string
 }
 
 // Default user profile
@@ -25,6 +32,8 @@ export const defaultProfile: UserProfile = {
   avatar: null,
   birthDate: null,
   bio: "",
+  aiEnabled: false, // Default to disabled until user enables
+  onboardingCompleted: false,
 };
 
 // Define the context type
@@ -34,6 +43,12 @@ interface UserContextType {
   updateProfile: (newProfile: Partial<UserProfile>) => void;
   saveProfile: () => void;
   resetProfile: () => void;
+  // AI-specific methods
+  enableAI: () => void;
+  disableAI: () => void;
+  updateAIPreferences: (preferences: Partial<UserAIPreferences>) => void;
+  initializeAIPreferences: () => void;
+  isAIEnabled: () => boolean;
 }
 
 // Create the context
@@ -43,6 +58,11 @@ const UserContext = createContext<UserContextType>({
   updateProfile: () => {},
   saveProfile: () => {},
   resetProfile: () => {},
+  enableAI: () => {},
+  disableAI: () => {},
+  updateAIPreferences: () => {},
+  initializeAIPreferences: () => {},
+  isAIEnabled: () => false,
 });
 
 // Hook to use the user context
@@ -55,7 +75,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // Load profile from localStorage on component mount
   useEffect(() => {
-    const savedProfile = localStorage.getItem("studyspark_profile");
+    const savedProfile = localStorage.getItem("memospark_profile");
     if (savedProfile) {
       try {
         const parsedProfile = JSON.parse(savedProfile);
@@ -89,7 +109,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
 
     // Save to localStorage
-    localStorage.setItem("studyspark_profile", JSON.stringify(profile));
+          localStorage.setItem("memospark_profile", JSON.stringify(profile));
     toast.success("Profile updated successfully");
     return true;
   };
@@ -97,7 +117,48 @@ export function UserProvider({ children }: { children: ReactNode }) {
   // Reset profile to default
   const resetProfile = () => {
     setProfile(defaultProfile);
-    localStorage.removeItem("studyspark_profile");
+          localStorage.removeItem("memospark_profile");
+  };
+
+  // AI-specific methods
+  const enableAI = () => {
+    setProfile(prev => ({
+      ...prev,
+      aiEnabled: true,
+      aiPreferences: prev.aiPreferences || defaultAIPreferences,
+      lastAIInteraction: new Date().toISOString(),
+    }));
+  };
+
+  const disableAI = () => {
+    setProfile(prev => ({
+      ...prev,
+      aiEnabled: false,
+      lastAIInteraction: new Date().toISOString(),
+    }));
+  };
+
+  const updateAIPreferences = (preferences: Partial<UserAIPreferences>) => {
+    setProfile(prev => ({
+      ...prev,
+      aiPreferences: {
+        ...(prev.aiPreferences || defaultAIPreferences),
+        ...preferences,
+      },
+      lastAIInteraction: new Date().toISOString(),
+    }));
+  };
+
+  const initializeAIPreferences = () => {
+    setProfile(prev => ({
+      ...prev,
+      aiPreferences: prev.aiPreferences || defaultAIPreferences,
+      onboardingCompleted: false,
+    }));
+  };
+
+  const isAIEnabled = (): boolean => {
+    return Boolean(profile.aiEnabled && profile.aiPreferences?.enableSuggestions);
   };
 
   // Value object to pass to provider
@@ -107,6 +168,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
     updateProfile,
     saveProfile,
     resetProfile,
+    enableAI,
+    disableAI,
+    updateAIPreferences,
+    initializeAIPreferences,
+    isAIEnabled,
   };
 
   return (

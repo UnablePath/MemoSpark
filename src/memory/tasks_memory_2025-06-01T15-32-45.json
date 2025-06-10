@@ -1,0 +1,137 @@
+{
+  "tasks": [
+    {
+      "id": "1e920f3a-0dc7-4d81-939a-5cdbd05a1465",
+      "name": "Create Progressive Task Capture Component",
+      "description": "Extract and enhance task creation flow from TaskEventTab into a focused component using progressive disclosure pattern from ClerkOnboardingPage. Implement three-step flow: Quick Capture (title/due date), AI Suggestions (smart recommendations), and Details (description/recurrence). Follow established Dialog patterns and CVA styling.",
+      "notes": "Reuse existing Dialog components and form patterns. Extract from TaskEventTab without breaking existing functionality. Follow CVA patterns for consistent styling.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-06-01T15:07:55.103Z",
+      "updatedAt": "2025-06-01T15:10:37.233Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/tasks/ProgressiveTaskCapture.tsx",
+          "type": "CREATE",
+          "description": "New progressive disclosure task creation component"
+        },
+        {
+          "path": "src/components/tasks/TaskEventTab.tsx",
+          "type": "REFERENCE",
+          "description": "Extract existing task creation logic",
+          "lineStart": 431,
+          "lineEnd": 830
+        },
+        {
+          "path": "src/app/clerk-onboarding/page.tsx",
+          "type": "REFERENCE",
+          "description": "Progressive disclosure and step navigation patterns",
+          "lineStart": 85,
+          "lineEnd": 280
+        },
+        {
+          "path": "src/types/ai.ts",
+          "type": "REFERENCE",
+          "description": "ExtendedTask interface for type safety",
+          "lineStart": 58,
+          "lineEnd": 85
+        }
+      ],
+      "implementationGuide": "Create src/components/tasks/ProgressiveTaskCapture.tsx:\\n\\n```typescript\\ninterface ProgressiveTaskCaptureProps {\\n  open: boolean\\n  onOpenChange: (open: boolean) => void\\n  onTaskCreate: (task: Omit<Task, 'id' | 'completed'>) => void\\n  initialData?: Partial<Task>\\n}\\n\\nconst ProgressiveTaskCapture = ({ open, onOpenChange, onTaskCreate }) => {\\n  const [step, setStep] = useState(1)\\n  const [taskData, setTaskData] = useState<Partial<Task>>({})\\n  \\n  // Reuse ClerkOnboardingPage step navigation patterns\\n  const totalSteps = 3\\n  const handleNextStep = () => step < totalSteps ? setStep(step + 1) : handleSubmit()\\n  const handlePrevStep = () => step > 1 && setStep(step - 1)\\n  \\n  return (\\n    <Dialog open={open} onOpenChange={onOpenChange}>\\n      <DialogContent className=\\\"sm:max-w-lg\\\">\\n        {/* Progress indicator from ClerkOnboardingPage */}\\n        <div className=\\\"flex justify-center space-x-2 mb-4\\\">\\n          {[...Array(totalSteps)].map((_, index) => (\\n            <div className={cn(\\\"h-1.5 rounded-full transition-all\\\", \\n              index + 1 === step ? \\\"w-8 bg-primary\\\" : \\\"w-4 bg-primary/20\\\")} />\\n          ))}\\n        </div>\\n        \\n        {step === 1 && <QuickCaptureStep data={taskData} onChange={setTaskData} />}\\n        {step === 2 && <AISuggestionsStep data={taskData} onChange={setTaskData} />}\\n        {step === 3 && <DetailsStep data={taskData} onChange={setTaskData} />}\\n        \\n        <DialogFooter>\\n          {step > 1 && <Button variant=\\\"outline\\\" onClick={handlePrevStep}>Back</Button>}\\n          <Button onClick={handleNextStep}>\\n            {step < totalSteps ? \\\"Next\\\" : \\\"Create Task\\\"}\\n          </Button>\\n        </DialogFooter>\\n      </DialogContent>\\n    </Dialog>\\n  )\\n}\\n```\\n\\nExtract existing task form logic from TaskEventTab.tsx lines 457-830. Follow Dialog and form patterns established in the codebase.",
+      "verificationCriteria": "Component renders with 3-step wizard, maintains existing task creation functionality, follows established Dialog patterns, includes proper TypeScript interfaces, implements responsive design matching project standards.",
+      "analysisResult": "Enhance MemoSpark's task management with AI-powered progressive disclosure, Stu character guidance, and mobile-first design. The solution leverages existing patterns from ClerkOnboardingPage (step navigation), RemindersTab (Stu integration), and SuggestionCard (AI suggestions) while maintaining full backward compatibility with the current TaskEventTab implementation.",
+      "summary": "Successfully created comprehensive ProgressiveTaskCapture component with 3-step wizard (Quick Capture, AI Suggestions, Details), following established Dialog patterns, implementing responsive mobile-first design with 44px touch targets, using CVA styling patterns, proper TypeScript interfaces from ai.ts, smooth animations with framer-motion, and extraction of existing task creation logic while maintaining backward compatibility. Component includes progressive disclosure to reduce cognitive load, placeholder AI suggestions with confidence scores, proper form validation, and clean step navigation with visual progress indicator.",
+      "completedAt": "2025-06-01T15:10:37.227Z"
+    },
+    {
+      "id": "6c3792c6-bcfb-45bf-aa27-da900c0aa231",
+      "name": "Implement Stu Character Task Guidance",
+      "description": "Create contextual guidance component that integrates Stu the Koala mascot into the task creation flow. Reuse animation patterns from RemindersTab and provide context-aware tips and encouragement during task creation process.",
+      "notes": "Follow established Stu integration patterns from RemindersTab. Use existing KoalaMascot component and animation variants. Maintain consistency with existing personality system.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "1e920f3a-0dc7-4d81-939a-5cdbd05a1465"
+        }
+      ],
+      "createdAt": "2025-06-01T15:07:55.103Z",
+      "updatedAt": "2025-06-01T15:12:39.394Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/tasks/StuTaskGuidance.tsx",
+          "type": "CREATE",
+          "description": "Stu character guidance component"
+        },
+        {
+          "path": "src/components/reminders/RemindersTab.tsx",
+          "type": "REFERENCE",
+          "description": "Existing Stu integration patterns",
+          "lineStart": 249,
+          "lineEnd": 325
+        },
+        {
+          "path": "src/components/ui/koala-mascot.tsx",
+          "type": "DEPENDENCY",
+          "description": "Stu character component"
+        },
+        {
+          "path": "src/components/tasks/ProgressiveTaskCapture.tsx",
+          "type": "TO_MODIFY",
+          "description": "Integrate Stu guidance into task creation"
+        }
+      ],
+      "implementationGuide": "Create src/components/tasks/StuTaskGuidance.tsx following RemindersTab patterns:\\n\\n```typescript\\ninterface StuGuidanceProps {\\n  currentStep: string\\n  taskData: Partial<ExtendedTask>\\n  onGuidanceAction?: (action: string) => void\\n}\\n\\nconst StuTaskGuidance = ({ currentStep, taskData }) => {\\n  const [showMessage, setShowMessage] = useState(false)\\n  const [stuMessage, setStuMessage] = useState('')\\n  const [stuAnimation, setStuAnimation] = useState<'idle' | 'talking' | 'excited'>('idle')\\n  \\n  // Context-aware guidance messages\\n  const guidanceMessages = {\\n    capture: [\\\"Let's create a great task! What would you like to work on?\\\", \\\"I'm here to help you stay organized!\\\"],\\n    suggestions: [\\\"Check out these smart suggestions I found for you!\\\", \\\"These recommendations are based on your patterns!\\\"],\\n    details: [\\\"Let's add some details to make this task perfect!\\\", \\\"Great progress! Just a few more details.\\\"]\\n  }\\n  \\n  // Follow RemindersTab patterns for message display\\n  const showContextualTip = (step: string) => {\\n    const message = getRandomMessage(guidanceMessages[step])\\n    setStuMessage(message)\\n    setShowMessage(true)\\n    setStuAnimation('talking')\\n    \\n    setTimeout(() => setStuAnimation('idle'), 2000)\\n    setTimeout(() => setShowMessage(false), 4000)\\n  }\\n  \\n  return (\\n    <div className=\\\"relative\\\">\\n      <Button variant=\\\"ghost\\\" onClick={() => showContextualTip(currentStep)}>\\n        <motion.div\\n          variants={koalaVariants}\\n          animate={stuAnimation}\\n        >\\n          <KoalaMascot size={60} />\\n        </motion.div>\\n      </Button>\\n      \\n      {showMessage && (\\n        <motion.div\\n          initial={{ opacity: 0, y: 10 }}\\n          animate={{ opacity: 1, y: 0 }}\\n          className=\\\"absolute bottom-full left-1/2 -translate-x-1/2 p-3 bg-background border rounded-md shadow-lg text-sm mb-2\\\"\\n        >\\n          {stuMessage}\\n        </motion.div>\\n      )}\\n    </div>\\n  )\\n}\\n```\\n\\nReuse exact animation patterns and message bubble styling from RemindersTab.",
+      "verificationCriteria": "Stu mascot displays with proper animations, context-aware messages appear based on current step, follows existing animation patterns from RemindersTab, integrates smoothly with task creation flow, maintains accessibility standards.",
+      "analysisResult": "Enhance MemoSpark's task management with AI-powered progressive disclosure, Stu character guidance, and mobile-first design. The solution leverages existing patterns from ClerkOnboardingPage (step navigation), RemindersTab (Stu integration), and SuggestionCard (AI suggestions) while maintaining full backward compatibility with the current TaskEventTab implementation.",
+      "summary": "Successfully implemented StuTaskGuidance component with contextual guidance that integrates seamlessly into ProgressiveTaskCapture. Features include: exact animation patterns from RemindersTab (idle, talking, excited states), context-aware messages for each step (quickCapture, aiSuggestions, details, completed), proper accessibility with ARIA live regions, multiple size configurations (sm/md/lg), flexible positioning (embedded/floating/corner), mobile-first responsive design with proper touch targets, reduced motion support, message bubble with pointer positioning, celebration animations on task completion, and StuQuickGuidance component for inline tips. Maintains established KoalaMascot integration patterns and provides engaging user guidance throughout task creation flow.",
+      "completedAt": "2025-06-01T15:12:39.391Z"
+    },
+    {
+      "id": "a0199713-4fd1-4d68-a777-91c8a601b0f6",
+      "name": "Build AI Task Suggestions Integration",
+      "description": "Create AI-powered suggestion component that integrates with existing StudySparkAI class to provide intelligent task recommendations during the creation process. Extend SuggestionCard patterns for task-specific suggestions.",
+      "notes": "Use existing StudySparkAI class methods. Extend SuggestionCard component for task-specific use cases. Implement proper error handling and loading states.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "1e920f3a-0dc7-4d81-939a-5cdbd05a1465"
+        }
+      ],
+      "createdAt": "2025-06-01T15:07:55.103Z",
+      "updatedAt": "2025-06-01T15:15:03.669Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/tasks/AITaskSuggestions.tsx",
+          "type": "CREATE",
+          "description": "AI suggestion integration component"
+        },
+        {
+          "path": "src/lib/ai/index.ts",
+          "type": "REFERENCE",
+          "description": "StudySparkAI class integration",
+          "lineStart": 61,
+          "lineEnd": 200
+        },
+        {
+          "path": "src/components/ai/SuggestionCard.tsx",
+          "type": "REFERENCE",
+          "description": "Existing suggestion display patterns",
+          "lineStart": 84,
+          "lineEnd": 200
+        },
+        {
+          "path": "src/types/ai.ts",
+          "type": "REFERENCE",
+          "description": "AI types and interfaces",
+          "lineStart": 240,
+          "lineEnd": 258
+        }
+      ],
+      "implementationGuide": "Create src/components/tasks/AITaskSuggestions.tsx extending existing AI patterns:\\n\\n```typescript\\ninterface AITaskSuggestionsProps {\\n  currentTask: Partial<ExtendedTask>\\n  onSuggestionApply: (suggestion: TaskSuggestion) => void\\n  onSuggestionDismiss: (id: string) => void\\n}\\n\\nconst AITaskSuggestions = ({ currentTask, onSuggestionApply }) => {\\n  const [suggestions, setSuggestions] = useState<TaskSuggestion[]>([])\\n  const [loading, setLoading] = useState(false)\\n  \\n  // Integration with existing StudySparkAI\\n  useEffect(() => {\\n    if (currentTask.title && currentTask.dueDate) {\\n      generateTaskSuggestions()\\n    }\\n  }, [currentTask])\\n  \\n  const generateTaskSuggestions = async () => {\\n    setLoading(true)\\n    try {\\n      // Use existing StudySparkAI methods\\n      const { suggestions } = await studySparkAI.generateIntelligentSuggestions(\\n        [], // empty tasks array for new task\\n        'current-user', // user ID\\n        {\\n          currentTime: new Date(),\\n          taskContext: currentTask,\\n          suggestionTypes: ['task_enhancement', 'time_optimization', 'priority_adjustment']\\n        }\\n      )\\n      setSuggestions(suggestions.filter(s => s.type.includes('task')))\\n    } catch (error) {\\n      console.error('Failed to generate suggestions:', error)\\n    } finally {\\n      setLoading(false)\\n    }\\n  }\\n  \\n  return (\\n    <div className=\\\"space-y-3\\\">\\n      {loading && <div className=\\\"animate-pulse\\\">Generating suggestions...</div>}\\n      \\n      {suggestions.map(suggestion => (\\n        <SuggestionCard\\n          key={suggestion.id}\\n          suggestion={suggestion}\\n          onAccept={() => onSuggestionApply(suggestion)}\\n          onReject={() => onSuggestionDismiss(suggestion.id)}\\n          compact={true}\\n          showReasoning={false}\\n        />\\n      ))}\\n      \\n      {suggestions.length === 0 && !loading && (\\n        <p className=\\\"text-muted-foreground text-center py-4\\\">\\n          Start typing to get AI suggestions!\\n        </p>\\n      )}\\n    </div>\\n  )\\n}\\n```\\n\\nIntegrate with existing StudySparkAI class and SuggestionCard component.",
+      "verificationCriteria": "AI suggestions generate based on task input, integrates properly with StudySparkAI class, uses existing SuggestionCard patterns, handles loading and error states gracefully, provides relevant task enhancement suggestions.",
+      "analysisResult": "Enhance MemoSpark's task management with AI-powered progressive disclosure, Stu character guidance, and mobile-first design. The solution leverages existing patterns from ClerkOnboardingPage (step navigation), RemindersTab (Stu integration), and SuggestionCard (AI suggestions) while maintaining full backward compatibility with the current TaskEventTab implementation.",
+      "summary": "Successfully implemented AITaskSuggestions component that integrates with existing StudySparkAI class to provide intelligent task recommendations. Features include: comprehensive AI integration with StudySparkAI class using proper instantiation, context-aware suggestion generation with task-specific enhancements, intelligent fallback suggestions when AI is unavailable, loading and error states with proper user feedback, task-specific suggestion transformations with actionable changes, debounced suggestion generation to avoid excessive API calls, mobile-optimized responsive design with proper animations, and extension of existing SuggestionCard patterns. Component provides smart suggestions for study sessions, exam prep strategies, project planning, urgency management, and task optimization based on title analysis and context.",
+      "completedAt": "2025-06-01T15:15:03.667Z"
+    }
+  ]
+}

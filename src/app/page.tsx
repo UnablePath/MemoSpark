@@ -1,207 +1,138 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
-import { StudySparkLogoSvg } from "@/components/ui/StudySparkLogoSvg";
-import Image from "next/image";
-import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
-import { HomepageNavbar } from "@/components/layout/HomepageNavbar";
-import { BubblePopGame } from "@/components/home/BubblePopGame";
+import { useRef } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
+import { MemoSparkLogoSvg } from '@/components/ui/MemoSparkLogoSvg';
+import Image from 'next/image';
+import { SignedIn, SignedOut, SignUpButton } from '@clerk/nextjs';
+import { HomepageNavbar } from '@/components/layout/HomepageNavbar';
+import { ArrowRight, BrainCircuit, CalendarCheck, Gem } from 'lucide-react';
+import RetroGrid from "@/components/ui/retro-grid";
+import AnimatedShinyText from "@/components/ui/animated-shiny-text";
+
+// Feature Card Component
+interface FeatureCardProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  className?: string;
+}
+
+const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description, className }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 50 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5 }}
+    viewport={{ once: true, amount: 0.3 }}
+    className={`relative flex flex-col items-center p-8 rounded-2xl bg-white/5 border border-white/10 shadow-lg backdrop-blur-sm ${className}`}
+  >
+    <div className="mb-6 bg-gradient-to-br from-green-400/20 to-emerald-600/20 p-4 rounded-full border border-white/10">
+      {icon}
+    </div>
+    <h3 className="text-xl font-bold mb-3 text-white">{title}</h3>
+    <p className="text-muted-foreground text-center">{description}</p>
+  </motion.div>
+);
 
 export default function LandingPage() {
-  const router = useRouter();
-  const [animationComplete, setAnimationComplete] = useState(false);
   const featuresRef = useRef<HTMLDivElement>(null);
-  const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Gradient colors for the background (green to beige)
-  const gradientStyle = {
-    background: "linear-gradient(135deg, hsl(142, 60%, 45%), hsl(40, 38%, 83%))",
+  const scrollToFeatures = () => {
+    featuresRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setAnimationComplete(true);
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleGetStarted = () => {
-    featuresRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  // Placeholder feature data
-  const features = [
-    {
-      title: "Gamified Learning",
-      description: "Earn points, unlock achievements, and stay motivated.",
-      image: "/placeholder-feature1.svg",
-    },
-    {
-      title: "Smart Scheduling",
-      description: "Plan your study sessions effectively with our smart tools.",
-      image: "/placeholder-feature2.svg",
-    },
-    {
-      title: "Progress Tracking",
-      description: "Monitor your progress and identify areas for improvement.",
-      image: "/placeholder-feature3.svg",
-    },
-  ];
 
   return (
-    <>
+    <div className="app-container min-h-screen w-full bg-[#111] text-white">
       <HomepageNavbar />
-      {/* Skip to Content Link for Accessibility - ensure it targets content below navbar */}
-      <a href="#splash-content" className="sr-only focus:not-sr-only absolute top-2 left-2 z-[60] bg-primary text-primary-foreground px-4 py-2 rounded focus:outline-dashed focus:outline-2 focus:outline-offset-2">Skip to main content</a>
       
-      {/* Splash Screen Section - Add padding-top for the fixed navbar */}
-      <div
-        id="splash-content" // Added ID for skip link target
-        className="min-h-screen w-full flex flex-col items-center justify-center p-4 pt-20 md:pt-24 relative overflow-hidden" // Added pt-20 (80px) or md:pt-24
-        style={gradientStyle}
-      >
-        {/* Floating bubbles for background effect - REINSTATED */}
-        {!prefersReducedMotion && Array.from({ length: 10 }).map((_, i) => (
-            <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0.5, y: 50 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ delay: 1.5 + i * 0.1, duration: 1, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
-                style={{
-                    position: 'absolute',
-                    left: `${Math.random() * 100}%`,
-                    top: `${Math.random() * 100}%`,
-                    width: `${Math.random() * 50 + 20}px`,
-                    height: `${Math.random() * 50 + 20}px`,
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    borderRadius: '50%',
-                    filter: 'blur(5px)',
-                    zIndex: 0, // Ensure bubbles are in the background
-                }}
-                aria-hidden="true"
-            />
-        ))}
+      {/* Hero Section */}
+      <div className="relative isolate flex flex-col items-center justify-center pt-32 pb-24 md:pt-48 md:pb-40 text-center">
+        <RetroGrid className="absolute inset-0 w-full h-full" />
+        
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="z-10 responsive-container"
+        >
+          <div className="flex justify-center items-center mx-auto mb-6" role="img">
+            <MemoSparkLogoSvg height={60} />
+          </div>
 
-        <div className="flex flex-col items-center justify-center gap-8 z-10">
-          {/* Logo Animation */}
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
-            className="animate-floating text-white"
-            aria-label="StudySpark Logo"
-            role="img"
-          >
-            <StudySparkLogoSvg height={60} />
-          </motion.div>
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tighter mb-6 leading-tight text-constrain">
+            Amplify Your Learning,<br />
+            Master Your Time.
+          </h1>
 
-          {/* Tagline */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.2, duration: 0.5 }}
-            className="text-white text-xl text-center max-w-md drop-shadow focus:outline-dashed focus:outline-2"
-            tabIndex={0}
-          >
-            Your gamified study companion for better engagement and time management
-          </motion.p>
+          <p className="max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground mb-10 text-constrain">
+            MemoSpark is the AI-powered companion that turns your study habits into achievements. Get smart, stay motivated, and never miss a deadline.
+          </p>
 
-          {/* Action Buttons - SignInButton and SignUpButton are now in HomepageNavbar */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: animationComplete ? 1 : 0, y: animationComplete ? 0 : 20 }}
-            transition={{ duration: 0.5 }}
-            className="flex flex-col sm:flex-row gap-4 items-center mt-6"
-          >
-            <Button
-              onClick={handleGetStarted}
-              className="bg-white text-primary hover:bg-secondary hover:text-foreground font-semibold px-8 py-4 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
-              aria-label="Learn more about StudySpark features"
-            >
-              Learn More
-            </Button>
-
-            {/* Removed SignedOut SignInButton - it's in the navbar */}
-            {/* 
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <SignedOut>
-              <SignInButton mode="modal">
-                <Button
-                  variant="outline"
-                  className="bg-transparent text-white border-white hover:bg-white hover:text-primary font-semibold px-8 py-3 text-lg rounded-full transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
-                  aria-label="Sign in to StudySpark"
-                >
-                  Enter App
-                </Button>
-              </SignInButton>
+                <SignUpButton mode="modal">
+                  <div
+                    className="z-10 flex items-center justify-center"
+                  >
+                    <AnimatedShinyText className="inline-flex items-center justify-center rounded-lg border border-border bg-primary text-primary-foreground px-6 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background">
+                      <span>✨ Sign Up Free</span>
+                    </AnimatedShinyText>
+                  </div>
+                </SignUpButton>
             </SignedOut>
-            */}
             <SignedIn>
-              <Button
-                onClick={() => router.push('/dashboard')}
-                className="bg-white text-primary hover:bg-secondary hover:text-foreground font-semibold px-8 py-3 text-lg rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
-                aria-label="Go to your StudySpark dashboard"
-              >
-                Go to Dashboard
-              </Button>
+              <Link href="/dashboard" passHref>
+                 <div
+                    className="z-10 flex items-center justify-center"
+                  >
+                    <AnimatedShinyText className="inline-flex items-center justify-center rounded-lg border border-border bg-primary text-primary-foreground px-6 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background">
+                      <span>🚀 Go to Dashboard</span>
+                    </AnimatedShinyText>
+                  </div>
+              </Link>
             </SignedIn>
-          </motion.div>
-        </div>
-      </div>
-
-      {/* Bubble Pop Game Section - Added below the main splash content, before features */}
-      <div className="w-full flex justify-center bg-background">
-        <div className="max-w-4xl w-full px-4">
-          <BubblePopGame />
-        </div>
+            <Button variant="ghost" onClick={scrollToFeatures} className="text-neutral-400 hover:bg-transparent hover:text-white transition-colors">
+              Learn More <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </motion.div>
       </div>
 
       {/* Features Section */}
-      <div ref={featuresRef} id="features" className="w-full bg-background py-16 px-4 md:px-8">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-primary focus:outline-dashed focus:outline-2" role="heading" aria-level={2} tabIndex={0}>
-          How StudySpark Helps You Succeed
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {features.map((feature, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.5, delay: index * 0.2 }}
-              className="bg-card p-6 rounded-lg shadow-md flex flex-col items-center text-center focus:outline-dashed focus:outline-2"
-              tabIndex={0}
-              aria-label={feature.title}
-            >
-              <div className="w-32 h-32 mb-4 bg-muted rounded-full flex items-center justify-center">
-                  <Image src={feature.image} alt={feature.title} width={80} height={80} className="text-muted-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2 text-card-foreground" role="heading" aria-level={3}>{feature.title}</h3>
-              <p className="text-muted-foreground">{feature.description}</p>
-            </motion.div>
-          ))}
+      <div ref={featuresRef} id="features" className="w-full bg-black/20 py-24 backdrop-blur-md border-y border-white/10">
+        <div className="responsive-container">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white text-constrain">How MemoSpark Helps You Succeed</h2>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto text-constrain">
+              From AI-driven planning to gamified motivation, we've built the tools you need to excel academically and reduce stress.
+            </p>
+          </div>
+          <div className="responsive-grid max-w-6xl mx-auto">
+            <FeatureCard
+              icon={<Gem size={32} className="text-green-300" />}
+              title="Gamified Learning"
+              description="Earn points, unlock achievements, and stay motivated on your study journey."
+            />
+            <FeatureCard
+              icon={<CalendarCheck size={32} className="text-green-300" />}
+              title="Smart Scheduling"
+              description="Plan your study sessions effectively with our intelligent, AI-powered tools."
+            />
+            <FeatureCard
+              icon={<BrainCircuit size={32} className="text-green-300" />}
+              title="AI-Powered Insights"
+              description="Monitor your progress and get AI-driven insights to identify areas for improvement."
+            />
+          </div>
         </div>
-         <div className="text-center mt-16">
-            <SignedOut>
-              {/* Wrap the Button with SignUpButton to make it a direct CTA */}
-              <SignUpButton mode="modal">
-                <Button 
-                  // onClick={handleGetStarted} // SignUpButton will handle the click for modal
-                  size="lg" 
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-10 py-6 text-xl rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 focus:outline-dashed focus:outline-2"
-                  aria-label="Sign up for StudySpark"
-                >
-                  Discover Features & Sign Up
-                </Button>
-              </SignUpButton>
-            </SignedOut>
-         </div>
       </div>
-      {/* ARIA live region for future status messages */}
-      <div aria-live="polite" className="sr-only" id="status-message-region"></div>
-    </>
+      
+      {/* Footer */}
+      <footer className="responsive-container text-center py-8 text-muted-foreground text-sm">
+          <p className="text-constrain">&copy; {new Date().getFullYear()} MemoSpark by PromptU. All Rights Reserved.</p>
+      </footer>
+    </div>
   );
 }

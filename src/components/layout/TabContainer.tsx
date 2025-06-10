@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, Children, isValidElement, useEffect, useRef } from 'react';
+import type React from 'react';
+import { useState, Children, isValidElement, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSwipeable, SwipeEventData } from 'react-swipeable';
+import { useSwipeable, type SwipeEventData } from 'react-swipeable';
 
 interface TabContainerProps {
   children: React.ReactNode;
@@ -13,11 +14,6 @@ interface TabContainerProps {
   tabIds?: string[];
   swipingEnabled?: boolean;
 }
-
-const swipeConfidenceThreshold = 10000;
-const swipePower = (offset: number, velocity: number) => {
-  return Math.abs(offset) * velocity;
-};
 
 const variants = {
   enter: (direction: number) => {
@@ -61,37 +57,30 @@ export function TabContainer({
     }
   }, [controlledIndex, internalIndex]);
 
-  const changeTab = (newDirection: number) => {
+  const changeTab = useCallback((newDirection: number) => {
     const nextIndex = (currentIndex + newDirection + tabs.length) % tabs.length;
+    
     if (controlledIndex !== undefined) {
         onTabChange?.(nextIndex);
-    }
-    else {
-        const animationDirection = nextIndex > internalIndex ? 1 : (nextIndex < internalIndex ? -1 : 0);
+    } else {
+        const animationDirection = newDirection;
         setInternalIndex([nextIndex, animationDirection]);
         onTabChange?.(nextIndex);
     }
-  };
-
-  const edgeThresholdPx = 50;
+  }, [currentIndex, tabs.length, controlledIndex, onTabChange, internalIndex]);
 
   const handlers = useSwipeable({
-    onSwipedLeft: (eventData: SwipeEventData) => {
-      if (!swipingEnabled) return;
-      const containerWidth = (eventData.event.currentTarget as HTMLElement)?.offsetWidth;
-      if (!containerWidth) return;
-      if (eventData.initial[0] > containerWidth - edgeThresholdPx) {
+    onSwipedLeft: () => {
+      if (swipingEnabled) {
         changeTab(1);
       }
     },
-    onSwipedRight: (eventData: SwipeEventData) => {
-      if (!swipingEnabled) return;
-      const containerWidth = (eventData.event.currentTarget as HTMLElement)?.offsetWidth;
-      if (!containerWidth) return;
-      if (eventData.initial[0] < edgeThresholdPx) {
+    onSwipedRight: () => {
+      if (swipingEnabled) {
         changeTab(-1);
       }
     },
+    delta: 50, // Minimum distance for a swipe to be registered
     preventScrollOnSwipe: true,
     trackMouse: true
   });
@@ -103,7 +92,7 @@ export function TabContainer({
   const activeTabContent = tabs[currentIndex];
 
   return (
-    <div {...handlers} className="relative overflow-hidden w-full h-full flex-grow">
+    <div {...handlers} className="relative overflow-hidden w-full h-full flex-grow safe-scroll-area">
       <AnimatePresence initial={false} custom={direction} mode="wait">
         <motion.div
           key={currentIndex}
@@ -119,9 +108,11 @@ export function TabContainer({
             x: { type: 'spring', stiffness: 300, damping: 30 },
             opacity: { duration: 0.2 },
           }}
-          className="absolute w-full h-full"
+          className="absolute w-full h-full overflow-y-auto overflow-x-hidden safe-scroll-area"
         >
-          {activeTabContent}
+          <div className="h-full w-full max-w-full">
+            {activeTabContent}
+          </div>
         </motion.div>
       </AnimatePresence>
     </div>

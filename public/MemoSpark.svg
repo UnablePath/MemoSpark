@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   viewBox="0 0 1062.4 199.48"
+   height="199.48"
+   width="1062.4"
+   xml:space="preserve"
+   id="svg2"
+   version="1.1"><metadata
+     id="metadata8"><rdf:RDF><cc:Work
+         rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" /></cc:Work></rdf:RDF></metadata><defs
+     id="defs6" /><g
+     transform="matrix(1.3333333,0,0,-1.3333333,0,199.48)"
+     id="g10"><g
+       transform="scale(0.1)"
+       id="g12"><g
+         transform="scale(10)"
+         id="g14"><text
+           id="text18"
+           style="font-variant:normal;font-weight:normal;font-size:120.41100311px;font-family:linea;-inkscape-font-specification:linea-Regular;writing-mode:lr-tb;fill:#41b93c;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           transform="matrix(1,0,0,-1,380.579,11.0328)"><tspan
+             id="tspan16"
+             y="0"
+             x="0">S</tspan></text>
+</g><g
+         transform="scale(10)"
+         id="g20"><text
+           id="text26"
+           style="font-variant:normal;font-weight:900;font-size:120.41098785px;font-family:Futura;-inkscape-font-specification:Futura-Heavy;writing-mode:lr-tb;fill:#100f0d;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           transform="matrix(1,0,0,-0.9000009,496.246,28.6102)"><tspan
+             id="tspan22"
+             y="0"
+             x="0 62.385303 150.59816 224.33784">PARK</tspan><tspan
+             id="tspan24"
+             y="-7.6085033"
+             x="-496.24619 -388.26117 -323.34857 -216.30257">MEMO</tspan></text>
+</g></g></g></svg>

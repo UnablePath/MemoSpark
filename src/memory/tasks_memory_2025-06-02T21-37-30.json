@@ -1,0 +1,46 @@
+{
+  "tasks": [
+    {
+      "id": "51834695-3dca-41d4-8598-beb7384b5025",
+      "name": "Task 1: Redesign and Re-implement Mascot Component",
+      "description": "The current KoalaMascot component and its SVG have presented display and potential complexity issues. This task is to **completely redesign or significantly simplify the mascot SVG and re-implement the React component from the ground up**. The goal is optimal display, scalability, performance, and strict adherence to project standards. **Do not merely patch existing problems; a full rebuild is required to ensure robustness and prevent future issues.**",
+      "notes": "This is a critical task to improve UI consistency and performance. The user explicitly requested a full redo, not a patch. Focus on quality and adherence to standards. No shortcuts.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-06-02T18:02:04.896Z",
+      "updatedAt": "2025-06-02T20:04:31.409Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/ui/koala-mascot.tsx",
+          "type": "TO_MODIFY",
+          "description": "Completely redesigned and reimplemented KoalaMascot component"
+        },
+        {
+          "path": "src/components/home/GamifiedReminderTab.tsx",
+          "type": "TO_MODIFY",
+          "description": "Update usage to use Tailwind sizing classes instead of size prop"
+        },
+        {
+          "path": "src/components/tasks/StuTaskGuidance.tsx",
+          "type": "TO_MODIFY",
+          "description": "Update usage to use Tailwind sizing classes instead of size prop"
+        },
+        {
+          "path": "src/components/tasks/StuPreferences.tsx",
+          "type": "TO_MODIFY",
+          "description": "Update usage to use Tailwind sizing classes instead of size prop"
+        },
+        {
+          "path": "public/Koala GUY.svg",
+          "type": "REFERENCE",
+          "description": "Original complex SVG source that was causing issues - replaced with simplified design"
+        }
+      ],
+      "implementationGuide": "1. **Analyze & Document Issues:** Thoroughly examine the existing SVG in `src/components/ui/koala-mascot.tsx`. Document specific complexities, rendering artifacts, and scaling problems. \n2. **SVG Redesign/Simplification:** Based on the analysis, either redesign a new, simpler SVG for the mascot or drastically simplify the existing one using an SVG editor. Prioritize clean paths, a proper `viewBox` for intrinsic scaling, and removal of any elements that hinder performance or scalability, while retaining the mascot's core identity. Optimize the SVG for web usage. \n3. **Component Re-implementation (from scratch):** Create a new `KoalaMascot.tsx` (or overwrite with a completely new implementation). It must be a React functional component using TypeScript. \n4. **Props & Styling:** The component should primarily use Tailwind CSS classes passed via the `className` prop for sizing (e.g., `w-16 h-16`, `w-24 h-24`) to ensure consistency with the project's styling conventions and enable responsive design. If absolutely necessary for dynamic sizing not achievable with Tailwind, a `size` prop (numeric or predefined strings like 'sm', 'md', 'lg') could be considered, but Tailwind utility classes are preferred. Ensure SVG parts use `currentColor` for fills/strokes where appropriate to inherit text color, or use CSS variables if needed. **Avoid inline styles.** \n5. **Performance & Accessibility:** Ensure the SVG is optimized and the component is performant. Include appropriate ARIA attributes (`role='img'`, `aria-labelledby` referencing a `<title>` element within the SVG). \n6. **Integration & Verification:** Replace all existing usages of the old mascot component (e.g., in `GamifiedReminderTab.tsx`, `StuTaskGuidance.tsx`, `StuPreferences.tsx`) with the new one. **Rigorously test** in all contexts to confirm correct display, crisp scaling at various sizes/resolutions, absence of rendering artifacts, and no negative performance impact. **Verify that this from-the-ground-up rework resolves previous sizing and display complaints comprehensively.**",
+      "verificationCriteria": "Mascot component is completely re-implemented. The SVG is optimized and displays crisply and correctly at all required sizes and resolutions. No rendering artifacts. The component is performant, accessible, and uses Tailwind CSS for styling/sizing as per project standards. All previous display issues are comprehensively resolved. The solution is a full rework, not a patch.",
+      "analysisResult": "The overarching goal is a **comprehensive and high-quality rework** of the entire task and event input system. This includes: \n1.  A complete redesign and re-implementation of the mascot component for optimal display, scalability, and performance – **do not just patch existing issues; rebuild from the ground up**.\n2.  Ensuring the task/event system is fully functional, highly intuitive, and robustly cloud-synced with Supabase. **No cutting corners**; prioritize clean architecture and maintainability.\n3.  Leveraging Supabase (including Supabase MCP tools where applicable for migrations, queries, and potentially Edge Functions) for all backend operations and data persistence.\n4.  Employing React Query (or SWR) for efficient server state management, focusing on performance and avoiding unnecessary re-renders. Hooks like `useEffect` should be used judiciously and correctly, not as a default for all side effects.\n5.  Improving AI suggestions for diversity and relevance through better contextual data and potentially a feedback loop.\n6.  Strict adherence to all project UI styles (Shadcn/Tailwind) and development standards (React, Next.js, TypeScript best practices).\n7.  Centralizing all type definitions and ensuring meticulous error handling and clear loading states throughout the application.\n**Performance is paramount; avoid solutions that could slow down the application.**",
+      "summary": "Task completed successfully. The KoalaMascot component has been completely redesigned and reimplemented from scratch with the official Stu head-only SVG design. The new implementation uses the optimized SVG provided by the user, eliminates all performance issues from the original 32KB complex SVG, properly implements Tailwind CSS-based sizing through className prop instead of deprecated size prop, maintains accessibility with proper ARIA labels and semantic markup, uses proper TypeScript interfaces, and all five component files that use the mascot have been successfully updated to use the new API (GamifiedReminderTab, StuTaskGuidance, StuPreferences, WidgetContent, DraggableWidget, and RemindersTab).",
+      "completedAt": "2025-06-02T20:04:31.406Z"
+    }
+  ]
+}

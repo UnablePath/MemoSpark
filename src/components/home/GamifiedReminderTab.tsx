@@ -22,7 +22,7 @@ export default function GamifiedReminderTab() {
     <div className="flex flex-col items-center justify-start h-full p-4 space-y-6 bg-gradient-to-b from-yellow-50 to-orange-50">
       {/* Mascot Area */}
       <div className="mt-8">
-        <KoalaMascot size={160} />
+        <KoalaMascot size="xl" className="mx-auto" />
         {/* TODO: Adapt mascotState logic if needed for KoalaMascot props */}
         <p className="text-center mt-2 text-muted-foreground text-sm">Stu is here to help!</p>
       </div>

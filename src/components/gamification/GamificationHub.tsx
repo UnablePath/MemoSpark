@@ -69,7 +69,7 @@ const GamificationHub = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center"><FaUsers className="mr-2 h-5 w-5 text-blue-500" /> Leaderboard</CardTitle>
-          <CardDescription>See how you stack up against other StudySparks!</CardDescription>
+          <CardDescription>See how you stack up against other MemoSpark users!</CardDescription>
         </CardHeader>
         <CardContent>
           <ul className="space-y-3">

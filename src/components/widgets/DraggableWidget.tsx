@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { motion, PanInfo, useReducedMotion } from 'framer-motion';
+import type React from 'react';
+import { motion, type PanInfo, useReducedMotion } from 'framer-motion';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { cn } from "@/lib/utils";
 import { Expand } from 'lucide-react';
@@ -164,7 +164,7 @@ export function DraggableWidget({
               <div className="text-[10px] text-muted-foreground mt-1">All caught up!</div>
             </div>
           )}
-          <div className="absolute bottom-2 text-[8px] font-medium">StudySpark</div>
+          <div className="absolute bottom-2 text-[8px] font-medium">MemoSpark</div>
         </motion.div>
       </div>
       <motion.div

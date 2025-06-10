@@ -1,15 +1,15 @@
 import { SignUp } from "@clerk/nextjs";
-import { StudySparkLogoSvg } from "@/components/ui/StudySparkLogoSvg";
+import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
 
 // Define the appearance object (ideally, this would be in a shared file)
-const studySparkClerkAppearance = {
+const memoSparkClerkAppearance = {
   variables: {
-    colorPrimary: 'hsl(142, 60%, 40%)',
-    colorText: 'hsl(0, 0%, 10%)',
-    colorBackground: 'hsl(0, 0%, 100%)',
-    colorInputBackground: 'hsl(0, 0%, 98%)',
-    colorInputText: 'hsl(0, 0%, 10%)',
-    colorShimmer: 'hsl(142, 60%, 60%)',
+    colorPrimary: 'rgba(59, 130, 246, 0.8)', // Semi-transparent blue
+    colorText: 'rgba(15, 23, 42, 0.9)', // Dark text with slight transparency
+    colorBackground: 'rgba(255, 255, 255, 0.05)', // Very light transparent background
+    colorInputBackground: 'rgba(255, 255, 255, 0.1)', // Slightly more opaque for inputs
+    colorInputText: 'rgba(15, 23, 42, 0.9)', // Dark text for inputs
+    colorShimmer: 'rgba(59, 130, 246, 0.6)', // Transparent shimmer effect
     borderRadius: '0.5rem',
   },
   elements: {
@@ -17,22 +17,23 @@ const studySparkClerkAppearance = {
       boxShadow: 'none',
       border: 'none',
       padding: '1.5rem',
-      backgroundColor: 'hsl(0, 0%, 100%)',
+      backgroundColor: 'transparent', // Transparent to blend with wrapper
+      color: 'inherit', // Inherit text color from parent
     },
     formButtonPrimary:
-      'bg-[hsl(142,60%,40%)] text-[hsl(0,0%,100%)] hover:bg-[hsl(142,60%,35%)] focus-visible:ring-[hsl(142,60%,40%)] rounded-md text-sm font-medium shadow h-9 px-4 py-2',
+      'bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary rounded-md text-sm font-medium shadow h-9 px-4 py-2',
     formFieldInput:
-      'h-9 rounded-md border border-[hsl(40,30%,80%)] bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-[hsl(0,0%,10%)] placeholder:text-[hsl(0,0%,45%)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[hsl(142,60%,40%)] md:text-sm',
+      'h-9 rounded-md border border-border bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary md:text-sm',
     footerActionLink:
-      'text-[hsl(142,60%,40%)] hover:text-[hsl(142,60%,35%)] underline-offset-4 hover:underline text-sm',
+      'text-primary hover:text-primary/90 underline-offset-4 hover:underline text-sm',
     socialButtonsBlockButton:
-      'border border-[hsl(40,30%,80%)] bg-[hsl(0,0%,98%)] shadow-sm hover:bg-[hsl(40,30%,85%)] hover:text-[hsl(0,0%,10%)] rounded-md h-9 px-4 py-2 text-sm text-[hsl(0,0%,10%)]',
-    headerTitle: 'text-2xl font-semibold leading-none tracking-tight text-[hsl(0,0%,10%)]',
-    headerSubtitle: 'text-sm text-[hsl(0,0%,45%)] mt-1',
-    dividerText: 'text-xs text-[hsl(0,0%,45%)] uppercase',
-    formFieldLabel: 'text-sm font-medium text-[hsl(0,0%,10%)]',
+      'border border-border bg-muted shadow-sm hover:bg-muted/80 hover:text-foreground rounded-md h-9 px-4 py-2 text-sm text-foreground',
+    headerTitle: 'text-2xl font-semibold leading-none tracking-tight text-foreground',
+    headerSubtitle: 'text-sm text-muted-foreground mt-1',
+    dividerText: 'text-xs text-muted-foreground uppercase',
+    formFieldLabel: 'text-sm font-medium text-foreground',
     alternativeMethodsBlockButton: 
-      'border border-[hsl(40,30%,80%)] bg-[hsl(0,0%,98%)] shadow-sm hover:bg-[hsl(40,30%,85%)] hover:text-[hsl(0,0%,10%)] rounded-md h-9 px-4 py-2 text-sm text-[hsl(0,0%,10%)]',
+      'border border-border bg-muted shadow-sm hover:bg-muted/80 hover:text-foreground rounded-md h-9 px-4 py-2 text-sm text-foreground',
   },
   layout: {
     logoPlacement: 'none' as const,
@@ -47,11 +48,11 @@ export default function Page() {
       <div className="w-full max-w-md bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))] rounded-xl border border-[hsl(var(--border))] shadow-xl">
         <div className="flex flex-col items-center p-6">
           <div className="mx-auto mb-6 text-[hsl(var(--primary))]">
-            <StudySparkLogoSvg height={50} />
+            <MemoSparkLogoSvg height={50} />
           </div>
           <SignUp 
             path="/sign-up" 
-            appearance={studySparkClerkAppearance} 
+            appearance={memoSparkClerkAppearance} 
           />
         </div>
       </div>

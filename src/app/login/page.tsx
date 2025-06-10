@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { StudySparkLogoSvg } from "@/components/ui/StudySparkLogoSvg";
+import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -45,11 +45,11 @@ export default function LoginPage() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-primary/10 via-background to-background p-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 text-primary" role="img" aria-label="StudySpark Logo">
-            <StudySparkLogoSvg height={60} />
+          <div className="mx-auto mb-4 text-primary" role="img" aria-label="MemoSpark Logo">
+            <MemoSparkLogoSvg height={60} />
           </div>
           <CardTitle className="text-2xl focus:outline-dashed focus:outline-2" role="heading" aria-level={1} tabIndex={0}>Welcome Back!</CardTitle>
-          <CardDescription className="focus:outline-dashed focus:outline-2" tabIndex={0}>Sign in to continue to StudySpark.</CardDescription>
+                      <CardDescription className="focus:outline-dashed focus:outline-2" tabIndex={0}>Sign in to continue to MemoSpark.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>

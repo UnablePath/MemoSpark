@@ -3,15 +3,15 @@
 import { usePathname } from "next/navigation";
 import { SignedIn, UserButton } from "@clerk/nextjs";
 import { User as UserIcon, Settings as SettingsIcon } from 'lucide-react';
-import { StudySparkLogoSvg } from '@/components/ui/StudySparkLogoSvg';
+import { MemoSparkLogoSvg } from '@/components/ui/MemoSparkLogoSvg';
 import Link from 'next/link';
 // Link component might not be needed here if UserButton.UserProfileLink handles navigation
 
 export function ConditionalHeader() {
   const pathname = usePathname();
 
-  // Do not render on homepage OR dashboard page
-  if (pathname === '/' || pathname === '/dashboard') {
+  // Do not render on homepage, dashboard page, or settings page (has its own header)
+  if (pathname === '/' || pathname === '/dashboard' || pathname === '/settings') {
     return null;
   }
 
@@ -21,8 +21,8 @@ export function ConditionalHeader() {
       // Reduced height to h-14 (56px) and py to py-2 (8px vertical padding)
     >
       <div className="flex items-center gap-3">
-        <Link href={pathname === '/dashboard' ? "/dashboard" : "/"} aria-label="StudySpark Home" className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md">
-          <StudySparkLogoSvg height={28} /> {/* Slightly reduced logo height to fit new header height */}
+        <Link href={pathname === '/dashboard' ? "/dashboard" : "/"} aria-label="MemoSpark Home" className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md">
+          <MemoSparkLogoSvg height={28} /> {/* Slightly reduced logo height to fit new header height */}
         </Link>
         {/* "Tasks & Events" title removed as per new request */}
       </div>

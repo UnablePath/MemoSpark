@@ -38,6 +38,166 @@ export const ComponentName: React.FC<ComponentNameProps> = ({ prop1, prop2 }) =>
 };
 ```
 
+## React Effect Best Practices (2025 Standards)
+
+### When NOT to Use useEffect
+
+Effects are an escape hatch from React's paradigm. **You shouldn't need an Effect if there's no external system involved.**
+
+#### 1. **DON'T use Effects for transforming data**
+```typescript
+// ❌ BAD: Unnecessary Effect for derived state
+const [firstName, setFirstName] = useState('');
+const [lastName, setLastName] = useState('');
+const [fullName, setFullName] = useState('');
+
+useEffect(() => {
+  setFullName(firstName + ' ' + lastName);
+}, [firstName, lastName]);
+
+// ✅ GOOD: Calculate during rendering
+const fullName = firstName + ' ' + lastName;
+```
+
+#### 2. **DON'T use Effects for expensive calculations**
+```typescript
+// ❌ BAD: Effect for filtering
+const [visibleTodos, setVisibleTodos] = useState([]);
+useEffect(() => {
+  setVisibleTodos(getFilteredTodos(todos, filter));
+}, [todos, filter]);
+
+// ✅ GOOD: Use useMemo for expensive calculations
+const visibleTodos = useMemo(() => getFilteredTodos(todos, filter), [todos, filter]);
+```
+
+#### 3. **DON'T use Effects for resetting state on prop changes**
+```typescript
+// ❌ BAD: Effect to reset state
+useEffect(() => {
+  setComment('');
+}, [userId]);
+
+// ✅ GOOD: Use key prop to reset component state
+<Profile userId={userId} key={userId} />
+```
+
+#### 4. **DON'T use Effects for user event handling**
+```typescript
+// ❌ BAD: Effect for user actions
+useEffect(() => {
+  if (product.isInCart) {
+    showNotification(`Added ${product.name} to cart!`);
+  }
+}, [product]);
+
+// ✅ GOOD: Handle in event handlers
+function handleBuyClick() {
+  addToCart(product);
+  showNotification(`Added ${product.name} to cart!`);
+}
+```
+
+#### 5. **DON'T chain Effects for state updates**
+```typescript
+// ❌ BAD: Chained effects
+useEffect(() => {
+  if (card?.gold) setGoldCardCount(c => c + 1);
+}, [card]);
+
+useEffect(() => {
+  if (goldCardCount > 3) {
+    setRound(r => r + 1);
+    setGoldCardCount(0);
+  }
+}, [goldCardCount]);
+
+// ✅ GOOD: Calculate in event handler
+function handlePlaceCard(nextCard) {
+  setCard(nextCard);
+  if (nextCard.gold) {
+    if (goldCardCount <= 3) {
+      setGoldCardCount(goldCardCount + 1);
+    } else {
+      setGoldCardCount(0);
+      setRound(round + 1);
+    }
+  }
+}
+```
+
+### When TO Use useEffect
+
+Use Effects **only** for synchronizing with external systems:
+
+#### 1. **Subscribing to external stores**
+```typescript
+// ✅ GOOD: Use useSyncExternalStore for external data
+function useOnlineStatus() {
+  return useSyncExternalStore(
+    (callback) => {
+      window.addEventListener('online', callback);
+      window.addEventListener('offline', callback);
+      return () => {
+        window.removeEventListener('online', callback);
+        window.removeEventListener('offline', callback);
+      };
+    },
+    () => navigator.onLine,
+    () => true
+  );
+}
+```
+
+#### 2. **Data fetching with cleanup**
+```typescript
+// ✅ GOOD: Data fetching with race condition protection
+useEffect(() => {
+  let ignore = false;
+  
+  fetchResults(query, page).then(json => {
+    if (!ignore) {
+      setResults(json);
+    }
+  });
+  
+  return () => {
+    ignore = true;
+  };
+}, [query, page]);
+```
+
+#### 3. **Component mount analytics (not user actions)**
+```typescript
+// ✅ GOOD: Analytics on component display
+useEffect(() => {
+  post('/analytics/event', { eventName: 'visit_form' });
+}, []);
+```
+
+#### 4. **App initialization (with guards)**
+```typescript
+// ✅ GOOD: One-time app initialization
+let didInit = false;
+
+useEffect(() => {
+  if (!didInit) {
+    didInit = true;
+    loadDataFromLocalStorage();
+    checkAuthToken();
+  }
+}, []);
+```
+
+### Effect Guidelines Summary
+
+**Ask yourself:** *Why does this code need to run?*
+- **If it's because the component was displayed:** → useEffect
+- **If it's because the user did something:** → Event handler
+- **If it can be calculated from props/state:** → Render-time calculation
+- **If it's expensive to calculate:** → useMemo
+- **If it's external data subscription:** → useSyncExternalStore
+
 ### State Management Rules
 - **Simple state**: Use `useState` for local component state
 - **Complex state**: Use `useReducer` for state with multiple sub-values or complex transitions

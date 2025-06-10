@@ -55,7 +55,7 @@ export function WidgetContent({ type, data }: WidgetContentProps) {
     case 'mascot':
       return (
         <div className="flex items-center justify-center">
-          <KoalaMascot size={80} />
+          <KoalaMascot size="lg" />
         </div>
       );
     default:
