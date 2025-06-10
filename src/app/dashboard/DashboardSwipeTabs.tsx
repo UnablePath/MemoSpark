@@ -3,12 +3,35 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { TabContainer } from '@/components/layout/TabContainer';
 import { TabIndicator } from '@/components/layout/TabIndicator';
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+import StudentConnectionTab from '@/components/home/StudentConnectionTab';
+import { ConnectionsDebug } from '@/components/home/ConnectionsDebug';
+import ConnectionsErrorBoundary from '@/components/home/ConnectionsErrorBoundary';
+import { TaskEventHub } from '@/components/tasks/TaskEventHub';
+import RemindersTab from '@/components/reminders/RemindersTab';
+import CrashoutTab from '@/components/dashboard/CrashoutTab';
+import GamificationHub from '@/components/gamification/GamificationHub';
+import { FaUserFriends, FaCalendarAlt, FaBell, FaSpa, FaGamepad } from 'react-icons/fa';
+import { useLocalStorageState } from '@/hooks/useStudentConnection';
+
+// Toggle this to test - set to true to show debug component instead of actual connections tab
+const USE_DEBUG_COMPONENT = false;
+=======
+>>>>>>> Stashed changes
 import StudentConnectionTab from '@/components/home/StudentConnectionTab'; // Assuming this is correct
 import { TaskEventHub } from '@/components/tasks/TaskEventHub';         // Using new TaskEventHub component
 import RemindersTab from '@/components/reminders/RemindersTab';     // Using RemindersTab as per old dashboard
 import CrashoutTab from '@/components/dashboard/CrashoutTab'; // Import the new CrashoutTab
 import GamificationHub from '@/components/gamification/GamificationHub'; // Import GamificationHub
 import { FaUserFriends, FaCalendarAlt, FaBell, FaSpa, FaGamepad } from 'react-icons/fa'; // Add FaGamepad icon
+<<<<<<< Updated upstream
+=======
+import { useTieredAI } from '@/hooks/useTieredAI';
+import { Crown } from 'lucide-react';
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 
 // Define the order of tabs and their corresponding icons
 const TABS_CONFIG = [
@@ -26,6 +49,9 @@ export function DashboardSwipeTabs() {
   const [isTinderModeActive, setIsTinderModeActive] = useState(false); // New state
   const tablistRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  
+  // Tier-aware features
+  const { userTier, isFeatureAvailable } = useTieredAI();
 
   useEffect(() => {
     tabRefs.current = tabRefs.current.slice(0, TABS_CONFIG.length);
@@ -44,6 +70,25 @@ export function DashboardSwipeTabs() {
 
   const handleTabChange = (index: number) => {
     const newActiveTabConfig = TABS_CONFIG[index];
+<<<<<<< Updated upstream
+=======
+    
+<<<<<<< Updated upstream
+    // Handle tinder mode state based on tab
+=======
+    // Check if this is a premium feature and user has access
+    const isPremiumFeature = newActiveTabConfig?.key === 'gamification' || newActiveTabConfig?.key === 'crashout';
+    const hasAccess = isPremiumFeature ? userTier !== 'free' : true;
+    
+    if (isPremiumFeature && !hasAccess) {
+      // Show upgrade prompt instead of switching tabs
+      // For now, just prevent the tab change
+      // TODO: Show upgrade modal
+      return;
+    }
+    
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
     if (newActiveTabConfig?.key !== 'connections') {
       // If switching to a tab that is not connections, disable Tinder mode for swiping
       setIsTinderModeActive(false);
@@ -130,6 +175,10 @@ export function DashboardSwipeTabs() {
           const tabId = `dashboard-tab-${tab.key}-${index}`;
           const panelId = `dashboard-panel-${tab.key}-${index}`;
 
+          // Check if this tab requires premium access
+          const isPremiumFeature = tab.key === 'gamification' || tab.key === 'crashout';
+          const hasAccess = isPremiumFeature ? userTier !== 'free' : true;
+          
           return (
             <button
               key={tab.key}
@@ -141,10 +190,31 @@ export function DashboardSwipeTabs() {
               aria-controls={panelId}
               tabIndex={isActive ? 0 : -1} // Only active tab is in tab order initially
               onClick={() => handleTabChange(index)}
+<<<<<<< Updated upstream
               className={`touch-target p-2 rounded-md transition-colors duration-200 ${isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'}`}
               aria-label={`Go to ${tab.key} tab`}
             >
               <Icon className="h-6 w-6" aria-hidden="true" /> {/* Icons are decorative due to aria-label on button */}
+=======
+<<<<<<< Updated upstream
+              className={`touch-target p-2 rounded-md transition-colors duration-200 ${
+                isActive 
+                  ? 'text-primary bg-primary/10' 
+                  : 'text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'
+              }`}
+              aria-label={`Go to ${tab.key} tab`}
+            >
+              <Icon className="h-6 w-6" aria-hidden="true" />
+=======
+              className={`touch-target p-2 rounded-md transition-colors duration-200 relative ${isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'} ${!hasAccess ? 'opacity-60' : ''}`}
+              aria-label={`Go to ${tab.key} tab${isPremiumFeature && !hasAccess ? ' (Premium required)' : ''}`}
+            >
+              <Icon className="h-6 w-6" aria-hidden="true" />
+              {isPremiumFeature && !hasAccess && (
+                <Crown className="h-3 w-3 absolute -top-1 -right-1 text-amber-500" />
+              )}
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
             </button>
           );
         })}

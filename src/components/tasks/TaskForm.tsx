@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon, Clock, AlertCircle, Repeat, Info, Target, Brain, Sparkles } from 'lucide-react';
+import { CalendarIcon, Clock, AlertCircle, Repeat, Info, Target, Brain, Sparkles, Crown } from 'lucide-react';
 import { useCreateTask, useUpdateTask, useGetTask } from '@/hooks/useTaskQueries';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { SuggestionCard } from '@/components/ai/SuggestionCard';
+import { useTieredAI } from '@/hooks/useTieredAI';
 import type { AISuggestion } from '@/types/ai';
 import type {
   TaskFormData,
@@ -135,10 +136,65 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   const [aiSuggestions, setAISuggestions] = useState<AISuggestion[]>([]);
   const [appliedSuggestions, setAppliedSuggestions] = useState<Set<string>>(new Set());
 
+  // Tier-aware AI integration
+  const { 
+    userTier, 
+    usage, 
+    isLoading: isTierLoading, 
+    generateSuggestions, 
+    isFeatureAvailable,
+    tierLimits 
+  } = useTieredAI();
+
   // Watch form values for AI suggestions - use individual watches to avoid array reference changes
   const watchedTitle = form.watch('title');
   const watchedSubject = form.watch('subject');
   const watchedType = form.watch('type');
+
+  // Tier-aware AI suggestions generation
+  const generateTierAwareContextualSuggestions = useCallback(async (title: string, subject: string, type: string): Promise<AISuggestion[]> => {
+    if (!isFeatureAvailable('basic_suggestions')) {
+      return [];
+    }
+
+    try {
+      const response = await generateSuggestions('basic_suggestions', [], {
+        currentTime: new Date(),
+        upcomingTasks: [],
+        recentActivity: [],
+        userPreferences: {
+          enableSuggestions: true,
+          suggestionFrequency: 'moderate',
+          difficultyPreference: 'adaptive',
+          preferredStudyTimes: [],
+          preferredStudyDuration: 90,
+          preferredBreakDuration: 15,
+          maxDailyStudyHours: 8,
+          cloudSyncEnabled: false,
+          shareAnonymousData: false,
+          personalizedStuInteraction: true,
+          enableBreakReminders: true,
+          enableStudyReminders: true,
+          reminderAdvanceTime: 15,
+          adaptiveDifficulty: true,
+          focusOnWeakSubjects: true,
+          balanceSubjects: true
+        },
+        metadata: { formData: { title, subject, type }, currentContext: 'task_creation' }
+      });
+      
+      if (response.success && response.data && Array.isArray(response.data)) {
+        return response.data;
+      } else {
+        // Fallback to contextual suggestions for free users
+        return generateContextualSuggestions(title, subject, type);
+      }
+    } catch (error) {
+      console.error('Error generating tier-aware suggestions:', error);
+      // Fallback to contextual suggestions for free users
+      return generateContextualSuggestions(title, subject, type);
+    }
+  }, [isFeatureAvailable, generateSuggestions]);
   
   // Generate contextual AI suggestions based on form input
   const generateContextualSuggestions = useCallback((title: string, subject: string, type: string): AISuggestion[] => {
@@ -256,25 +312,62 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   }, []);
   
   // Generate contextual suggestions based on form input
-  const contextualSuggestions = useMemo(() => {
-    const suggestions = generateContextualSuggestions(
-      watchedTitle || '', 
-      watchedSubject || '', 
-      watchedType || ''
-    );
-    
-    return suggestions.filter(
-      suggestion => !appliedSuggestions.has(suggestion.id)
-    );
-  }, [watchedTitle, watchedSubject, watchedType, appliedSuggestions, generateContextualSuggestions]);
-
-  // Update AI suggestions when contextual suggestions change
+  const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
+  
+  // Update AI suggestions when form values change - use tier-aware generation
   useEffect(() => {
-    setAISuggestions(contextualSuggestions);
-    if (contextualSuggestions.length > 0 && watchedTitle) {
-      setShowAISuggestions(true);
-    }
-  }, [contextualSuggestions, watchedTitle]);
+    const generateFormSuggestions = async () => {
+      if (!watchedTitle || watchedTitle.length < 3) {
+        setAISuggestions([]);
+        setShowAISuggestions(false);
+        return;
+      }
+
+      setIsGeneratingSuggestions(true);
+      try {
+        let suggestions: AISuggestion[];
+        if (isFeatureAvailable('basic_suggestions')) {
+          // Use tier-aware AI service
+          suggestions = await generateTierAwareContextualSuggestions(
+            watchedTitle || '', 
+            watchedSubject || '', 
+            watchedType || ''
+          );
+        } else {
+          // Use fallback contextual suggestions
+          suggestions = generateContextualSuggestions(
+            watchedTitle || '', 
+            watchedSubject || '', 
+            watchedType || ''
+          );
+        }
+        
+        const filteredSuggestions = suggestions.filter(
+          suggestion => !appliedSuggestions.has(suggestion.id)
+        );
+        
+        setAISuggestions(filteredSuggestions);
+        if (filteredSuggestions.length > 0) {
+          setShowAISuggestions(true);
+        }
+      } catch (error) {
+        console.error('Error generating form suggestions:', error);
+        // Fallback to basic suggestions
+        const fallbackSuggestions = generateContextualSuggestions(
+          watchedTitle || '', 
+          watchedSubject || '', 
+          watchedType || ''
+        ).filter(suggestion => !appliedSuggestions.has(suggestion.id));
+        
+        setAISuggestions(fallbackSuggestions);
+      } finally {
+        setIsGeneratingSuggestions(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(generateFormSuggestions, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [watchedTitle, watchedSubject, watchedType, appliedSuggestions, isFeatureAvailable, generateTierAwareContextualSuggestions, generateContextualSuggestions]);
 
   // AI suggestion handlers
   const handleAcceptSuggestion = useCallback((suggestionId: string) => {
@@ -1095,24 +1188,57 @@ export const TaskForm: React.FC<TaskFormProps> = ({
           "sticky top-6 transition-all duration-300 z-10",
           showAISuggestions && aiSuggestions.length > 0 ? "opacity-100" : "opacity-0 pointer-events-none lg:pointer-events-auto lg:opacity-30"
         )}>
-                      <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-background shadow-sm">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
+                                <Card className={cn(
+            "border-primary/20 bg-gradient-to-b from-primary/5 to-background shadow-sm",
+            userTier === 'premium' && "border-amber-200",
+            userTier === 'enterprise' && "border-purple-200"
+          )}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
                     <CardTitle className="text-sm font-semibold text-primary">
                       AI Suggestions
                     </CardTitle>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Smart tips for your task
-                  </p>
+                    {userTier !== 'free' && (
+                      <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+                        <Crown className="h-3 w-3" />
+                        {userTier}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between mt-0.5">
+                    <p className="text-xs text-muted-foreground">
+                      {isGeneratingSuggestions ? 'Generating...' : 'Smart tips for your task'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {usage.requestsRemaining}/{tierLimits[userTier].dailyRequests}
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3 max-h-96 overflow-y-auto">
-              {aiSuggestions.length > 0 ? (
+              {!isFeatureAvailable('basic_suggestions') && usage.requestsRemaining === 0 ? (
+                <div className="text-center py-6">
+                  <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
+                    <Crown className="h-8 w-8 mx-auto mb-2 text-amber-500" />
+                    <p className="text-sm font-medium text-amber-700 mb-2">
+                      Daily AI limit reached
+                    </p>
+                    <p className="text-xs text-amber-600 mb-3">
+                      Upgrade to get unlimited AI suggestions and advanced features
+                    </p>
+                    <Button size="sm" className="bg-amber-500 hover:bg-amber-600">
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Upgrade Now
+                    </Button>
+                  </div>
+                </div>
+              ) : aiSuggestions.length > 0 ? (
                 <>
                   {aiSuggestions.map((suggestion) => (
                     <div key={suggestion.id} className="group">
@@ -1128,7 +1254,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                   <div className="text-xs text-muted-foreground text-center pt-2 border-t">
                     <span className="flex items-center justify-center gap-1">
                       <Brain className="h-3 w-3" />
-                      Suggestions update as you type
+                      {isGeneratingSuggestions ? 'Loading...' : 'Suggestions update as you type'}
                     </span>
                   </div>
                 </>
@@ -1136,7 +1262,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                 <div className="text-center py-6 text-muted-foreground">
                   <Brain className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">
-                    Start typing to see AI suggestions
+                    {isGeneratingSuggestions ? 'Generating suggestions...' : 'Start typing to see AI suggestions'}
                   </p>
                 </div>
               )}

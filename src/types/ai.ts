@@ -326,4 +326,65 @@ export const defaultAIPreferences: UserAIPreferences = {
   adaptiveDifficulty: true,
   focusOnWeakSubjects: true,
   balanceSubjects: true,
-}; 
+};
+
+// Context for AI suggestion generation
+export interface SuggestionContext {
+  currentTime: Date;
+  upcomingTasks: ExtendedTask[];
+  recentActivity: ExtendedTask[];
+  userPreferences?: UserAIPreferences;
+  taskContext?: Partial<ExtendedTask>;
+  suggestionTypes?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+// Tier-aware AI types for TieredAIService
+export type AIFeatureType = 
+  | 'basic_suggestions' 
+  | 'advanced_suggestions'
+  | 'study_planning'
+  | 'voice_processing'
+  | 'stu_personality'
+  | 'ml_predictions'
+  | 'collaborative_filtering'
+  | 'premium_analytics';
+
+export interface TierAwareAIRequest {
+  userId: string;
+  feature: AIFeatureType;
+  context: SuggestionContext;
+  tasks: ExtendedTask[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface TierAwareAIResponse {
+  success: boolean;
+  data?: AISuggestion[] | PatternData | any;
+  tier: 'free' | 'premium' | 'enterprise';
+  usage: {
+    requestsUsed: number;
+    requestsRemaining: number;
+    featureAvailable: boolean;
+  };
+  upgradePrompt?: {
+    message: string;
+    features: string[];
+    ctaText: string;
+  };
+  error?: string;
+}
+
+export interface AIFeatureConfig {
+  name: string;
+  requiredTier: 'free' | 'premium' | 'enterprise';
+  description: string;
+  upgradeMessage: string;
+}
+
+export interface TieredAIServiceConfig {
+  enableCaching: boolean;
+  maxCacheSize: number;
+  defaultFeatures: AIFeatureType[];
+  upgradePrompts: Record<string, string>;
+} 

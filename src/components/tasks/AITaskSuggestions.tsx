@@ -3,15 +3,18 @@
 import type React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, RefreshCw, Clock, Target, Brain, AlertCircle, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Sparkles, RefreshCw, Clock, Target, Brain, AlertCircle, ThumbsUp, ThumbsDown, Crown } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { SuggestionCard } from '@/components/ai/SuggestionCard';
+import { TierBadge } from '@/components/ui/TierBadge';
+import { UpgradePrompt } from '@/components/ui/UpgradePrompt';
 import { cn } from '@/lib/utils';
 import { memoSparkAI, StudySparkAI } from '@/lib/ai';
 import type { StudySuggestion } from '@/lib/ai/suggestionEngine';
 import type { ExtendedTask, AISuggestion, SuggestionType } from '@/types/ai';
 import { useEnhancedUserContext, useSaveAISuggestionFeedback } from '@/lib/hooks/queries';
+import { useTieredAI } from '@/hooks/useTieredAI';
 import { toast } from 'sonner';
 
 // Cache duration constant
@@ -90,12 +93,26 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
   // Enhanced user context and feedback
   const { data: enhancedContext, isLoading: contextLoading } = useEnhancedUserContext();
   const saveFeedbackMutation = useSaveAISuggestionFeedback();
+  
+  // Tiered AI integration
+  const { userTier, usage, isLoading: tierLoading, isFeatureAvailable, tierLimits, generateSuggestions: generateTieredSuggestions } = useTieredAI();
+  
+  // Calculate tier-specific max suggestions
+  const effectiveMaxSuggestions = userTier === 'free' ? Math.min(maxSuggestions, tierLimits.free.suggestions) : 
+                                  userTier === 'premium' ? Math.min(maxSuggestions, tierLimits.premium.suggestions) :
+                                  Math.min(maxSuggestions, tierLimits.enterprise.suggestions);
 
   // Enhanced suggestion generation with better context and feedback filtering
   const generateTaskSuggestions = useCallback(async () => {
     if (loading || !aiInstance) return;
 
-    const cacheKey = `suggestions-${JSON.stringify(currentTask)}-${maxSuggestions}`;
+    // Check tier limits first
+    if (usage.requestsRemaining <= 0) {
+      setError(`Daily limit reached (${usage.requestsUsed}/${tierLimits[userTier].dailyRequests}). Upgrade for more suggestions!`);
+      return;
+    }
+
+    const cacheKey = `suggestions-${JSON.stringify(currentTask)}-${effectiveMaxSuggestions}-${userTier}`;
     
     // Check cache first
     const cached = suggestionCache.get(cacheKey);
@@ -172,7 +189,7 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
       // Transform StudySuggestion to TaskSuggestion with proper mapping
       const taskSuggestions: TaskSuggestion[] = await Promise.all(
         result.suggestions
-          .slice(0, maxSuggestions)
+          .slice(0, effectiveMaxSuggestions)
           .map(async (suggestion) => await transformStudySuggestionToTaskSuggestion(suggestion, currentTask))
       );
 
@@ -193,7 +210,7 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
           const isDislikedType = enhancedContext?.feedbackSummary?.dislikedTypes?.includes(s.type);
           return !isDislikedType && (s.confidence || 0) >= 0.4;
         })
-        .slice(0, maxSuggestions);
+        .slice(0, effectiveMaxSuggestions);
 
       // Cache the results
       setSuggestionCache(prev => new Map(prev.set(cacheKey, {
@@ -221,12 +238,12 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
       
       // Generate enhanced fallback suggestions
       const fallbackSuggestions = generateFallbackSuggestions(currentTask);
-      setSuggestions(fallbackSuggestions.slice(0, maxSuggestions));
+      setSuggestions(fallbackSuggestions.slice(0, effectiveMaxSuggestions));
     } finally {
       setLoadingStates(prev => ({ ...prev, [cacheKey]: false }));
       setLoading(false);
     }
-      }, [currentTask, maxSuggestions, aiInstance, suggestionCache, retryCount, userAcceptanceHistory, enhancedContext]);
+      }, [currentTask, effectiveMaxSuggestions, aiInstance, suggestionCache, retryCount, userAcceptanceHistory, enhancedContext, userTier, usage.requestsRemaining, tierLimits]);
 
   // Trigger suggestions when context is loaded and current task changes
   useEffect(() => {
@@ -605,6 +622,7 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
           <h4 className="font-medium text-sm">AI Suggestions</h4>
+          <TierBadge tier={userTier} size="sm" />
           {enhancedContext?.feedbackSummary && enhancedContext.feedbackSummary.totalFeedback > 0 && (
             <span className="text-xs text-muted-foreground">
               ({Math.round(enhancedContext.feedbackSummary.likeRatio * 100)}% helpful)
@@ -612,6 +630,10 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
           )}
         </div>
         <div className="flex items-center gap-2">
+          {/* Usage indicator */}
+          <span className="text-xs text-muted-foreground">
+            {usage.requestsRemaining}/{tierLimits[userTier].dailyRequests === -1 ? '∞' : tierLimits[userTier].dailyRequests}
+          </span>
           {lastGenerationTime && (
             <span className="text-xs text-muted-foreground">
               {lastGenerationTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -621,10 +643,10 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
             size="sm"
             variant="ghost"
             onClick={handleRefresh}
-            disabled={loading || contextLoading}
+            disabled={loading || contextLoading || tierLoading || usage.requestsRemaining <= 0}
             className="h-6 w-6 p-0"
           >
-            <RefreshCw className={cn("h-3 w-3", (loading || contextLoading) && "animate-spin")} />
+            <RefreshCw className={cn("h-3 w-3", (loading || contextLoading || tierLoading) && "animate-spin")} />
           </Button>
         </div>
       </div>
@@ -637,10 +659,33 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
         </div>
       )}
 
+      {/* Usage Limit Reached - Show Upgrade Prompt */}
+      {usage.requestsRemaining <= 0 && userTier === 'free' && (
+        <UpgradePrompt
+          title="Daily Limit Reached"
+          description={`You've used all ${tierLimits.free.dailyRequests} AI suggestions today. Upgrade to Premium for ${tierLimits.premium.dailyRequests} daily suggestions!`}
+          variant="default"
+        />
+      )}
+
+      {/* Premium features for free users */}
+      {userTier === 'free' && !loading && !contextLoading && suggestions.length > 0 && (
+        <UpgradePrompt
+          title="Get More AI Suggestions"
+          description={`Premium users get ${tierLimits.premium.suggestions} suggestions per request and ${tierLimits.premium.dailyRequests} daily requests. Upgrade now!`}
+          variant="compact"
+        />
+      )}
+
       {/* Loading State */}
-      {(loading || contextLoading) && (
+      {(loading || contextLoading || tierLoading) && (
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
+          <div className="text-center text-xs text-muted-foreground mb-2">
+            {tierLoading ? 'Checking subscription...' : 
+             userTier === 'premium' ? 'Generating premium AI suggestions...' : 
+             'Generating suggestions...'}
+          </div>
+          {Array.from({ length: effectiveMaxSuggestions }, (_, i) => (
             <div key={i} className="p-4 border rounded-lg animate-pulse">
               <div className="flex items-center gap-3">
                 <div className="h-8 w-8 bg-muted rounded-full"></div>
@@ -656,7 +701,7 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
 
       {/* Suggestions with enhanced feedback */}
       <AnimatePresence mode="popLayout">
-        {!loading && !contextLoading && suggestions.length > 0 && (
+        {!loading && !contextLoading && !tierLoading && suggestions.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -670,12 +715,21 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
                 index={index}
               />
             ))}
+            {/* Show tier-specific suggestion count indicator */}
+            <div className="text-center text-xs text-muted-foreground pt-2">
+              Showing {suggestions.length} of {effectiveMaxSuggestions} suggestions
+              {userTier === 'free' && (
+                <span className="text-purple-600 ml-1">
+                  (Premium: up to {tierLimits.premium.suggestions})
+                </span>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Empty State */}
-      {!loading && !contextLoading && suggestions.length === 0 && !error && (
+      {!loading && !contextLoading && !tierLoading && suggestions.length === 0 && !error && usage.requestsRemaining > 0 && (
         <div className="text-center py-4">
           <Target className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">
@@ -686,6 +740,7 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
             variant="ghost" 
             onClick={handleRefresh}
             className="mt-2 text-xs"
+            disabled={usage.requestsRemaining <= 0}
           >
             Try generating again
           </Button>

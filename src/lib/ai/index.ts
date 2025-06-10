@@ -519,4 +519,7 @@ export const AIUtils = {
 // Export singleton instance
 export const memoSparkAI = new StudySparkAI();
 // Maintain backwards compatibility
-export const studySparkAI = memoSparkAI; 
+export const studySparkAI = memoSparkAI;
+
+// Export TieredAIService for premium features
+export { TieredAIService, tieredAIService } from './TieredAIService'; 

@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { Calendar, LayoutList, Plus, Grid3X3, GraduationCap, Brain, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Calendar, LayoutList, Plus, Grid3X3, GraduationCap, Brain, ChevronRight, ChevronLeft, Sparkles, Crown } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { ShimmerButton } from '@/components/ui/shimmer-button';
 import { InteractiveHoverButton } from '@/components/ui/interactive-hover-button';
 import { SuggestionList } from '@/components/ai/SuggestionList';
+import { useTieredAI } from '@/hooks/useTieredAI';
 import type { AISuggestion } from '@/types/ai';
 
 // Sample AI suggestions for task creation workflow integration
@@ -154,11 +155,82 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
   const { tasks, addTask, updateTask, deleteTask } = useTaskStore();
   const { toast } = useToast();
   
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+  // Update AI suggestions when user data changes
+  useEffect(() => {
+    if (user) {
+      const userName = user.fullName || user.firstName || 'User';
+      setAISuggestions(getTaskCreationSuggestions(userName));
+    }
+  }, [user]);
+=======
+  // Tier-aware AI integration
+  const { 
+    userTier, 
+    usage, 
+    isLoading: isTierLoading, 
+    generateSuggestions, 
+    isFeatureAvailable,
+    tierLimits 
+  } = useTieredAI();
+>>>>>>> Stashed changes
+  
+>>>>>>> Stashed changes
   const viewOptions: ViewOption[] = useMemo(() => [
     { id: 'list', label: 'List View', icon: LayoutList, description: 'View tasks in a sequential, organized list.' },
     { id: 'calendar', label: 'Calendar', icon: Calendar, description: 'View and manage tasks in a calendar format.' },
     { id: 'timetable', label: 'Timetable', icon: Grid3X3, description: 'View and manage your class schedule.' },
   ], []);
+
+  // Tier-aware AI suggestions generation
+  const generateTierAwareSuggestions = useCallback(async () => {
+    if (!isFeatureAvailable('basic_suggestions')) {
+      return;
+    }
+
+    setIsLoadingSuggestions(true);
+    try {
+      const response = await generateSuggestions('basic_suggestions', tasks, {
+        currentTime: new Date(),
+        upcomingTasks: tasks,
+        recentActivity: tasks.slice(-5),
+        userPreferences: {
+          enableSuggestions: true,
+          suggestionFrequency: 'moderate',
+          difficultyPreference: 'adaptive',
+          preferredStudyTimes: [],
+          preferredStudyDuration: 90,
+          preferredBreakDuration: 15,
+          maxDailyStudyHours: 8,
+          cloudSyncEnabled: false,
+          shareAnonymousData: false,
+          personalizedStuInteraction: true,
+          enableBreakReminders: true,
+          enableStudyReminders: true,
+          reminderAdvanceTime: 15,
+          adaptiveDifficulty: true,
+          focusOnWeakSubjects: true,
+          balanceSubjects: true
+        },
+        metadata: { currentView }
+      });
+      
+      if (response.success && response.data && Array.isArray(response.data)) {
+        setAISuggestions(response.data);
+      } else {
+        // Fallback to static suggestions
+        setAISuggestions(getTaskCreationSuggestions());
+      }
+    } catch (error) {
+      console.error('Error generating AI suggestions:', error);
+      // Fallback to static suggestions for free users
+      setAISuggestions(getTaskCreationSuggestions());
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  }, [isFeatureAvailable, generateSuggestions, tasks, currentView]);
 
   const handleViewChange = (view: ViewType) => {
     setCurrentView(view);
@@ -273,8 +345,15 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
   }, [toast]);
 
   const toggleAISuggestions = useCallback(() => {
-    setShowAISuggestions(prev => !prev);
-  }, []);
+    setShowAISuggestions(prev => {
+      const newState = !prev;
+      if (newState && isFeatureAvailable('basic_suggestions')) {
+        // Generate fresh suggestions when opening
+        generateTierAwareSuggestions();
+      }
+      return newState;
+    });
+  }, [isFeatureAvailable, generateTierAwareSuggestions]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -366,22 +445,31 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
         <div className="flex w-full md:w-auto items-center gap-4">
           {renderAddButton()}
 
-          {/* AI Suggestions Toggle */}
+          {/* AI Suggestions Toggle - Tier Aware */}
           <Button
             variant={showAISuggestions ? "default" : "outline"}
             size="default"
             onClick={toggleAISuggestions}
             className={cn(
-              "whitespace-nowrap transition-all duration-200",
-              showAISuggestions && "bg-primary hover:bg-primary/90 text-primary-foreground"
+              "whitespace-nowrap transition-all duration-200 relative",
+              showAISuggestions && "bg-primary hover:bg-primary/90 text-primary-foreground",
+              userTier === 'premium' && "border-amber-300",
+              userTier === 'enterprise' && "border-purple-300"
             )}
-            aria-label="Toggle AI Suggestions"
+            aria-label={`Toggle AI Suggestions - ${userTier} tier (${usage.requestsRemaining} remaining)`}
           >
             <Brain className="h-4 w-4 mr-2" />
+            {userTier !== 'free' && (
+              <Crown className="h-3 w-3 mr-1 text-amber-500" />
+            )}
             <span className="hidden sm:inline">
               {showAISuggestions ? 'Hide AI' : 'AI Suggestions'}
             </span>
             <span className="sm:hidden">AI</span>
+            {/* Usage indicator */}
+            <div className="absolute -top-1 -right-1 bg-muted text-muted-foreground text-xs px-1 rounded-full min-w-[1.25rem] h-5 flex items-center justify-center">
+              {usage.requestsRemaining}
+            </div>
           </Button>
 
           {/* Desktop view switcher */}
@@ -488,6 +576,9 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                     <h3 className="font-semibold text-lg flex items-center gap-2">
                       <Brain className="h-5 w-5 text-primary" />
                       AI Suggestions
+                      {userTier !== 'free' && (
+                        <Crown className="h-4 w-4 text-amber-500" />
+                      )}
                     </h3>
                     <Button
                       variant="ghost"
@@ -498,9 +589,20 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Smart recommendations for your workflow
-                  </p>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-sm text-muted-foreground">
+                      {userTier === 'free' 
+                        ? `${usage.requestsRemaining}/${tierLimits.free.dailyRequests} suggestions remaining` 
+                        : `${userTier} tier - ${usage.requestsRemaining} remaining`
+                      }
+                    </p>
+                    {userTier === 'free' && (
+                      <Button variant="link" size="sm" className="text-xs px-2 h-6">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Upgrade
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 
                 <SuggestionList

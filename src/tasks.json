@@ -1,11 +1,20 @@
 {
   "tasks": [
     {
+<<<<<<< Updated upstream
       "id": "88cc80c5-eec7-4bb9-b18c-32a460f1c7e0",
       "name": "Fix Hardcoded Button Colors and CVA Variants",
       "description": "Replace all hardcoded HSL color values with theme CSS custom properties in button components and CVA variants to ensure proper theme integration. This critical task addresses inconsistent theming across multiple components.",
       "notes": "This task is critical for theme consistency. All button variants must use CSS custom properties to properly inherit theme colors.",
       "status": "completed",
+=======
+<<<<<<< Updated upstream
+      "id": "ff6b61b1-32a1-4a86-9da2-db3a5eba32a7",
+      "name": "Remove Mock Data and MSW Infrastructure",
+      "description": "Clean up all mock/sample data across the application to prepare for real data integration. This includes removing hardcoded arrays, MSW handlers, and sample student data from components and hooks.",
+      "notes": "Keep error boundaries and loading states intact. Ensure components don't crash when data is empty.",
+      "status": "pending",
+>>>>>>> Stashed changes
       "dependencies": [],
       "createdAt": "2025-06-08T21:06:41.766Z",
       "updatedAt": "2025-06-08T21:20:49.357Z",
@@ -112,6 +121,7 @@
           "lineEnd": 361
         }
       ],
+<<<<<<< Updated upstream
       "implementationGuide": "1. Create generateLightVariant function in ThemeGenerator class:\\n   - Invert background/foreground lightness values (dark 10% becomes light 90%)\\n   - Maintain primary color hues while adjusting lightness for light backgrounds\\n   - Adjust border and muted colors for light theme contrast\\n   - Ensure proper text/background contrast ratios\\n2. Generate light variants for all 10 existing dark themes:\\n   - light (counterpart to dark)\\n   - theme-amoled-light, theme-carbon-light, theme-sea-blue-light\\n   - theme-midnight-blue-light, theme-void-purple-light, theme-sunset-orange-light\\n   - theme-hello-kitty-pink-light, theme-cherry-blossom-light, theme-hacker-green-light\\n3. Add new CSS custom property definitions to globals.css\\n4. Validate accessibility compliance for all light themes",
       "verificationCriteria": "All 10 light theme variants are properly generated with appropriate contrast ratios. Each light theme maintains the color personality of its dark counterpart. All light themes pass WCAG AA accessibility validation.",
       "analysisResult": "Comprehensive theme system update ensuring all UI elements work with themes, creating light variants for all dark themes, improving default dark mode contrast, and maintaining text visibility with WCAG AA compliance. The implementation leverages existing CSS custom properties, CVA patterns, and theme utility functions while fixing hardcoded color usage across the codebase.",
@@ -230,6 +240,294 @@
       "implementationGuide": "1. Create comprehensive theme testing script using ThemeValidator:\\n   - Test all 20+ theme variants (10 dark + 10 light)\\n   - Validate contrast ratios for all text/background combinations\\n   - Generate accessibility reports for each theme\\n2. Use colorUtils.adjustContrast() to auto-fix any failing combinations\\n3. Add accessibility indicators to theme selection interface:\\n   - Show AA/AAA compliance status for each theme\\n   - Display contrast ratio information\\n   - Highlight themes with accessibility issues\\n4. Create accessibility testing documentation\\n5. Implement automated testing for future theme additions\\n6. Test with screen readers and high contrast mode",
       "verificationCriteria": "All 20+ theme variants achieve WCAG AA compliance. Accessibility information is clearly displayed in the theme selection interface. Any theme with contrast issues is automatically corrected or clearly marked with warnings.",
       "analysisResult": "Comprehensive theme system update ensuring all UI elements work with themes, creating light variants for all dark themes, improving default dark mode contrast, and maintaining text visibility with WCAG AA compliance. The implementation leverages existing CSS custom properties, CVA patterns, and theme utility functions while fixing hardcoded color usage across the codebase."
+=======
+      "implementationGuide": "1. Update memoSparkClerkAppearance in clerk-appearance.ts with backdrop-blur and transparency\\n2. Add glassy effects using backdrop-filter CSS properties\\n3. Enhance contrast ratios for accessibility compliance\\n4. Implement theme-aware color adjustments (black text on light, white text on dark)\\n5. Test with all theme variants (dark, light, amoled, etc.)\\n6. Add smooth transitions for theme changes\\n7. Ensure glass effects work across different browsers\\n\\nPseudocode:\\n```typescript\\nexport const memoSparkClerkAppearance: Appearance = {\\n  variables: {\\n    colorBackground: 'rgba(255, 255, 255, 0.8)', // Translucent white\\n    colorText: 'hsl(0, 0%, 9%)', // High contrast black\\n  },\\n  elements: {\\n    rootBox: {\\n      backgroundColor: 'rgba(255, 255, 255, 0.8)',\\n      backdropFilter: 'blur(12px) saturate(180%)',\\n      border: '1px solid rgba(255, 255, 255, 0.3)',\\n      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',\\n    },\\n    formFieldInput: {\\n      backgroundColor: 'rgba(255, 255, 255, 0.9)',\\n      backdropFilter: 'blur(8px)',\\n      border: '1px solid rgba(0, 0, 0, 0.1)',\\n      color: 'hsl(0, 0%, 9%)', // High contrast text\\n    }\\n  }\\n};\\n\\nexport const memoSparkClerkAppearanceDark: Appearance = {\\n  variables: {\\n    colorBackground: 'rgba(0, 0, 0, 0.8)', // Translucent black\\n    colorText: 'hsl(0, 0%, 95%)', // High contrast white\\n  },\\n  elements: {\\n    rootBox: {\\n      backgroundColor: 'rgba(0, 0, 0, 0.8)',\\n      backdropFilter: 'blur(12px) saturate(180%)',\\n      border: '1px solid rgba(255, 255, 255, 0.1)',\\n    }\\n  }\\n};\\n```",
+      "verificationCriteria": "Clerk components display glassy backgrounds correctly. Text contrast meets accessibility standards. Glass effects work across all themes. Theme switching maintains visual consistency. Browser compatibility verified for major browsers.",
+      "analysisResult": "Transform StudySpark from demo application to production-ready system by removing all mock content, rebuilding reminders and achievements with real data architecture, implementing crashout room functionality, and enhancing Clerk component styling with glassy backgrounds and proper theme contrast. This comprehensive overhaul maintains existing performance optimizations while establishing proper data flow through Supabase integration."
+=======
+      "id": "d6505b59-2469-45df-a929-f5bce1880b1e",
+      "name": "Create Secure AI API Endpoints with Server-Side Processing",
+      "description": "Implement server-side API routes for AI suggestions processing following the project's established patterns. Create /api/ai/suggestions route with proper authentication, tier checking, and rate limiting. Move TieredAIService logic to server-side while maintaining client-side hooks for UI state management.",
+      "notes": "Critical security fix - moves AI processing and API keys to server-side. Must maintain compatibility with existing useTieredAI hook.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-06-10T12:45:25.334Z",
+      "updatedAt": "2025-06-10T21:44:42.646Z",
+      "relatedFiles": [
+        {
+          "path": "src/app/api/ai/suggestions/route.ts",
+          "type": "CREATE",
+          "description": "Main AI suggestions API endpoint"
+        },
+        {
+          "path": "src/lib/ai/TieredAIService.ts",
+          "type": "TO_MODIFY",
+          "description": "Refactor for server-side usage",
+          "lineStart": 100,
+          "lineEnd": 200
+        },
+        {
+          "path": "src/app/api/test-auth/route.ts",
+          "type": "REFERENCE",
+          "description": "Authentication pattern to follow"
+        },
+        {
+          "path": "src/hooks/useTieredAI.ts",
+          "type": "TO_MODIFY",
+          "description": "Update to call API endpoints",
+          "lineStart": 80,
+          "lineEnd": 130
+        }
+      ],
+      "implementationGuide": "Follow existing API pattern from /api/test-auth/route.ts: \\n1. Create /api/ai/suggestions/route.ts with POST handler\\n2. Implement Clerk authentication with { userId, getToken } = await auth()\\n3. Use createClient with accessToken: async () => getToken()\\n4. Move TieredAIService.generateSuggestions to server-side\\n5. Add proper error handling following NextResponse.json pattern\\n6. Implement server-side rate limiting checks\\n7. Return properly typed responses with tier information\\n\\nPseudocode:\\n```typescript\\nexport async function POST(request: Request) {\\n  const { userId, getToken } = await auth();\\n  if (!userId) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });\\n  \\n  const supabase = createClient(url, key, { accessToken: async () => getToken() });\\n  const tierManager = new SubscriptionTierManager(supabase);\\n  \\n  // Check tier access and usage limits\\n  const accessCheck = await tierManager.canUserMakeAIRequest(userId, feature);\\n  if (!accessCheck.can_proceed) return upgradeRequired();\\n  \\n  // Process AI request server-side\\n  const suggestions = await processAIRequest(request, userId);\\n  \\n  // Track usage\\n  await usageTracker.incrementUsage(userId, feature);\\n  \\n  return NextResponse.json({ success: true, data: suggestions });\\n}\\n```",
+      "verificationCriteria": "1. API endpoint responds correctly with proper authentication\\n2. Server-side tier checking and rate limiting works\\n3. Client-side hook successfully calls API\\n4. API keys and sensitive data not exposed to client\\n5. Error handling follows project patterns\\n6. Performance under 2 seconds for suggestions",
+      "analysisResult": "Create a production-ready AI tier system that securely integrates with backend APIs, includes comprehensive testing, and requires specific manual user configuration. The system must move from client-side only implementation to proper server-side architecture while maintaining existing project patterns and ensuring security, performance, and scalability.",
+      "summary": "Successfully implemented secure AI API endpoints with server-side processing. Created /api/ai/suggestions route with proper authentication, tier checking, and rate limiting. Updated useTieredAI hook to call server-side API instead of client-side service. API keys and sensitive processing moved to server-side. Authentication follows project patterns using Clerk. Tier checking and usage tracking implemented directly in API route. Error handling and response format match project standards. Build successfully completes without errors.",
+      "completedAt": "2025-06-10T21:44:42.642Z"
+    },
+    {
+      "id": "96d5ea7d-fa4e-4650-84a8-953cc76909d6",
+      "name": "Database Schema Validation and Migration",
+      "description": "Validate and apply the subscription management database schema to development/staging environments. Ensure proper table creation, RLS policies, indexes, and default tier data. Verify Clerk user integration and data access patterns work correctly.",
+      "notes": "Must coordinate with user for database access. Requires Supabase project credentials and proper permissions.",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-06-10T12:45:25.334Z",
+      "updatedAt": "2025-06-10T12:45:25.334Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/subscription/schema.sql",
+          "type": "REFERENCE",
+          "description": "Database schema to apply"
+        },
+        {
+          "path": "supabase/migrations/",
+          "type": "CREATE",
+          "description": "Migration files for version control"
+        },
+        {
+          "path": "src/lib/supabase/client.ts",
+          "type": "REFERENCE",
+          "description": "Database connection configuration"
+        }
+      ],
+      "implementationGuide": "Use existing schema from /lib/subscription/schema.sql:\\n1. Verify Supabase connection and credentials\\n2. Apply schema migration using Supabase CLI or dashboard\\n3. Verify table creation: subscription_tiers, user_subscriptions, ai_usage_tracking\\n4. Test RLS policies with authenticated requests\\n5. Verify indexes are created for performance\\n6. Insert default tier configurations\\n7. Test Clerk user_id mapping to Supabase profiles\\n\\nPseudocode for verification:\\n```bash\\n# Apply schema\\nsupabase db push\\n\\n# Verify tables exist\\nsupabase db diff\\n\\n# Test RLS policies\\nsupabase db test\\n```\\n\\nVerification queries:\\n```sql\\n-- Check tables exist\\nSELECT table_name FROM information_schema.tables WHERE table_schema = 'public';\\n\\n-- Verify RLS policies\\nSELECT * FROM pg_policies WHERE tablename IN ('subscription_tiers', 'user_subscriptions', 'ai_usage_tracking');\\n\\n-- Check default tiers\\nSELECT * FROM subscription_tiers;\\n```",
+      "verificationCriteria": "1. All tables created successfully in database\\n2. RLS policies active and working correctly\\n3. Indexes created for performance optimization\\n4. Default subscription tiers inserted\\n5. Clerk user authentication maps to profiles table\\n6. Database queries perform under 100ms\\n7. Connection pooling configured properly",
+      "analysisResult": "Create a production-ready AI tier system that securely integrates with backend APIs, includes comprehensive testing, and requires specific manual user configuration. The system must move from client-side only implementation to proper server-side architecture while maintaining existing project patterns and ensuring security, performance, and scalability."
+    },
+    {
+      "id": "d5b5ef6d-7619-4480-ae08-a3c2910f9baa",
+      "name": "Merge AI Services Architecture and Eliminate Duplication",
+      "description": "Integrate TieredAIService with existing SupabaseAIService to eliminate duplicate functionality. Create unified AI service that combines tier awareness with existing ML capabilities. Refactor client-side AI context to work with new architecture.",
+      "notes": "Major refactoring task. Must maintain existing API compatibility while consolidating duplicate services.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "d6505b59-2469-45df-a929-f5bce1880b1e"
+        }
+      ],
+      "createdAt": "2025-06-10T12:45:25.334Z",
+      "updatedAt": "2025-06-10T12:45:25.334Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/ai/TieredAIService.ts",
+          "type": "TO_MODIFY",
+          "description": "Merge with SupabaseAIService"
+        },
+        {
+          "path": "src/lib/supabase/aiIntegration.ts",
+          "type": "TO_MODIFY",
+          "description": "Integrate tier awareness"
+        },
+        {
+          "path": "src/lib/ai/aiContext.tsx",
+          "type": "TO_MODIFY",
+          "description": "Update to use unified service"
+        },
+        {
+          "path": "src/lib/ai/UnifiedAIService.ts",
+          "type": "CREATE",
+          "description": "New consolidated AI service"
+        },
+        {
+          "path": "src/types/ai.ts",
+          "type": "TO_MODIFY",
+          "description": "Update interfaces for unified service"
+        }
+      ],
+      "implementationGuide": "Analyze existing AI services and merge strategically:\\n1. Review SupabaseAIService in /lib/supabase/aiIntegration.ts\\n2. Identify overlapping functionality with TieredAIService\\n3. Create new UnifiedAIService that combines both:\\n   - Tier checking from TieredAIService\\n   - ML capabilities from SupabaseAIService\\n   - Collaborative filtering integration\\n4. Update AIContext provider to use unified service\\n5. Maintain backward compatibility with existing hooks\\n6. Remove duplicate code and consolidate interfaces\\n\\nPseudocode for UnifiedAIService:\\n```typescript\\nclass UnifiedAIService {\\n  private tierManager: SubscriptionTierManager;\\n  private mlService: SupabaseAIService;\\n  private collaborativeService: CollaborativeFilteringService;\\n  \\n  async generateSuggestions(request: TierAwareAIRequest) {\\n    // Check tier access\\n    const accessCheck = await this.tierManager.checkAccess();\\n    if (!accessCheck.canProceed) return upgradeResponse();\\n    \\n    // Route to appropriate service based on tier\\n    if (request.tier === 'premium') {\\n      return this.mlService.getAdvancedSuggestions();\\n    } else {\\n      return this.mlService.getBasicSuggestions();\\n    }\\n  }\\n}\\n```",
+      "verificationCriteria": "1. No duplicate AI processing logic remains\\n2. All existing AI features continue to work\\n3. Tier awareness properly integrated with ML features\\n4. Client hooks maintain same interface\\n5. Performance improved with consolidated architecture\\n6. Memory usage optimized by eliminating duplicates",
+      "analysisResult": "Create a production-ready AI tier system that securely integrates with backend APIs, includes comprehensive testing, and requires specific manual user configuration. The system must move from client-side only implementation to proper server-side architecture while maintaining existing project patterns and ensuring security, performance, and scalability."
+    },
+    {
+      "id": "8dc4697f-13e1-426d-bf57-0092d28936f2",
+      "name": "Comprehensive Integration Testing Suite",
+      "description": "Create comprehensive test suite covering full API flows, authentication, tier checking, rate limiting, and error handling. Fix existing test failures and add integration tests for complete request/response cycles. Include performance testing under realistic loads.",
+      "notes": "Requires database test environment and proper test user setup. Must cover both happy path and error scenarios.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "d6505b59-2469-45df-a929-f5bce1880b1e"
+        },
+        {
+          "taskId": "96d5ea7d-fa4e-4650-84a8-953cc76909d6"
+        }
+      ],
+      "createdAt": "2025-06-10T12:45:25.334Z",
+      "updatedAt": "2025-06-10T12:45:25.334Z",
+      "relatedFiles": [
+        {
+          "path": "__tests__/ai-tier-system.test.ts",
+          "type": "TO_MODIFY",
+          "description": "Expand existing tests"
+        },
+        {
+          "path": "__tests__/integration/ai-api.test.ts",
+          "type": "CREATE",
+          "description": "New API integration tests"
+        },
+        {
+          "path": "src/lib/testing/ai-test-utils.ts",
+          "type": "TO_MODIFY",
+          "description": "Add API testing utilities"
+        },
+        {
+          "path": "src/test-setup.ts",
+          "type": "REFERENCE",
+          "description": "Test environment setup"
+        }
+      ],
+      "implementationGuide": "Build on existing test infrastructure in __tests__/ai-tier-system.test.ts:\\n1. Fix Headers mock issues (COMPLETED in test-setup.ts)\\n2. Add API endpoint integration tests\\n3. Create realistic test scenarios for each tier\\n4. Test authentication flow with Clerk tokens\\n5. Test rate limiting and usage tracking\\n6. Add performance benchmarks\\n7. Test error conditions and edge cases\\n\\nTest structure:\\n```typescript\\ndescribe('AI Tier System Integration', () => {\\n  test('Free tier basic suggestions via API', async () => {\\n    const response = await fetch('/api/ai/suggestions', {\\n      method: 'POST',\\n      headers: { Authorization: `Bearer ${freeUserToken}` },\\n      body: JSON.stringify({ feature: 'basic_suggestions' })\\n    });\\n    expect(response.status).toBe(200);\\n    const data = await response.json();\\n    expect(data.suggestions).toHaveLength(3); // Free tier limit\\n  });\\n  \\n  test('Premium tier advanced suggestions', async () => {\\n    // Test premium features and higher limits\\n  });\\n  \\n  test('Rate limiting enforcement', async () => {\\n    // Test daily limit enforcement\\n  });\\n});\\n```",
+      "verificationCriteria": "1. All existing tests pass without failures\\n2. API integration tests cover all endpoints\\n3. Authentication and authorization properly tested\\n4. Rate limiting and tier enforcement verified\\n5. Performance tests show <2 second response times\\n6. Error handling tests pass for all scenarios\\n7. Test coverage >90% for critical paths",
+      "analysisResult": "Create a production-ready AI tier system that securely integrates with backend APIs, includes comprehensive testing, and requires specific manual user configuration. The system must move from client-side only implementation to proper server-side architecture while maintaining existing project patterns and ensuring security, performance, and scalability."
+    },
+    {
+      "id": "15c3f7a2-2b6b-4ef7-8462-d5b20257d2d2",
+      "name": "Performance Optimization and Caching Implementation",
+      "description": "Implement production-grade performance optimizations including request caching, database query optimization, connection pooling, and tier checking cache. Add monitoring and logging for performance tracking.",
+      "notes": "Critical for production performance. Must measure before/after performance improvements.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "96d5ea7d-fa4e-4650-84a8-953cc76909d6"
+        },
+        {
+          "taskId": "d5b5ef6d-7619-4480-ae08-a3c2910f9baa"
+        }
+      ],
+      "createdAt": "2025-06-10T12:45:25.334Z",
+      "updatedAt": "2025-06-10T12:45:25.334Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/cache/CacheManager.ts",
+          "type": "CREATE",
+          "description": "Centralized caching service"
+        },
+        {
+          "path": "src/lib/ai/performance/monitoring.ts",
+          "type": "CREATE",
+          "description": "Performance monitoring utilities"
+        },
+        {
+          "path": "src/lib/subscription/SubscriptionTierManager.ts",
+          "type": "TO_MODIFY",
+          "description": "Add caching to tier checks"
+        },
+        {
+          "path": "src/app/api/ai/suggestions/route.ts",
+          "type": "TO_MODIFY",
+          "description": "Add response caching"
+        }
+      ],
+      "implementationGuide": "Implement multi-layer caching and optimization:\\n1. Add Redis/memory cache for subscription tier checks\\n2. Implement request deduplication for AI suggestions\\n3. Optimize database queries with proper indexes\\n4. Add connection pooling for ML service APIs\\n5. Implement response caching with appropriate TTLs\\n6. Add performance monitoring and metrics\\n\\nCaching implementation:\\n```typescript\\nclass CacheManager {\\n  private tierCache = new Map<string, {tier: SubscriptionTier, expiry: number}>();\\n  private suggestionsCache = new Map<string, {data: any, expiry: number}>();\\n  \\n  async getTierWithCache(userId: string): Promise<SubscriptionTier> {\\n    const cached = this.tierCache.get(userId);\\n    if (cached && cached.expiry > Date.now()) {\\n      return cached.tier;\\n    }\\n    \\n    const tier = await this.fetchTierFromDB(userId);\\n    this.tierCache.set(userId, {\\n      tier,\\n      expiry: Date.now() + (5 * 60 * 1000) // 5 minute cache\\n    });\\n    return tier;\\n  }\\n}\\n```\\n\\nDatabase optimization:\\n```sql\\n-- Add composite indexes\\nCREATE INDEX idx_ai_usage_user_date ON ai_usage_tracking(clerk_user_id, usage_date);\\nCREATE INDEX idx_subscriptions_user_status ON user_subscriptions(clerk_user_id, status);\\n```",
+      "verificationCriteria": "1. Tier checking response time <100ms with cache\\n2. AI suggestions response time <2 seconds\\n3. Database query performance optimized with indexes\\n4. Memory usage stable under load\\n5. Cache hit rate >80% for tier checks\\n6. No memory leaks in caching layer\\n7. Performance monitoring data collected",
+      "analysisResult": "Create a production-ready AI tier system that securely integrates with backend APIs, includes comprehensive testing, and requires specific manual user configuration. The system must move from client-side only implementation to proper server-side architecture while maintaining existing project patterns and ensuring security, performance, and scalability."
+    },
+    {
+      "id": "6fed9c8e-c519-49a4-ae91-21976d7bfebf",
+      "name": "Security Audit and Production Environment Setup",
+      "description": "Conduct comprehensive security review, configure production environment variables, set up monitoring and logging, and prepare deployment pipeline. Ensure all sensitive data is properly secured and API endpoints are protected.",
+      "notes": "Requires coordination with DevOps for infrastructure setup. Must include proper secret management.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "d6505b59-2469-45df-a929-f5bce1880b1e"
+        },
+        {
+          "taskId": "15c3f7a2-2b6b-4ef7-8462-d5b20257d2d2"
+        }
+      ],
+      "createdAt": "2025-06-10T12:45:25.334Z",
+      "updatedAt": "2025-06-10T12:45:25.334Z",
+      "relatedFiles": [
+        {
+          "path": ".env.production",
+          "type": "CREATE",
+          "description": "Production environment variables"
+        },
+        {
+          "path": "src/lib/security/validation.ts",
+          "type": "CREATE",
+          "description": "Input validation utilities"
+        },
+        {
+          "path": "src/lib/monitoring/logger.ts",
+          "type": "CREATE",
+          "description": "Production logging setup"
+        },
+        {
+          "path": "next.config.js",
+          "type": "TO_MODIFY",
+          "description": "Production configuration"
+        }
+      ],
+      "implementationGuide": "Complete security and production readiness checklist:\\n1. Security audit of API endpoints and authentication\\n2. Validate RLS policies prevent unauthorized access\\n3. Review and secure environment variable handling\\n4. Set up proper logging for production monitoring\\n5. Configure rate limiting at infrastructure level\\n6. Implement error monitoring with proper alerting\\n7. Prepare deployment configuration and rollback procedures\\n\\nSecurity checklist:\\n```typescript\\n// Input validation\\nconst validateAIRequest = (request: any) => {\\n  if (!request.userId || typeof request.userId !== 'string') {\\n    throw new Error('Invalid user ID');\\n  }\\n  if (!request.feature || !VALID_FEATURES.includes(request.feature)) {\\n    throw new Error('Invalid feature type');\\n  }\\n  // Additional validation...\\n};\\n\\n// Rate limiting\\nconst rateLimiter = {\\n  windowMs: 15 * 60 * 1000, // 15 minutes\\n  max: 100, // limit each IP to 100 requests per windowMs\\n  message: 'Too many requests from this IP'\\n};\\n```\\n\\nEnvironment configuration:\\n```bash\\n# Production environment variables\\nNEXT_PUBLIC_SUPABASE_URL=\\nNEXT_PUBLIC_SUPABASE_ANON_KEY=\\nSUPABASE_SERVICE_ROLE_KEY=\\nCLERK_SECRET_KEY=\\nHUGGINGFACE_API_KEY=\\nREDIS_URL=\\n```",
+      "verificationCriteria": "1. All API endpoints properly authenticated\\n2. RLS policies prevent unauthorized data access\\n3. Input validation blocks malicious requests\\n4. Rate limiting configured at multiple levels\\n5. Sensitive data not exposed in client bundles\\n6. Monitoring and alerting properly configured\\n7. Deployment pipeline tested with rollback capability",
+      "analysisResult": "Create a production-ready AI tier system that securely integrates with backend APIs, includes comprehensive testing, and requires specific manual user configuration. The system must move from client-side only implementation to proper server-side architecture while maintaining existing project patterns and ensuring security, performance, and scalability."
+    },
+    {
+      "id": "53f7c428-e088-4f06-8fba-bc027efcb8f3",
+      "name": "Manual User Testing and Subscription Flow Validation",
+      "description": "Coordinate with user to test complete subscription flows, payment integration setup, tier upgrades, and feature access validation. This task requires manual user involvement for payment setup, database configuration, and real-world usage testing.",
+      "notes": "This task requires significant user involvement and cannot be automated. User must have access to payment processing, production database, and external API services.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "6fed9c8e-c519-49a4-ae91-21976d7bfebf"
+        },
+        {
+          "taskId": "8dc4697f-13e1-426d-bf57-0092d28936f2"
+        }
+      ],
+      "createdAt": "2025-06-10T12:45:25.334Z",
+      "updatedAt": "2025-06-10T12:45:25.334Z",
+      "relatedFiles": [
+        {
+          "path": "DEPLOYMENT_GUIDE.md",
+          "type": "CREATE",
+          "description": "Step-by-step user deployment instructions"
+        },
+        {
+          "path": "src/components/subscription/UpgradeFlow.tsx",
+          "type": "TO_MODIFY",
+          "description": "Payment integration UI"
+        },
+        {
+          "path": "src/lib/stripe/config.ts",
+          "type": "CREATE",
+          "description": "Stripe payment configuration"
+        },
+        {
+          "path": "MANUAL_TESTING_CHECKLIST.md",
+          "type": "CREATE",
+          "description": "User testing scenarios"
+        }
+      ],
+      "implementationGuide": "User-coordinated testing and setup activities:\\n\\n**USER REQUIRED ACTIONS:**\\n1. Set up Stripe account and configure payment processing\\n2. Configure production Supabase database credentials\\n3. Set up HuggingFace API account and obtain API keys\\n4. Test user registration and profile creation flow\\n5. Manually test subscription upgrade process\\n6. Validate tier-specific feature access restrictions\\n7. Test error scenarios and user experience\\n\\n**TESTING SCENARIOS:**\\n```\\nScenario 1: New User Onboarding\\n- User creates account via Clerk\\n- Profile created in Supabase with free tier\\n- Basic AI suggestions work correctly\\n- Upgrade prompts shown for premium features\\n\\nScenario 2: Subscription Upgrade\\n- User clicks upgrade to premium\\n- Stripe payment flow completes successfully\\n- User tier updated in database\\n- Premium features immediately accessible\\n\\nScenario 3: Usage Limits\\n- Free user reaches daily AI request limit\\n- Further requests blocked with upgrade prompt\\n- Premium user has higher limits working\\n\\nScenario 4: Error Handling\\n- Network failures handled gracefully\\n- Payment failures show proper error messages\\n- Database connection issues don't crash app\\n```\\n\\n**USER SETUP CHECKLIST:**\\n- [ ] Stripe account configured with webhook endpoints\\n- [ ] Supabase production database accessible\\n- [ ] API keys for ML services obtained\\n- [ ] Domain and SSL certificates configured\\n- [ ] Email delivery service for notifications",
+      "verificationCriteria": "1. User can successfully create account and access free features\\n2. Subscription upgrade flow works end-to-end\\n3. Payment processing integrates correctly with tier management\\n4. Tier-specific features properly enforced\\n5. Usage limits work correctly for each tier\\n6. Error messages are user-friendly and actionable\\n7. User can downgrade/cancel subscription if needed\\n8. All edge cases handled gracefully",
+      "analysisResult": "Create a production-ready AI tier system that securely integrates with backend APIs, includes comprehensive testing, and requires specific manual user configuration. The system must move from client-side only implementation to proper server-side architecture while maintaining existing project patterns and ensuring security, performance, and scalability."
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
     }
   ]
 }

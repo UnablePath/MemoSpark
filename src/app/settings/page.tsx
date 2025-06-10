@@ -2,10 +2,12 @@
 
 import type React from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Crown, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import ThemeSettings from '@/components/settings/ThemeSettings';
 import AccessibilitySettings from '@/components/settings/AccessibilitySettings';
+import Link from 'next/link';
 
 
 // interface SettingsPageProps {} // Add if props are needed
@@ -42,6 +44,27 @@ const SettingsPage: React.FC = () => {
       {/* Main Content */}
       <div className="responsive-container py-6 safe-scroll-area">
         <div className="space-y-8 max-w-4xl">
+          {/* Subscription Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-yellow-500" />
+                Subscription & Usage
+              </CardTitle>
+              <CardDescription>
+                Manage your StudySpark subscription, view usage statistics, and upgrade your plan
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/settings/subscription">
+                <Button className="w-full sm:w-auto">
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Manage Subscription
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
           <ThemeSettings />
           <AccessibilitySettings />
         </div>
