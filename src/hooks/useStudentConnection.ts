@@ -62,57 +62,8 @@ export const useLocalStorageState = <T>(key: string, defaultValue: T) => {
   return [state, setValue] as const;
 };
 
-// Sample data for demo/fallback
-const sampleStudents: ExtendedStudent[] = [
-  {
-    id: '1',
-    name: 'Alex Chen',
-    year: 'Sophomore',
-    subjects: ['Computer Science', 'Mathematics'],
-    interests: ['Machine Learning', 'Gaming', 'Basketball'],
-    avatar: '/api/placeholder/150/150?text=AC',
-    achievements: [],
-    location: 'Engineering Building',
-    lastSeen: '5 mins ago',
-    studyHours: 25,
-    helpfulRating: 4.8,
-    studyStreak: 12,
-    preferredStudyTime: 'Evening',
-    bio: 'CS major passionate about AI and always ready to help with coding challenges!',
-  },
-  {
-    id: '2',
-    name: 'Sam Rodriguez',
-    year: 'Junior',
-    subjects: ['Biology', 'Chemistry'],
-    interests: ['Research', 'Photography', 'Hiking'],
-    avatar: '/api/placeholder/150/150?text=SR',
-    achievements: [],
-    location: 'Science Library',
-    lastSeen: '12 mins ago',
-    studyHours: 30,
-    helpfulRating: 4.9,
-    studyStreak: 18,
-    preferredStudyTime: 'Morning',
-    bio: 'Pre-med student who loves explaining complex concepts in simple ways.',
-  },
-  {
-    id: '3',
-    name: 'Jordan Kim',
-    year: 'Senior',
-    subjects: ['Physics', 'Engineering'],
-    interests: ['Robotics', '3D Printing', 'Tutoring'],
-    avatar: '/api/placeholder/150/150?text=JK',
-    achievements: [],
-    location: 'Physics Lab',
-    lastSeen: '1 hour ago',
-    studyHours: 40,
-    helpfulRating: 4.7,
-    studyStreak: 8,
-    preferredStudyTime: 'Afternoon',
-    bio: 'Engineering senior with a passion for helping others understand STEM subjects.',
-  },
-];
+// Sample data for demo/fallback - REMOVED
+const sampleStudents: ExtendedStudent[] = [];
 
 // Chat message type for internal storage
 export interface ChatMessage {
@@ -128,11 +79,11 @@ export function useStudentData() {
   const { user, isLoaded: userLoaded } = useUser();
   
   // Persistent state for student data
-  const [cachedStudents, setCachedStudents] = useLocalStorageState<ExtendedStudent[]>('student_data_cache', sampleStudents);
+  const [cachedStudents, setCachedStudents] = useLocalStorageState<ExtendedStudent[]>('student_data_cache', []);
   const [lastFetchTime, setLastFetchTime] = useLocalStorageState<number>('student_data_last_fetch', 0);
   
   // Component state
-  const [students, setStudents] = useState<ExtendedStudent[]>(cachedStudents || sampleStudents);
+  const [students, setStudents] = useState<ExtendedStudent[]>(cachedStudents || []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -155,19 +106,8 @@ export function useStudentData() {
       // Simulate API call with random delay
       await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
       
-      // For now, return sample data with some variation
-      let fetchedStudents = [...sampleStudents];
-      
-      // Add some dynamic elements if user is available
-      if (user?.firstName) {
-        fetchedStudents = fetchedStudents.map(student => ({
-          ...student,
-          // Randomize some properties to simulate real data
-          studyHours: Math.floor(Math.random() * 50) + 10,
-          studyStreak: Math.floor(Math.random() * 30) + 1,
-          helpfulRating: Math.round((Math.random() * 1.5 + 3.5) * 10) / 10,
-        }));
-      }
+      // For now, return an empty array as we are removing mocks
+      const fetchedStudents: ExtendedStudent[] = [];
 
       setStudents(fetchedStudents);
       setCachedStudents(fetchedStudents);
@@ -177,8 +117,8 @@ export function useStudentData() {
       console.error('Error fetching students:', err);
       setError('Failed to load student data. Using cached data.');
       
-      // Fallback to cached data or sample data
-      const fallbackData = cachedStudents?.length > 0 ? cachedStudents : sampleStudents;
+      // Fallback to cached data or empty array
+      const fallbackData = cachedStudents?.length > 0 ? cachedStudents : [];
       setStudents(fallbackData);
     } finally {
       setLoading(false);

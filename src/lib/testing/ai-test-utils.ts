@@ -1,4 +1,4 @@
-import { TieredAIService } from '@/lib/ai/TieredAIService';
+import { consolidatedAIService } from '@/lib/ai';
 import { SubscriptionTierManager } from '@/lib/subscription/SubscriptionTierManager';
 import { createClient } from '@supabase/supabase-js';
 import { ExtendedTask, SuggestionContext, AIFeatureType } from '@/types/ai';
@@ -20,11 +20,11 @@ export interface TestResult {
 }
 
 export class AITestUtils {
-  private tieredAI: TieredAIService;
+  private tieredAI: typeof consolidatedAIService;
   private subscriptionManager: SubscriptionTierManager;
   
   constructor() {
-    this.tieredAI = new TieredAIService();
+    this.tieredAI = consolidatedAIService;
     
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -63,34 +63,34 @@ export class AITestUtils {
       {
         id: 'test-task-1',
         title: 'Study Mathematics',
-        dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
+        dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
         priority: 'high',
-        type: 'study_session',
+        type: 'academic',
         subject: 'Mathematics',
         completed: false,
-        reminder: null,
+        reminder: false,
         description: 'Review calculus concepts',
-        recurrenceRule: null,
-        recurrenceInterval: null,
-        recurrenceEndDate: null,
-        originalDueDate: null,
-        completedOverrides: null
+        recurrenceRule: 'none',
+        recurrenceInterval: 0,
+        recurrenceEndDate: undefined,
+        originalDueDate: undefined,
+        completedOverrides: {}
       },
       {
         id: 'test-task-2',
         title: 'Physics Assignment',
-        dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // Day after tomorrow
+        dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // Day after tomorrow
         priority: 'medium',
-        type: 'assignment',
+        type: 'academic',
         subject: 'Physics',
         completed: false,
-        reminder: null,
+        reminder: false,
         description: 'Complete quantum mechanics problems',
-        recurrenceRule: null,
-        recurrenceInterval: null,
-        recurrenceEndDate: null,
-        originalDueDate: null,
-        completedOverrides: null
+        recurrenceRule: 'none',
+        recurrenceInterval: 0,
+        recurrenceEndDate: undefined,
+        originalDueDate: undefined,
+        completedOverrides: {}
       }
     ];
   }
@@ -151,7 +151,8 @@ export class AITestUtils {
       userId,
       feature: 'basic_suggestions',
       tasks,
-      context
+      context,
+      userTier: 'free'
     });
 
     if (!response.success) {
@@ -176,7 +177,8 @@ export class AITestUtils {
       userId,
       feature: 'advanced_suggestions',
       tasks,
-      context
+      context,
+      userTier: 'premium'
     });
 
     if (!response.success) {
@@ -218,7 +220,8 @@ export class AITestUtils {
       userId,
       feature: 'advanced_suggestions',
       tasks,
-      context
+      context,
+      userTier: 'free'
     });
 
     if (response.success) {
@@ -240,7 +243,8 @@ export class AITestUtils {
       userId: 'invalid_user_id',
       feature: 'basic_suggestions',
       tasks: [],
-      context: this.createMockContext()
+      context: this.createMockContext(),
+      userTier: 'free'
     });
 
     if (response.success) {
@@ -262,7 +266,8 @@ export class AITestUtils {
       userId,
       feature: 'basic_suggestions',
       tasks,
-      context
+      context,
+      userTier: 'free'
     });
 
     const responseTime = Date.now() - startTime;
@@ -273,6 +278,167 @@ export class AITestUtils {
     }
 
     return { responseTime };
+  }
+
+  // Advanced testing methods for comprehensive integration
+  async testIntelligenceTierRouting(userId: string, userTier: SubscriptionTier): Promise<void> {
+    const response = await this.tieredAI.generateSuggestions({
+      userId,
+      feature: userTier === 'premium' || userTier === 'enterprise' ? 'advanced_suggestions' : 'basic_suggestions',
+      tasks: this.createMockTasks(),
+      context: this.createMockContext(),
+      userTier
+    });
+
+    if (!response.success) {
+      throw new Error(`Tier routing failed: ${response.error}`);
+    }
+
+    const expectedTiers: Record<SubscriptionTier, string[]> = {
+      'free': ['adaptive_learning', 'cost_optimized', 'local_ml'],
+      'premium': ['super_intelligent', 'adaptive_learning'],
+      'enterprise': ['super_intelligent', 'adaptive_learning']
+    };
+
+    if (!expectedTiers[userTier].includes(response.metadata?.tier || '')) {
+      throw new Error(`Unexpected tier: ${response.metadata?.tier} for ${userTier} user`);
+    }
+  }
+
+  async testBehavioralAnalysis(userId: string): Promise<void> {
+    const contextWithHistory = {
+      ...this.createMockContext(),
+      recentActivity: [
+        {
+          id: 'overdue-1',
+          title: 'Overdue Assignment',
+          dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          priority: 'high' as const,
+          type: 'academic' as const,
+          subject: 'Physics',
+          completed: false,
+          reminder: true,
+          description: 'Critical assignment',
+          recurrenceRule: 'none' as const,
+          recurrenceInterval: 0,
+          recurrenceEndDate: undefined,
+          originalDueDate: undefined,
+          completedOverrides: {}
+        }
+      ]
+    };
+
+    const response = await this.tieredAI.generateSuggestions({
+      userId,
+      feature: 'advanced_suggestions',
+      tasks: this.createMockTasks(),
+      context: contextWithHistory,
+      userTier: 'premium'
+    });
+
+    if (!response.success) {
+      throw new Error(`Behavioral analysis failed: ${response.error}`);
+    }
+
+    if (!response.metadata?.behavioralInsights?.procrastinationRisk) {
+      throw new Error('Procrastination detection not working');
+    }
+  }
+
+  async testMoodDetection(userId: string): Promise<void> {
+    const stressfulContext = {
+      ...this.createMockContext(),
+      upcomingTasks: [
+        {
+          id: 'exam-prep',
+          title: 'Final Exam Tomorrow',
+          dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          priority: 'high' as const,
+          type: 'academic' as const,
+          subject: 'Mathematics',
+          completed: false,
+          reminder: true,
+          description: 'Critical exam preparation',
+          recurrenceRule: 'none' as const,
+          recurrenceInterval: 0,
+          recurrenceEndDate: undefined,
+          originalDueDate: undefined,
+          completedOverrides: {},
+          difficulty: 9
+        }
+      ]
+    };
+
+    const response = await this.tieredAI.generateSuggestions({
+      userId,
+      feature: 'advanced_suggestions',
+      tasks: this.createMockTasks(),
+      context: stressfulContext,
+      userTier: 'premium'
+    });
+
+    if (!response.success) {
+      throw new Error(`Mood detection failed: ${response.error}`);
+    }
+
+    if (!response.metadata?.moodAnalysis?.stressLevel || 
+        response.metadata.moodAnalysis.stressLevel < 0.7) {
+      throw new Error('Stress level detection not working properly');
+    }
+  }
+
+  async testPerformanceBenchmarks(userId: string): Promise<{
+    responseTime: number;
+    confidence: number;
+    tier: string;
+  }> {
+    const startTime = performance.now();
+    
+    const response = await this.tieredAI.generateSuggestions({
+      userId,
+      feature: 'advanced_suggestions',
+      tasks: this.createMockTasks(),
+      context: this.createMockContext(),
+      userTier: 'premium'
+    });
+
+    const responseTime = performance.now() - startTime;
+
+    if (!response.success) {
+      throw new Error(`Performance benchmark failed: ${response.error}`);
+    }
+
+    return {
+      responseTime,
+      confidence: response.metadata?.confidence || 0,
+      tier: response.metadata?.tier || 'unknown'
+    };
+  }
+
+  async testFallbackChain(userId: string): Promise<void> {
+    const originalFetch = global.fetch;
+    
+    try {
+      global.fetch = jest.fn().mockRejectedValue(new Error('External services unavailable'));
+
+      const response = await this.tieredAI.generateSuggestions({
+        userId,
+        feature: 'basic_suggestions',
+        tasks: this.createMockTasks(),
+        context: this.createMockContext(),
+        userTier: 'free'
+      });
+
+      if (!response.success) {
+        throw new Error(`Fallback chain failed: ${response.error}`);
+      }
+
+      if (response.metadata?.tier !== 'local_ml') {
+        throw new Error(`Expected local_ml tier, got: ${response.metadata?.tier}`);
+      }
+    } finally {
+      global.fetch = originalFetch;
+    }
   }
 
   // Comprehensive test suite
@@ -324,6 +490,52 @@ export class AITestUtils {
     return results;
   }
 
+  // Comprehensive AI integration test suite
+  async runComprehensiveAITests(): Promise<TestResult[]> {
+    const results: TestResult[] = [];
+    const testUsers = this.createTestUsers();
+
+    console.log('🧪 Starting Comprehensive AI Integration Testing...');
+
+    // Intelligence Tier Tests
+    results.push(await this.runTest(
+      'Intelligence Tier Routing - Premium',
+      () => this.testIntelligenceTierRouting(testUsers.premiumUser.id, 'premium')
+    ));
+
+    results.push(await this.runTest(
+      'Intelligence Tier Routing - Free',
+      () => this.testIntelligenceTierRouting(testUsers.freeUser.id, 'free')
+    ));
+
+    // Advanced ML Feature Tests
+    results.push(await this.runTest(
+      'Behavioral Analysis',
+      () => this.testBehavioralAnalysis(testUsers.premiumUser.id)
+    ));
+
+    results.push(await this.runTest(
+      'Mood Detection',
+      () => this.testMoodDetection(testUsers.premiumUser.id)
+    ));
+
+    // Performance and Reliability Tests
+    const performanceResult = await this.testPerformanceBenchmarks(testUsers.premiumUser.id);
+    results.push({
+      testName: 'Performance Benchmarks',
+      passed: performanceResult.responseTime < 200 && performanceResult.confidence > 0.9,
+      duration: performanceResult.responseTime,
+      details: performanceResult
+    });
+
+    results.push(await this.runTest(
+      'Fallback Chain',
+      () => this.testFallbackChain(testUsers.freeUser.id)
+    ));
+
+    return results;
+  }
+
   // Helper to print test results
   printTestResults(results: TestResult[]): void {
     console.log('\n🧪 Test Results Summary:');
@@ -352,4 +564,4 @@ export class AITestUtils {
 }
 
 // Export singleton instance
-export const aiTestUtils = new AITestUtils(); 
+export const aiTestUtils = new AITestUtils();

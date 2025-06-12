@@ -13,7 +13,8 @@ export interface ReminderSettings {
 
 export interface Task {
   id: string; // UUID
-  user_id: string; // UUID, FK to auth.users.id
+  user_id: string; // UUID, FK to profiles.id
+  clerk_user_id?: string; // TEXT, Clerk user ID for RLS policies
   title: string;
   description?: string;
   due_date?: string; // ISO timestamp string

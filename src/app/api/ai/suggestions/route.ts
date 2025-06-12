@@ -1,6 +1,23 @@
 import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { AIFeatureType } from '@/types/ai';
+import { SubscriptionTier } from '@/types/subscription';
+
+// Type guard to check if a string is a valid AIFeatureType
+function isAIFeatureType(feature: string): feature is AIFeatureType {
+  const validFeatures: AIFeatureType[] = [
+    'basic_suggestions',
+    'advanced_suggestions',
+    'study_planning',
+    'voice_processing',
+    'stu_personality',
+    'ml_predictions',
+    'collaborative_filtering',
+    'premium_analytics'
+  ];
+  return (validFeatures as string[]).includes(feature);
+}
 
 /**
  * POST /api/ai/suggestions
@@ -19,8 +36,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { feature, tasks, context } = body;
 
-    if (!feature) {
-      return NextResponse.json({ error: 'Feature type is required' }, { status: 400 });
+    if (!feature || typeof feature !== 'string' || !isAIFeatureType(feature)) {
+      return NextResponse.json({ error: 'A valid feature type is required' }, { status: 400 });
     }
 
     // Create Supabase client with native Clerk integration
@@ -46,7 +63,7 @@ export async function POST(request: Request) {
       .eq('status', 'active')
       .single();
 
-    const userTier = subscription?.tier_id || 'free';
+    const userTier = (subscription?.tier_id as SubscriptionTier) || 'free';
 
     // Check usage limits
     const today = new Date().toISOString().split('T')[0];
@@ -77,7 +94,7 @@ export async function POST(request: Request) {
     }
 
     // Check feature tier requirements
-    const featureRequirements = {
+    const featureRequirements: Record<AIFeatureType, SubscriptionTier> = {
       basic_suggestions: 'free',
       advanced_suggestions: 'premium',
       study_planning: 'premium',
@@ -88,8 +105,8 @@ export async function POST(request: Request) {
       premium_analytics: 'enterprise'
     };
 
-    const requiredTier = featureRequirements[feature] || 'premium';
-    const tierHierarchy = { free: 0, premium: 1, enterprise: 2 };
+    const requiredTier = featureRequirements[feature];
+    const tierHierarchy: Record<SubscriptionTier, number> = { free: 0, premium: 1, enterprise: 2 };
     const hasRequiredTier = tierHierarchy[userTier] >= tierHierarchy[requiredTier];
 
     if (!hasRequiredTier) {

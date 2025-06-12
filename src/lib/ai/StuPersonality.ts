@@ -166,7 +166,7 @@ export class StuPersonality {
       overdueTasks,
       upcomingDeadlines,
       totalTasks: tasks.length,
-      recentActivity: context.recentActivity.length,
+      recentActivity: context.recentActivity?.length || 0,
       timeOfDay,
       workload
     };

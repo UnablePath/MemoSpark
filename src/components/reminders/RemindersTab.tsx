@@ -1,439 +1,177 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
+import { motion, AnimatePresence } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { format } from "date-fns";
-import { FaCalendarAlt, FaCheckCircle, FaStar } from "react-icons/fa";
+import { format, isPast, isToday } from "date-fns";
+import { FaCalendarAlt, FaCheckCircle, FaStar, FaInfoCircle, FaPlus } from "react-icons/fa";
 import { toast } from "sonner";
 import { KoalaMascot } from "@/components/ui/koala-mascot";
 import { cn } from "@/lib/utils";
+import { useReminders } from "@/hooks/useReminders";
+import { useAchievements } from "@/hooks/useAchievements";
+import { checkAchievementProgress } from "@/lib/supabase/client";
+import { RemindersSkeleton } from "./RemindersSkeleton";
+import type { Reminder } from "@/types/reminders";
+import { useAuth } from "@clerk/nextjs";
 
-// Mock data for streaks, reminders and achievements
-const initialStreak = 3;
-const initialCoins = 75;
-
-interface Reminder {
-  id: string;
-  taskName: string;
-  dueDate: string;
-  completed: boolean;
-  points: number;
-}
-
-const mockReminders: Reminder[] = [
-  {
-    id: "1",
-    taskName: "Math Assignment",
-    dueDate: format(new Date(new Date().setHours(14, 30)), "p, MMM d"),
-    completed: false,
-    points: 10,
-  },
-  {
-    id: "2",
-    taskName: "Study Group Meeting",
-    dueDate: format(new Date(new Date().setHours(16, 0)), "p, MMM d"),
-    completed: false,
-    points: 5,
-  },
-  {
-    id: "3",
-    taskName: "Physics Lab Report",
-    dueDate: "Tomorrow, 11:59 PM",
-    completed: false,
-    points: 15,
-  },
-];
-
-interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ReactNode;
-  unlocked: boolean;
-  progress?: number;
-  total?: number;
-}
-
-const achievements: Achievement[] = [
-  {
-    id: "taskmaster",
-    name: "Task Master",
-    description: "Complete 10 tasks in a row",
-    icon: <FaCheckCircle className="h-6 w-6 text-primary" />,
-    unlocked: false,
-    progress: 3,
-    total: 10,
-  },
-  {
-    id: "earlybird",
-    name: "Early Bird",
-    description: "Complete 5 tasks before their due date",
-    icon: <FaCalendarAlt className="h-6 w-6 text-primary" />,
-    unlocked: false,
-    progress: 2,
-    total: 5,
-  },
-  {
-    id: "streaker",
-    name: "Streaker",
-    description: "Maintain a 7-day streak",
-    icon: <FaStar className="h-6 w-6 text-primary" />,
-    unlocked: false,
-    progress: 3,
-    total: 7,
-  },
-];
-
-// Stu's messages for different scenarios
+// Stu's messages (can be externalized)
 const stuMessages = {
-  greeting: [
-    "Hey there! Ready to tackle today's tasks?",
-    "G'day mate! Let's get some work done today!",
-    "Hi friend! Looking forward to helping you stay on track!",
-  ],
-  reminder: [
-    "Don't forget about your {task}. It's due {time}!",
-    "Just a friendly reminder about {task} due {time}.",
-    "Hello! You've got {task} coming up {time}.",
-  ],
-  encouragement: [
-    "You're doing great! Keep up the momentum!",
-    "Wow! You're on a {streak}-day streak. Amazing work!",
-    "Look at you go! You're making excellent progress.",
-  ],
-  achievement: [
-    "Congratulations! You've unlocked the {achievement} badge!",
-    "Achievement unlocked: {achievement}! Well done!",
-    "You've earned the {achievement} badge! Keep it up!",
-  ],
-  tap: [
-    "Hi there! Need any help?",
-    "Hey! Click on a task to complete it!",
-    "Remember to keep your streak going!",
-  ],
-};
-
-const getRandomMessage = (category: keyof typeof stuMessages, replacements?: Record<string, string>) => {
-  const messages = stuMessages[category];
-  let message = messages[Math.floor(Math.random() * messages.length)];
-
-  if (replacements) {
-    for (const [key, value] of Object.entries(replacements)) {
-      message = message.replace(`{${key}}`, value);
-    }
-  }
-
-  return message;
+    greeting: "Ready to crush some goals today?",
+    noReminders: "No reminders yet. Let's add one!",
+    reminderDue: "Don't forget, {title} is due today!",
+    encouragement: "Awesome job! Keep that momentum going!",
+    achievement: "Woohoo! New achievement unlocked!",
+    tap: "Need a tip? Just ask!"
 };
 
 const RemindersTab = () => {
-  const [streak, setStreak] = useState(initialStreak);
-  const [coins, setCoins] = useState(initialCoins);
-  const [showAchievements, setShowAchievements] = useState(false);
-  const [showingStuMessage, setShowingStuMessage] = useState(false);
-  const [stuMessage, setStuMessage] = useState("");
-  const [stuMessageForSR, setStuMessageForSR] = useState<string>("");
-  const [isStuTalking, setIsStuTalking] = useState(false);
-  const [stuAnimation, setStuAnimation] = useState<"idle" | "talking" | "excited" | "sleeping">("idle");
-  const [stuReady, setStuReady] = useState(false);
-  const prefersReducedMotion = useReducedMotion();
-  const [reminders, setReminders] = useState<Reminder[]>(mockReminders);
+    const { userId, getToken } = useAuth();
+    const { reminders, loading, error, editReminder, addReminder } = useReminders();
+    const { userStats, reload: reloadAchievements } = useAchievements();
 
-  // Show Stu's greeting message when the component mounts
-  useEffect(() => {
-    // Delay to make Stu appear as loading/waking up
-    const wakeupTimer = setTimeout(() => {
-      setStuReady(true);
+    const [stuMessage, setStuMessage] = useState("");
+    const [stuAnimation, setStuAnimation] = useState<"idle" | "talking" | "excited">("idle");
+    const [showAchievementsDialog, setShowAchievementsDialog] = useState(false);
 
-      const messageTimer = setTimeout(() => {
-        const message = getRandomMessage("greeting");
+    const showStuMessage = (message: string, animation: "talking" | "excited" = "talking", duration = 3000) => {
         setStuMessage(message);
-        setStuMessageForSR(message);
-        setShowingStuMessage(true);
-        setStuAnimation("talking");
+        setStuAnimation(animation);
+        setTimeout(() => setStuAnimation("idle"), duration);
+    };
 
-        setTimeout(() => {
-          setStuAnimation("idle");
-        }, 2000);
+    useEffect(() => {
+        if (!loading) {
+            const upcoming = reminders.find(r => !r.completed && isToday(new Date(r.due_date)));
+            if (upcoming) {
+                showStuMessage(stuMessages.reminderDue.replace("{title}", upcoming.title));
+            } else if (reminders.length === 0) {
+                showStuMessage(stuMessages.noReminders);
+            } else {
+                showStuMessage(stuMessages.greeting);
+            }
+        }
+    }, [loading, reminders]);
+    
+    const handleCompleteReminder = async (reminder: Reminder) => {
+        if (!userId) return;
+        await editReminder(reminder.id, { completed: true });
+        toast.success(`Completed: "${reminder.title}"`, { description: `+${reminder.points || 0} points! Great work!` });
+        try {
+            const token = await getToken({ template: 'supabase-integration' });
+            await checkAchievementProgress(userId, { type: 'reminder_completed', payload: { ...reminder } }, () => Promise.resolve(token));
+            showStuMessage(stuMessages.achievement, "excited", 4000);
+            reloadAchievements();
+        } catch (e) {
+            console.error("Failed to check achievement progress:", e);
+            showStuMessage(stuMessages.encouragement, "excited");
+        }
+    };
+    
+    if (loading) return <RemindersSkeleton />;
+    if (error) return <div className="flex items-center justify-center h-full text-red-500"><FaInfoCircle className="mr-4"/>Error: {error.message}</div>;
 
-        setTimeout(() => {
-          setShowingStuMessage(false);
-        }, 5000);
-      }, 500);
+    return (
+        <div className="h-full grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 overflow-hidden">
+            {/* Left Column: Stu and Stats */}
+            <div className="lg:col-span-1 flex flex-col gap-6">
+                <Card className="flex-grow flex flex-col items-center justify-center p-6 text-center bg-muted/30">
+                    <motion.div
+                        animate={stuAnimation}
+                        variants={{
+                            idle: { y: [0, -5, 0], transition: { duration: 2, repeat: Infinity } },
+                            talking: { y: [0, -8, 0], transition: { duration: 0.5, repeat: Infinity } },
+                            excited: { scale: [1, 1.1, 1], rotate: [-5, 5, -5, 0], transition: { duration: 0.5 } }
+                        }}
+                        onClick={() => showStuMessage(stuMessages.tap, "excited")}
+                    >
+                        <KoalaMascot size="lg" />
+                    </motion.div>
+                    <AnimatePresence>
+                        {stuMessage && (
+                            <motion.p
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="mt-4 font-semibold text-lg text-primary"
+                            >
+                                {stuMessage}
+                            </motion.p>
+                        )}
+                    </AnimatePresence>
+                </Card>
+                <Card>
+                    <CardHeader><CardTitle>Your Stats</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex justify-between"><span>Total Points:</span> <span className="font-bold">{userStats?.total_points || 0}</span></div>
+                        <div className="flex justify-between"><span>Current Streak:</span> <span className="font-bold">{userStats?.current_streak || 0} Days</span></div>
+                        <Button className="w-full" onClick={() => setShowAchievementsDialog(true)}><FaStar className="mr-2"/>View Achievements</Button>
+                    </CardContent>
+                </Card>
+            </div>
 
-      return () => clearTimeout(messageTimer);
-    }, 1000);
-
-    return () => clearTimeout(wakeupTimer);
-  }, []);
-
-  const handleStuClick = () => {
-    if (showingStuMessage) return;
-
-    const message = getRandomMessage("tap");
-    setStuMessage(message);
-    setStuMessageForSR(message);
-    setShowingStuMessage(true);
-    setStuAnimation("excited");
-
-    setTimeout(() => {
-      setStuAnimation("idle");
-    }, 1500);
-
-    setTimeout(() => {
-      setShowingStuMessage(false);
-    }, 3000);
-  };
-
-  const completeReminder = (id: string) => {
-    setReminders(prev =>
-      prev.map(reminder =>
-        reminder.id === id
-          ? { ...reminder, completed: true }
-          : reminder
-      )
-    );
-
-    const reminder = reminders.find(r => r.id === id);
-    if (reminder) {
-      setCoins(prev => prev + reminder.points);
-
-      const message = getRandomMessage("encouragement", { streak: streak.toString() });
-      setStuMessage(message);
-      setStuMessageForSR(message);
-      setShowingStuMessage(true);
-      setStuAnimation("excited");
-
-      setTimeout(() => {
-        setStuAnimation("idle");
-      }, 2000);
-
-      setTimeout(() => {
-        setShowingStuMessage(false);
-      }, 5000);
-
-      toast(`+${reminder.points} coins earned!`, {
-        description: "Keep completing tasks to earn more!",
-      });
-    }
-  };
-
-  // Animation variants for Stu
-  const koalaVariants = {
-    idle: {
-      y: [0, -2, 0],
-      transition: { duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: "loop" as const }
-    },
-    talking: {
-      y: [0, -5, 0, -3, 0],
-      transition: { duration: 2, repeat: Number.POSITIVE_INFINITY, repeatType: "loop" as const }
-    },
-    excited: {
-      y: [0, -10, 0, -8, 0],
-      rotate: [-5, 5, -5, 5, 0],
-      transition: { duration: 0.5, repeat: 3, repeatType: "loop" as const }
-    },
-    sleeping: {
-      y: 0,
-      rotate: [0, 2, 0],
-      transition: { duration: 3, repeat: Number.POSITIVE_INFINITY, repeatType: "loop" as const }
-    },
-    loading: {
-      opacity: [0.3, 1],
-      scale: [0.9, 1],
-      transition: { duration: 1, repeat: 0 }
-    }
-  };
-
-  // Modify koalaVariants if prefersReducedMotion is true, e.g., by shortening durations or removing movement
-  const getDynamicKoalaVariants = () => {
-    if (prefersReducedMotion) {
-      return {
-        idle: { opacity: 1 }, // No movement
-        talking: { opacity: 1 }, // No movement
-        excited: { 
-          scale: [1, 1.05, 1],
-          transition: { duration: 0.3, repeat: 1 }
-        }, // Minimal excitement
-        sleeping: { opacity: 0.7 }, // No movement
-        loading: { opacity: [0.3, 1], scale: [0.9, 1], transition: { duration: 0.5 } }
-      };
-    }
-    return koalaVariants; // Original variants with full motion
-  };
-
-  return (
-    <div className="h-full flex flex-col relative overflow-hidden p-4">
-      {/* ARIA Live Region for Stu's messages and other status */}
-      <div 
-        aria-live="polite" 
-        aria-atomic="true" 
-        className="sr-only"
-        role="status"
-        id="stu-announcements"
-      >
-        {stuMessageForSR}
-      </div>
-
-      {/* Header with Title, streak and coins */}
-      <div className="mb-4 pb-4 border-b flex-shrink-0">
-        <h1 className="text-2xl font-bold mb-2 text-center sm:text-left">Reminders & Achievements</h1>
-        <div className="flex flex-col sm:flex-row justify-around items-center gap-4 text-center p-2 rounded-lg bg-muted/50">
-          <div>
-            <p className="text-sm text-muted-foreground">Current Streak</p>
-            <p className="text-2xl font-bold text-primary" aria-live="polite" aria-atomic="true" aria-label={`Current streak: ${streak} days`}>
-              {streak} days
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Study Coins</p>
-            <p className="text-2xl font-bold text-yellow-500" aria-live="polite" aria-atomic="true" aria-label={`Study coins: ${coins}`}>
-              {coins} 🪙
-            </p>
-          </div>
-          <Button 
-            onClick={() => setShowAchievements(true)} 
-            variant="outline"
-            aria-label="View your achievements and progress"
-          >
-             <FaStar className="mr-2 h-4 w-4" aria-hidden="true" /> View Achievements
-          </Button>
-        </div>
-      </div>
-
-      {/* Stu Mascot Section - Centered */}
-      <div className="flex flex-col items-center justify-center relative py-4 md:py-6 flex-shrink-0">
-        {/* Interactive Button for Stu */}
-        <Button 
-          variant="ghost" 
-          className="p-0 w-32 h-32 sm:w-40 sm:h-40 block rounded-full focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-          onClick={handleStuClick} 
-          aria-label="Interact with Stu, your study mascot. Click for encouragement and tips."
-          aria-describedby="stu-announcements"
-        >
-          <motion.div 
-            variants={getDynamicKoalaVariants()} 
-            animate={stuReady ? stuAnimation : "loading"} 
-            className="w-full h-full flex items-center justify-center cursor-pointer"
-          >
-            <KoalaMascot 
-              size="lg" 
-              className="w-full h-full" 
-              aria-label={stuReady ? "Stu the koala mascot" : "Stu is loading"}
-            />
-          </motion.div>
-        </Button>
-        
-        {/* Stu's Message Bubble */}
-        {showingStuMessage && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: 10 }} 
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-auto max-w-xs sm:max-w-sm md:max-w-md p-3 bg-background border shadow-lg rounded-md text-sm text-center z-10 mb-[-20px] sm:mb-[-24px]"
-            role="tooltip"
-            aria-live="assertive"
-            aria-atomic="true"
-          >
-            {stuMessage}
-          </motion.div>
-        )}
-        
-        {!stuReady && (
-          <p className="text-sm text-muted-foreground mt-2" role="status" aria-live="polite">
-            Stu is waking up...
-          </p>
-        )}
-      </div>
-
-      {/* Reminders List Section - Takes remaining space */}
-      <div className="flex-grow flex flex-col overflow-hidden mt-4">
-        <h2 className="text-xl font-semibold mb-3 px-1 text-center sm:text-left flex-shrink-0">
-          Your Reminders
-        </h2>
-        
-        {reminders.length === 0 ? (
-          <div className="flex-grow flex items-center justify-center">
-            <p className="text-muted-foreground text-center py-6">
-              No reminders scheduled. Add some from your tasks!
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3 overflow-y-auto pr-2 flex-grow" role="list" aria-label="Your reminders">
-            {reminders.map((reminder) => (
-              <div 
-                key={reminder.id} 
-                className={cn(
-                  "p-3 rounded-lg shadow transition-all flex items-center gap-3",
-                  reminder.completed ? 'bg-muted/50 opacity-70' : 'bg-card border'
-                )}
-                role="listitem"
-              >
-                <div className="flex-grow">
-                  <h3 
-                    className={cn("font-medium", reminder.completed && 'line-through')}
-                    id={`reminder-title-${reminder.id}`}
-                  >
-                    {reminder.taskName}
-                  </h3>
-                  <p 
-                    className="text-xs text-muted-foreground"
-                    id={`reminder-details-${reminder.id}`}
-                  >
-                    Due: {reminder.dueDate} - {reminder.points} points
-                  </p>
+            {/* Right Column: Reminders */}
+            <div className="lg:col-span-2 flex flex-col h-full">
+                <div className="flex justify-between items-center mb-4">
+                    <h1 className="text-2xl font-bold">Your Reminders</h1>
+                    <Button onClick={() => { /* Placeholder for add reminder dialog */ }}>
+                        <FaPlus className="mr-2"/> Add Reminder
+                    </Button>
                 </div>
-                
-                {!reminder.completed && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => completeReminder(reminder.id)}
-                    aria-labelledby={`reminder-title-${reminder.id}`}
-                    aria-describedby={`reminder-details-${reminder.id}`}
-                    aria-label={`Mark reminder "${reminder.taskName}" as complete to earn ${reminder.points} points`}
-                    className="whitespace-nowrap bg-green-500 hover:bg-green-600 text-white border-green-600"
-                  >
-                    <FaCheckCircle className="mr-2 h-4 w-4" aria-hidden="true"/> Mark as Done
-                  </Button>
-                )}
-                
-                {reminder.completed && (
-                   <FaCheckCircle 
-                     className="h-6 w-6 text-green-500" 
-                     aria-label="Reminder completed" 
-                     role="img" 
-                   />
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      
-      {/* Achievements Dialog */}
-      {showAchievements && (
-        <Dialog open={showAchievements} onOpenChange={setShowAchievements}>
-          <DialogContent aria-labelledby="achievements-title" aria-describedby="achievements-description">
-            <DialogHeader>
-              <DialogTitle id="achievements-title">Your Achievements</DialogTitle>
-            </DialogHeader>
-            <p id="achievements-description">View your progress and unlocked achievements here.</p>
-            <p>Achievements list will go here...</p>
-            <DialogFooter>
-              <Button onClick={() => setShowAchievements(false)} aria-label="Close achievements dialog">
-                Close
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-    </div>
-  );
+                <div className="flex-grow overflow-y-auto pr-2">
+                    {reminders.length === 0 ? (
+                        <div className="text-center py-16">
+                            <p className="text-muted-foreground">You're all clear! Add a new reminder.</p>
+                        </div>
+                    ) : (
+                        <AnimatePresence>
+                            {reminders.map(r => <ReminderCard key={r.id} reminder={r} onComplete={handleCompleteReminder} />)}
+                        </AnimatePresence>
+                    )}
+                </div>
+            </div>
+
+            <Dialog open={showAchievementsDialog} onOpenChange={setShowAchievementsDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Your Achievements</DialogTitle>
+                    </DialogHeader>
+                    {/* Achievements content will go here */}
+                    <p>Achievement display coming soon!</p>
+                    <DialogFooter>
+                        <Button onClick={() => setShowAchievementsDialog(false)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+};
+
+const ReminderCard = ({ reminder, onComplete }: { reminder: Reminder; onComplete: (r: Reminder) => void }) => {
+    const isOverdue = !reminder.completed && isPast(new Date(reminder.due_date));
+    return (
+        <motion.div layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -50 }}>
+            <Card className={cn("mb-3 transition-all", reminder.completed && "bg-muted/50 opacity-50")}>
+                <CardContent className="p-4 flex items-center gap-4">
+                    <FaCheckCircle
+                        className={cn("w-7 h-7 cursor-pointer transition-colors", reminder.completed ? "text-green-500" : "text-gray-300 hover:text-green-400")}
+                        onClick={() => !reminder.completed && onComplete(reminder)}
+                    />
+                    <div className="flex-1">
+                        <p className={cn("font-semibold text-lg", reminder.completed && "line-through")}>{reminder.title}</p>
+                        <div className={cn("flex items-center gap-2 text-sm", isOverdue ? "text-red-500 font-semibold" : "text-muted-foreground")}>
+                            <FaCalendarAlt />
+                            <span>{format(new Date(reminder.due_date), "PPp")}</span>
+                            {isOverdue && <span>(Overdue)</span>}
+                        </div>
+                    </div>
+                    <div className="font-bold text-lg text-yellow-500">+{reminder.points || 0} pts</div>
+                </CardContent>
+            </Card>
+        </motion.div>
+    );
 };
 
 export default RemindersTab;

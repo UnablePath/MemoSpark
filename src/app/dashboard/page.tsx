@@ -30,16 +30,16 @@ export default function DashboardPage() {
         </Link>
         
         {/* Tier and Usage Display */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 sm:gap-2 lg:gap-3">
           {!isLoading && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               {/* Tier Badge */}
-              <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${
+              <div className={`flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium scale-[0.94] sm:scale-100 ${
                 userTier === 'free' ? 'bg-gray-100 text-gray-700' :
                 userTier === 'premium' ? 'bg-amber-100 text-amber-700' :
                 'bg-purple-100 text-purple-700'
               }`}>
-                {userTier !== 'free' && <Crown className="h-3 w-3" />}
+                {userTier !== 'free' && <Crown className="h-2.5 w-2.5 sm:h-3 sm:w-3" />}
                 {userTier}
               </div>
               
@@ -52,9 +52,9 @@ export default function DashboardPage() {
               
               {/* Upgrade Button for Free Users */}
               {userTier === 'free' && (
-                <Button size="sm" variant="outline" className="hidden md:flex border-amber-300 hover:bg-amber-50">
-                  <Crown className="h-3 w-3 mr-1" />
-                  Upgrade
+                <Button size="sm" variant="outline" className="hidden xs:flex border-amber-300 hover:bg-amber-50 scale-[0.94] sm:scale-100 h-8 px-2 sm:h-9 sm:px-3">
+                  <Crown className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
+                  <span className="text-xs sm:text-sm">Upgrade</span>
                 </Button>
               )}
             </div>

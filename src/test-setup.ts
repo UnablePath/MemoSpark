@@ -173,14 +173,17 @@ global.IntersectionObserver = jest.fn().mockImplementation(() => ({
   disconnect: jest.fn(),
 }));
 
-// Establish API mocking before all tests
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+// The MSW server is disabled as mock data is being removed.
+// The real API will be tested in integration and E2E tests.
 
-// Reset any request handlers that we may add during the tests
-afterEach(() => server.resetHandlers());
+// // Establish API mocking before all tests
+// beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 
-// Clean up after the tests are finished
-afterAll(() => server.close());
+// // Reset any request handlers that we may add during the tests
+// afterEach(() => server.resetHandlers());
+
+// // Clean up after the tests are finished
+// afterAll(() => server.close());
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {

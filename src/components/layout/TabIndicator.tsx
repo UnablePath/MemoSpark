@@ -6,11 +6,12 @@ import { motion } from 'framer-motion';
 interface TabIndicatorProps {
   count: number;
   activeIndex: number;
+  className?: string;
 }
 
-export function TabIndicator({ count, activeIndex }: TabIndicatorProps) {
+export function TabIndicator({ count, activeIndex, className }: TabIndicatorProps) {
   return (
-    <div className="flex justify-center items-center space-x-3 py-2">
+    <div className={`flex justify-center items-center space-x-3 py-2 ${className || ''}`}>
       {Array.from({ length: count }).map((_, index) => (
         <motion.div
           key={index}

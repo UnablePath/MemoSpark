@@ -539,15 +539,14 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                       size="sm"
                       onClick={toggleAISuggestions}
                       className={cn(
-                        "ml-2 transition-colors",
+                        "ml-2 transition-colors h-8 px-2 sm:px-3",
                         showAISuggestions ? "text-primary" : "text-muted-foreground"
                       )}
                     >
-                      <Brain className="h-4 w-4 mr-1" />
-                      <span className="hidden sm:inline">
+                      <Brain className="h-4 w-4 sm:mr-1" />
+                      <span className="hidden sm:inline ml-1">
                         {showAISuggestions ? 'Hide' : 'Show'} AI Tips
                       </span>
-                      <span className="sm:hidden">AI</span>
                     </Button>
                   )}
                 </div>

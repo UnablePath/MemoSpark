@@ -37,7 +37,7 @@ const getTaskCreationSuggestions = (userName?: string): AISuggestion[] => {
       type: 'task_suggestion',
       title: `Good morning, ${userFirstName}! Start with a focused study session`,
       description: 'Morning is an excellent time for deep learning. Consider tackling your most challenging subject first.',
-      priority: 'high',
+      priority: 'high' as 'low' | 'medium' | 'high',
       confidence: 0.85,
       reasoning: 'Studies show that cognitive performance is typically highest in the morning hours.',
       duration: 90,
@@ -182,7 +182,11 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
     isLoading: isTierLoading = false, 
     generateSuggestions = null, 
     isFeatureAvailable = () => true,
-    tierLimits = {}
+    tierLimits = {
+      free: { suggestions: 3, dailyRequests: 10 },
+      premium: { suggestions: 8, dailyRequests: 100 },
+      enterprise: { suggestions: 15, dailyRequests: -1 }
+    }
   } = tieredAI || {};
 
   // Update AI suggestions when user data changes
@@ -423,12 +427,11 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
       return (
         <ShimmerButton
           onClick={() => openTimetableForm()}
-          className="whitespace-nowrap"
+          className="whitespace-nowrap h-8 px-2 sm:h-9 sm:px-3 md:h-10 md:px-4 scale-[0.94] sm:scale-100"
           aria-label="Add new class (Ctrl+N)"
         >
-          <GraduationCap className="h-4 w-4 mr-2" />
-          <span className="hidden sm:inline">Add Class</span>
-          <span className="sm:hidden">Add</span>
+          <GraduationCap className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <span className="hidden sm:inline ml-1 sm:ml-2 text-xs sm:text-sm">Add Class</span>
         </ShimmerButton>
       );
     }
@@ -436,12 +439,11 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
     return (
       <ShimmerButton
         onClick={() => openTaskForm()}
-        className="whitespace-nowrap"
+        className="whitespace-nowrap h-8 px-2 sm:h-9 sm:px-3 md:h-10 md:px-4 scale-[0.94] sm:scale-100"
         aria-label="Create new task (Ctrl+N)"
       >
-        <Plus className="h-4 w-4 mr-2" />
-        <span className="hidden sm:inline">Add Task</span>
-        <span className="sm:hidden">Add</span>
+        <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+        <span className="hidden sm:inline ml-1 sm:ml-2 text-xs sm:text-sm">Add Task</span>
       </ShimmerButton>
     );
   };
@@ -457,7 +459,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
             Your all-in-one productivity hub.
           </p>
         </div>
-        <div className="flex w-full md:w-auto items-center gap-4">
+        <div className="flex w-full md:w-auto items-center gap-2 md:gap-4">
           {renderAddButton()}
 
           {/* AI Suggestions Toggle - Tier Aware */}
@@ -466,21 +468,20 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
             size="default"
             onClick={toggleAISuggestions}
             className={cn(
-              "whitespace-nowrap transition-all duration-200 relative",
+              "whitespace-nowrap transition-all duration-200 relative h-8 px-2 sm:h-9 sm:px-3 md:h-10 md:px-4 scale-[0.94] sm:scale-100",
               showAISuggestions && "bg-primary hover:bg-primary/90 text-primary-foreground",
               userTier === 'premium' && "border-amber-300",
               userTier === 'enterprise' && "border-purple-300"
             )}
             aria-label={`Toggle AI Suggestions - ${userTier} tier (${usage.requestsRemaining} remaining)`}
           >
-            <Brain className="h-4 w-4 mr-2" />
+            <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             {userTier !== 'free' && (
-              <Crown className="h-3 w-3 mr-1 text-amber-500" />
+              <Crown className="h-2.5 w-2.5 sm:h-3 sm:w-3 ml-1 sm:mr-1 -ml-1 sm:ml-0" />
             )}
-            <span className="hidden sm:inline">
+            <span className="hidden sm:inline ml-1 sm:ml-2 text-xs sm:text-sm">
               {showAISuggestions ? 'Hide AI' : 'AI Suggestions'}
             </span>
-            <span className="sm:hidden">AI</span>
             {/* Usage indicator */}
             <div className="absolute -top-1 -right-1 bg-muted text-muted-foreground text-xs px-1 rounded-full min-w-[1.25rem] h-5 flex items-center justify-center">
               {usage.requestsRemaining}
@@ -488,7 +489,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
           </Button>
 
           {/* Desktop view switcher */}
-          <div className="hidden md:flex items-center gap-1 rounded-md bg-muted p-1 group">
+          <div className="hidden md:flex items-center gap-1 rounded-md bg-muted p-1 group scale-[0.94] lg:scale-100">
             {viewOptions.map((option) => (
               <InteractiveHoverButton
                 key={option.id}
@@ -499,10 +500,11 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                     viewTabVariants({
                       state: currentView === option.id ? "active" : "inactive",
                     }),
+                    "px-2 py-1.5 lg:px-3 lg:py-2"
                   )}
                 >
-                  <option.icon className="h-4 w-4" />
-                  <span className="hidden lg:inline">{option.label}</span>
+                  <option.icon className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
+                  <span className="hidden lg:inline text-xs lg:text-sm ml-1">{option.label}</span>
                 </div>
               </InteractiveHoverButton>
             ))}
@@ -519,7 +521,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
           </div>
 
           {/* Mobile view switcher - icons only */}
-          <div className="flex md:hidden items-center gap-1 rounded-md bg-muted p-1">
+          <div className="flex md:hidden items-center gap-1 rounded-md bg-muted p-1 scale-[0.94] sm:scale-100">
             {viewOptions.map((option) => (
               <InteractiveHoverButton
                 key={option.id}
@@ -530,11 +532,11 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                     viewTabVariants({
                       state: currentView === option.id ? "active" : "inactive",
                     }),
-                    "px-2 py-2" // Smaller padding for mobile icons
+                    "px-1.5 py-1.5 sm:px-2 sm:py-2" // Smaller padding for mobile icons
                   )}
                   title={option.label}
                 >
-                  <option.icon className="h-4 w-4" />
+                  <option.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </div>
               </InteractiveHoverButton>
             ))}

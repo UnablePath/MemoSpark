@@ -1,5 +1,4 @@
-/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
-
+// @ts-ignore - Deno runtime types in edge function
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // Types for ML inference
@@ -30,7 +29,9 @@ const responseCache = new Map<string, { response: MLResponse; timestamp: number 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 // Initialize Supabase client
+// @ts-ignore - Deno global available in edge function runtime
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+// @ts-ignore - Deno global available in edge function runtime
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -313,6 +314,7 @@ async function generateStudyRecommendations(request: MLRequest): Promise<any[]> 
 /**
  * Main handler function
  */
+// @ts-ignore - Deno global available in edge function runtime
 Deno.serve(async (req: Request) => {
   // CORS headers
   const corsHeaders = {

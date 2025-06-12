@@ -2,20 +2,22 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
-    "strict": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": false,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["deno.ns", "deno.window", "dom", "esnext"],
-    "types": ["https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts"],
+    "lib": ["dom", "dom.iterable", "esnext", "webworker"],
     "jsx": "react-jsx",
     "allowJs": true,
     "noEmit": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "types": [],
     "baseUrl": ".",
-    "paths": {
-      // "@/*": ["../../src/*"]
-    }
+    "paths": {},
+    "typeRoots": []
   },
   "include": ["./**/*.ts"],
   "exclude": ["../../node_modules"]

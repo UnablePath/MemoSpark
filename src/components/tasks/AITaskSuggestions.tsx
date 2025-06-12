@@ -10,9 +10,7 @@ import { SuggestionCard } from '@/components/ai/SuggestionCard';
 import { TierBadge } from '@/components/ui/TierBadge';
 import { UpgradePrompt } from '@/components/ui/UpgradePrompt';
 import { cn } from '@/lib/utils';
-import { memoSparkAI, MemoSparkAI } from '@/lib/ai';
-import type { StudySuggestion } from '@/lib/ai/suggestionEngine';
-import type { ExtendedTask, AISuggestion, SuggestionType } from '@/types/ai';
+import type { ExtendedTask, AISuggestion, SuggestionType, StudySuggestion } from '@/types/ai';
 import { useEnhancedUserContext, useSaveAISuggestionFeedback } from '@/lib/hooks/queries';
 import { useTieredAI } from '@/hooks/useTieredAI';
 import { toast } from 'sonner';
@@ -78,7 +76,6 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastGenerationTime, setLastGenerationTime] = useState<Date | null>(null);
-  const [aiInstance] = useState(() => memoSparkAI);
   
   // Enhanced caching and performance state
   const [suggestionCache, setSuggestionCache] = useState<Map<string, {
@@ -104,7 +101,7 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
 
   // Enhanced suggestion generation with better context and feedback filtering
   const generateTaskSuggestions = useCallback(async () => {
-    if (loading || !aiInstance) return;
+    if (loading) return;
 
     // Check tier limits first
     if (usage.requestsRemaining <= 0) {
@@ -146,6 +143,13 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
         completedOverrides: task.completed_overrides || task.completedOverrides,
       });
 
+      const defaultUserPreferences = {
+        preferredSessionLength: 60,
+        maxSuggestionsPerDay: 10,
+        enableBreakReminders: true,
+        preferredDifficulty: 3,
+      };
+
       // Enhanced context with user data from Supabase
       const context: EnhancedSuggestionContext = {
         currentTime: new Date(),
@@ -153,44 +157,28 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
         recentActivity: enhancedContext?.recentTasks?.map(convertTaskToExtendedTask) || [],
         recentCompletedTasks: enhancedContext?.recentCompletedTasks?.map(convertTaskToExtendedTask) || [],
         timetableEntries: enhancedContext?.timetableEntries || [],
-        userPreferences: MemoSparkAI.getDefaultPreferences(),
+        userPreferences: defaultUserPreferences,
         taskContext: currentTask,
         suggestionTypes: ['task_enhancement', 'time_optimization', 'priority_adjustment', 'subject_focus'],
         feedbackSummary: enhancedContext?.feedbackSummary,
       };
 
-              // Use MemoSparkAI to generate intelligent suggestions with retry logic
-      let result;
-      let retryAttempts = 0;
-      const maxRetries = 2;
+              // Use TieredAI hook to generate intelligent suggestions
+      const result = await generateTieredSuggestions(
+        'advanced_suggestions',
+        enhancedContext?.upcomingTasks?.map(convertTaskToExtendedTask) || [],
+        context
+      );
 
-      while (retryAttempts <= maxRetries) {
-        try {
-          result = await aiInstance.generateIntelligentSuggestions(
-            enhancedContext?.upcomingTasks?.map(convertTaskToExtendedTask) || [],
-            'current-user', // In real app, would use actual user ID
-            context
-          );
-          break; // Success, exit retry loop
-        } catch (apiError) {
-          retryAttempts++;
-          if (retryAttempts > maxRetries) {
-            throw apiError; // Re-throw if all retries failed
-          }
-          // Exponential backoff: wait 1s, then 2s
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryAttempts));
-        }
-      }
-
-      if (!result) {
-        throw new Error('Failed to generate suggestions after retries');
+      if (!result.success || !result.data) {
+        throw new Error(result.message || 'Failed to generate suggestions');
       }
 
       // Transform StudySuggestion to TaskSuggestion with proper mapping
       const taskSuggestions: TaskSuggestion[] = await Promise.all(
-        result.suggestions
+        (result.data.suggestions as StudySuggestion[])
           .slice(0, effectiveMaxSuggestions)
-          .map(async (suggestion) => await transformStudySuggestionToTaskSuggestion(suggestion, currentTask))
+          .map(async (suggestion: StudySuggestion) => await transformStudySuggestionToTaskSuggestion(suggestion, currentTask))
       );
 
       // Add task-specific enhancement suggestions
@@ -243,7 +231,7 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
       setLoadingStates(prev => ({ ...prev, [cacheKey]: false }));
       setLoading(false);
     }
-      }, [currentTask, effectiveMaxSuggestions, aiInstance, suggestionCache, retryCount, userAcceptanceHistory, enhancedContext, userTier, usage.requestsRemaining, tierLimits]);
+      }, [currentTask, effectiveMaxSuggestions, suggestionCache, retryCount, userAcceptanceHistory, enhancedContext, userTier, usage.requestsRemaining, tierLimits, generateTieredSuggestions, loading]);
 
   // Trigger suggestions when context is loaded and current task changes
   useEffect(() => {

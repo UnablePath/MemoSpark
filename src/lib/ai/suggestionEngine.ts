@@ -1,36 +1,5 @@
-import type { PatternData, Task, TimePattern, DifficultyProfile, SubjectInsights } from './patternEngine';
+import type { PatternData, Task, TimePattern, DifficultyProfile, SubjectInsights, StudySuggestion, SuggestionContext } from '@/types/ai';
 import { format, addDays, addHours, isAfter, isBefore, parseISO } from 'date-fns';
-
-export interface StudySuggestion {
-  id: string;
-  type: 'task' | 'break' | 'subject_focus' | 'schedule' | 'difficulty';
-  title: string;
-  description: string;
-  priority: 'low' | 'medium' | 'high';
-  suggestedTime?: string; // ISO string
-  duration?: number; // minutes
-  subject?: string;
-  confidence: number; // 0-1 score
-  reasoning: string;
-  metadata: {
-    category: string;
-    tags: string[];
-    difficulty?: number;
-    estimatedBenefit: number; // 0-1 score
-  };
-}
-
-export interface SuggestionContext {
-  currentTime: Date;
-  upcomingTasks: Task[];
-  recentActivity: Task[];
-  userPreferences?: {
-    preferredSessionLength: number;
-    maxSuggestionsPerDay: number;
-    enableBreakReminders: boolean;
-    preferredDifficulty: number;
-  };
-}
 
 export class SuggestionEngine {
   private static readonly MIN_CONFIDENCE_THRESHOLD = 0.3;
@@ -350,7 +319,7 @@ export class SuggestionEngine {
     const suggestions: StudySuggestion[] = [];
     
     // Check if it's time for a break based on recent activity
-    const recentStudyTime = context.recentActivity
+    const recentStudyTime = (context.recentActivity || [])
       .filter(task => task.completed && task.timeSpent)
       .reduce((total, task) => total + (task.timeSpent || 0), 0);
 

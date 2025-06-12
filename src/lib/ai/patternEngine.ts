@@ -8,7 +8,10 @@ import type {
   SubjectInsights,
   AITaskMetadata,
   LearningSource,
-  AISuggestion 
+  AISuggestion,
+  Task,
+  ClassTimetableEntry,
+  UserPreferences,
 } from '@/types/ai';
 import type { UserAIPreferences as AIContextUserPreferences } from './aiContext'; // Import UserAIPreferences from aiContext
 import type { SupabaseClient } from '@supabase/supabase-js'; // Import SupabaseClient type
@@ -21,34 +24,6 @@ export type {
   PatternData,
   ExtendedTask as Task // Export ExtendedTask as Task
 };
-
-// Enhanced ClassTimetableEntry interface for AI analysis
-export interface ClassTimetableEntry {
-  id: string;
-  courseName: string;
-  courseCode: string;
-  instructor?: string;
-  location?: string;
-  startTime: string; // HH:mm format
-  endTime: string;   // HH:mm format
-  daysOfWeek: string[];
-  semesterStartDate: string;
-  semesterEndDate: string;
-  color?: string;
-  detailedDescription?: string;
-}
-
-// New interface for first-day user preferences
-export interface UserPreferences {
-  studyTimePreference: 'morning' | 'afternoon' | 'evening' | 'night';
-  sessionLengthPreference: 'short' | 'medium' | 'long'; // 30min, 45min, 60min+
-  difficultyComfort: 'easy' | 'moderate' | 'challenging';
-  breakFrequency: 'frequent' | 'moderate' | 'minimal';
-  preferredSubjects: string[];
-  strugglingSubjects: string[];
-  studyGoals: string[];
-  availableStudyHours: number[]; // Array of hours when user is typically free
-}
 
 export class PatternRecognitionEngine {
   private static readonly STORAGE_KEY = 'memospark_ai_patterns';
