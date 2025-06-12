@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { CalendarIcon, Clock, AlertCircle, Repeat, Info, Target, Brain, Sparkles, Crown } from 'lucide-react';
+import { useAuth } from '@clerk/nextjs';
 import { useCreateTask, useUpdateTask, useGetTask } from '@/hooks/useTaskQueries';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -96,12 +97,21 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   onCancel,
   className,
 }) => {
+  // Authentication hook for Clerk integration
+  const { getToken } = useAuth();
+  
+  // Create token provider function for Supabase integration
+  const getTokenForSupabase = useCallback(() => 
+    getToken({ template: 'supabase-integration' }), [getToken]
+  );
+
   // Hooks for task operations
-  const createTaskMutation = useCreateTask();
-  const updateTaskMutation = useUpdateTask();
+  const createTaskMutation = useCreateTask(getTokenForSupabase);
+  const updateTaskMutation = useUpdateTask(getTokenForSupabase);
   const { data: existingTask, isLoading: isLoadingTask } = useGetTask(
     taskId || '',
-    Boolean(taskId)
+    Boolean(taskId),
+    getTokenForSupabase
   );
 
   // Form setup

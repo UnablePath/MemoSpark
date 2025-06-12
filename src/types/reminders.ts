@@ -1,6 +1,6 @@
 export interface Reminder {
   id: string;
-  user_id: string;
+  user_id: string; // Clerk user ID (TEXT)
   task_id?: string;
   title: string;
   description?: string;

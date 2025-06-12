@@ -37,12 +37,10 @@ export const useTieredAI = () => {
     if (!userId) return { canProceed: false, upgradeRequired: true };
     
     try {
-      const token = await getToken();
       const response = await fetch('/api/ai/suggestions', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           feature,
@@ -76,7 +74,7 @@ export const useTieredAI = () => {
       console.error('Error checking feature access:', error);
       return { canProceed: false, upgradeRequired: true };
     }
-  }, [userId, getToken]);
+  }, [userId]);
 
   const refreshUsage = useCallback(async () => {
     if (!userId) return;
@@ -121,12 +119,10 @@ export const useTieredAI = () => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const token = await getToken();
       const response = await fetch('/api/ai/suggestions', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           feature,
@@ -184,7 +180,7 @@ export const useTieredAI = () => {
       
       throw error;
     }
-  }, [userId, getToken]);
+  }, [userId]);
 
   const isFeatureAvailable = useCallback((feature: AIFeatureType) => {
     const tierHierarchy = { free: 0, premium: 1, enterprise: 2 };

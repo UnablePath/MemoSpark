@@ -408,7 +408,7 @@ Provide a structured plan with times and reasoning:`;
    * Check HuggingFace service health
    */
   async checkHealth(): Promise<{ status: string; connected: boolean; apiKeyAvailable: boolean }> {
-    const apiKeyAvailable = !!process.env.HUGGING_FACE_API_KEY;
+    const apiKeyAvailable = !!process.env.HUGGINGFACE_API_KEY;
     
     if (!apiKeyAvailable) {
       return {
@@ -450,7 +450,7 @@ Provide a structured plan with times and reasoning:`;
     featuresAvailable: string[];
     fallbackMode: boolean;
   } {
-    const apiKeyAvailable = !!process.env.HUGGING_FACE_API_KEY;
+    const apiKeyAvailable = !!process.env.HUGGINGFACE_API_KEY;
     
     return {
       isConfigured: apiKeyAvailable,

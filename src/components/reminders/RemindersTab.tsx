@@ -86,8 +86,9 @@ const RemindersTab = () => {
                             excited: { scale: [1, 1.1, 1], rotate: [-5, 5, -5, 0], transition: { duration: 0.5 } }
                         }}
                         onClick={() => showStuMessage(stuMessages.tap, "excited")}
+                        className="cursor-pointer"
                     >
-                        <KoalaMascot size="lg" />
+                        <KoalaMascot size="xl" className="drop-shadow-md filter contrast-125 brightness-110" />
                     </motion.div>
                     <AnimatePresence>
                         {stuMessage && (

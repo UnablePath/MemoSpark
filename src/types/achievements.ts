@@ -11,7 +11,7 @@ export interface Achievement {
 
 export interface UserAchievement {
   id: string;
-  user_id: string;
+  user_id: string; // Clerk user ID (TEXT)
   achievement_id: string;
   unlocked_at: string;
   progress: Record<string, any>;
@@ -19,7 +19,7 @@ export interface UserAchievement {
 }
 
 export interface UserStats {
-  user_id: string;
+  user_id: string; // Clerk user ID (TEXT)
   total_points: number;
   current_streak: number;
   longest_streak: number;
@@ -28,7 +28,7 @@ export interface UserStats {
 }
 
 export interface LeaderboardUser {
-  user_id: string;
+  user_id: string; // Clerk user ID (TEXT)
   user_name: string; // Should be fetched from profiles
   total_points: number;
   rank: number;

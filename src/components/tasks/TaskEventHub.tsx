@@ -12,13 +12,15 @@ import { CalendarViewEnhanced } from './CalendarViewEnhanced';
 import { TimetableView } from './TimetableView';
 import { TaskForm } from './TaskForm';
 import { TimetableEntryForm } from './TimetableEntryForm';
-import { useTaskStore } from '@/hooks/useTaskStore';
+import { useAuth } from '@clerk/nextjs';
+import { useFetchTasks, useDeleteTask, useCreateTask } from '@/hooks/useTaskQueries';
 import { useToast } from '@/components/ui/use-toast';
 import { ShimmerButton } from '@/components/ui/shimmer-button';
 import { InteractiveHoverButton } from '@/components/ui/interactive-hover-button';
 import { SuggestionList } from '@/components/ai/SuggestionList';
 import { useTieredAI } from '@/hooks/useTieredAI';
 import type { AISuggestion } from '@/types/ai';
+import type { Task } from '@/types/taskTypes';
 
 import { useUser } from '@clerk/nextjs';
 
@@ -158,10 +160,11 @@ interface TaskEventHubProps {
 
 export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list' }) => {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const [currentView, setCurrentView] = useState<ViewType>(initialView);
   const [isTaskFormOpen, setTaskFormOpen] = useState(false);
   const [isTimetableFormOpen, setTimetableFormOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedTimetableEntry, setSelectedTimetableEntry] = useState<any>(null);
   
   // AI Suggestions state
@@ -171,7 +174,15 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
   );
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
-  const { tasks, addTask, updateTask, deleteTask } = useTaskStore();
+  // Create token provider function for Supabase integration
+  const getTokenForSupabase = useCallback(() => 
+    getToken({ template: 'supabase-integration' }), [getToken]
+  );
+
+  // Use proper database hooks instead of local store
+  const { data: tasks = [], isLoading: isLoadingTasks, error: tasksError, refetch: refetchTasks } = useFetchTasks(undefined, getTokenForSupabase);
+  const deleteTaskMutation = useDeleteTask(getTokenForSupabase);
+  const createTaskMutation = useCreateTask(getTokenForSupabase);
   const { toast } = useToast();
   
   // Tier-aware AI integration with backwards compatibility
@@ -290,10 +301,11 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
 
   const handleDelete = async (taskId: string) => {
     try {
-      await deleteTask(taskId);
-      toast({ title: 'Task deleted successfully' });
+      await deleteTaskMutation.mutateAsync(taskId);
+      // The mutation already handles success toast and cache invalidation
     } catch (error) {
-      toast({ title: 'Error deleting task', description: (error as Error).message, variant: 'destructive' });
+      // The mutation already handles error toast
+      console.error('Error deleting task:', error);
     }
   };
 
@@ -310,7 +322,6 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
         priority: suggestion.priority || 'medium',
         type: 'academic' as const,
         subject: suggestion.subject,
-        completed: false,
         due_date: suggestion.suggestedTime ? new Date(suggestion.suggestedTime).toISOString() : undefined,
         reminder_settings: {
           enabled: true,
@@ -319,7 +330,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
         },
       };
 
-      await addTask(taskData);
+      await createTaskMutation.mutateAsync(taskData);
       
       // Update suggestion status
       setAISuggestions(prev => 
@@ -341,7 +352,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
         variant: 'destructive' 
       });
     }
-  }, [aiSuggestions, addTask, toast]);
+  }, [aiSuggestions, createTaskMutation, toast]);
 
   const handleRejectSuggestion = useCallback((suggestionId: string) => {
     setAISuggestions(prev => 
@@ -559,11 +570,29 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
             )}
           >
             {currentView === 'list' && (
-              <ListView
-                tasks={tasks}
-                onEdit={openTaskForm}
-                onDelete={handleDelete}
-              />
+              <>
+                {isLoadingTasks ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4" />
+                    <p className="text-lg font-medium">Loading tasks...</p>
+                    <p className="text-sm">Please wait while we fetch your tasks</p>
+                  </div>
+                ) : tasksError ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+                    <p className="text-lg font-medium text-red-600">Error loading tasks</p>
+                    <p className="text-sm mb-4">{tasksError.message || 'Failed to fetch tasks'}</p>
+                    <Button onClick={() => refetchTasks()} variant="outline">
+                      Try Again
+                    </Button>
+                  </div>
+                ) : (
+                  <ListView
+                    tasks={tasks}
+                    onEdit={openTaskForm}
+                    onDelete={handleDelete}
+                  />
+                )}
+              </>
             )}
             {currentView === 'calendar' && (
               <CalendarViewEnhanced onEditTask={openTaskForm} />
