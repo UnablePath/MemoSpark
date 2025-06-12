@@ -191,12 +191,12 @@ export const useCreateTask = (getToken?: () => Promise<string | null>) => {
 /**
  * Hook to update a task with optimistic updates
  */
-export const useUpdateTask = () => {
+export const useUpdateTask = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: TaskUpdate }) =>
-      updateTask(id, updates),
+      updateTask(id, updates, getToken),
     onMutate: async ({ id, updates }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: taskKeys.detail(id) });
@@ -257,11 +257,11 @@ export const useUpdateTask = () => {
 /**
  * Hook to delete a task with optimistic updates
  */
-export const useDeleteTask = () => {
+export const useDeleteTask = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => deleteTask(id),
+    mutationFn: (id: string) => deleteTask(id, getToken),
     onMutate: async (id) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: taskKeys.lists() });
@@ -303,11 +303,11 @@ export const useDeleteTask = () => {
 /**
  * Hook to toggle task completion with optimistic updates
  */
-export const useToggleTaskCompletion = () => {
+export const useToggleTaskCompletion = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => toggleTaskCompletion(id),
+    mutationFn: (id: string) => toggleTaskCompletion(id, getToken),
     onMutate: async (id) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: taskKeys.detail(id) });
@@ -386,20 +386,20 @@ export const useInvalidateTaskQueries = () => {
 /**
  * Hook to prefetch task data
  */
-export const usePrefetchTask = () => {
+export const usePrefetchTask = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
 
   return {
     prefetchTask: (id: string) =>
       queryClient.prefetchQuery({
         queryKey: taskKeys.detail(id),
-        queryFn: () => getTaskById(id),
+        queryFn: () => getTaskById(id, getToken),
         staleTime: 1000 * 60 * 5,
       }),
     prefetchTasks: (filters?: TaskFilters) =>
       queryClient.prefetchQuery({
         queryKey: taskKeys.list(filters),
-        queryFn: () => fetchTasks(filters),
+        queryFn: () => fetchTasks(filters, getToken),
         staleTime: 1000 * 60 * 5,
       }),
   };

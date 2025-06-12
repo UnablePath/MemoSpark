@@ -1,6 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs/server';
 
+// Export all from tasksApi and remindersApi
+export * from './tasksApi';
+export * from './remindersApi';
+export * from './achievementsApi';
+export * from './gamificationApi';
+
 // Supabase configuration for server-side operations
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://onfnehxkglmvrorcvqcx.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -63,6 +69,7 @@ export const supabaseServerHelpers = {
 
   /**
    * Ensure user exists in Supabase (create if needed)
+   * Enhanced version that gets full Clerk data
    */
   async ensureUserExists(): Promise<boolean> {
     if (!supabaseServer) return false;
@@ -71,28 +78,102 @@ export const supabaseServerHelpers = {
       const profile = await this.getCurrentUserProfile();
       if (profile) return true;
 
-      // User doesn't exist in Supabase, try to create from Clerk data
+      // User doesn't exist in Supabase, get full Clerk data and create profile
       const clerkUserId = await this.getCurrentUserId();
       if (!clerkUserId) return false;
 
-      // This is a basic profile creation - the onboarding process will fill in the details
+      // Get the authenticated Clerk user for more complete data
+      const { currentUser } = await import('@clerk/nextjs/server');
+      const user = await currentUser();
+
+      if (!user) {
+        console.error('No current user available from Clerk');
+        return false;
+      }
+
+      // Extract user data from Clerk
+      const primaryEmail = user.emailAddresses?.[0]?.emailAddress;
+      const fullName = [user.firstName, user.lastName]
+        .filter(Boolean)
+        .join(' ') || null;
+
+      // Create a comprehensive profile using available Clerk data
+      const profileData = {
+        clerk_user_id: clerkUserId,
+        email: primaryEmail || null,
+        full_name: fullName,
+        avatar_url: user.imageUrl || null,
+        onboarding_completed: false, // User should still complete onboarding for app-specific data
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
       const { error } = await supabaseServer
         .from('profiles')
-        .insert({
-          clerk_user_id: clerkUserId,
-          onboarding_completed: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
+        .insert(profileData);
 
       if (error) {
         console.error('Failed to create user profile:', error);
         return false;
       }
 
+      console.log('Created new user profile for existing Clerk user:', clerkUserId, fullName);
       return true;
     } catch (error) {
       console.error('Error ensuring user exists:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Get current user profile with auto-creation fallback
+   * This ensures the profile exists before returning it
+   */
+  async getCurrentUserProfileWithCreation(): Promise<any | null> {
+    if (!supabaseServer) return null;
+    
+    try {
+      // First try to get existing profile
+      const profile = await this.getCurrentUserProfile();
+      if (profile) return profile;
+
+      // If profile doesn't exist, try to create it
+      const created = await this.ensureUserExists();
+      if (!created) return null;
+
+      // Try to get the profile again after creation
+      return await this.getCurrentUserProfile();
+    } catch (error) {
+      console.warn('Failed to get/create user profile:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Update user profile with new data
+   * This updates the Supabase profile with latest information (typically from Clerk)
+   */
+  async updateUserProfile(updateData: any): Promise<boolean> {
+    if (!supabaseServer) return false;
+    
+    try {
+      const clerkUserId = await this.getCurrentUserId();
+      if (!clerkUserId) return false;
+
+      const { error } = await supabaseServer
+        .from('profiles')
+        .update(updateData)
+        .eq('clerk_user_id', clerkUserId);
+
+      if (error) {
+        console.error('Failed to update user profile:', error);
+        return false;
+      }
+
+      console.log('User profile updated successfully for:', clerkUserId);
+      return true;
+    } catch (error) {
+      console.error('Error updating user profile:', error);
       return false;
     }
   },

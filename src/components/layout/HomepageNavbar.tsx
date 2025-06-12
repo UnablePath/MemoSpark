@@ -22,7 +22,7 @@ export function HomepageNavbar() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 md:h-20">
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md" aria-label="MemoSpark Home">
-            <MemoSparkLogoSvg height={32} />
+            <MemoSparkLogoSvg height={32} darkBackground={false} />
           </Link>
           <Link
             href="/coming-soon"

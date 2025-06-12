@@ -25,6 +25,7 @@ import { TaskEventHub } from '@/components/tasks/TaskEventHub';
 // Import hooks and API functions
 import { useTaskQueries } from '@/hooks/useTaskQueries';
 import { createTask, updateTask, deleteTask, toggleTaskCompletion } from '@/lib/api/tasks';
+import { Task } from '@/types/taskTypes';
 
 // Test wrapper component with React Query
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -84,7 +85,7 @@ describe('Task Lifecycle Integration Tests', () => {
       
       // Verify the API was called with correct data
       await waitFor(() => {
-        const mockTasks = getMockTasks();
+        const mockTasks: Task[] = getMockTasks();
         expect(mockTasks).toHaveLength(3); // 2 initial + 1 new
         
         const newTask = mockTasks.find(task => task.title === 'New Integration Test Task');
@@ -122,8 +123,8 @@ describe('Task Lifecycle Integration Tests', () => {
       await user.click(screen.getByRole('button', { name: /save task/i }));
       
       await waitFor(() => {
-        const mockTasks = getMockTasks();
-        const recurringTask = mockTasks.find(task => task.title === 'Weekly Study Session') as any;
+        const mockTasks: Task[] = getMockTasks();
+        const recurringTask = mockTasks.find(task => task.title === 'Weekly Study Session');
         expect(recurringTask?.recurrence_rule).toContain('FREQ=WEEKLY');
         expect(recurringTask?.recurrence_rule).toContain('BYDAY=MO,WE');
       });
@@ -303,10 +304,12 @@ describe('Task Lifecycle Integration Tests', () => {
         expect(completionCheckbox).toBeChecked();
       });
       
-      // Verify in mock data
-      const mockTasks = getMockTasks();
-      const completedTask = mockTasks.find(task => task.id === 'completion-test');
-      expect(completedTask?.completed).toBe(true);
+      // Wait for completion status to update
+      await waitFor(async () => {
+        const mockTasks: Task[] = getMockTasks();
+        const completedTask = mockTasks.find(task => task.id === 'completion-test');
+        expect(completedTask?.completed).toBe(true);
+      });
     });
 
     test('completed tasks show with proper visual indicators', async () => {
@@ -412,10 +415,13 @@ describe('Task Lifecycle Integration Tests', () => {
         expect(screen.queryByText('Original Title')).not.toBeInTheDocument();
       });
       
-      const mockTasks = getMockTasks();
-      const updatedTask = mockTasks.find(task => task.id === 'editable-task');
-      expect(updatedTask?.title).toBe('Updated Title');
-      expect(updatedTask?.priority).toBe('high');
+      // Verify task is updated in the mock data
+      await waitFor(() => {
+        const mockTasks: Task[] = getMockTasks();
+        const updatedTask = mockTasks.find(task => task.id === 'editable-task');
+        expect(updatedTask?.title).toBe('Updated Title');
+        expect(updatedTask?.priority).toBe('high');
+      });
     });
   });
 
@@ -470,9 +476,12 @@ describe('Task Lifecycle Integration Tests', () => {
         expect(screen.queryByText('Task to Delete')).not.toBeInTheDocument();
       });
       
-      const mockTasks = getMockTasks();
-      const deletedTask = mockTasks.find(task => task.id === 'deletable-task');
-      expect(deletedTask).toBeUndefined();
+      // Verify task is removed from mock data
+      await waitFor(() => {
+        const mockTasks: Task[] = getMockTasks();
+        const deletedTask = mockTasks.find(task => task.id === 'deletable-task');
+        expect(deletedTask).toBeUndefined();
+      });
     });
   });
 

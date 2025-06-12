@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { Calendar, LayoutList, Plus, Grid3X3, GraduationCap, Brain, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Calendar, LayoutList, Plus, Grid3X3, GraduationCap, Brain, ChevronRight, ChevronLeft, Sparkles, Crown } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -12,12 +12,15 @@ import { CalendarViewEnhanced } from './CalendarViewEnhanced';
 import { TimetableView } from './TimetableView';
 import { TaskForm } from './TaskForm';
 import { TimetableEntryForm } from './TimetableEntryForm';
-import { useTaskStore } from '@/hooks/useTaskStore';
+import { useAuth } from '@clerk/nextjs';
+import { useFetchTasks, useDeleteTask, useCreateTask } from '@/hooks/useTaskQueries';
 import { useToast } from '@/components/ui/use-toast';
 import { ShimmerButton } from '@/components/ui/shimmer-button';
 import { InteractiveHoverButton } from '@/components/ui/interactive-hover-button';
 import { SuggestionList } from '@/components/ai/SuggestionList';
+import { useTieredAI } from '@/hooks/useTieredAI';
 import type { AISuggestion } from '@/types/ai';
+import type { Task } from '@/types/taskTypes';
 
 import { useUser } from '@clerk/nextjs';
 
@@ -36,7 +39,7 @@ const getTaskCreationSuggestions = (userName?: string): AISuggestion[] => {
       type: 'task_suggestion',
       title: `Good morning, ${userFirstName}! Start with a focused study session`,
       description: 'Morning is an excellent time for deep learning. Consider tackling your most challenging subject first.',
-      priority: 'high',
+      priority: 'high' as 'low' | 'medium' | 'high',
       confidence: 0.85,
       reasoning: 'Studies show that cognitive performance is typically highest in the morning hours.',
       duration: 90,
@@ -157,10 +160,11 @@ interface TaskEventHubProps {
 
 export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list' }) => {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const [currentView, setCurrentView] = useState<ViewType>(initialView);
   const [isTaskFormOpen, setTaskFormOpen] = useState(false);
   const [isTimetableFormOpen, setTimetableFormOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedTimetableEntry, setSelectedTimetableEntry] = useState<any>(null);
   
   // AI Suggestions state
@@ -170,9 +174,32 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
   );
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
-  const { tasks, addTask, updateTask, deleteTask } = useTaskStore();
+  // Create token provider function for Supabase integration
+  const getTokenForSupabase = useCallback(() => 
+    getToken({ template: 'supabase-integration' }), [getToken]
+  );
+
+  // Use proper database hooks instead of local store
+  const { data: tasks = [], isLoading: isLoadingTasks, error: tasksError, refetch: refetchTasks } = useFetchTasks(undefined, getTokenForSupabase);
+  const deleteTaskMutation = useDeleteTask(getTokenForSupabase);
+  const createTaskMutation = useCreateTask(getTokenForSupabase);
   const { toast } = useToast();
   
+  // Tier-aware AI integration with backwards compatibility
+  const tieredAI = useTieredAI ? useTieredAI() : null;
+  const { 
+    userTier = 'free', 
+    usage = { requestsUsed: 0, requestsRemaining: 10, dailyLimit: 10, featureAvailable: true }, 
+    isLoading: isTierLoading = false, 
+    generateSuggestions = null, 
+    isFeatureAvailable = () => true,
+    tierLimits = {
+      free: { suggestions: 3, dailyRequests: 10 },
+      premium: { suggestions: 8, dailyRequests: 100 },
+      enterprise: { suggestions: 15, dailyRequests: -1 }
+    }
+  } = tieredAI || {};
+
   // Update AI suggestions when user data changes
   useEffect(() => {
     if (user) {
@@ -180,12 +207,60 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
       setAISuggestions(getTaskCreationSuggestions(userName));
     }
   }, [user]);
-  
+
   const viewOptions: ViewOption[] = useMemo(() => [
     { id: 'list', label: 'List View', icon: LayoutList, description: 'View tasks in a sequential, organized list.' },
     { id: 'calendar', label: 'Calendar', icon: Calendar, description: 'View and manage tasks in a calendar format.' },
     { id: 'timetable', label: 'Timetable', icon: Grid3X3, description: 'View and manage your class schedule.' },
   ], []);
+
+  // Tier-aware AI suggestions generation
+  const generateTierAwareSuggestions = useCallback(async () => {
+    if (!isFeatureAvailable('basic_suggestions') || !generateSuggestions) {
+      return;
+    }
+
+    setIsLoadingSuggestions(true);
+    try {
+      const response = await generateSuggestions('basic_suggestions', tasks, {
+        currentTime: new Date(),
+        upcomingTasks: tasks,
+        recentActivity: tasks.slice(-5),
+        userPreferences: {
+          enableSuggestions: true,
+          suggestionFrequency: 'moderate',
+          difficultyPreference: 'adaptive',
+          preferredStudyTimes: [],
+          preferredStudyDuration: 90,
+          preferredBreakDuration: 15,
+          maxDailyStudyHours: 8,
+          cloudSyncEnabled: false,
+          shareAnonymousData: false,
+          personalizedStuInteraction: true,
+          enableBreakReminders: true,
+          enableStudyReminders: true,
+          reminderAdvanceTime: 15,
+          adaptiveDifficulty: true,
+          focusOnWeakSubjects: true,
+          balanceSubjects: true
+        },
+        metadata: { currentView }
+      });
+      
+      if (response.success && response.data && Array.isArray(response.data)) {
+        setAISuggestions(response.data);
+      } else {
+        // Fallback to static suggestions
+        setAISuggestions(getTaskCreationSuggestions());
+      }
+    } catch (error) {
+      console.error('Error generating AI suggestions:', error);
+      // Fallback to static suggestions for free users
+      setAISuggestions(getTaskCreationSuggestions());
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  }, [isFeatureAvailable, generateSuggestions, tasks, currentView]);
 
   const handleViewChange = (view: ViewType) => {
     setCurrentView(view);
@@ -226,10 +301,11 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
 
   const handleDelete = async (taskId: string) => {
     try {
-      await deleteTask(taskId);
-      toast({ title: 'Task deleted successfully' });
+      await deleteTaskMutation.mutateAsync(taskId);
+      // The mutation already handles success toast and cache invalidation
     } catch (error) {
-      toast({ title: 'Error deleting task', description: (error as Error).message, variant: 'destructive' });
+      // The mutation already handles error toast
+      console.error('Error deleting task:', error);
     }
   };
 
@@ -246,7 +322,6 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
         priority: suggestion.priority || 'medium',
         type: 'academic' as const,
         subject: suggestion.subject,
-        completed: false,
         due_date: suggestion.suggestedTime ? new Date(suggestion.suggestedTime).toISOString() : undefined,
         reminder_settings: {
           enabled: true,
@@ -255,7 +330,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
         },
       };
 
-      await addTask(taskData);
+      await createTaskMutation.mutateAsync(taskData);
       
       // Update suggestion status
       setAISuggestions(prev => 
@@ -277,7 +352,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
         variant: 'destructive' 
       });
     }
-  }, [aiSuggestions, addTask, toast]);
+  }, [aiSuggestions, createTaskMutation, toast]);
 
   const handleRejectSuggestion = useCallback((suggestionId: string) => {
     setAISuggestions(prev => 
@@ -300,8 +375,15 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
   }, [toast]);
 
   const toggleAISuggestions = useCallback(() => {
-    setShowAISuggestions(prev => !prev);
-  }, []);
+    setShowAISuggestions(prev => {
+      const newState = !prev;
+      if (newState && isFeatureAvailable('basic_suggestions')) {
+        // Generate fresh suggestions when opening
+        generateTierAwareSuggestions();
+      }
+      return newState;
+    });
+  }, [isFeatureAvailable, generateTierAwareSuggestions]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -356,12 +438,11 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
       return (
         <ShimmerButton
           onClick={() => openTimetableForm()}
-          className="whitespace-nowrap"
+          className="whitespace-nowrap h-8 px-2 sm:h-9 sm:px-3 md:h-10 md:px-4 scale-[0.94] sm:scale-100"
           aria-label="Add new class (Ctrl+N)"
         >
-          <GraduationCap className="h-4 w-4 mr-2" />
-          <span className="hidden sm:inline">Add Class</span>
-          <span className="sm:hidden">Add</span>
+          <GraduationCap className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <span className="hidden sm:inline ml-1 sm:ml-2 text-xs sm:text-sm">Add Class</span>
         </ShimmerButton>
       );
     }
@@ -369,12 +450,11 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
     return (
       <ShimmerButton
         onClick={() => openTaskForm()}
-        className="whitespace-nowrap"
+        className="whitespace-nowrap h-8 px-2 sm:h-9 sm:px-3 md:h-10 md:px-4 scale-[0.94] sm:scale-100"
         aria-label="Create new task (Ctrl+N)"
       >
-        <Plus className="h-4 w-4 mr-2" />
-        <span className="hidden sm:inline">Add Task</span>
-        <span className="sm:hidden">Add</span>
+        <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+        <span className="hidden sm:inline ml-1 sm:ml-2 text-xs sm:text-sm">Add Task</span>
       </ShimmerButton>
     );
   };
@@ -390,29 +470,37 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
             Your all-in-one productivity hub.
           </p>
         </div>
-        <div className="flex w-full md:w-auto items-center gap-4">
+        <div className="flex w-full md:w-auto items-center gap-2 md:gap-4">
           {renderAddButton()}
 
-          {/* AI Suggestions Toggle */}
+          {/* AI Suggestions Toggle - Tier Aware */}
           <Button
             variant={showAISuggestions ? "default" : "outline"}
             size="default"
             onClick={toggleAISuggestions}
             className={cn(
-              "whitespace-nowrap transition-all duration-200",
-              showAISuggestions && "bg-primary hover:bg-primary/90 text-primary-foreground"
+              "whitespace-nowrap transition-all duration-200 relative h-8 px-2 sm:h-9 sm:px-3 md:h-10 md:px-4 scale-[0.94] sm:scale-100",
+              showAISuggestions && "bg-primary hover:bg-primary/90 text-primary-foreground",
+              userTier === 'premium' && "border-amber-300",
+              userTier === 'enterprise' && "border-purple-300"
             )}
-            aria-label="Toggle AI Suggestions"
+            aria-label={`Toggle AI Suggestions - ${userTier} tier (${usage.requestsRemaining} remaining)`}
           >
-            <Brain className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">
+            <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            {userTier !== 'free' && (
+              <Crown className="h-2.5 w-2.5 sm:h-3 sm:w-3 ml-1 sm:mr-1 -ml-1 sm:ml-0" />
+            )}
+            <span className="hidden sm:inline ml-1 sm:ml-2 text-xs sm:text-sm">
               {showAISuggestions ? 'Hide AI' : 'AI Suggestions'}
             </span>
-            <span className="sm:hidden">AI</span>
+            {/* Usage indicator */}
+            <div className="absolute -top-1 -right-1 bg-muted text-muted-foreground text-xs px-1 rounded-full min-w-[1.25rem] h-5 flex items-center justify-center">
+              {usage.requestsRemaining}
+            </div>
           </Button>
 
           {/* Desktop view switcher */}
-          <div className="hidden md:flex items-center gap-1 rounded-md bg-muted p-1 group">
+          <div className="hidden md:flex items-center gap-1 rounded-md bg-muted p-1 group scale-[0.94] lg:scale-100">
             {viewOptions.map((option) => (
               <InteractiveHoverButton
                 key={option.id}
@@ -423,10 +511,11 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                     viewTabVariants({
                       state: currentView === option.id ? "active" : "inactive",
                     }),
+                    "px-2 py-1.5 lg:px-3 lg:py-2"
                   )}
                 >
-                  <option.icon className="h-4 w-4" />
-                  <span className="hidden lg:inline">{option.label}</span>
+                  <option.icon className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
+                  <span className="hidden lg:inline text-xs lg:text-sm ml-1">{option.label}</span>
                 </div>
               </InteractiveHoverButton>
             ))}
@@ -443,7 +532,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
           </div>
 
           {/* Mobile view switcher - icons only */}
-          <div className="flex md:hidden items-center gap-1 rounded-md bg-muted p-1">
+          <div className="flex md:hidden items-center gap-1 rounded-md bg-muted p-1 scale-[0.94] sm:scale-100">
             {viewOptions.map((option) => (
               <InteractiveHoverButton
                 key={option.id}
@@ -454,11 +543,11 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                     viewTabVariants({
                       state: currentView === option.id ? "active" : "inactive",
                     }),
-                    "px-2 py-2" // Smaller padding for mobile icons
+                    "px-1.5 py-1.5 sm:px-2 sm:py-2" // Smaller padding for mobile icons
                   )}
                   title={option.label}
                 >
-                  <option.icon className="h-4 w-4" />
+                  <option.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </div>
               </InteractiveHoverButton>
             ))}
@@ -481,11 +570,29 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
             )}
           >
             {currentView === 'list' && (
-              <ListView
-                tasks={tasks}
-                onEdit={openTaskForm}
-                onDelete={handleDelete}
-              />
+              <>
+                {isLoadingTasks ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4" />
+                    <p className="text-lg font-medium">Loading tasks...</p>
+                    <p className="text-sm">Please wait while we fetch your tasks</p>
+                  </div>
+                ) : tasksError ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+                    <p className="text-lg font-medium text-red-600">Error loading tasks</p>
+                    <p className="text-sm mb-4">{tasksError.message || 'Failed to fetch tasks'}</p>
+                    <Button onClick={() => refetchTasks()} variant="outline">
+                      Try Again
+                    </Button>
+                  </div>
+                ) : (
+                  <ListView
+                    tasks={tasks}
+                    onEdit={openTaskForm}
+                    onDelete={handleDelete}
+                  />
+                )}
+              </>
             )}
             {currentView === 'calendar' && (
               <CalendarViewEnhanced onEditTask={openTaskForm} />
@@ -515,6 +622,9 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                     <h3 className="font-semibold text-lg flex items-center gap-2">
                       <Brain className="h-5 w-5 text-primary" />
                       AI Suggestions
+                      {userTier !== 'free' && (
+                        <Crown className="h-4 w-4 text-amber-500" />
+                      )}
                     </h3>
                     <Button
                       variant="ghost"
@@ -525,9 +635,20 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Smart recommendations for your workflow
-                  </p>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-sm text-muted-foreground">
+                      {userTier === 'free' 
+                        ? `${usage.requestsRemaining}/${tierLimits.free.dailyRequests} suggestions remaining` 
+                        : `${userTier} tier - ${usage.requestsRemaining} remaining`
+                      }
+                    </p>
+                    {userTier === 'free' && (
+                      <Button variant="link" size="sm" className="text-xs px-2 h-6">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Upgrade
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 
                 <SuggestionList

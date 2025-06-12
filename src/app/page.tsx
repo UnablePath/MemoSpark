@@ -58,7 +58,7 @@ export default function LandingPage() {
           className="z-10 responsive-container"
         >
           <div className="flex justify-center items-center mx-auto mb-6" role="img">
-            <MemoSparkLogoSvg height={60} />
+            <MemoSparkLogoSvg height={60} darkBackground={true} />
           </div>
 
           <h1 className="text-4xl md:text-6xl font-bold tracking-tighter mb-6 leading-tight text-constrain">

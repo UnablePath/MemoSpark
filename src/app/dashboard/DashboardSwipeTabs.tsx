@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { TabContainer } from '@/components/layout/TabContainer';
-import { TabIndicator } from '@/components/layout/TabIndicator';
 import StudentConnectionTab from '@/components/home/StudentConnectionTab';
 import { ConnectionsDebug } from '@/components/home/ConnectionsDebug';
 import ConnectionsErrorBoundary from '@/components/home/ConnectionsErrorBoundary';
@@ -12,9 +11,14 @@ import CrashoutTab from '@/components/dashboard/CrashoutTab';
 import GamificationHub from '@/components/gamification/GamificationHub';
 import { FaUserFriends, FaCalendarAlt, FaBell, FaSpa, FaGamepad } from 'react-icons/fa';
 import { useLocalStorageState } from '@/hooks/useStudentConnection';
+import { useTieredAI } from '@/hooks/useTieredAI';
+import { Crown } from 'lucide-react';
 
 // Toggle this to test - set to true to show debug component instead of actual connections tab
 const USE_DEBUG_COMPONENT = false;
+
+// Development mode - allows access to all features for testing
+const isDevelopmentMode = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_ENABLE_DEV_FEATURES === 'true';
 
 // Define the order of tabs and their corresponding icons
 const TABS_CONFIG = [
@@ -30,12 +34,15 @@ const TABS_CONFIG = [
 ];
 
 export function DashboardSwipeTabs() {
-  // Persistent tab state - remember the last active tab
   const [persistentActiveTab, setPersistentActiveTab] = useLocalStorageState<number>('dashboard_active_tab', 0);
   const [activeTabIndex, setActiveTabIndex] = useState(persistentActiveTab);
   const [isTinderModeActive, setIsTinderModeActive] = useState(false);
   const tablistRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  
+  // Tier-aware features with backwards compatibility
+  const tieredAI = useTieredAI ? useTieredAI() : { userTier: 'free', isFeatureAvailable: () => true };
+  const { userTier } = tieredAI;
 
   useEffect(() => {
     tabRefs.current = tabRefs.current.slice(0, TABS_CONFIG.length);
@@ -43,7 +50,6 @@ export function DashboardSwipeTabs() {
 
   // Handler for StudentConnectionTab view mode changes
   const handleStudentTabViewModeChange = (isTinder: boolean) => {
-    // Only set tinder mode if the connections tab is currently active
     if (TABS_CONFIG[activeTabIndex]?.key === 'connections') {
       setIsTinderModeActive(isTinder);
     } else {
@@ -52,29 +58,30 @@ export function DashboardSwipeTabs() {
   };
 
   const handleTabChange = (index: number) => {
-    // Ensure index is valid
-    if (index < 0 || index >= TABS_CONFIG.length) {
-      console.warn(`Invalid tab index: ${index}`);
-      return;
-    }
+    if (index < 0 || index >= TABS_CONFIG.length) return;
 
     const newActiveTabConfig = TABS_CONFIG[index];
+    const isPremiumFeature = newActiveTabConfig?.key === 'gamification' || newActiveTabConfig?.key === 'crashout';
+    const hasAccess = isPremiumFeature ? (userTier !== 'free' || isDevelopmentMode) : true;
     
-    // Handle tinder mode state based on tab
+    if (isPremiumFeature && !hasAccess) {
+      // Maybe show an upgrade modal in the future
+      console.log("Upgrade required to access this feature.");
+      return;
+    }
+    
     if (newActiveTabConfig?.key !== 'connections') {
       setIsTinderModeActive(false);
     }
     
     setActiveTabIndex(index);
-    setPersistentActiveTab(index); // Persist the tab selection
-    
-    // Debug logging for tab changes
+    setPersistentActiveTab(index);
     console.log(`Switching to tab: ${newActiveTabConfig?.key} (index: ${index})`);
   };
 
   // Memoize rendered components to prevent unnecessary re-renders and maintain state
   const memoizedTabComponents = useMemo(() => {
-    return TABS_CONFIG.map((tabConfig, index) => {
+    return TABS_CONFIG.map((tabConfig) => {
       const TabComponent = tabConfig.component;
       
       if (tabConfig.key === 'connections') {
@@ -97,7 +104,7 @@ export function DashboardSwipeTabs() {
         </div>
       );
     });
-  }, []); // Empty dependency array - these should never change
+  }, []);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (!tablistRef.current) return;
@@ -110,10 +117,6 @@ export function DashboardSwipeTabs() {
       nextIndex = currentIndex >= 0 ? (currentIndex + 1) % tabs.length : 0;
     } else if (event.key === 'ArrowLeft') {
       nextIndex = currentIndex >= 0 ? (currentIndex - 1 + tabs.length) % tabs.length : 0;
-    } else if (event.key === 'Home') {
-      nextIndex = 0;
-    } else if (event.key === 'End') {
-      nextIndex = tabs.length - 1;
     }
 
     if (nextIndex !== -1) {
@@ -125,6 +128,13 @@ export function DashboardSwipeTabs() {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Development Mode Indicator */}
+      {isDevelopmentMode && (
+        <div className="bg-yellow-500/10 border-b border-yellow-500/20 px-4 py-2 text-center text-sm text-yellow-600 dark:text-yellow-400">
+          🔧 Development Mode: All premium features unlocked for testing
+        </div>
+      )}
+
       {/* Tab Content Area */}
       <TabContainer
         initialTab={activeTabIndex}
@@ -149,28 +159,33 @@ export function DashboardSwipeTabs() {
         {TABS_CONFIG.map((tab, index) => {
           const Icon = tab.icon;
           const isActive = index === activeTabIndex;
-          const tabId = `dashboard-tab-${tab.key}-${index}`;
-          const panelId = `dashboard-panel-${tab.key}-${index}`;
-
+          const isPremiumFeature = tab.key === 'gamification' || tab.key === 'crashout';
+          const hasAccess = isPremiumFeature ? (userTier !== 'free' || isDevelopmentMode) : true;
+          
           return (
             <button
               key={tab.key}
               ref={el => { tabRefs.current[index] = el; }}
-              id={tabId}
+              id={`dashboard-tab-${tab.key}-${index}`}
               role="tab"
               type="button"
               aria-selected={isActive}
-              aria-controls={panelId}
+              aria-controls={`dashboard-panel-${tab.key}-${index}`}
               tabIndex={isActive ? 0 : -1}
               onClick={() => handleTabChange(index)}
-              className={`touch-target p-2 rounded-md transition-colors duration-200 ${
-                isActive 
-                  ? 'text-primary bg-primary/10' 
-                  : 'text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'
-              }`}
-              aria-label={`Go to ${tab.key} tab`}
+              className={`relative touch-target p-2 rounded-md transition-colors duration-200 ${
+                isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'
+              } ${!hasAccess ? 'opacity-50 cursor-not-allowed' : ''}`}
+              aria-label={`Go to ${tab.key} tab${!hasAccess ? ' (Premium required)' : ''}`}
+              disabled={!hasAccess && isPremiumFeature}
             >
               <Icon className="h-6 w-6" aria-hidden="true" />
+              {isPremiumFeature && !hasAccess && (
+                <Crown className="absolute -top-1 -right-1 h-3 w-3 text-yellow-500" />
+              )}
+              {isDevelopmentMode && isPremiumFeature && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full" title="Dev Mode Active" />
+              )}
             </button>
           );
         })}

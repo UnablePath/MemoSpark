@@ -1,4 +1,4 @@
-import type { UserPreferences, ClassTimetableEntry } from './patternEngine';
+import type { UserPreferences, ClassTimetableEntry } from '@/types/ai';
 
 export interface OnboardingQuestion {
   id: string;

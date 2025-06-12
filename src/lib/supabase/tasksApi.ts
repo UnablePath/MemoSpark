@@ -28,7 +28,7 @@ export class SupabaseApiError extends Error {
   }
 }
 
-const handleSupabaseError = (error: any, operation: string): never => {
+export const handleSupabaseError = (error: any, operation: string): never => {
   supabaseHelpers.handleError(error, operation);
   throw new SupabaseApiError(
     `${operation} failed: ${error?.message || 'Unknown error'}`,
@@ -48,7 +48,7 @@ const ensureSupabaseClient = () => {
  * Get authenticated Supabase client with Clerk token
  * Uses the new Clerk-Supabase integration for automatic authentication
  */
-const getAuthenticatedClient = (getToken?: () => Promise<string | null>) => {
+export const getAuthenticatedClient = (getToken?: () => Promise<string | null>) => {
   if (getToken) {
     const authenticatedClient = createAuthenticatedSupabaseClient(getToken);
     if (!authenticatedClient) {
@@ -158,16 +158,20 @@ export const getTaskById = async (
  * Now uses Clerk-Supabase integration - RLS policies handle user authentication automatically
  */
 export const createTask = async (
-  taskData: Omit<TaskInsert, 'user_id'>,
+  taskData: Omit<TaskInsert, 'user_id' | 'clerk_user_id'>,
   getToken?: () => Promise<string | null>
 ): Promise<Task> => {
   const client = getAuthenticatedClient(getToken);
 
   try {
-    // With Clerk-Supabase integration, RLS policies automatically handle user authentication
-    // No need for manual user lookup - the JWT token contains the user information
+    // Ensure user profile exists in Supabase (creates if missing)
+    const profile = await getUserProfileWithAutoCreation(getToken);
+    const userProfileId = profile.id;
+
     const insertData = {
       ...taskData,
+      user_id: userProfileId, // Include the user ID from profiles table (for foreign key)
+      clerk_user_id: profile.clerk_user_id, // Include clerk_user_id for RLS policy validation
       // Convert Date objects to ISO strings if present
       due_date: taskData.due_date && typeof taskData.due_date === 'object' && 'toISOString' in taskData.due_date
         ? (taskData.due_date as Date).toISOString() 
@@ -354,7 +358,7 @@ export const fetchTimetableEntries = async (
 
   try {
     let query = client
-      .from('timetable_entries')
+      .from('user_timetables')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -401,7 +405,7 @@ export const getTimetableEntryById = async (
 
   try {
     const { data, error } = await client
-      .from('timetable_entries')
+      .from('user_timetables')
       .select('*')
       .eq('id', id)
       .single();
@@ -431,10 +435,13 @@ export const createTimetableEntry = async (
   const client = getAuthenticatedClient(getToken);
 
   try {
-    // With Clerk-Supabase integration, RLS policies automatically handle user authentication
-    // No need for manual user lookup - the JWT token contains the user information
+    // Ensure user profile exists in Supabase (creates if missing)
+    const profile = await getUserProfileWithAutoCreation(getToken);
+    const userProfileId = profile.id;
+
     const insertData = {
       ...entryData,
+      user_id: userProfileId, // Include the user ID from profiles table (for foreign key)
       // Convert Date objects to ISO strings if present
       semester_start_date: entryData.semester_start_date && typeof entryData.semester_start_date === 'object' && 'toISOString' in entryData.semester_start_date
         ? (entryData.semester_start_date as Date).toISOString().split('T')[0] 
@@ -445,7 +452,7 @@ export const createTimetableEntry = async (
     } as TimetableEntryInsert;
 
     const { data, error } = await client
-      .from('timetable_entries')
+      .from('user_timetables')
       .insert(insertData)
       .select()
       .single();
@@ -484,7 +491,7 @@ export const updateTimetableEntry = async (
     };
 
     const { data, error } = await client
-      .from('timetable_entries')
+      .from('user_timetables')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -512,7 +519,7 @@ export const deleteTimetableEntry = async (
 
   try {
     const { error } = await client
-      .from('timetable_entries')
+      .from('user_timetables')
       .delete()
       .eq('id', id);
 
@@ -541,7 +548,7 @@ export const fetchTimetableEntriesPaginated = async (
     const endRange = startRange + limit - 1;
 
     let query = client
-      .from('timetable_entries')
+      .from('user_timetables')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(startRange, endRange);
@@ -602,7 +609,7 @@ export const getDashboardCounts = async (
     const [tasksResult, completedTasksResult, timetableResult] = await Promise.all([
       client.from('tasks').select('*', { count: 'exact', head: true }),
       client.from('tasks').select('*', { count: 'exact', head: true }).eq('completed', true),
-      client.from('timetable_entries').select('*', { count: 'exact', head: true }),
+      client.from('user_timetables').select('*', { count: 'exact', head: true }),
     ]);
 
     const totalTasks = tasksResult.count || 0;
@@ -642,6 +649,95 @@ export const testDatabaseConnection = async (): Promise<{
 };
 
 // ========================================
+// USER PROFILE MANAGEMENT
+// ========================================
+
+/**
+ * Ensure user profile exists in Supabase, create if missing
+ * This handles existing Clerk users who aren't yet in Supabase
+ */
+export const ensureUserProfile = async (
+  getToken?: () => Promise<string | null>
+): Promise<{ id: string; clerk_user_id: string }> => {
+  const client = getAuthenticatedClient(getToken);
+
+  try {
+    // First, try to get existing profile
+    const { data: existingProfile, error: profileError } = await client
+      .from('profiles')
+      .select('id, clerk_user_id')
+      .single();
+
+    // If profile exists, return it
+    if (existingProfile && !profileError) {
+      return existingProfile;
+    }
+
+    // If profile doesn't exist, we need to get user data from Clerk and create it
+    // Since we're on the client side, we need to get Clerk data differently
+    
+    // Try to get the Clerk user ID from the JWT token
+    // This is a fallback approach - the profile should ideally be created via webhooks
+    let clerkUserId: string;
+    
+    // Get the JWT token and decode it to extract the user ID
+    const token = await (getToken ? getToken() : null);
+    if (!token) {
+      throw new SupabaseApiError('No authentication token available');
+    }
+
+    // Decode the JWT token to get the Clerk user ID
+    // Note: This is a simple base64 decode - in production you'd want to properly verify the JWT
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      clerkUserId = payload.sub;
+    } catch (decodeError) {
+      throw new SupabaseApiError('Failed to decode authentication token');
+    }
+
+    if (!clerkUserId) {
+      throw new SupabaseApiError('No user ID found in authentication token');
+    }
+
+    // Create a basic profile for the user
+    // Note: This creates a minimal profile - the user should complete onboarding to fill in details
+    const newProfileData = {
+      clerk_user_id: clerkUserId,
+      onboarding_completed: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data: newProfile, error: createError } = await client
+      .from('profiles')
+      .insert(newProfileData)
+      .select('id, clerk_user_id')
+      .single();
+
+    if (createError) {
+      throw new SupabaseApiError('Failed to create user profile', createError.code, createError);
+    }
+
+    console.log('Created new user profile for Clerk user:', clerkUserId);
+    return newProfile;
+
+  } catch (error) {
+    if (error instanceof SupabaseApiError) throw error;
+    return handleSupabaseError(error, 'ensure user profile exists');
+  }
+};
+
+/**
+ * Enhanced version that gets user profile with auto-creation
+ * This replaces the simple profile lookup in create functions
+ */
+export const getUserProfileWithAutoCreation = async (
+  getToken?: () => Promise<string | null>
+): Promise<{ id: string; clerk_user_id: string }> => {
+  return ensureUserProfile(getToken);
+};
+
+// ========================================
 // AI SUGGESTION FEEDBACK API FUNCTIONS
 // ========================================
 
@@ -678,10 +774,13 @@ export const saveAISuggestionFeedback = async (
   const client = getAuthenticatedClient(getToken);
 
   try {
-    // With Clerk-Supabase integration, RLS policies automatically handle user authentication
-    // No need for manual user lookup - the JWT token contains the user information
+    // Ensure user profile exists in Supabase (creates if missing)
+    const profile = await getUserProfileWithAutoCreation(getToken);
+    const userProfileId = profile.id;
+
     const insertData = {
       ...feedbackData,
+      user_id: userProfileId, // Include the user ID from profiles table (for foreign key)
       suggestion_context: feedbackData.suggestion_context || {},
     };
 

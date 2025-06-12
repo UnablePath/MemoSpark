@@ -1,6 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import type { SupabaseAIConfig } from '@/types/ai';
 
+// Export all from tasksApi and remindersApi
+export * from './tasksApi';
+export * from './remindersApi';
+export * from './achievementsApi';
+export * from './gamificationApi';
+
 // Supabase configuration for AI features
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://onfnehxkglmvrorcvqcx.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

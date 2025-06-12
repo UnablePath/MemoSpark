@@ -31,6 +31,7 @@ export type SuggestionType =
   | 'break_reminder' 
   | 'task_suggestion' 
   | 'difficulty_adjustment' 
+  | 'difficulty'
   | 'subject_focus' 
   | 'schedule_optimization'
   | 'task_optimization'       // Used in PatternRecognitionEngine
@@ -39,7 +40,11 @@ export type SuggestionType =
   | 'study_habit_tip'         // Used in PatternRecognitionEngine
   | 'goal_setting_prompt'     // Used in PatternRecognitionEngine
   | 'positive_reinforcement'  // Future use
-  | 'mascot_interaction';     // For Stu interactions
+  | 'mascot_interaction'     // For Stu interactions
+  | 'premium_analytics'
+  | 'task'
+  | 'break'
+  | 'schedule';
 export type LearningSource = 'temporal' | 'difficulty' | 'collaborative' | 'pattern_recognition' | 'user_preference';
 export type AcceptanceStatus = 'pending' | 'accepted' | 'rejected' | 'dismissed';
 export type DifficultyPreference = 'adaptive' | 'challenging' | 'comfortable';
@@ -74,6 +79,8 @@ export interface ExtendedTask extends BaseTask {
 
 // User AI preferences
 export interface UserAIPreferences {
+  preferredDifficulty?: number;  // Make optional
+  maxSuggestionsPerDay?: number;  // Add missing property
   // Core settings
   enableSuggestions: boolean;
   suggestionFrequency: SuggestionFrequency;
@@ -134,6 +141,19 @@ export interface AISuggestion {
     difficulty?: number; // 1-10 scale
     estimatedBenefit?: number; // 0-1 score of expected positive impact
     requiredAction?: 'immediate' | 'scheduled' | 'optional';
+    tier?: string;
+    confidence?: number; // 0-1 confidence score for metadata
+    aiEnhanced?: boolean; // For SuperIntelligentMLService
+    mlAlgorithm?: string; // For SuperIntelligentMLService
+    mlProcessed?: boolean; // For ai-actions.ts
+    voiceResult?: any; // For ai-actions.ts
+    localGenerated?: boolean; // For ai-actions.ts and SuperIntelligentMLService
+    stuResponse?: any; // For ai-actions.ts
+    insights?: any; // For ai-actions.ts
+    analytics?: any; // For ai-actions.ts
+    studyPlan?: any; // For ai-actions.ts
+    prediction?: any; // For ai-actions.ts
+    [key: string]: any; // Allow additional properties
   };
   
   // Interaction tracking (optional)
@@ -326,4 +346,154 @@ export const defaultAIPreferences: UserAIPreferences = {
   adaptiveDifficulty: true,
   focusOnWeakSubjects: true,
   balanceSubjects: true,
-}; 
+  preferredDifficulty: undefined
+};
+
+// Context for AI suggestion generation
+export interface SuggestionContext {
+  currentTime: Date;
+  upcomingTasks: ExtendedTask[];
+  recentActivity?: ExtendedTask[];
+  userPreferences?: UserAIPreferences;
+  taskContext?: Partial<ExtendedTask>;
+  suggestionTypes?: string[];
+  metadata?: Record<string, unknown>;
+  timetable?: ClassTimetableEntry[];
+}
+
+// Tier-aware AI types for TieredAIService
+export type AIFeatureType = 
+  | 'basic_suggestions' 
+  | 'advanced_suggestions'
+  | 'study_planning'
+  | 'voice_processing'
+  | 'stu_personality'
+  | 'ml_predictions'
+  | 'collaborative_filtering'
+  | 'premium_analytics';
+
+export interface TierAwareAIRequest {
+  userId: string;
+  feature: AIFeatureType;
+  context?: SuggestionContext;
+  tasks: ExtendedTask[];
+  metadata?: Record<string, unknown>;
+  userTier: 'free' | 'premium' | 'enterprise';
+}
+
+export interface TierAwareAIResponse {
+  success: boolean;
+  data?: AISuggestion[] | PatternData | any;
+  tier?: 'free' | 'premium' | 'enterprise';
+  usage?: {
+    requestsUsed: number;
+    requestsRemaining: number;
+    featureAvailable: boolean;
+  };
+  upgradePrompt?: {
+    message: string;
+    features: string[];
+    ctaText: string;
+  };
+  error?: string;
+  upgradeRequired?: boolean;
+  message?: string;
+  metadata?: {
+    tier?: 'super_intelligent' | 'adaptive_learning' | 'cost_optimized' | 'local_ml';
+    confidence?: number;
+    responseTime?: number;
+    behavioralInsights?: {
+      procrastinationRisk?: number;
+      energyPatterns?: any;
+      optimalStudyTimes?: any;
+      motivationLevel?: number;
+    };
+    moodAnalysis?: {
+      stressLevel?: number;
+      confidenceLevel?: number;
+      engagementLevel?: number;
+      recommendations?: any;
+    };
+    predictions?: {
+      optimalStudyWindows?: any[];
+      completionProbabilities?: Record<string, number>;
+    };
+    socialLearningInsights?: {
+      similarUserPatterns?: any;
+      anonymousPatterns?: any;
+    };
+    adaptiveLearning?: {
+      learningCurve?: any;
+      improvementRate?: number;
+    };
+    interventionSuggestions?: {
+      timing?: any;
+      type?: any;
+    };
+    adaptiveDifficultyRecommendations?: any;
+    [key: string]: any;
+  };
+}
+
+export interface AIFeatureConfig {
+  name: string;
+  requiredTier: 'free' | 'premium' | 'enterprise';
+  description: string;
+  upgradeMessage: string;
+}
+
+export interface TieredAIServiceConfig {
+  enableCaching: boolean;
+  maxCacheSize: number;
+  defaultFeatures: AIFeatureType[];
+  upgradePrompts: Record<string, string>;
+}
+
+// From suggestionEngine.ts
+export interface StudySuggestion {
+  id: string;
+  type: 'task' | 'break' | 'subject_focus' | 'schedule' | 'difficulty';
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+  suggestedTime?: string; // ISO string
+  duration?: number; // minutes
+  subject?: string;
+  confidence: number; // 0-1 score
+  reasoning: string;
+  metadata: {
+    category: string;
+    tags: string[];
+    difficulty?: number;
+    estimatedBenefit: number; // 0-1 score
+  };
+}
+
+// From patternEngine.ts
+export type Task = ExtendedTask;
+
+export interface ClassTimetableEntry {
+  id: string;
+  courseName: string;
+  courseCode: string;
+  instructor?: string;
+  location?: string;
+  startTime: string; // HH:mm format
+  endTime: string;   // HH:mm format
+  daysOfWeek: string[];
+  semesterStartDate: string;
+  semesterEndDate: string;
+  color?: string;
+  detailedDescription?: string;
+}
+
+export interface UserPreferences {
+  studyTimePreference: 'morning' | 'afternoon' | 'evening' | 'night';
+  sessionLengthPreference: 'short' | 'medium' | 'long'; // 30min, 45min, 60min+
+  difficultyComfort: 'easy' | 'moderate' | 'challenging';
+  breakFrequency: 'frequent' | 'moderate' | 'minimal';
+  preferredSubjects: string[];
+  strugglingSubjects: string[];
+  studyGoals: string[];
+  availableStudyHours: number[]; // Array of hours when user is typically free
+} 

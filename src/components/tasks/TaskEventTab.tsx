@@ -1271,7 +1271,7 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
             onTaskCreate={handleEnhancedTaskCreate}
           />
 
-          <div className="flex gap-1 p-1 bg-muted/50 rounded-lg border border-border mb-6">
+          <div className="flex gap-1 p-1 bg-muted/50 rounded-lg border border-border mb-6 scale-[0.94] sm:scale-100">
             <button
               onClick={() =>
                 setState((prev) => ({ ...prev, viewMode: "list", error: null }))
@@ -1286,9 +1286,9 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                   : "Switch to list view"
               }
             >
-              <FaTasks className="h-4 w-4" aria-hidden="true" />
-              <span className="hidden sm:inline">List View</span>
-              <span className="sm:hidden">List</span>
+              <FaTasks className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
+              <span className="hidden sm:inline text-xs sm:text-sm">List View</span>
+              <span className="sm:hidden text-xs">List</span>
             </button>
             <button
               onClick={() =>
@@ -1308,9 +1308,9 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                   : "Switch to calendar view"
               }
             >
-              <FaCalendarAlt className="h-4 w-4" aria-hidden="true" />
-              <span className="hidden sm:inline">Calendar</span>
-              <span className="sm:hidden">Cal</span>
+              <FaCalendarAlt className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
+              <span className="hidden sm:inline text-xs sm:text-sm">Calendar</span>
+              <span className="sm:hidden text-xs">Cal</span>
             </button>
             <button
               onClick={() =>
@@ -1330,9 +1330,9 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                   : "Switch to timetable view"
               }
             >
-              <FaTable className="h-4 w-4" aria-hidden="true" />
-              <span className="hidden sm:inline">Timetable</span>
-              <span className="sm:hidden">Table</span>
+              <FaTable className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
+              <span className="hidden sm:inline text-xs sm:text-sm">Timetable</span>
+              <span className="sm:hidden text-xs">Table</span>
             </button>
           </div>
         </div>
