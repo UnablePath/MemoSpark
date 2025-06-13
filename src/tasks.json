@@ -1,292 +1,926 @@
 {
   "tasks": [
     {
-      "id": "11645c49-373d-41e3-9f06-392188ea759e",
-      "name": "Create Secure AI Server Actions",
-      "description": "Convert client-side AI processing to secure server actions using Clerk-Supabase authentication. Implement proper server-side AI endpoints with authentication middleware, rate limiting, and request validation following existing server action patterns.",
-      "notes": "Critical security task - moves AI processing from client to server. Must maintain existing API compatibility while adding server-side security.",
+      "id": "ef5d16f0-e7ef-416f-a307-5fe0ed3dbc44",
+      "name": "Next.js 15 Upgrade and Project Foundation",
+      "description": "Upgrade StudySpark from Next.js 13 to 15, update all dependencies, and establish solid foundation for production features. This includes updating React 18+ features, App Router optimizations, and ensuring compatibility with all existing components.",
       "status": "completed",
       "dependencies": [],
-      "createdAt": "2025-06-11T18:47:32.158Z",
-      "updatedAt": "2025-06-11T19:51:49.312Z",
+      "createdAt": "2025-06-13T23:22:36.362Z",
+      "updatedAt": "2025-06-13T23:34:31.437Z",
       "relatedFiles": [
         {
-          "path": "src/app/actions/ai-actions.ts",
-          "type": "CREATE",
-          "description": "New server actions file for AI processing"
-        },
-        {
-          "path": "src/app/clerk-onboarding/_actions.ts",
-          "type": "REFERENCE",
-          "description": "Pattern reference for server action implementation",
-          "lineStart": 67,
-          "lineEnd": 100
-        },
-        {
-          "path": "src/lib/ai/TieredAIService.ts",
-          "type": "REFERENCE",
-          "description": "Main AI service to integrate server-side",
-          "lineStart": 126,
-          "lineEnd": 150
-        },
-        {
-          "path": "src/app/api/ai/suggestions/route.ts",
-          "type": "REFERENCE",
-          "description": "Existing API patterns to maintain compatibility",
-          "lineStart": 25,
-          "lineEnd": 85
-        }
-      ],
-      "implementationGuide": "1. Create src/app/actions/ai-actions.ts following clerk-onboarding/_actions.ts pattern\\n2. Implement generateAISuggestionsAction(formData: FormData) server action\\n3. Add Clerk authentication with createServerSupabaseClient()\\n4. Integrate TieredAIService.generateSuggestions() on server-side\\n5. Add proper error handling using ActionResponse pattern\\n6. Implement rate limiting checks using SubscriptionTierManager\\n7. Add input validation with Zod schemas for AI requests\\n8. Create server action for each AI feature type (basic_suggestions, advanced_suggestions, etc.)\\n9. Test with existing /api/test-auth/route.ts authentication flow",
-      "verificationCriteria": "Server actions successfully process AI requests with proper Clerk authentication. All AI processing moved from client to server. Rate limiting and input validation working correctly. No API keys exposed in client code.",
-      "analysisResult": "Production-ready AI services architecture implementation focusing on server-side security, service consolidation, comprehensive testing, performance optimization, and production security audit. The solution leverages existing TieredAIService as the central orchestrator while eliminating duplicate code, implementing proper authentication patterns, and ensuring scalable performance with comprehensive testing coverage.",
-      "summary": "Successfully implemented secure AI server actions with complete authentication, rate limiting, and Super Intelligent ML system integration. All 8 AI feature types supported with proper validation, error handling, and tier-based access control. Server actions follow established patterns and provide robust security.",
-      "completedAt": "2025-06-11T19:51:49.306Z"
-    },
-    {
-      "id": "41d6c4a5-f991-4d1c-8533-1cd655553822",
-      "name": "Apply and Validate Subscription Database Schema",
-      "description": "Ensure subscription database schema is properly applied and optimized for AI services. Validate RLS policies, add performance indexes, and verify tier-based access control works correctly with the AI system.",
-      "notes": "Foundation task for tier-based AI access. Must ensure database schema supports all AI features and performance requirements.",
-      "status": "completed",
-      "dependencies": [],
-      "createdAt": "2025-06-11T18:47:32.158Z",
-      "updatedAt": "2025-06-11T21:07:33.020Z",
-      "relatedFiles": [
-        {
-          "path": "src/lib/subscription/schema.sql",
-          "type": "REFERENCE",
-          "description": "Complete subscription schema definition",
-          "lineStart": 1,
-          "lineEnd": 134
-        },
-        {
-          "path": "src/lib/subscription/SubscriptionTierManager.ts",
-          "type": "REFERENCE",
-          "description": "Tier management implementation to validate",
-          "lineStart": 100,
-          "lineEnd": 160
-        },
-        {
-          "path": "src/types/subscription.ts",
-          "type": "REFERENCE",
-          "description": "Type definitions that must match database schema",
-          "lineStart": 112,
-          "lineEnd": 174
-        },
-        {
-          "path": "supabase/migrations/",
+          "path": "package.json",
           "type": "TO_MODIFY",
-          "description": "Migration files to ensure schema is applied"
+          "description": "Update all dependencies"
+        },
+        {
+          "path": "next.config.js",
+          "type": "TO_MODIFY",
+          "description": "Update configuration for Next.js 15"
+        },
+        {
+          "path": "tsconfig.json",
+          "type": "TO_MODIFY",
+          "description": "Update TypeScript config"
         }
       ],
-      "implementationGuide": "1. Apply src/lib/subscription/schema.sql if not already migrated\\n2. Add missing performance indexes for ai_usage_tracking queries\\n3. Validate RLS policies work with Clerk JWT integration\\n4. Test subscription tier enforcement with TieredAIService\\n5. Add composite indexes for (clerk_user_id, usage_date) on ai_usage_tracking\\n6. Verify foreign key constraints between user_subscriptions and profiles\\n7. Test tier upgrade/downgrade scenarios with AI feature access\\n8. Add database health check for AI service dependencies\\n9. Validate DEFAULT_TIER_CONFIGS match database tier definitions",
-      "verificationCriteria": "Database schema properly applied with all tables created. RLS policies enforce tier-based access. Performance indexes improve query speed. Subscription tier checks work correctly with AI services.",
-      "analysisResult": "Production-ready AI services architecture implementation focusing on server-side security, service consolidation, comprehensive testing, performance optimization, and production security audit. The solution leverages existing TieredAIService as the central orchestrator while eliminating duplicate code, implementing proper authentication patterns, and ensuring scalable performance with comprehensive testing coverage.",
-      "summary": "Successfully applied and validated subscription database schema with comprehensive AI features support. All subscription tables (subscription_tiers, user_subscriptions, ai_usage_tracking) are properly created with RLS policies, indexes, and constraints. Default tiers configured correctly (free: 10 req/day, premium: 100 req/day, enterprise: 1000 req/day). Added validation utilities and SQL functions for AI usage tracking. All validation tests pass: tables exist, RLS enabled, user subscriptions working, AI usage tracking functional. Database is fully ready for AI service integration with proper tier-based access control and rate limiting.",
-      "completedAt": "2025-06-11T21:07:33.019Z"
+      "implementationGuide": "1. Update package.json dependencies to Next.js 15\\n2. Update React and React-DOM to latest versions\\n3. Migrate any deprecated APIs\\n4. Update TypeScript configuration\\n5. Test all existing components for compatibility\\n6. Update build and deployment scripts\\n7. Verify Clerk and Supabase integrations work with new versions",
+      "verificationCriteria": "All existing features work with Next.js 15, no breaking changes, build process completes successfully, and all integrations remain functional.",
+      "analysisResult": "StudySpark Production-Ready Implementation: 28-step comprehensive plan to implement all P0 and P1 critical features including Stu Mascot system, AI suggestions, gamification, crashout room, real-time messaging, PWA capabilities, payment integration, and advanced task management. Transform StudySpark from prototype to production-ready student productivity platform.",
+      "summary": "Successfully upgraded StudySpark to Next.js 15.3.3 and React 19.1.0. All dependencies updated, build process works perfectly, and all existing integrations (Clerk, Supabase, Tailwind) remain functional. The upgrade included automated codemods for React 19 compatibility and TypeScript type updates.",
+      "completedAt": "2025-06-13T23:34:31.434Z"
     },
     {
-      "id": "43f16092-7f02-4b9c-aa9b-3e51478e7f7b",
-      "name": "Consolidate Super Intelligent AI Services Architecture",
-      "description": "Eliminate duplicate AI service code and consolidate into a 4-tier intelligent system: Super Intelligent ML (10/10 intelligence with behavioral analysis, mood detection, predictive modeling), Adaptive Learning ML (9/10), Cost-Optimized AI (8/10), and Local ML (6/10). Implement seamless tier fallbacks and unified service management.",
-      "notes": "Critical architecture cleanup to eliminate confusion and reduce maintenance burden. Must maintain all existing functionality while simplifying the codebase.",
-      "status": "completed",
+      "id": "89fcb608-5bd6-4f55-b2f7-75df5f36238f",
+      "name": "Stu Mascot SVG Animation System",
+      "description": "Create interactive SVG-based Stu mascot with 8 distinct animation states (idle, talking, excited, thinking, celebrating, sleeping, stressed, encouraging). Implement smooth transitions and accessibility features.",
+      "status": "pending",
       "dependencies": [
         {
-          "taskId": "11645c49-373d-41e3-9f06-392188ea759e"
+          "taskId": "ef5d16f0-e7ef-416f-a307-5fe0ed3dbc44"
         }
       ],
-      "createdAt": "2025-06-11T18:47:32.158Z",
-      "updatedAt": "2025-06-11T21:12:41.118Z",
+      "createdAt": "2025-06-13T23:22:36.362Z",
+      "updatedAt": "2025-06-13T23:22:36.362Z",
       "relatedFiles": [
         {
-          "path": "src/lib/ai/TieredAIService.ts",
-          "type": "TO_MODIFY",
-          "description": "Main service to receive consolidated functionality",
-          "lineStart": 1,
-          "lineEnd": 716
+          "path": "src/components/stu/StuMascot.tsx",
+          "type": "CREATE",
+          "description": "Main mascot component"
         },
         {
-          "path": "src/lib/supabase/aiIntegration.ts",
-          "type": "TO_MODIFY",
-          "description": "Service to be consolidated into TieredAIService",
-          "lineStart": 197,
-          "lineEnd": 270
+          "path": "src/lib/stu/StuAnimationEngine.ts",
+          "type": "CREATE",
+          "description": "Animation control system"
         },
         {
-          "path": "src/lib/ai/index.ts",
-          "type": "TO_MODIFY",
-          "description": "Core AI service to simplify and deduplicate",
-          "lineStart": 58,
-          "lineEnd": 320
-        },
-        {
-          "path": "src/hooks/useTieredAI.ts",
-          "type": "TO_MODIFY",
-          "description": "AI hook to update for consolidated service",
-          "lineStart": 111,
-          "lineEnd": 212
+          "path": "public/stu-mascot.svg",
+          "type": "CREATE",
+          "description": "SVG mascot assets"
         }
       ],
-      "implementationGuide": "## Super Intelligent ML System Implementation\n\n### 1. Core Intelligence Tiers\n- **Tier 1: SuperIntelligentMLService** (Premium+) - 10/10 Intelligence\n  - Advanced behavioral pattern analysis\n  - Real-time mood and energy detection\n  - Predictive modeling with 95% accuracy\n  - Social learning from anonymous success patterns\n  - Stress level management and intervention timing\n  - Scientific-backed recommendations with confidence scores\n\n- **Tier 2: AdaptiveMLService** (Premium) - 9/10 Intelligence\n  - Personal learning patterns that evolve over time\n  - Skill progression tracking\n  - Optimal timing recognition\n  - Feedback integration for continuous improvement\n\n- **Tier 3: CostOptimizedAIService** (Pro) - 8/10 Intelligence\n  - Budget-aware external AI calls\n  - Smart caching and rate limiting\n  - 96.8% cost reduction while maintaining quality\n\n- **Tier 4: LocalMLService** (Basic) - 6/10 Intelligence\n  - Zero-cost local pattern recognition\n  - Basic optimization algorithms\n\n### 2. Integration Points\n```typescript\n// TieredAIService.ts - Master Router\ngenerateSuggestions() -> route by user tier -> fallback chain\nSuperIntelligentML -> AdaptiveML -> CostOptimized -> LocalML\n\n// Key Features\n- Behavioral profiling with 20+ metrics\n- Mood detection from task patterns\n- Predictive energy forecasting\n- Social learning insights (privacy-preserved)\n- Scientific reasoning for all suggestions\n```\n\n### 3. Intelligence Features\n- **Behavioral Analysis**: Procrastination patterns, energy cycles, motivation tracking\n- **Predictive Modeling**: Optimal study windows, task completion probability\n- **Mood Detection**: Stress, confidence, engagement levels from behavioral data\n- **Social Learning**: Anonymous success patterns from similar user profiles\n- **Adaptive Optimization**: Continuous learning from user interactions\n\n### 4. Performance Guarantees\n- Super Intelligent tier: 95% confidence, scientifically-backed reasoning\n- All tiers: Zero-cost local fallbacks ensure 100% availability\n- Budget protection: Maximum $0.30/month for 153 premium users\n- Real-time processing: &lt;200ms response times",
-      "verificationCriteria": "1. **Four-Tier Intelligence System** (25%): Verify all 4 tiers work correctly with proper fallback chain\n2. **Super Intelligent Features** (30%): Behavioral analysis, mood detection, predictive modeling functional\n3. **Performance Standards** (25%): 95% confidence scores, &lt;200ms response times, scientific reasoning\n4. **Cost Protection** (20%): Budget limits enforced, local fallbacks working, zero service interruptions",
-      "analysisResult": "Production-ready AI services architecture implementation focusing on server-side security, service consolidation, comprehensive testing, performance optimization, and production security audit. The solution leverages existing TieredAIService as the central orchestrator while eliminating duplicate code, implementing proper authentication patterns, and ensuring scalable performance with comprehensive testing coverage.",
-      "summary": "Successfully consolidated the AI services architecture. Deleted legacy services (TieredAIService, SupabaseAIService) and created a new, self-contained `ConsolidatedAIService` implementing the 4-tier intelligence model (Super-Intelligent, Adaptive, Cost-Optimized, Local). Rewrote the main AI server action to use the new service, ensuring a clean and maintainable architecture with a clear fallback chain. The codebase is now significantly simplified while preserving all functionality.",
-      "completedAt": "2025-06-11T21:12:41.112Z"
+      "implementationGuide": "1. Design SVG Stu mascot with modular animation components\\n2. Create StuAnimationEngine class\\n3. Implement 8 animation states with Framer Motion\\n4. Add voice synthesis integration\\n5. Create accessibility features (reduced motion support)\\n6. Implement context-aware animations\\n7. Add mascot positioning system",
+      "verificationCriteria": "Stu mascot displays correctly with smooth animations, all 8 states work properly, accessibility features function, and performance remains optimal.",
+      "analysisResult": "StudySpark Production-Ready Implementation: 28-step comprehensive plan to implement all P0 and P1 critical features including Stu Mascot system, AI suggestions, gamification, crashout room, real-time messaging, PWA capabilities, payment integration, and advanced task management. Transform StudySpark from prototype to production-ready student productivity platform."
     },
     {
-      "id": "1c635a7a-85d4-4875-94dd-2bcde891f936",
-      "name": "Build Comprehensive Super Intelligent AI Integration Tests",
-      "description": "Create robust test suite covering all 4 intelligence tiers including Super Intelligent ML behavioral analysis, mood detection, predictive modeling, social learning insights, adaptive learning patterns, cost optimization, and local ML fallbacks. Test authentication flows, tier-based access control, error handling, and performance benchmarks for production readiness.",
-      "notes": "Essential for production confidence. Must cover all critical paths and failure scenarios to ensure AI services work reliably under all conditions.",
-      "status": "completed",
+      "id": "b6ff2a2b-03ed-43f7-a360-20d9d4116f29",
+      "name": "Interactive Tutorial Flow System",
+      "description": "Build comprehensive step-by-step tutorial system with Stu mascot guidance, progress tracking, and contextual help bubbles. Create onboarding flow that introduces all major features.",
+      "status": "pending",
       "dependencies": [
         {
-          "taskId": "11645c49-373d-41e3-9f06-392188ea759e"
-        },
-        {
-          "taskId": "43f16092-7f02-4b9c-aa9b-3e51478e7f7b"
+          "taskId": "89fcb608-5bd6-4f55-b2f7-75df5f36238f"
         }
       ],
-      "createdAt": "2025-06-11T18:47:32.158Z",
-      "updatedAt": "2025-06-12T00:38:56.962Z",
+      "createdAt": "2025-06-13T23:22:36.362Z",
+      "updatedAt": "2025-06-13T23:22:36.362Z",
       "relatedFiles": [
         {
-          "path": "src/lib/testing/ai-test-utils.ts",
-          "type": "TO_MODIFY",
-          "description": "Existing test utilities to extend",
-          "lineStart": 1,
-          "lineEnd": 300
-        },
-        {
-          "path": "__tests__/ai-integration.test.tsx",
+          "path": "src/lib/tutorial/TutorialManager.ts",
           "type": "CREATE",
-          "description": "New comprehensive AI integration test suite"
+          "description": "Tutorial orchestration"
         },
         {
-          "path": "__tests__/ai-authentication.test.tsx",
+          "path": "src/components/tutorial/TutorialOverlay.tsx",
           "type": "CREATE",
-          "description": "Authentication flow tests for AI services"
+          "description": "Tutorial UI components"
         },
         {
-          "path": "__tests__/ai-performance.test.tsx",
+          "path": "supabase/migrations/007_tutorial_progress.sql",
           "type": "CREATE",
-          "description": "Performance benchmarking tests"
-        },
-        {
-          "path": "src/app/actions/ai-actions.ts",
-          "type": "DEPENDENCY",
-          "description": "Server actions to test"
+          "description": "Tutorial progress schema"
         }
       ],
-      "implementationGuide": "## Super Intelligent ML Testing Framework\n\n### 1. Intelligence Tier Tests\n```typescript\n// Test all 4 tiers independently and integration\ndescribe('SuperIntelligentMLService', () => {\n  test('behavioral pattern analysis accuracy')\n  test('mood detection from task patterns')\n  test('predictive modeling confidence scores')\n  test('social learning insights relevance')\n  test('scientific reasoning quality')\n  test('95% confidence requirement')\n})\n\ndescribe('TieredIntelligenceSystem', () => {\n  test('tier routing by subscription level')\n  test('fallback chain functionality')\n  test('performance under load')\n  test('cost budget protection')\n})\n```\n\n### 2. Advanced ML Testing\n- **Behavioral Analysis Tests**: Verify procrastination detection, energy pattern learning, motivation tracking\n- **Mood Detection Tests**: Stress level calculation, confidence analysis, engagement measurement\n- **Predictive Model Tests**: Study window optimization, task completion probability, motivation intervention timing\n- **Learning Evolution Tests**: Verify AI gets smarter over time, adapts to user patterns\n\n### 3. Performance Benchmarks\n- Response time: &lt;200ms for all tiers\n- Confidence scores: &gt;90% for Super Intelligent tier\n- Cost efficiency: &lt;$0.30/month for 153 users\n- Availability: 100% with local ML fallbacks\n\n### 4. Integration Testing\n- User tier changes and automatic intelligence upgrades\n- Error scenarios and graceful degradation\n- Real-world usage patterns and edge cases\n- Memory usage and optimization under load",
-      "verificationCriteria": "1. **All Intelligence Tiers Tested** (25%): Super Intelligent, Adaptive, Cost-Optimized, Local ML all pass tests\n2. **Advanced ML Features** (30%): Behavioral analysis, mood detection, predictive modeling accuracy verified\n3. **Performance Benchmarks** (25%): &lt;200ms response, &gt;90% confidence, cost limits enforced\n4. **Integration Scenarios** (20%): Tier routing, fallbacks, error handling, real-world edge cases covered",
-      "analysisResult": "Production-ready AI services architecture implementation focusing on server-side security, service consolidation, comprehensive testing, performance optimization, and production security audit. The solution leverages existing TieredAIService as the central orchestrator while eliminating duplicate code, implementing proper authentication patterns, and ensuring scalable performance with comprehensive testing coverage.",
-      "summary": "Successfully created comprehensive AI integration test suite covering all 4 intelligence tiers (Super Intelligent ML, Adaptive Learning, Cost-Optimized, Local ML), behavioral analysis, mood detection, predictive modeling, social learning insights, authentication flows, performance benchmarks, tier routing, error handling, and real-world usage patterns. The test suite includes 3 major test files: ai-integration.test.tsx (comprehensive tier system testing), ai-authentication.test.tsx (Clerk-Supabase integration), and ai-performance.test.tsx (benchmarking and load testing). Enhanced AITestUtils with advanced testing methods for behavioral analysis, mood detection, and fallback chain testing. Tests are executable and properly structured for production readiness validation.",
-      "completedAt": "2025-06-12T00:38:56.960Z"
+      "implementationGuide": "1. Create TutorialManager class\\n2. Design tutorial step components\\n3. Implement progress tracking in Supabase\\n4. Create contextual help bubble system\\n5. Integrate with Stu mascot animations\\n6. Add skip/resume functionality\\n7. Create tutorial completion rewards",
+      "verificationCriteria": "Tutorial guides users through all features, Stu provides contextual guidance, progress is saved and restored, and completion triggers appropriate rewards.",
+      "analysisResult": "StudySpark Production-Ready Implementation: 28-step comprehensive plan to implement all P0 and P1 critical features including Stu Mascot system, AI suggestions, gamification, crashout room, real-time messaging, PWA capabilities, payment integration, and advanced task management. Transform StudySpark from prototype to production-ready student productivity platform."
     },
     {
-      "id": "bc74ab25-ca5a-40a4-8180-4259226dd26e",
-      "name": "Implement Super Intelligent AI Performance Optimization",
-      "description": "Add advanced caching layer, intelligent request batching, real-time performance monitoring, and database query optimization for the 4-tier AI system. Implement Redis caching for Super Intelligent ML models, behavioral profile optimization, mood detection acceleration, and comprehensive performance metrics with automated scaling.",
-      "notes": "Critical for production scalability. Must maintain functionality while significantly improving performance and resource usage.",
-      "status": "in_progress",
+      "id": "ddacd931-9d88-407e-9120-899deeb65276",
+      "name": "AI Routine Questionnaire System",
+      "description": "Create comprehensive questionnaire to learn user patterns, preferences, and schedule constraints. This forms the foundation for AI-powered scheduling and suggestions.",
+      "status": "pending",
       "dependencies": [
         {
-          "taskId": "43f16092-7f02-4b9c-aa9b-3e51478e7f7b"
+          "taskId": "b6ff2a2b-03ed-43f7-a360-20d9d4116f29"
         }
       ],
-      "createdAt": "2025-06-11T18:47:32.158Z",
-      "updatedAt": "2025-06-12T01:07:05.317Z",
+      "createdAt": "2025-06-13T23:22:36.363Z",
+      "updatedAt": "2025-06-13T23:22:36.363Z",
       "relatedFiles": [
         {
-          "path": "src/lib/ai/TieredAIService.ts",
-          "type": "TO_MODIFY",
-          "description": "Main service to add performance optimizations",
-          "lineStart": 620,
-          "lineEnd": 700
-        },
-        {
-          "path": "src/lib/cache/RedisCache.ts",
+          "path": "src/components/ai/AIQuestionnaire.tsx",
           "type": "CREATE",
-          "description": "Redis caching implementation for AI responses"
+          "description": "Questionnaire interface"
         },
         {
-          "path": "src/lib/monitoring/AIPerformanceMonitor.ts",
+          "path": "src/lib/ai/QuestionnaireManager.ts",
           "type": "CREATE",
-          "description": "Performance monitoring and metrics collection"
+          "description": "Questionnaire logic"
         },
         {
-          "path": "src/lib/ai/RequestBatcher.ts",
+          "path": "supabase/migrations/008_ai_questionnaire.sql",
           "type": "CREATE",
-          "description": "Request batching for multiple AI operations"
-        },
-        {
-          "path": "src/lib/subscription/SubscriptionTierManager.ts",
-          "type": "TO_MODIFY",
-          "description": "Add performance optimizations for tier checks",
-          "lineStart": 100,
-          "lineEnd": 200
+          "description": "Questionnaire data schema"
         }
       ],
-      "implementationGuide": "## Super Intelligent AI Performance Architecture\n\n### 1. Intelligent Caching System\n```typescript\n// Multi-layered caching for maximum performance\n- **Behavioral Profile Cache**: 24-hour Redis cache for user behavior patterns\n- **Mood State Cache**: 1-hour cache for mood detection results\n- **Prediction Cache**: 4-hour cache for predictive model outputs\n- **Social Learning Cache**: 7-day cache for anonymous success patterns\n- **Local ML Cache**: Persistent localStorage for immediate fallbacks\n```\n\n### 2. Performance Optimization Tiers\n- **Super Intelligent ML**: Pre-computed behavioral models, cached mood states, optimized prediction algorithms\n- **Adaptive Learning**: Incremental learning updates, efficient pattern storage, smart model compression\n- **Cost-Optimized AI**: Request batching, intelligent caching, rate limit optimization\n- **Local ML**: Memory-efficient algorithms, instant response guaranteed\n\n### 3. Monitoring & Metrics\n```typescript\n// Real-time performance dashboard\ninterface AIPerformanceMetrics {\n  responseTime: number        // Target: &lt;200ms\n  confidenceScore: number     // Target: &gt;90% for Super Intelligent\n  cacheHitRate: number       // Target: &gt;80%\n  intelligenceAccuracy: number // Measured by user satisfaction\n  costEfficiency: number      // Target: &lt;$0.30/month\n  memoryUsage: number        // Optimized for mobile devices\n}\n```\n\n### 4. Adaptive Scaling\n- **Load Balancing**: Automatic tier downgrade under high load\n- **Memory Management**: Intelligent garbage collection for ML models\n- **Database Optimization**: Query optimization for behavioral data\n- **Edge Computing**: Pre-compute common patterns for instant responses",
-      "verificationCriteria": "1. **Response Time Optimization** (30%): All tiers respond within 200ms, Super Intelligent ML optimized for speed\n2. **Caching Efficiency** (25%): &gt;80% cache hit rate, intelligent cache invalidation, memory optimization\n3. **Performance Monitoring** (25%): Real-time metrics, automated alerts, performance dashboard functional\n4. **Scalability** (20%): System handles load spikes, graceful degradation, resource optimization verified",
-      "analysisResult": "Production-ready AI services architecture implementation focusing on server-side security, service consolidation, comprehensive testing, performance optimization, and production security audit. The solution leverages existing TieredAIService as the central orchestrator while eliminating duplicate code, implementing proper authentication patterns, and ensuring scalable performance with comprehensive testing coverage."
+      "implementationGuide": "1. Design questionnaire flow with multiple steps\\n2. Create QuestionnaireManager class\\n3. Implement adaptive questioning based on responses\\n4. Store responses in structured format\\n5. Create pattern analysis from questionnaire data\\n6. Integrate with existing AI services\\n7. Add questionnaire retaking functionality",
+      "verificationCriteria": "Questionnaire collects comprehensive user data, responses are properly stored and analyzed, and data feeds into AI suggestion system effectively.",
+      "analysisResult": "StudySpark Production-Ready Implementation: 28-step comprehensive plan to implement all P0 and P1 critical features including Stu Mascot system, AI suggestions, gamification, crashout room, real-time messaging, PWA capabilities, payment integration, and advanced task management. Transform StudySpark from prototype to production-ready student productivity platform."
     },
     {
-      "id": "beb1b6f3-6402-4587-b9f8-45af0b19f004",
-      "name": "Complete Super Intelligent AI Security Audit and Production Setup",
-      "description": "Conduct comprehensive security audit of the 4-tier AI system including Super Intelligent ML behavioral data protection, mood detection privacy safeguards, social learning anonymization, secure model storage, and production security measures. Validate environment configuration for all intelligence tiers and ensure security best practices.",
-      "notes": "Final security validation before production. Must ensure no security vulnerabilities exist in AI service implementation.",
-      "status": "completed",
+      "id": "65e24c4b-a7e1-4cf0-93c1-513b146bfbd6",
+      "name": "Smart Scheduling AI Engine",
+      "description": "Implement ML-based scheduling system that analyzes user patterns and suggests optimal study times. Integrate with calendar systems and provide intelligent time slot recommendations.",
+      "status": "pending",
       "dependencies": [
         {
-          "taskId": "11645c49-373d-41e3-9f06-392188ea759e"
-        },
-        {
-          "taskId": "41d6c4a5-f991-4d1c-8533-1cd655553822"
-        },
-        {
-          "taskId": "1c635a7a-85d4-4875-94dd-2bcde891f936"
+          "taskId": "ddacd931-9d88-407e-9120-899deeb65276"
         }
       ],
-      "createdAt": "2025-06-11T18:47:32.158Z",
-      "updatedAt": "2025-06-12T01:14:42.397Z",
+      "createdAt": "2025-06-13T23:22:36.363Z",
+      "updatedAt": "2025-06-13T23:22:36.363Z",
       "relatedFiles": [
         {
-          "path": "src/lib/security/AISecurityValidator.ts",
+          "path": "src/lib/ai/SmartScheduler.ts",
           "type": "CREATE",
-          "description": "Security validation utilities for AI services"
+          "description": "Main scheduling engine"
         },
         {
-          "path": "src/middleware.ts",
-          "type": "TO_MODIFY",
-          "description": "Add AI-specific security middleware",
-          "lineStart": 1,
-          "lineEnd": 46
-        },
-        {
-          "path": "src/app/actions/ai-actions.ts",
-          "type": "DEPENDENCY",
-          "description": "Server actions to security audit"
-        },
-        {
-          "path": ".env.example",
-          "type": "TO_MODIFY",
-          "description": "Document required AI service environment variables"
-        },
-        {
-          "path": "SECURITY.md",
+          "path": "src/lib/ai/PatternAnalyzer.ts",
           "type": "CREATE",
-          "description": "AI security documentation and deployment checklist"
+          "description": "Pattern recognition system"
+        },
+        {
+          "path": "src/components/scheduling/SmartScheduleView.tsx",
+          "type": "CREATE",
+          "description": "Schedule interface"
         }
       ],
-      "implementationGuide": "## Super Intelligent AI Security Framework\n\n### 1. Data Privacy Protection\n```typescript\n// Multi-tier privacy protection\n- **Behavioral Data**: Encrypted storage, anonymized patterns, GDPR compliance\n- **Mood Detection**: Local processing only, no cloud transmission\n- **Social Learning**: Zero-knowledge aggregation, differential privacy\n- **Predictive Models**: User data isolation, secure model boundaries\n- **Cache Security**: Encrypted Redis, secure key management\n```\n\n### 2. Intelligence Tier Security\n- **Super Intelligent ML**: Advanced threat detection, behavioral anomaly protection\n- **Adaptive Learning**: Secure pattern evolution, tamper-proof learning data\n- **Cost-Optimized AI**: API key rotation, request validation, rate limit security\n- **Local ML**: Client-side security, secure fallback mechanisms\n\n### 3. Production Security Checklist\n- **Environment Variables**: Secure key management, tier-based access control\n- **API Endpoints**: Authentication, authorization, input validation\n- **Data Transmission**: End-to-end encryption, secure channels\n- **Model Security**: Adversarial attack protection, secure inference\n- **Audit Logging**: Comprehensive security event logging\n\n### 4. Compliance & Monitoring\n- **GDPR Compliance**: Right to deletion, data portability, consent management\n- **Security Monitoring**: Real-time threat detection, automated response\n- **Penetration Testing**: AI-specific vulnerability assessment\n- **Incident Response**: Security breach protocols, data protection procedures",
-      "verificationCriteria": "1. **Data Privacy Protection** (30%): Behavioral data encrypted, mood detection local-only, anonymized social learning\n2. **Security Implementation** (25%): All tiers secure, threat detection active, vulnerability assessment passed\n3. **Production Readiness** (25%): Environment properly configured, all security measures active, compliance verified\n4. **Monitoring & Response** (20%): Security monitoring active, incident response tested, audit logging functional",
-      "analysisResult": "Production-ready AI services architecture implementation focusing on server-side security, service consolidation, comprehensive testing, performance optimization, and production security audit. The solution leverages existing TieredAIService as the central orchestrator while eliminating duplicate code, implementing proper authentication patterns, and ensuring scalable performance with comprehensive testing coverage.",
-      "summary": "Successfully completed comprehensive AI security audit and production setup. Implemented: 1) AISecurityValidator with behavioral data encryption (AES-256-GCM), mood detection privacy validation (local-only processing), and social learning anonymization with differential privacy 2) Enhanced middleware with AI-specific rate limiting, security headers, and audit logging 3) Integrated security middleware into AI actions with authentication validation and security event logging 4) Created comprehensive SECURITY.md documentation covering all 4 intelligence tiers, GDPR compliance, incident response, penetration testing guidelines, and production deployment checklist. All security measures are production-ready with proper encryption, privacy protection, monitoring, and compliance frameworks.",
-      "completedAt": "2025-06-12T01:14:42.394Z"
+      "implementationGuide": "1. Create SmartScheduler class\\n2. Implement pattern recognition algorithms\\n3. Build time slot optimization engine\\n4. Create calendar conflict detection\\n5. Implement preference learning system\\n6. Add schedule adjustment recommendations\\n7. Integrate with existing task system",
+      "verificationCriteria": "AI provides accurate schedule suggestions, learns from user behavior, integrates with calendar systems, and improves recommendations over time.",
+      "analysisResult": "StudySpark Production-Ready Implementation: 28-step comprehensive plan to implement all P0 and P1 critical features including Stu Mascot system, AI suggestions, gamification, crashout room, real-time messaging, PWA capabilities, payment integration, and advanced task management. Transform StudySpark from prototype to production-ready student productivity platform."
+    },
+    {
+      "id": "747a9d00-f698-4cc5-a290-3af5327b9ba3",
+      "name": "Achievement System Implementation",
+      "description": "Build comprehensive achievement system with badges, rewards, and progress tracking. Create diverse achievement categories and integrate with existing gamification schema.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "65e24c4b-a7e1-4cf0-93c1-513b146bfbd6"
+        }
+      ],
+      "createdAt": "2025-06-13T23:22:36.363Z",
+      "updatedAt": "2025-06-13T23:22:36.363Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/gamification/AchievementEngine.ts",
+          "type": "CREATE",
+          "description": "Achievement logic system"
+        },
+        {
+          "path": "src/components/achievements/AchievementBadge.tsx",
+          "type": "CREATE",
+          "description": "Badge display component"
+        },
+        {
+          "path": "src/assets/achievements/",
+          "type": "CREATE",
+          "description": "Achievement badge SVGs"
+        }
+      ],
+      "implementationGuide": "1. Implement AchievementEngine class\\n2. Create achievement evaluation logic\\n3. Design badge system with SVG icons\\n4. Implement achievement notifications\\n5. Create achievement sharing functionality\\n6. Add rare and special achievements\\n7. Integrate with existing database schema",
+      "verificationCriteria": "Achievements unlock correctly based on user actions, badges display properly, notifications work, and achievement data integrates with gamification system.",
+      "analysisResult": "StudySpark Production-Ready Implementation: 28-step comprehensive plan to implement all P0 and P1 critical features including Stu Mascot system, AI suggestions, gamification, crashout room, real-time messaging, PWA capabilities, payment integration, and advanced task management. Transform StudySpark from prototype to production-ready student productivity platform."
+    },
+    {
+      "id": "e604d005-36b3-4879-9d63-e74f10336b2d",
+      "name": "Streak Tracking System",
+      "description": "Implement daily completion streak tracking with visual indicators, streak recovery options, and integration with achievement system. Create motivational streak maintenance features.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "747a9d00-f698-4cc5-a290-3af5327b9ba3"
+        }
+      ],
+      "createdAt": "2025-06-13T23:22:36.363Z",
+      "updatedAt": "2025-06-13T23:22:36.363Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/gamification/StreakTracker.ts",
+          "type": "CREATE",
+          "description": "Streak tracking logic"
+        },
+        {
+          "path": "src/components/streaks/StreakDisplay.tsx",
+          "type": "CREATE",
+          "description": "Streak visualization"
+        },
+        {
+          "path": "supabase/migrations/009_streak_tracking.sql",
+          "type": "CREATE",
+          "description": "Streak data schema"
+        }
+      ],
+      "implementationGuide": "1. Create StreakTracker class\\n2. Implement daily completion detection\\n3. Build streak visualization components\\n4. Add streak recovery mechanisms\\n5. Create streak milestone achievements\\n6. Implement streak sharing features\\n7. Add streak prediction analytics",
+      "verificationCriteria": "Streaks track accurately across days, visual indicators work correctly, recovery options function, and streak achievements unlock properly.",
+      "analysisResult": "StudySpark Production-Ready Implementation: 28-step comprehensive plan to implement all P0 and P1 critical features including Stu Mascot system, AI suggestions, gamification, crashout room, real-time messaging, PWA capabilities, payment integration, and advanced task management. Transform StudySpark from prototype to production-ready student productivity platform."
+    },
+    {
+      "id": "5fd891bb-0b9c-4f55-a7df-a2ac58ffb2ee",
+      "name": "Coin Reward System",
+      "description": "Create comprehensive coin economy with earning mechanisms, spending options, and balance management. Integrate with task completion and achievement systems.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "e604d005-36b3-4879-9d63-e74f10336b2d"
+        }
+      ],
+      "createdAt": "2025-06-13T23:22:36.363Z",
+      "updatedAt": "2025-06-13T23:22:36.363Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/gamification/CoinEconomy.ts",
+          "type": "CREATE",
+          "description": "Coin system logic"
+        },
+        {
+          "path": "src/components/coins/CoinDisplay.tsx",
+          "type": "CREATE",
+          "description": "Coin balance interface"
+        },
+        {
+          "path": "supabase/migrations/010_coin_system.sql",
+          "type": "CREATE",
+          "description": "Coin transaction schema"
+        }
+      ],
+      "implementationGuide": "1. Implement CoinEconomy class\\n2. Create coin earning triggers\\n3. Build coin spending system\\n4. Implement coin balance tracking\\n5. Create coin transaction history\\n6. Add coin bonus events\\n7. Integrate with achievement rewards",
+      "verificationCriteria": "Coins are earned and spent correctly, balance tracking works accurately, transaction history is maintained, and integration with other systems functions properly.",
+      "analysisResult": "StudySpark Production-Ready Implementation: 28-step comprehensive plan to implement all P0 and P1 critical features including Stu Mascot system, AI suggestions, gamification, crashout room, real-time messaging, PWA capabilities, payment integration, and advanced task management. Transform StudySpark from prototype to production-ready student productivity platform."
+    },
+    {
+      "id": "f73142a1-b37d-4f9c-a14d-db4d2ff6ac58",
+      "name": "Stu Celebration System",
+      "description": "Create dynamic celebration system where Stu mascot reacts to user achievements with animations, sounds, and encouraging messages. Implement contextual celebrations for different milestone types.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "5fd891bb-0b9c-4f55-a7df-a2ac58ffb2ee"
+        }
+      ],
+      "createdAt": "2025-06-13T23:22:36.363Z",
+      "updatedAt": "2025-06-13T23:22:36.363Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/stu/StuCelebration.ts",
+          "type": "CREATE",
+          "description": "Celebration orchestration"
+        },
+        {
+          "path": "src/components/stu/CelebrationOverlay.tsx",
+          "type": "CREATE",
+          "description": "Celebration UI"
+        },
+        {
+          "path": "src/assets/sounds/celebrations/",
+          "type": "CREATE",
+          "description": "Celebration sound files"
+        }
+      ],
+      "implementationGuide": "1. Create StuCelebration class\\n2. Implement celebration trigger system\\n3. Design celebration animations\\n4. Add contextual celebration messages\\n5. Create celebration sound effects\\n6. Implement celebration customization\\n7. Add celebration replay functionality",
+      "verificationCriteria": "Celebrations trigger appropriately for achievements, animations play smoothly, sounds work correctly, and celebrations enhance user motivation.",
+      "analysisResult": "StudySpark Production-Ready Implementation: 28-step comprehensive plan to implement all P0 and P1 critical features including Stu Mascot system, AI suggestions, gamification, crashout room, real-time messaging, PWA capabilities, payment integration, and advanced task management. Transform StudySpark from prototype to production-ready student productivity platform."
+    },
+    {
+      "id": "9766a878-fe74-4c2b-940c-868272f3485b",
+      "name": "Private Crashout Journal",
+      "description": "Build private stress relief journaling system with mood tracking, writing prompts, and emotional analytics. Create safe space for students to process academic stress.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "f73142a1-b37d-4f9c-a14d-db4d2ff6ac58"
+        }
+      ],
+      "createdAt": "2025-06-13T23:22:36.363Z",
+      "updatedAt": "2025-06-13T23:22:36.363Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/crashout/CrashoutJournal.ts",
+          "type": "CREATE",
+          "description": "Journal management system"
+        },
+        {
+          "path": "src/components/crashout/JournalEditor.tsx",
+          "type": "CREATE",
+          "description": "Journal writing interface"
+        },
+        {
+          "path": "supabase/migrations/011_crashout_journal.sql",
+          "type": "CREATE",
+          "description": "Private journal schema"
+        }
+      ],
+      "implementationGuide": "1. Create CrashoutJournal class\\n2. Implement private journal entries\\n3. Build mood tracking system\\n4. Create writing prompt generator\\n5. Implement emotional analytics\\n6. Add journal search and filtering\\n7. Create privacy and security measures",
+      "verificationCriteria": "Journal entries are private and secure, mood tracking works accurately, writing prompts are helpful, and analytics provide useful insights.",
+      "analysisResult": "StudySpark Production-Ready Implementation: 28-step comprehensive plan to implement all P0 and P1 critical features including Stu Mascot system, AI suggestions, gamification, crashout room, real-time messaging, PWA capabilities, payment integration, and advanced task management. Transform StudySpark from prototype to production-ready student productivity platform."
+    },
+    {
+      "id": "3c7384e2-ebf3-4d87-9fd2-f1c6efe6967f",
+      "name": "Public Crashout Forum",
+      "description": "Create anonymous public forum for stress sharing with moderation, voting system, and community support features. Implement safe space guidelines and content filtering.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "9766a878-fe74-4c2b-940c-868272f3485b"
+        }
+      ],
+      "createdAt": "2025-06-13T23:22:36.363Z",
+      "updatedAt": "2025-06-13T23:22:36.363Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/crashout/CrashoutForum.ts",
+          "type": "CREATE",
+          "description": "Forum management system"
+        },
+        {
+          "path": "src/components/crashout/ForumPost.tsx",
+          "type": "CREATE",
+          "description": "Forum post interface"
+        },
+        {
+          "path": "supabase/migrations/012_crashout_forum.sql",
+          "type": "CREATE",
+          "description": "Public forum schema"
+        }
+      ],
+      "implementationGuide": "1. Create CrashoutForum class\\n2. Implement anonymous posting system\\n3. Build voting and reaction system\\n4. Create content moderation tools\\n5. Implement community guidelines\\n6. Add post filtering and search\\n7. Create support resource integration",
+      "verificationCriteria": "Anonymous posting works securely, voting system functions correctly, moderation tools are effective, and community guidelines are enforced.",
+      "analysisResult": "StudySpark Production-Ready Implementation: 28-step comprehensive plan to implement all P0 and P1 critical features including Stu Mascot system, AI suggestions, gamification, crashout room, real-time messaging, PWA capabilities, payment integration, and advanced task management. Transform StudySpark from prototype to production-ready student productivity platform."
+    },
+    {
+      "id": "271b4969-ec2e-44ba-b39b-e713fd5d7bbe",
+      "name": "Ragdoll Stress Game",
+      "description": "Develop 'Kick the Buddy' style stress relief game with physics engine, customizable ragdoll, and stress meter integration. Create engaging mini-game for quick stress relief.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "3c7384e2-ebf3-4d87-9fd2-f1c6efe6967f"
+        }
+      ],
+      "createdAt": "2025-06-13T23:22:36.363Z",
+      "updatedAt": "2025-06-13T23:22:36.363Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/games/RagdollGame.tsx",
+          "type": "CREATE",
+          "description": "Main game component"
+        },
+        {
+          "path": "src/lib/games/PhysicsEngine.ts",
+          "type": "CREATE",
+          "description": "Game physics system"
+        },
+        {
+          "path": "src/assets/games/ragdoll/",
+          "type": "CREATE",
+          "description": "Game assets and sprites"
+        }
+      ],
+      "implementationGuide": "1. Implement physics engine for ragdoll\\n2. Create interactive ragdoll character\\n3. Build stress relief mechanics\\n4. Add customization options\\n5. Implement stress meter integration\\n6. Create achievement integration\\n7. Add game statistics tracking",
+      "verificationCriteria": "Game physics work smoothly, ragdoll interactions are satisfying, stress meter integration functions, and game provides effective stress relief.",
+      "analysisResult": "StudySpark Production-Ready Implementation: 28-step comprehensive plan to implement all P0 and P1 critical features including Stu Mascot system, AI suggestions, gamification, crashout room, real-time messaging, PWA capabilities, payment integration, and advanced task management. Transform StudySpark from prototype to production-ready student productivity platform."
+    },
+    {
+      "id": "eba3ac5c-d560-4d07-b840-1a27d5447d6d",
+      "name": "Stress Meter Tracking",
+      "description": "Implement comprehensive wellness monitoring system that tracks stress levels, suggests interventions, and integrates with all stress relief features. Create predictive stress analytics.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "271b4969-ec2e-44ba-b39b-e713fd5d7bbe"
+        }
+      ],
+      "createdAt": "2025-06-13T23:22:36.363Z",
+      "updatedAt": "2025-06-13T23:22:36.363Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/wellness/StressMeter.ts",
+          "type": "CREATE",
+          "description": "Stress tracking system"
+        },
+        {
+          "path": "src/components/wellness/StressDisplay.tsx",
+          "type": "CREATE",
+          "description": "Stress meter interface"
+        },
+        {
+          "path": "supabase/migrations/013_stress_tracking.sql",
+          "type": "CREATE",
+          "description": "Stress data schema"
+        }
+      ],
+      "implementationGuide": "1. Create StressMeter class\\n2. Implement stress level calculation\\n3. Build stress intervention system\\n4. Create stress prediction analytics\\n5. Implement wellness recommendations\\n6. Add stress trend visualization\\n7. Integrate with all stress relief features",
+      "verificationCriteria": "Stress levels are tracked accurately, interventions are suggested appropriately, predictions are helpful, and integration with relief features works seamlessly.",
+      "analysisResult": "StudySpark Production-Ready Implementation: 28-step comprehensive plan to implement all P0 and P1 critical features including Stu Mascot system, AI suggestions, gamification, crashout room, real-time messaging, PWA capabilities, payment integration, and advanced task management. Transform StudySpark from prototype to production-ready student productivity platform."
+    },
+    {
+      "id": "6c00fb4b-93bb-457d-9b3d-1a1fe6b0b393",
+      "name": "PWA Manifest and Service Worker",
+      "description": "Transform StudySpark into a Progressive Web App with offline capabilities, app installation, and caching strategies. Follow Next.js 15 PWA best practices from the provided documentation.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "eba3ac5c-d560-4d07-b840-1a27d5447d6d"
+        }
+      ],
+      "createdAt": "2025-06-13T23:22:36.363Z",
+      "updatedAt": "2025-06-13T23:22:36.363Z",
+      "relatedFiles": [
+        {
+          "path": "public/manifest.json",
+          "type": "CREATE",
+          "description": "PWA manifest file"
+        },
+        {
+          "path": "public/sw.js",
+          "type": "CREATE",
+          "description": "Service worker implementation"
+        },
+        {
+          "path": "src/components/pwa/InstallPrompt.tsx",
+          "type": "CREATE",
+          "description": "Installation prompt"
+        }
+      ],
+      "implementationGuide": "1. Create web app manifest.json\\n2. Implement service worker with caching\\n3. Add offline page functionality\\n4. Create app installation prompt\\n5. Implement background sync\\n6. Add PWA update notifications\\n7. Configure security headers",
+      "verificationCriteria": "App installs as PWA on mobile devices, offline functionality works, caching strategies are effective, and installation prompt appears appropriately.",
+      "analysisResult": "StudySpark Production-Ready Implementation: 28-step comprehensive plan to implement all P0 and P1 critical features including Stu Mascot system, AI suggestions, gamification, crashout room, real-time messaging, PWA capabilities, payment integration, and advanced task management. Transform StudySpark from prototype to production-ready student productivity platform."
+    },
+    {
+      "id": "972cfb46-0f3d-44b1-ad76-dd4a05164e63",
+      "name": "Web Push Notification System",
+      "description": "Implement comprehensive push notification system using web-push with VAPID keys, notification preferences, and smart timing. Follow the Next.js documentation for implementation.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "6c00fb4b-93bb-457d-9b3d-1a1fe6b0b393"
+        }
+      ],
+      "createdAt": "2025-06-13T23:22:36.363Z",
+      "updatedAt": "2025-06-13T23:22:36.363Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/notifications/PushNotificationService.ts",
+          "type": "CREATE",
+          "description": "Push notification system"
+        },
+        {
+          "path": "src/components/notifications/NotificationSettings.tsx",
+          "type": "CREATE",
+          "description": "Notification preferences"
+        },
+        {
+          "path": "supabase/migrations/014_push_notifications.sql",
+          "type": "CREATE",
+          "description": "Notification subscription schema"
+        }
+      ],
+      "implementationGuide": "1. Generate and configure VAPID keys\\n2. Implement push notification service\\n3. Create notification subscription management\\n4. Build notification preferences UI\\n5. Implement smart notification timing\\n6. Add notification categories\\n7. Create notification analytics",
+      "verificationCriteria": "Push notifications work across devices, preferences are respected, timing is optimized, and subscription management functions correctly.",
+      "analysisResult": "StudySpark Production-Ready Implementation: 28-step comprehensive plan to implement all P0 and P1 critical features including Stu Mascot system, AI suggestions, gamification, crashout room, real-time messaging, PWA capabilities, payment integration, and advanced task management. Transform StudySpark from prototype to production-ready student productivity platform."
+    },
+    {
+      "id": "f8ec2f3c-7f2d-4a1d-9464-489263f6cc6e",
+      "name": "Proactive Reminder System",
+      "description": "Build intelligent reminder system that connects to tasks with smart timing, snooze options, and AI-optimized scheduling. Integrate with push notifications and Stu mascot alerts.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "972cfb46-0f3d-44b1-ad76-dd4a05164e63"
+        }
+      ],
+      "createdAt": "2025-06-13T23:23:46.415Z",
+      "updatedAt": "2025-06-13T23:23:46.415Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/reminders/ReminderEngine.ts",
+          "type": "CREATE",
+          "description": "Intelligent reminder system"
+        },
+        {
+          "path": "src/components/reminders/ReminderSettings.tsx",
+          "type": "CREATE",
+          "description": "Reminder configuration UI"
+        },
+        {
+          "path": "supabase/migrations/015_smart_reminders.sql",
+          "type": "CREATE",
+          "description": "Enhanced reminder schema"
+        }
+      ],
+      "implementationGuide": "1. Create ReminderEngine class\\n2. Implement smart reminder timing\\n3. Build snooze and reschedule options\\n4. Create reminder templates\\n5. Integrate with task system\\n6. Add Stu mascot reminder animations\\n7. Implement reminder analytics",
+      "verificationCriteria": "Reminders trigger at optimal times, snooze functionality works, integration with tasks is seamless, and Stu mascot provides appropriate reminder animations.",
+      "analysisResult": "StudySpark Production-Ready Implementation: Continuing with remaining 13 tasks covering reminder system, Paystack billing, real-time messaging, social features, recurring tasks, calendar sync, and advanced analytics to complete the 28-step production plan."
+    },
+    {
+      "id": "dc2adfcf-6dd0-4fe8-92b7-d16541b83799",
+      "name": "Paystack Payment Integration",
+      "description": "Implement Paystack payment processing for subscription tiers following the provided React integration guide. Create billing portal, payment history, and subscription management.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "f8ec2f3c-7f2d-4a1d-9464-489263f6cc6e"
+        }
+      ],
+      "createdAt": "2025-06-13T23:23:46.415Z",
+      "updatedAt": "2025-06-13T23:23:46.415Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/payments/PaystackService.ts",
+          "type": "CREATE",
+          "description": "Paystack integration service"
+        },
+        {
+          "path": "src/components/billing/BillingPortal.tsx",
+          "type": "CREATE",
+          "description": "Billing management interface"
+        },
+        {
+          "path": "supabase/migrations/016_paystack_billing.sql",
+          "type": "CREATE",
+          "description": "Payment and billing schema"
+        }
+      ],
+      "implementationGuide": "1. Set up Paystack API keys and configuration\\n2. Create PaystackService class\\n3. Implement subscription upgrade flow\\n4. Build billing portal interface\\n5. Create payment history tracking\\n6. Implement webhook handling\\n7. Add subscription lifecycle management",
+      "verificationCriteria": "Payment processing works correctly, subscription upgrades function, billing portal is accessible, payment history is tracked, and webhooks handle all scenarios.",
+      "analysisResult": "StudySpark Production-Ready Implementation: Continuing with remaining 13 tasks covering reminder system, Paystack billing, real-time messaging, social features, recurring tasks, calendar sync, and advanced analytics to complete the 28-step production plan."
+    },
+    {
+      "id": "7c03ad4b-0aa1-453b-b140-6edd5d70ec7d",
+      "name": "Real-time Messaging System",
+      "description": "Build real-time messaging system using Supabase Realtime, following the Slack clone template. Implement direct messages, typing indicators, and message history.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "dc2adfcf-6dd0-4fe8-92b7-d16541b83799"
+        }
+      ],
+      "createdAt": "2025-06-13T23:23:46.415Z",
+      "updatedAt": "2025-06-13T23:23:46.415Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/messaging/MessagingService.ts",
+          "type": "CREATE",
+          "description": "Real-time messaging system"
+        },
+        {
+          "path": "src/components/messaging/ChatInterface.tsx",
+          "type": "CREATE",
+          "description": "Chat UI components"
+        },
+        {
+          "path": "supabase/migrations/017_messaging_system.sql",
+          "type": "CREATE",
+          "description": "Messaging database schema"
+        }
+      ],
+      "implementationGuide": "1. Create MessagingService using Supabase Realtime\\n2. Implement direct messaging functionality\\n3. Build typing indicators\\n4. Create message history and search\\n5. Add message reactions and threading\\n6. Implement message encryption\\n7. Create message notification system",
+      "verificationCriteria": "Real-time messaging works smoothly, typing indicators function, message history is preserved, reactions work, and notifications are delivered appropriately.",
+      "analysisResult": "StudySpark Production-Ready Implementation: Continuing with remaining 13 tasks covering reminder system, Paystack billing, real-time messaging, social features, recurring tasks, calendar sync, and advanced analytics to complete the 28-step production plan."
+    },
+    {
+      "id": "2a53ac4b-0a31-4e72-aa5d-2f4cd3964644",
+      "name": "Study Groups Management",
+      "description": "Create comprehensive study group system with group creation, member management, shared resources, and group chat functionality. Enable collaborative learning experiences.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "7c03ad4b-0aa1-453b-b140-6edd5d70ec7d"
+        }
+      ],
+      "createdAt": "2025-06-13T23:23:46.415Z",
+      "updatedAt": "2025-06-13T23:23:46.415Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/social/StudyGroupManager.ts",
+          "type": "CREATE",
+          "description": "Study group management system"
+        },
+        {
+          "path": "src/components/groups/StudyGroupInterface.tsx",
+          "type": "CREATE",
+          "description": "Group management UI"
+        },
+        {
+          "path": "supabase/migrations/018_study_groups.sql",
+          "type": "CREATE",
+          "description": "Study group database schema"
+        }
+      ],
+      "implementationGuide": "1. Create StudyGroupManager class\\n2. Implement group creation and management\\n3. Build member invitation system\\n4. Create shared resource functionality\\n5. Integrate group chat with messaging system\\n6. Add group scheduling features\\n7. Implement group achievement tracking",
+      "verificationCriteria": "Study groups can be created and managed, member invitations work, shared resources function, group chat integrates properly, and group achievements track correctly.",
+      "analysisResult": "StudySpark Production-Ready Implementation: Continuing with remaining 13 tasks covering reminder system, Paystack billing, real-time messaging, social features, recurring tasks, calendar sync, and advanced analytics to complete the 28-step production plan."
+    },
+    {
+      "id": "f3a7bdb2-8f68-4a0e-981e-b9055b85f4f3",
+      "name": "Student Connection and Discovery",
+      "description": "Build student discovery system with profile matching, course-based connections, and recommendation algorithms. Create networking features for academic collaboration.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "2a53ac4b-0a31-4e72-aa5d-2f4cd3964644"
+        }
+      ],
+      "createdAt": "2025-06-13T23:23:46.415Z",
+      "updatedAt": "2025-06-13T23:23:46.415Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/social/StudentDiscovery.ts",
+          "type": "CREATE",
+          "description": "Student discovery and matching"
+        },
+        {
+          "path": "src/components/social/ConnectionInterface.tsx",
+          "type": "CREATE",
+          "description": "Connection management UI"
+        },
+        {
+          "path": "supabase/migrations/019_student_connections.sql",
+          "type": "CREATE",
+          "description": "Connection system schema"
+        }
+      ],
+      "implementationGuide": "1. Create StudentDiscovery class\\n2. Implement profile matching algorithms\\n3. Build course-based connection system\\n4. Create recommendation engine\\n5. Add connection request management\\n6. Implement privacy controls\\n7. Create networking analytics",
+      "verificationCriteria": "Student discovery works effectively, profile matching is accurate, course-based connections function, recommendations are relevant, and privacy controls are respected.",
+      "analysisResult": "StudySpark Production-Ready Implementation: Continuing with remaining 13 tasks covering reminder system, Paystack billing, real-time messaging, social features, recurring tasks, calendar sync, and advanced analytics to complete the 28-step production plan."
+    },
+    {
+      "id": "6f2777b4-a967-4a82-8768-05ef4d0271fd",
+      "name": "Peer Accountability System",
+      "description": "Create peer accountability features with progress sharing, accountability partners, and mutual goal tracking. Enable students to support each other's academic goals.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "f3a7bdb2-8f68-4a0e-981e-b9055b85f4f3"
+        }
+      ],
+      "createdAt": "2025-06-13T23:23:46.415Z",
+      "updatedAt": "2025-06-13T23:23:46.415Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/social/AccountabilitySystem.ts",
+          "type": "CREATE",
+          "description": "Peer accountability management"
+        },
+        {
+          "path": "src/components/accountability/AccountabilityDashboard.tsx",
+          "type": "CREATE",
+          "description": "Accountability interface"
+        },
+        {
+          "path": "supabase/migrations/020_peer_accountability.sql",
+          "type": "CREATE",
+          "description": "Accountability system schema"
+        }
+      ],
+      "implementationGuide": "1. Create AccountabilitySystem class\\n2. Implement accountability partner matching\\n3. Build progress sharing features\\n4. Create mutual goal tracking\\n5. Add accountability check-ins\\n6. Implement peer encouragement system\\n7. Create accountability analytics",
+      "verificationCriteria": "Accountability partnerships work effectively, progress sharing functions, mutual goals are tracked, check-ins are completed, and peer encouragement enhances motivation.",
+      "analysisResult": "StudySpark Production-Ready Implementation: Continuing with remaining 13 tasks covering reminder system, Paystack billing, real-time messaging, social features, recurring tasks, calendar sync, and advanced analytics to complete the 28-step production plan."
+    },
+    {
+      "id": "367cb63c-02f7-41a1-9328-60700926251a",
+      "name": "Recurring Tasks System",
+      "description": "Implement comprehensive recurring task system with flexible recurrence rules, pattern recognition, and smart scheduling integration. Support daily, weekly, monthly, and custom patterns.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "6f2777b4-a967-4a82-8768-05ef4d0271fd"
+        }
+      ],
+      "createdAt": "2025-06-13T23:23:46.415Z",
+      "updatedAt": "2025-06-13T23:23:46.415Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/tasks/RecurringTaskManager.ts",
+          "type": "CREATE",
+          "description": "Recurring task management"
+        },
+        {
+          "path": "src/components/tasks/RecurringTaskInterface.tsx",
+          "type": "CREATE",
+          "description": "Recurring task UI"
+        },
+        {
+          "path": "supabase/migrations/021_recurring_tasks.sql",
+          "type": "CREATE",
+          "description": "Recurring task schema"
+        }
+      ],
+      "implementationGuide": "1. Create RecurringTaskManager class\\n2. Implement flexible recurrence rule engine\\n3. Build pattern recognition for recurring tasks\\n4. Integrate with smart scheduling system\\n5. Add recurrence modification handling\\n6. Create recurring task analytics\\n7. Implement completion tracking",
+      "verificationCriteria": "Recurring tasks generate correctly, recurrence patterns work accurately, smart scheduling integration functions, modifications are handled properly, and analytics provide insights.",
+      "analysisResult": "StudySpark Production-Ready Implementation: Continuing with remaining 13 tasks covering reminder system, Paystack billing, real-time messaging, social features, recurring tasks, calendar sync, and advanced analytics to complete the 28-step production plan."
+    },
+    {
+      "id": "b2c5f9d5-24bd-4092-8c7d-e2c2b115894f",
+      "name": "Task Analytics and Insights",
+      "description": "Build comprehensive task analytics system with productivity insights, time tracking, completion patterns, and performance recommendations. Create data-driven productivity improvements.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "367cb63c-02f7-41a1-9328-60700926251a"
+        }
+      ],
+      "createdAt": "2025-06-13T23:23:46.415Z",
+      "updatedAt": "2025-06-13T23:23:46.415Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/analytics/TaskAnalytics.ts",
+          "type": "CREATE",
+          "description": "Task analytics engine"
+        },
+        {
+          "path": "src/components/analytics/ProductivityDashboard.tsx",
+          "type": "CREATE",
+          "description": "Analytics visualization"
+        },
+        {
+          "path": "supabase/migrations/022_task_analytics.sql",
+          "type": "CREATE",
+          "description": "Analytics data schema"
+        }
+      ],
+      "implementationGuide": "1. Create TaskAnalytics class\\n2. Implement productivity metrics calculation\\n3. Build time tracking integration\\n4. Create completion pattern analysis\\n5. Add performance recommendation engine\\n6. Implement analytics visualization\\n7. Create productivity reports",
+      "verificationCriteria": "Analytics calculate accurately, productivity insights are valuable, time tracking works correctly, patterns are identified, recommendations improve performance, and reports are comprehensive.",
+      "analysisResult": "StudySpark Production-Ready Implementation: Continuing with remaining 13 tasks covering reminder system, Paystack billing, real-time messaging, social features, recurring tasks, calendar sync, and advanced analytics to complete the 28-step production plan."
+    },
+    {
+      "id": "d64ecf1b-cf16-4c01-aac7-590095b9478b",
+      "name": "Google Calendar Integration",
+      "description": "Implement Google Calendar sync with two-way synchronization, conflict detection, and smart scheduling integration. Enable seamless calendar management across platforms.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "b2c5f9d5-24bd-4092-8c7d-e2c2b115894f"
+        }
+      ],
+      "createdAt": "2025-06-13T23:23:46.415Z",
+      "updatedAt": "2025-06-13T23:23:46.415Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/calendar/GoogleCalendarSync.ts",
+          "type": "CREATE",
+          "description": "Google Calendar integration"
+        },
+        {
+          "path": "src/components/calendar/CalendarSyncSettings.tsx",
+          "type": "CREATE",
+          "description": "Calendar sync interface"
+        },
+        {
+          "path": "supabase/migrations/023_calendar_sync.sql",
+          "type": "CREATE",
+          "description": "Calendar sync data schema"
+        }
+      ],
+      "implementationGuide": "1. Set up Google Calendar API integration\\n2. Create CalendarSync class\\n3. Implement two-way synchronization\\n4. Build conflict detection and resolution\\n5. Integrate with smart scheduling system\\n6. Add calendar preference management\\n7. Create sync status monitoring",
+      "verificationCriteria": "Calendar sync works bidirectionally, conflicts are detected and resolved, smart scheduling integrates properly, preferences are respected, and sync status is monitored.",
+      "analysisResult": "StudySpark Production-Ready Implementation: Continuing with remaining 13 tasks covering reminder system, Paystack billing, real-time messaging, social features, recurring tasks, calendar sync, and advanced analytics to complete the 28-step production plan."
+    },
+    {
+      "id": "8fa01239-7346-40c7-89e1-286b790ea51d",
+      "name": "Smart Break Recommendations",
+      "description": "Create AI-powered break recommendation system that analyzes work patterns and suggests optimal break timing. Integrate with wellness tracking and productivity analytics.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "d64ecf1b-cf16-4c01-aac7-590095b9478b"
+        }
+      ],
+      "createdAt": "2025-06-13T23:23:46.415Z",
+      "updatedAt": "2025-06-13T23:23:46.415Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/wellness/BreakRecommendation.ts",
+          "type": "CREATE",
+          "description": "Smart break recommendation system"
+        },
+        {
+          "path": "src/components/wellness/BreakSuggestions.tsx",
+          "type": "CREATE",
+          "description": "Break recommendation interface"
+        },
+        {
+          "path": "supabase/migrations/024_break_recommendations.sql",
+          "type": "CREATE",
+          "description": "Break tracking schema"
+        }
+      ],
+      "implementationGuide": "1. Create BreakRecommendation class\\n2. Implement work pattern analysis\\n3. Build optimal break timing algorithms\\n4. Create break activity suggestions\\n5. Integrate with wellness tracking\\n6. Add break effectiveness measurement\\n7. Create personalized break schedules",
+      "verificationCriteria": "Break recommendations are timely and effective, work patterns are analyzed accurately, break activities are appropriate, wellness integration functions, and personalization improves over time.",
+      "analysisResult": "StudySpark Production-Ready Implementation: Continuing with remaining 13 tasks covering reminder system, Paystack billing, real-time messaging, social features, recurring tasks, calendar sync, and advanced analytics to complete the 28-step production plan."
+    },
+    {
+      "id": "8485e93a-5010-4744-ab80-248d31b2036f",
+      "name": "Advanced Notification Preferences",
+      "description": "Create comprehensive notification preference system with granular controls, smart timing, quiet hours, and notification batching. Enable users to customize their notification experience completely.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "8fa01239-7346-40c7-89e1-286b790ea51d"
+        }
+      ],
+      "createdAt": "2025-06-13T23:23:46.415Z",
+      "updatedAt": "2025-06-13T23:23:46.415Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/notifications/NotificationPreferences.ts",
+          "type": "CREATE",
+          "description": "Advanced notification management"
+        },
+        {
+          "path": "src/components/notifications/AdvancedNotificationSettings.tsx",
+          "type": "CREATE",
+          "description": "Notification preference UI"
+        },
+        {
+          "path": "supabase/migrations/025_notification_preferences.sql",
+          "type": "CREATE",
+          "description": "Notification preference schema"
+        }
+      ],
+      "implementationGuide": "1. Create NotificationPreferences class\\n2. Implement granular notification controls\\n3. Build smart timing algorithms\\n4. Create quiet hours functionality\\n5. Add notification batching system\\n6. Implement notification priority levels\\n7. Create notification analytics",
+      "verificationCriteria": "Notification preferences are respected, smart timing works effectively, quiet hours function properly, batching reduces notification overload, and priority levels are handled correctly.",
+      "analysisResult": "StudySpark Production-Ready Implementation: Continuing with remaining 13 tasks covering reminder system, Paystack billing, real-time messaging, social features, recurring tasks, calendar sync, and advanced analytics to complete the 28-step production plan."
+    },
+    {
+      "id": "2d5ecf4e-d188-4c31-b8c4-d37dfdb0310f",
+      "name": "Auto-renewal and Subscription Lifecycle",
+      "description": "Implement comprehensive subscription lifecycle management with auto-renewal, cancellation handling, grace periods, and billing notifications. Create seamless subscription experience.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "8485e93a-5010-4744-ab80-248d31b2036f"
+        }
+      ],
+      "createdAt": "2025-06-13T23:23:46.415Z",
+      "updatedAt": "2025-06-13T23:23:46.415Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/billing/SubscriptionLifecycle.ts",
+          "type": "CREATE",
+          "description": "Subscription lifecycle management"
+        },
+        {
+          "path": "src/components/billing/SubscriptionManager.tsx",
+          "type": "CREATE",
+          "description": "Subscription management interface"
+        },
+        {
+          "path": "supabase/migrations/026_subscription_lifecycle.sql",
+          "type": "CREATE",
+          "description": "Subscription lifecycle schema"
+        }
+      ],
+      "implementationGuide": "1. Create SubscriptionLifecycle class\\n2. Implement auto-renewal logic\\n3. Build cancellation and downgrade handling\\n4. Create grace period management\\n5. Add billing notification system\\n6. Implement subscription analytics\\n7. Create subscription health monitoring",
+      "verificationCriteria": "Auto-renewal works correctly, cancellations are handled gracefully, grace periods function properly, billing notifications are timely, and subscription health is monitored effectively.",
+      "analysisResult": "StudySpark Production-Ready Implementation: Continuing with remaining 13 tasks covering reminder system, Paystack billing, real-time messaging, social features, recurring tasks, calendar sync, and advanced analytics to complete the 28-step production plan."
+    },
+    {
+      "id": "cce4dfc0-cf2d-4c64-bb9a-a3cd72057929",
+      "name": "System Integration and Performance Optimization",
+      "description": "Finalize integration of all 27 systems, optimize performance, implement comprehensive error handling, and create system health monitoring. Ensure production readiness and scalability.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "2d5ecf4e-d188-4c31-b8c4-d37dfdb0310f"
+        }
+      ],
+      "createdAt": "2025-06-13T23:23:46.415Z",
+      "updatedAt": "2025-06-13T23:23:46.415Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/system/SystemOrchestrator.ts",
+          "type": "CREATE",
+          "description": "System integration orchestration"
+        },
+        {
+          "path": "src/components/admin/SystemHealthDashboard.tsx",
+          "type": "CREATE",
+          "description": "System monitoring interface"
+        },
+        {
+          "path": "src/lib/monitoring/PerformanceMonitor.ts",
+          "type": "CREATE",
+          "description": "Performance monitoring system"
+        }
+      ],
+      "implementationGuide": "1. Create SystemOrchestrator class\\n2. Implement comprehensive error handling\\n3. Build performance monitoring system\\n4. Create system health dashboard\\n5. Implement caching strategies\\n6. Add load testing and optimization\\n7. Create deployment and monitoring scripts",
+      "verificationCriteria": "All systems integrate seamlessly, performance is optimized for production load, error handling is comprehensive, system health monitoring provides actionable insights, and the application is fully production-ready.",
+      "analysisResult": "StudySpark Production-Ready Implementation: Continuing with remaining 13 tasks covering reminder system, Paystack billing, real-time messaging, social features, recurring tasks, calendar sync, and advanced analytics to complete the 28-step production plan."
     }
   ]
 }
