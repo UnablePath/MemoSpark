@@ -134,13 +134,18 @@ export const useTieredAI = () => {
     
     try {
       const access = await checkFeatureAccess('basic_suggestions');
+      
+      // Override tier for development mode
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      const developmentTier = 'premium'; // Give premium access in development
+      
       setState(prev => ({
         ...prev,
-        userTier: access.tier || 'free',
+        userTier: isDevelopment ? developmentTier : (access.tier || 'free'),
         usage: access.usage || {
           requestsUsed: 0,
-          requestsRemaining: 10,
-          dailyLimit: 10,
+          requestsRemaining: isDevelopment ? 1000 : 10,
+          dailyLimit: isDevelopment ? 1000 : 10,
           featureAvailable: access.canProceed
         },
         isLoading: false,
@@ -196,9 +201,10 @@ export const useTieredAI = () => {
       if (!response.ok) {
         if (response.status === 403) {
           // Update state with usage information from server
+          const isDevelopment = process.env.NODE_ENV === 'development';
           setState(prev => ({
             ...prev,
-            userTier: data.tier || prev.userTier,
+            userTier: isDevelopment ? 'premium' : (data.tier || prev.userTier),
             usage: data.usage || prev.usage,
             isLoading: false
           }));
@@ -221,10 +227,11 @@ export const useTieredAI = () => {
         throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
       }
 
-      // Update state with successful response
+      // Update state with successful response, override tier for development
+      const isDevelopment = process.env.NODE_ENV === 'development';
       setState(prev => ({
         ...prev,
-        userTier: data.tier,
+        userTier: isDevelopment ? 'premium' : data.tier,
         usage: data.usage,
         isLoading: false
       }));

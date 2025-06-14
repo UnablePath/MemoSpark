@@ -377,7 +377,7 @@ const SwipeView = React.memo(({
   onRewind: () => void;
   onOpenChat: (id: string) => void;
   lastAction: string | null;
-  swipeCardFocusRef: React.RefObject<HTMLDivElement>;
+  swipeCardFocusRef: React.RefObject<HTMLDivElement | null>;
   tinderExitDirection: number;
 }) => (
           <div ref={swipeCardFocusRef} tabIndex={-1} className="outline-none flex flex-col items-center justify-center h-full relative">

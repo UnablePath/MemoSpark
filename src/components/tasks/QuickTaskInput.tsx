@@ -210,7 +210,7 @@ export const QuickTaskInput: React.FC<QuickTaskInputProps> = ({
   const isValidInput = input.trim().length >= 1;
 
   return (
-    <div className={cn("relative w-full", className)}>
+    <div className={cn("task-creation-form relative w-full", className)}>
       {/* Main input form */}
       <form onSubmit={handleSubmit} className={cn(
         "flex gap-2 items-center",
@@ -236,6 +236,7 @@ export const QuickTaskInput: React.FC<QuickTaskInputProps> = ({
             autoCapitalize="sentences"
             spellCheck={true}
             inputMode="text"
+            data-testid="task-input"
           />
           
           {/* Input indicator */}

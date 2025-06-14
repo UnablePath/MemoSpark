@@ -120,6 +120,13 @@ export async function POST(request: Request) {
       // Continue with free tier as fallback
     }
 
+    // DEVELOPMENT OVERRIDE: Force premium tier for testing
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    if (isDevelopment) {
+      userTier = 'premium'; // Override to premium for testing
+      console.log('AI Suggestions API: Development override - forcing premium tier for testing');
+    }
+
     console.log('AI Suggestions API: User tier determined as:', userTier);
 
     // Check usage limits with better error handling
@@ -145,7 +152,6 @@ export async function POST(request: Request) {
     }
 
     // More generous limits for development mode
-    const isDevelopment = process.env.NODE_ENV === 'development';
     const dailyLimit = isDevelopment 
       ? (userTier === 'free' ? 1000 : userTier === 'premium' ? 5000 : -1)  // Development limits
       : (userTier === 'free' ? 10 : userTier === 'premium' ? 100 : -1);    // Production limits
