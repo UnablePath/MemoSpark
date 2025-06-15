@@ -28,8 +28,8 @@ export const RelaxationCorner = ({ onExit }: any) => {
     <div className="fixed inset-0 bg-gray-900/90 backdrop-blur-xl flex flex-col items-center justify-center z-50">
       <div className="text-center">
         <div className="relative w-48 h-48 flex items-center justify-center">
-          <div className={`absolute w-full h-full bg-blue-500 rounded-full transition-transform duration-[4000ms] ease-in-out ${cycleIndex === 0 ? 'scale-100' : 'scale-50'}`} />
-          <div className={`absolute w-full h-full bg-purple-500 rounded-full transition-transform duration-[8000ms] ease-in-out ${cycleIndex === 2 ? 'scale-100' : 'scale-50'}`} />
+                      <div className={`absolute w-full h-full bg-blue-500 rounded-full transition-transform duration-4000 ease-in-out ${cycleIndex === 0 ? 'scale-100' : 'scale-50'}`} />
+            <div className={`absolute w-full h-full bg-purple-500 rounded-full transition-transform duration-8000 ease-in-out ${cycleIndex === 2 ? 'scale-100' : 'scale-50'}`} />
           <div className={`text-4xl font-bold text-white transition-all duration-1000 ${animationClass}`}>
             {breathingCycle[cycleIndex].text}
           </div>

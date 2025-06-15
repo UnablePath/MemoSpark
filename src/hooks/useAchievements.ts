@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { fetchUserStats, fetchLeaderboard } from '@/lib/supabase/gamificationApi';
 import { fetchUserAchievements } from '@/lib/supabase/achievementsApi';
+import { StreakTracker } from '@/lib/gamification/StreakTracker';
 import type { UserStats, LeaderboardUser, UserAchievement } from '@/types/achievements';
 
 export const useAchievements = () => {
@@ -19,12 +20,23 @@ export const useAchievements = () => {
       const loadData = async () => {
         setLoading(true);
         try {
-          const [stats, board, achievements] = await Promise.all([
+          // Get real streak data from StreakTracker
+          const streakTracker = new StreakTracker();
+          const [stats, board, achievements, realStreakData] = await Promise.all([
             fetchUserStats(user.id),
             fetchLeaderboard(10),
-            fetchUserAchievements(user.id)
+            fetchUserAchievements(user.id),
+            streakTracker.getCurrentStreak(user.id)
           ]);
-          setUserStats(stats);
+          
+          // Merge real streak data with user stats
+          const mergedStats = stats ? {
+            ...stats,
+            current_streak: realStreakData.current_streak,
+            longest_streak: realStreakData.longest_streak
+          } : realStreakData;
+          
+          setUserStats(mergedStats);
           setLeaderboard(board);
           setUserAchievements(achievements);
         } catch (error) {
@@ -50,13 +62,23 @@ export const useAchievements = () => {
     setError(null);
 
     try {
-      const [statsResponse, leaderboardResponse, achievementsResponse] = await Promise.all([
+      // Get real streak data from StreakTracker
+      const streakTracker = new StreakTracker();
+      const [statsResponse, leaderboardResponse, achievementsResponse, realStreakData] = await Promise.all([
         fetchUserStats(user.id),
         fetchLeaderboard(10),
-        fetchUserAchievements(user.id)
+        fetchUserAchievements(user.id),
+        streakTracker.getCurrentStreak(user.id)
       ]);
 
-      setUserStats(statsResponse);
+      // Merge real streak data with user stats
+      const mergedStats = statsResponse ? {
+        ...statsResponse,
+        current_streak: realStreakData.current_streak,
+        longest_streak: realStreakData.longest_streak
+      } : realStreakData;
+
+      setUserStats(mergedStats);
       setLeaderboard(leaderboardResponse);
       setUserAchievements(achievementsResponse);
     } catch (err) {
