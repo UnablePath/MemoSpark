@@ -14,7 +14,9 @@ const sampleTasks: ExtendedTask[] = [
     type: 'academic' as const,
     subject: 'Computer Science',
     completed: false,
-    reminder: false
+    reminder: false,
+    createdAt: '2024-01-15T10:00:00Z',
+    updatedAt: '2024-01-15T10:00:00Z'
   }
 ];
 

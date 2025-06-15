@@ -77,11 +77,16 @@ import {
   Presentation,
   Repeat,
   User,
+  Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./calendar-styles.css";
 import { MagicCard } from '@/components/ui/magic-card';
+import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/components/ui/use-toast";
+import type { ScheduledTask } from "@/types/ai";
 
 // Enhanced interface definitions with better typing
 interface CalendarEvent {
@@ -94,10 +99,12 @@ interface CalendarEvent {
   borderColor: string;
   textColor: string;
   extendedProps: {
-    task: Task;
-    type: "task";
+    task: Task | ScheduledTask;
+    type: "task" | "scheduled";
     isRecurring: boolean;
     priority: Priority;
+    confidence?: number;
+    reasoning?: string;
   };
 }
 
@@ -220,6 +227,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
 }) => {
   // Authentication hook for Clerk integration
   const { getToken } = useAuth();
+  const { toast } = useToast();
   
   // Create token provider function for Supabase integration
   const getTokenForSupabase = useCallback(() => 
@@ -230,7 +238,10 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
   const [currentView, setCurrentView] = useState<CalendarView>("dayGridMonth");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showCompletedTasks, setShowCompletedTasks] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showSmartSchedule, setShowSmartSchedule] = useState(false);
+  const [isGeneratingSchedule, setIsGeneratingSchedule] = useState(false);
+  const [smartScheduleData, setSmartScheduleData] = useState<ScheduledTask[]>([]);
+  const [selectedTask, setSelectedTask] = useState<Task | ScheduledTask | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -290,59 +301,101 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
 
   // Enhanced calendar events with performance optimization
   const calendarEvents = useMemo(() => {
-    if (!tasks || tasks.length === 0) return [];
+    const events: CalendarEvent[] = [];
 
-    try {
-      const visibleTasks = showCompletedTasks
-        ? tasks
-        : tasks.filter((task) => !task.completed);
+    // Regular tasks
+    if (tasks && tasks.length > 0 && !showSmartSchedule) {
+      try {
+        const visibleTasks = showCompletedTasks
+          ? tasks
+          : tasks.filter((task) => !task.completed);
 
-      // Get calendar view date range for performance
-      const calendarApi = calendarRef.current?.getApi();
-      const currentDate = calendarApi?.getDate() || new Date();
-      const start = startOfMonth(startOfWeek(currentDate));
-      const end = endOfMonth(endOfWeek(addMonths(currentDate, 1)));
+        // Get calendar view date range for performance
+        const calendarApi = calendarRef.current?.getApi();
+        const currentDate = calendarApi?.getDate() || new Date();
+        const start = startOfMonth(startOfWeek(currentDate));
+        const end = endOfMonth(endOfWeek(addMonths(currentDate, 1)));
 
-      const expandedTasks = expandRecurringTasks(visibleTasks, start, end);
+        const expandedTasks = expandRecurringTasks(visibleTasks, start, end);
 
-      return expandedTasks
-        .filter((task) => task.due_date)
-        .map((task): CalendarEvent | null => {
-          if (!task.due_date) return null;
-          
-          const dueDate = parseISO(task.due_date);
+        const taskEvents = expandedTasks
+          .filter((task) => task.due_date)
+          .map((task): CalendarEvent | null => {
+            if (!task.due_date) return null;
+            
+            const dueDate = parseISO(task.due_date);
 
-          if (!isValid(dueDate)) {
-            console.warn(
-              `Invalid due_date for task ${task.id}: ${task.due_date}`,
-            );
-            return null;
-          }
+            if (!isValid(dueDate)) {
+              console.warn(
+                `Invalid due_date for task ${task.id}: ${task.due_date}`,
+              );
+              return null;
+            }
 
-          const priorityColors = PRIORITY_COLORS[task.priority];
+            const priorityColors = PRIORITY_COLORS[task.priority];
+
+            return {
+              id: task.id,
+              title: formatTaskTitle(task),
+              start: task.due_date,
+              allDay: !task.due_date.includes("T"),
+              backgroundColor: priorityColors.bg,
+              borderColor: priorityColors.border,
+              textColor: priorityColors.text,
+              extendedProps: {
+                task,
+                type: "task" as const,
+                isRecurring: isRecurringInstance(task),
+                priority: task.priority,
+              },
+            };
+          })
+          .filter((event): event is CalendarEvent => event !== null);
+
+        events.push(...taskEvents);
+      } catch (error) {
+        console.error("Error processing calendar events:", error);
+      }
+    }
+
+    // Smart schedule events
+    if (showSmartSchedule && smartScheduleData.length > 0) {
+      try {
+        const scheduleEvents = smartScheduleData.map((scheduledTask): CalendarEvent => {
+          const smartColors = {
+            bg: '#8B5CF6', // Purple for smart scheduled tasks
+            border: '#7C3AED',
+            text: '#FFFFFF'
+          };
 
           return {
-            id: task.id,
-            title: formatTaskTitle(task),
-            start: task.due_date,
-            allDay: !task.due_date.includes("T"),
-            backgroundColor: priorityColors.bg,
-            borderColor: priorityColors.border,
-            textColor: priorityColors.text,
+            id: `smart-${scheduledTask.id}`,
+            title: `🧠 ${scheduledTask.title}`,
+            start: scheduledTask.scheduledStart,
+            end: scheduledTask.scheduledEnd,
+            allDay: false,
+            backgroundColor: smartColors.bg,
+            borderColor: smartColors.border,
+            textColor: smartColors.text,
             extendedProps: {
-              task,
-              type: "task" as const,
-              isRecurring: isRecurringInstance(task),
-              priority: task.priority,
+              task: scheduledTask,
+              type: "scheduled" as const,
+              isRecurring: false,
+              priority: scheduledTask.priority,
+              confidence: scheduledTask.confidence,
+              reasoning: scheduledTask.reasoning,
             },
           };
-        })
-        .filter((event): event is CalendarEvent => event !== null);
-    } catch (error) {
-      console.error("Error processing calendar events:", error);
-      return [];
+        });
+
+        events.push(...scheduleEvents);
+      } catch (error) {
+        console.error("Error processing smart schedule events:", error);
+      }
     }
-  }, [tasks, showCompletedTasks]);
+
+    return events;
+  }, [tasks, showCompletedTasks, showSmartSchedule, smartScheduleData]);
 
   // Enhanced event handlers with better error handling
   const handleEventClick = useCallback((clickInfo: any) => {
@@ -371,6 +424,63 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
       console.error("Failed to refresh calendar data:", error);
     }
   }, [refetch]);
+
+  // Smart scheduling functionality
+  const generateSmartSchedule = useCallback(async () => {
+    setIsGeneratingSchedule(true);
+    try {
+      const response = await fetch('/api/ai/schedule', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userPreferences: {
+            studyTimePreference: 'morning',
+            sessionLengthPreference: 'medium',
+            difficultyComfort: 'moderate',
+            breakFrequency: 'moderate',
+            preferredSubjects: [],
+            strugglingSubjects: [],
+            availableStudyHours: [9, 10, 11, 14, 15, 16, 17, 18, 19, 20]
+          },
+          existingEvents: [],
+          taskFilters: { completed: false }
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate smart schedule');
+      }
+
+      const data = await response.json();
+      
+      // Convert string dates back to Date objects
+      const scheduleWithDates = data.schedule.map((task: any) => ({
+        ...task,
+        startTime: new Date(task.startTime),
+        endTime: new Date(task.endTime)
+      }));
+
+      setSmartScheduleData(scheduleWithDates);
+      setShowSmartSchedule(true);
+
+      toast({
+        title: "Smart Schedule Generated",
+        description: `Successfully scheduled ${data.metadata?.scheduledTasks || 0} tasks with ${Math.round((data.metadata?.efficiency || 0) * 100)}% efficiency.`,
+      });
+
+    } catch (error) {
+      console.error('Failed to generate smart schedule:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate smart schedule. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingSchedule(false);
+    }
+  }, [toast]);
 
   // Early return for loading state
   if (isLoading) {
@@ -422,6 +532,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
   const TaskDetailsModal = () => {
     if (!selectedTask) return null;
 
+    const isScheduledTask = 'scheduledStart' in selectedTask;
     const IconComponent = TYPE_ICONS[selectedTask.type];
 
     return (
@@ -439,14 +550,20 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
             >
               <IconComponent className="h-5 w-5 text-primary" />
               {selectedTask.title}
+              {isScheduledTask && (
+                <Badge className="bg-purple-100 text-purple-800 border-purple-200">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Smart Scheduled
+                </Badge>
+              )}
             </DialogTitle>
             <DialogDescription id="task-dialog-description">
-              Task details and information
+              {isScheduledTask ? 'AI-optimized task schedule' : 'Task details and information'}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
               <Badge
                 className={priorityBadgeVariants({
                   priority: selectedTask.priority,
@@ -459,6 +576,11 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
                 <Badge className="bg-primary text-primary-foreground">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
                   Completed
+                </Badge>
+              )}
+              {isScheduledTask && (selectedTask as ScheduledTask).confidence && (
+                <Badge className="bg-green-100 text-green-800 border-green-200">
+                  {Math.round((selectedTask as ScheduledTask).confidence * 100)}% confidence
                 </Badge>
               )}
             </div>
@@ -474,7 +596,20 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
               </div>
             )}
 
-            {selectedTask.due_date && (
+            {isScheduledTask ? (
+              <div>
+                <h4 className="text-sm font-medium text-foreground mb-2">
+                  Scheduled Time
+                </h4>
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  {format(new Date((selectedTask as ScheduledTask).scheduledStart), "PPP")}
+                  <span>
+                    {format(new Date((selectedTask as ScheduledTask).scheduledStart), "p")} - {format(new Date((selectedTask as ScheduledTask).scheduledEnd), "p")}
+                  </span>
+                </p>
+              </div>
+            ) : selectedTask.due_date && (
               <div>
                 <h4 className="text-sm font-medium text-foreground mb-2">
                   Due Date
@@ -491,19 +626,31 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
               </div>
             )}
 
-            {isRecurringInstance(selectedTask) && (
+            {isScheduledTask && (selectedTask as ScheduledTask).reasoning && (
+              <div>
+                <h4 className="text-sm font-medium text-foreground mb-2">
+                  AI Reasoning
+                </h4>
+                <p className="text-sm text-muted-foreground bg-purple-50 p-3 rounded-md border border-purple-200">
+                  <Sparkles className="h-4 w-4 inline mr-2" />
+                  {(selectedTask as ScheduledTask).reasoning}
+                </p>
+              </div>
+            )}
+
+            {!isScheduledTask && isRecurringInstance(selectedTask as Task) && (
               <div>
                 <h4 className="text-sm font-medium text-foreground mb-2">
                   Recurrence
                 </h4>
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
                   <Repeat className="h-4 w-4" />
-                  {getRecurrenceDescription(selectedTask.recurrence_rule || '')}
+                  {getRecurrenceDescription((selectedTask as Task).recurrence_rule || '')}
                 </p>
               </div>
             )}
 
-            {onEditTask && (
+            {onEditTask && !isScheduledTask && (
               <div className="flex gap-2 pt-4">
                 <Button
                   onClick={() => {
@@ -522,6 +669,20 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
                   onClick={() => setSelectedTask(null)}
                   className={actionButtonVariants({
                     variant: "secondary",
+                    size: "sm",
+                  })}
+                >
+                  Close
+                </Button>
+              </div>
+            )}
+
+            {isScheduledTask && (
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={() => setSelectedTask(null)}
+                  className={actionButtonVariants({
+                    variant: "primary",
                     size: "sm",
                   })}
                 >
@@ -620,6 +781,43 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
             />
           </div>
 
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-sm font-medium">Smart Schedule View</h4>
+              <p className="text-xs text-muted-foreground">
+                Show AI-optimized task schedule
+              </p>
+            </div>
+            <Switch
+              checked={showSmartSchedule}
+              onCheckedChange={setShowSmartSchedule}
+              aria-label="Toggle smart schedule view"
+            />
+          </div>
+
+          <Separator />
+
+          <div className="space-y-2">
+            <Button
+              onClick={generateSmartSchedule}
+              disabled={isGeneratingSchedule}
+              className="w-full"
+              variant="outline"
+            >
+              {isGeneratingSchedule ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Generate Smart Schedule
+                </>
+              )}
+            </Button>
+          </div>
+
           <Separator />
 
           <Button
@@ -710,6 +908,40 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
               </label>
             </div>
 
+            {/* Smart schedule controls for desktop */}
+            <div className="hidden md:flex items-center gap-2">
+              <Button
+                onClick={generateSmartSchedule}
+                disabled={isGeneratingSchedule}
+                variant="outline"
+                size="sm"
+              >
+                {isGeneratingSchedule ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Smart Schedule
+                  </>
+                )}
+              </Button>
+              <Switch
+                id="show-smart-schedule"
+                checked={showSmartSchedule}
+                onCheckedChange={setShowSmartSchedule}
+                aria-label="Toggle smart schedule view"
+              />
+              <label
+                htmlFor="show-smart-schedule"
+                className="text-sm text-muted-foreground cursor-pointer"
+              >
+                AI View
+              </label>
+            </div>
+
             <MobileNavigation />
           </div>
         </div>
@@ -792,8 +1024,8 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
                   }, 100);
                 }}
               />
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
         </MagicCard>
 
         <TaskDetailsModal />

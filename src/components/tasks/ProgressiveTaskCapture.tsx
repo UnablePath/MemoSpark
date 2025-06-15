@@ -640,8 +640,11 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
     }
 
     // Convert to ExtendedTask format
+    const now = new Date().toISOString();
     const task: Omit<ExtendedTask, 'id' | 'completed'> = {
       ...taskData,
+      createdAt: now,
+      updatedAt: now,
       recurrenceInterval: taskData.recurrenceRule !== 'none' && taskData.recurrenceInterval 
         ? Number(taskData.recurrenceInterval) 
         : undefined,

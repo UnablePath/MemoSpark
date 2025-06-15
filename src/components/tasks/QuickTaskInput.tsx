@@ -159,6 +159,7 @@ export const QuickTaskInput: React.FC<QuickTaskInputProps> = ({
       const taskData = parseQuickInput(input.trim());
       
       // Create the task object
+      const now = new Date().toISOString();
       const newTask: Omit<ExtendedTask, 'id' | 'completed'> = {
         title: taskData.title,
         dueDate: taskData.dueDate,
@@ -167,12 +168,14 @@ export const QuickTaskInput: React.FC<QuickTaskInputProps> = ({
         subject: taskData.subject,
         reminder: taskData.reminder,
         description: taskData.description,
+        createdAt: now,
+        updatedAt: now,
         recurrenceRule: 'none',
         // AI metadata
         aiMetadata: {
           confidenceScore: 0.8, // High confidence for user-created tasks
           learningSource: 'user_preference',
-          createdAt: new Date().toISOString(),
+          createdAt: now,
         },
         estimatedDuration: 60, // Default 1 hour estimate
       };

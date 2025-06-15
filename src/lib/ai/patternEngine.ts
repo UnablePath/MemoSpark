@@ -12,6 +12,8 @@ import type {
   Task,
   ClassTimetableEntry,
   UserPreferences,
+  Priority,
+  TaskType,
 } from '@/types/ai';
 import type { UserAIPreferences as AIContextUserPreferences } from './aiContext'; // Import UserAIPreferences from aiContext
 import type { SupabaseClient } from '@supabase/supabase-js'; // Import SupabaseClient type
@@ -914,8 +916,8 @@ export class PatternRecognitionEngine {
         title: task.title,
         description: task.description || undefined,
         completed: task.completed || false,
-        priority: task.priority || 'medium',
-        type: task.type || 'academic',
+        priority: (task.priority as Priority) || 'medium',
+        type: (task.type as TaskType) || 'academic',
         subject: task.subject || undefined,
         reminder: task.reminder || false,
         dueDate: task.due_date || undefined,
@@ -923,6 +925,8 @@ export class PatternRecognitionEngine {
         estimatedDuration: task.estimated_duration || undefined, // Note: may not exist in schema
         timeSpent: task.time_spent || undefined, // Note: may not exist in schema
         difficultyLevel: task.difficulty || 5, // Note: may not exist in schema
+        createdAt: task.created_at || new Date().toISOString(),
+        updatedAt: task.updated_at || new Date().toISOString(),
         aiMetadata: {
           confidenceScore: 0.9,
           learningSource: 'pattern_recognition',
@@ -1031,6 +1035,90 @@ export class PatternRecognitionEngine {
     console.log(`PatternRecognitionEngine: Feedback for suggestion ${suggestionId} - ${accepted ? 'Accepted' : 'Rejected'}.`);
     // TODO: Implement feedback storage (e.g., to Supabase or local analytics)
     // This could influence future pattern analysis or suggestion weighting.
+  }
+
+  /**
+   * Update user patterns from questionnaire data
+   */
+  public async updateUserPatterns(userId: string, questionnairePatternsData: any): Promise<void> {
+    try {
+      // Convert questionnaire patterns to UserPreferences format
+      const updatedPreferences: UserPreferences = {
+        // Map study patterns
+        studyTimePreference: this.mapStudyTimePreference(questionnairePatternsData.studyPatterns?.preferredTimes),
+        sessionLengthPreference: this.mapSessionLengthPreference(questionnairePatternsData.studyPatterns?.attentionSpan),
+        difficultyComfort: this.mapDifficultyPreference(questionnairePatternsData.studyPatterns?.learningStyle),
+        
+        // Map stress patterns
+        stressFactors: questionnairePatternsData.stressPatterns?.triggers || [],
+        
+        // Set available study hours based on preferred times
+        availableStudyHours: this.mapPreferredTimesToHours(questionnairePatternsData.studyPatterns?.preferredTimes),
+        
+        // Default values for other fields that are part of the type but not in the questionnaire data
+        breakFrequency: 'moderate',
+        preferredSubjects: [],
+        strugglingSubjects: [],
+        studyGoals: [],
+      };
+
+      // Save updated preferences
+      this.saveUserPreferences(updatedPreferences);
+      
+      console.log('User patterns updated from questionnaire data:', updatedPreferences);
+    } catch (error) {
+      console.error('Error updating user patterns from questionnaire:', error);
+    }
+  }
+
+  private mapStudyTimePreference(preferredTimes?: string[]): 'morning' | 'afternoon' | 'evening' | 'night' {
+    if (!preferredTimes || preferredTimes.length === 0) return 'morning';
+    
+    const firstPreference = preferredTimes[0].toLowerCase();
+    if (firstPreference.includes('morning') || firstPreference.includes('6-9') || firstPreference.includes('9-12')) {
+      return 'morning';
+    } else if (firstPreference.includes('afternoon') || firstPreference.includes('12-5')) {
+      return 'afternoon';
+    } else if (firstPreference.includes('evening') || firstPreference.includes('5-8')) {
+      return 'evening';
+    } else if (firstPreference.includes('night') || firstPreference.includes('11 pm')) {
+      return 'night';
+    }
+    return 'morning';
+  }
+
+  private mapSessionLengthPreference(attentionSpan?: number): 'short' | 'medium' | 'long' {
+    if (!attentionSpan) return 'medium';
+    
+    if (attentionSpan <= 30) return 'short';
+    if (attentionSpan <= 90) return 'medium';
+    return 'long';
+  }
+
+  private mapPreferredTimesToHours(preferredTimes?: string[]): number[] {
+    if (!preferredTimes || preferredTimes.length === 0) return [9, 14, 19];
+    
+    const timeMapping: Record<string, number[]> = {
+      'early morning': [6, 7, 8],
+      'morning': [9, 10, 11],
+      'afternoon': [12, 13, 14, 15, 16],
+      'evening': [17, 18, 19],
+      'night': [20, 21, 22],
+      'late night': [23, 0, 1]
+    };
+    
+    const hours: number[] = [];
+    preferredTimes.forEach(timeRange => {
+      const lowerTime = timeRange.toLowerCase();
+      for (const [period, periodHours] of Object.entries(timeMapping)) {
+        if (lowerTime.includes(period)) {
+          hours.push(...periodHours);
+          break;
+        }
+      }
+    });
+    
+    return hours.length > 0 ? [...new Set(hours)].sort() : [9, 14, 19];
   }
 
   // Task 3: Implement _mapPatternDataToSuggestions Helper Method

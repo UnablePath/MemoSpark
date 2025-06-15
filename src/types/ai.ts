@@ -17,6 +17,8 @@ export interface BaseTask {
   completed: boolean;
   reminder: boolean;
   description?: string;
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
   // Recurrence fields
   recurrenceRule?: RecurrenceRule;
   recurrenceInterval?: number; // e.g., 1 for every day/week/month, 2 for every other day/week/month
@@ -472,6 +474,64 @@ export interface StudySuggestion {
 // From patternEngine.ts
 export type Task = ExtendedTask;
 
+// Missing types for SmartScheduler
+export interface ScheduledTask extends ExtendedTask {
+  scheduledStart: string; // ISO date string
+  scheduledEnd: string; // ISO date string
+  startTime: Date; // For compatibility with SmartScheduler
+  endTime: Date; // For compatibility with SmartScheduler
+  confidence: number; // 0-1 confidence score
+  adjustmentReason?: string;
+  reasoning: string; // Explanation for why this time was chosen
+  duration: number; // Duration in minutes
+  taskId: string; // Reference to the original task ID
+  metadata?: {
+    efficiency?: number;
+    [key: string]: any;
+  };
+  estimatedDifficulty?: number; // 1-10 scale
+}
+
+export interface ScheduleAdjustment {
+  id: string; // Unique identifier for the adjustment
+  taskId: string;
+  originalTime: string; // ISO date string
+  suggestedTime: string; // ISO date string
+  reason: string;
+  confidence: number; // 0-1 confidence score
+  priority: 'low' | 'medium' | 'high';
+  type: 'time_optimization' | 'conflict_resolution' | 'difficulty_adjustment' | 'productivity_optimization';
+  title: string;
+  description: string;
+  impact: 'low' | 'medium' | 'high';
+  effort: 'low' | 'medium' | 'high';
+  suggestedChange: string;
+  affectedTasks: string[];
+}
+
+export interface TimeSlot {
+  start: string; // ISO date string
+  end: string; // ISO date string
+  startTime: Date; // For compatibility with SmartScheduler
+  endTime: Date; // For compatibility with SmartScheduler
+  available: boolean;
+  conflictsWith?: string[]; // Array of conflicting event IDs
+  efficiency?: number; // 0-1 efficiency score for this time slot
+  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'late_night';
+}
+
+export interface ScheduleMetadata {
+  tasksScheduled: number;
+  conflictsResolved: number;
+  averageConfidence: number;
+  totalTasks: number;
+  scheduledTasks: number;
+  conflicts: number;
+  efficiency: number;
+  confidence: number;
+  generatedAt?: string; // ISO date string when schedule was generated
+}
+
 export interface ClassTimetableEntry {
   id: string;
   courseName: string;
@@ -496,4 +556,5 @@ export interface UserPreferences {
   strugglingSubjects: string[];
   studyGoals: string[];
   availableStudyHours: number[]; // Array of hours when user is typically free
+  stressFactors?: string[]; // Triggers that cause stress
 } 

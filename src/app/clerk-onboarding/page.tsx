@@ -214,7 +214,7 @@ export default function ClerkOnboardingPage() {
           keysToRemove.forEach(key => localStorage.removeItem(key));
         }
         
-        router.push('/dashboard');
+        router.push('/questionnaire?from=onboarding');
       } else if (res?.error) {
         // Error case with possible field errors
         if (res.fieldErrors) {

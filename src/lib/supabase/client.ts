@@ -7,6 +7,9 @@ export * from './remindersApi';
 export * from './achievementsApi';
 export * from './gamificationApi';
 
+// Export createClient for use in other modules
+export { createClient };
+
 // Supabase configuration for AI features
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://onfnehxkglmvrorcvqcx.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
