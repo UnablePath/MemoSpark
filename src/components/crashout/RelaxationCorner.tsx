@@ -8,7 +8,11 @@ const breathingCycle = [
   { text: 'Breathe Out...', duration: 8000 },
 ];
 
-export const RelaxationCorner = ({ onExit }: any) => {
+interface RelaxationCornerProps {
+  onExit: () => void;
+}
+
+export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) => {
   const [cycleIndex, setCycleIndex] = useState(0);
   const [animationClass, setAnimationClass] = useState('scale-100 opacity-100');
 

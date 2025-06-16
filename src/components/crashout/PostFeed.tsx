@@ -2,17 +2,26 @@
 
 import React from 'react';
 import { PostCard } from './PostCard';
+import { CrashoutPost } from '@/lib/supabase/crashoutApi';
 
-export const PostFeed = ({ posts, moodStyles, onReaction }: any) => {
+interface PostFeedProps {
+  posts: CrashoutPost[];
+  moodStyles?: Record<string, { bg: string; border: string; emoji: string; label: string }>; // Keep for compatibility
+  onReaction: (postId: string, emoji: string) => void;
+  onDelete?: (postId: string) => void;
+}
+
+export const PostFeed: React.FC<PostFeedProps> = ({ posts, moodStyles, onReaction, onDelete }) => {
   return (
     <div className="space-y-6">
       {posts && posts.length > 0 ? (
-        posts.map((post: any) => (
+        posts.map((post: CrashoutPost) => (
           <PostCard
             key={post.id}
             post={post}
             moodStyles={moodStyles}
             onReaction={onReaction}
+            onDelete={onDelete}
           />
         ))
       ) : (

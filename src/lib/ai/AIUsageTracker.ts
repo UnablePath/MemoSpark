@@ -80,7 +80,7 @@ export class AIUsageTracker {
       const today = new Date().toISOString().split('T')[0];
 
       // Get current usage record or create new one
-      let { data: usage, error: selectError } = await this.supabase
+      const { data: usage, error: selectError } = await this.supabase
         .from('ai_usage_tracking')
         .select('*')
         .eq('clerk_user_id', clerkUserId)

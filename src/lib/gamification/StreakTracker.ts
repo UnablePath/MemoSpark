@@ -256,7 +256,7 @@ export class StreakTracker {
     const sortedStreaks = [...dailyStreaks].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     // Start checking from today or the most recent completed day
-    let checkDate = new Date(today);
+    const checkDate = new Date(today);
     
     for (let i = 0; i < sortedStreaks.length; i++) {
       const streak = sortedStreaks[i];

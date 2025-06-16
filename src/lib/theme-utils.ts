@@ -72,7 +72,7 @@ export const colorUtils: ColorUtilities = {
     
     // Attempt to adjust lightness to meet contrast requirements
     let adjustedColor = foreground;
-    let step = contrast.ratio < minRatio ? 10 : -10;
+    const step = contrast.ratio < minRatio ? 10 : -10;
     
     for (let i = 0; i < 10; i++) {
       adjustedColor = step > 0 ? colorUtils.lighten(adjustedColor, step) : colorUtils.darken(adjustedColor, Math.abs(step));

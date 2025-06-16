@@ -16,6 +16,7 @@ import { CoinWidget } from '@/components/coins';
 import { CelebrationOverlay } from '@/components/stu';
 import { stuCelebration } from '@/lib/stu/StuCelebration';
 import { StreakTracker } from '@/lib/gamification/StreakTracker';
+import { RewardShop } from './RewardShop';
 import { toast } from 'sonner';
 import type { LeaderboardUser, UserAchievement } from '@/types/achievements';
 
@@ -23,6 +24,7 @@ const GamificationHub = () => {
   const { user } = useUser();
   const { userStats, leaderboard, userAchievements, loading, reload } = useAchievements();
   const [streakTracker] = useState(() => new StreakTracker());
+  const [showRewardShop, setShowRewardShop] = useState(false);
 
   // Calculate reward tier progression
   const calculateTierInfo = (points: number) => {
@@ -175,10 +177,7 @@ const GamificationHub = () => {
               <Button 
                 variant="outline" 
                 className="w-full justify-start"
-                onClick={() => {
-                  // TODO: Implement reward shop
-                  toast.info('Reward Shop coming soon! 🛍️');
-                }}
+                onClick={() => setShowRewardShop(true)}
               >
                 <FaShoppingCart className="mr-2 h-4 w-4" />
                 Visit Reward Shop
@@ -328,6 +327,14 @@ const GamificationHub = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Reward Shop Modal */}
+      {showRewardShop && (
+        <RewardShop 
+          variant="modal" 
+          onClose={() => setShowRewardShop(false)} 
+        />
+      )}
     </>
   );
 };
