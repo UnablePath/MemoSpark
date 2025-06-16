@@ -241,12 +241,11 @@ export class AchievementProcessor {
 
   private async awardAchievement(userId: string, template: AchievementTemplate): Promise<void> {
     if (template.reward?.coins) {
-      await coinEconomy.addCoins(
+      await coinEconomy.awardCoins(
         userId,
-        template.reward.coins,
         'achievement',
         `Achievement: ${template.name}`,
-        template.id
+        { achievementId: template.id, coins: template.reward.coins }
       );
     }
   }

@@ -184,7 +184,7 @@ export class AdaptiveMLService {
       };
       
       if (typeof window !== 'undefined') {
-        localStorage.setItem('studyspark_adaptive_ml', JSON.stringify(learningData));
+        localStorage.setItem('memospark_adaptive_ml', JSON.stringify(learningData));
       }
     } catch (error) {
       console.error('Failed to save learning data:', error);
@@ -194,7 +194,7 @@ export class AdaptiveMLService {
   private loadPersistentData(): void {
     try {
       if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('studyspark_adaptive_ml');
+        const saved = localStorage.getItem('memospark_adaptive_ml');
         if (saved) {
           const data = JSON.parse(saved);
           
