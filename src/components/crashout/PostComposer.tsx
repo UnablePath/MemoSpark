@@ -67,9 +67,12 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
   };
 
   const addTag = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()]);
-      setTagInput('');
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Prevent form submission
+      if (tagInput.trim() && !tags.includes(tagInput.trim())) {
+        setTags([...tags, tagInput.trim()]);
+        setTagInput('');
+      }
     }
   };
 

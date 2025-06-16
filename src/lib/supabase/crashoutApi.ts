@@ -50,16 +50,8 @@ export interface PostComment {
 
 // Helper to get authenticated Supabase client with Clerk token
 const getAuthenticatedClient = async () => {
-  try {
-    // Try to get Clerk token if available
-    if (typeof window !== 'undefined') {
-      const { getToken } = await import('@clerk/nextjs');
-      const clerkClient = createAuthenticatedSupabaseClient(getToken);
-      return clerkClient || supabase;
-    }
-  } catch (error) {
-    console.warn('Could not get Clerk token, using default client:', error);
-  }
+  // Simply return the default supabase client when no token is provided
+  // For authenticated operations, pass the getToken function explicitly
   return supabase;
 };
 
