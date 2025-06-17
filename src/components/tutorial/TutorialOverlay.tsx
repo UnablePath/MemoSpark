@@ -224,9 +224,8 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
         exit="exit"
         transition={{ duration: 0.2, ease: 'easeOut' }}
         className={cn(
-          "fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-          "w-[90vw] max-w-lg mx-auto",
-          "max-h-screen overflow-y-auto",
+          "fixed z-50 top-[35%] left-[40%] -translate-x-1/2 -translate-y-1/2",
+          "w-full max-w-2xl mx-4",
           className
         )}
       >

@@ -1,38 +1,35 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { clerkMiddleware } from '@clerk/nextjs/server'
 
-const isPublicRoute = createRouteMatcher([
-  '/',
-  '/login',
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/contact',
-  '/about',
-  '/clerk-onboarding(.*)',
-  
-  // PWA / App Icon files
-  '/manifest.json',
-  '/sw.js',
-  '/offline',
-  '/icon.svg',
-  '/icon-192x192.png',
-  '/icon-256x256.png',
-  '/icon-384x384.png',
-  '/icon-512x512.png',
-  '/apple-touch-icon.png',
-  '/favicon.ico',
-  '/browserconfig.xml',
+export default clerkMiddleware({
+  // By default, all routes are protected.
+  // We list all public routes here so they can be accessed without authentication.
+  publicRoutes: [
+    '/',
+    '/login',
+    '/sign-in(.*)',
+    '/sign-up(.*)',
+    '/contact',
+    '/about',
+    '/clerk-onboarding(.*)',
+    
+    // PWA / App Icon files
+    '/manifest.webmanifest',
+    '/sw.js',
+    '/offline',
+    '/icon.svg',
+    '/icon-192x192.png',
+    '/icon-256x256.png',
+    '/icon-384x384.png',
+    '/icon-512x512.png',
+    '/apple-touch-icon.png',
+    '/favicon.ico',
 
-  // Public API routes
-  '/api/webhook-health',
-  '/api/clerk-webhooks',
-  '/api/test-manifest',
-  '/pwa-debug'
-]);
-
-export default clerkMiddleware((auth, req) => {
-  if (!isPublicRoute(req)) {
-    auth.protect();
-  }
+    // Public API routes
+    '/api/webhook-health',
+    '/api/clerk-webhooks',
+    '/api/test-manifest',
+    '/pwa-debug'
+  ],
 });
 
 export const config = {

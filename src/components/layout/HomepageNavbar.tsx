@@ -25,9 +25,9 @@ export function HomepageNavbar() {
             <MemoSparkLogoSvg height={32} darkBackground={false} />
           </Link>
           <Link
-            href="/"
+            href="/coming-soon"
             className="text-xs text-muted-foreground hover:text-primary transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background rounded-sm"
-            aria-label="Learn more about PromptU, the creators of MemoSpark"
+            aria-label="Learn more about PromptU, the creators of MemoSpark (Coming Soon)"
           >
             by PromptU
           </Link>
@@ -100,10 +100,10 @@ export function HomepageNavbar() {
               </Link>
             ))}
             <Link
-              href="/"
+              href="/coming-soon"
               onClick={() => setIsMobileMenuOpen(false)}
               className="block px-3 py-2 rounded-md text-base font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background"
-              aria-label="Learn more about PromptU, the creators of MemoSpark"
+              aria-label="Learn more about PromptU, the creators of MemoSpark (Coming Soon)"
             >
               by PromptU
             </Link>

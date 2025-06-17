@@ -21,6 +21,24 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: 'any'
       },
       {
+        src: '/icon-192x192.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'maskable'
+      },
+      {
+        src: '/icon-256x256.png', 
+        sizes: '256x256',
+        type: 'image/png',
+        purpose: 'any'
+      },
+      {
+        src: '/icon-384x384.png',
+        sizes: '384x384', 
+        type: 'image/png',
+        purpose: 'any'
+      },
+      {
         src: '/icon-512x512.png',
         sizes: '512x512',
         type: 'image/png',
@@ -31,6 +49,12 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: '512x512',
         type: 'image/png',
         purpose: 'maskable'
+      },
+      {
+        src: '/apple-touch-icon.png',
+        sizes: '180x180',
+        type: 'image/png',
+        purpose: 'any'
       }
     ],
     shortcuts: [

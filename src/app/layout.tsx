@@ -16,22 +16,14 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "MemoSpark - AI-Powered Student Productivity",
   description: "Transform your study routine with AI-powered task management, smart scheduling, and gamified progress tracking",
-  manifest: "/manifest.json",
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "MemoSpark",
-    // startupImage: [
-    //   // TODO: Add startup images for different devices
-    // ],
   },
   formatDetection: {
     telephone: false,
-  },
-  icons: {
-    icon: "/favicon.ico",
-    shortcut: "/icon.svg",
-    apple: "/apple-touch-icon.png",
   },
 };
 
@@ -50,8 +42,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head />
+    <html lang="en">
+      <head>
+        {/* Favicon for different browsers and devices */}
+        <link rel="icon" href="/favicon.ico" sizes="32x32" />
+        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        
+        {/* PWA meta tags */}
+        <meta name="apple-mobile-web-app-title" content="MemoSpark" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        
+        {/* Microsoft tiles */}
+        <meta name="msapplication-TileColor" content="#fadbdb" />
+        <meta name="msapplication-config" content="/browserconfig.xml" />
+      </head>
       <body className={`${inter.className} max-w-full overflow-x-hidden`}>
         <ThemeProvider>
           <ThemeAwareClerkProvider>

@@ -1,13 +1,5 @@
-const { withPlausibleProxy } = require('next-plausible');
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Adding a unique build ID to invalidate Vercel's cache
-  // This value will change with each build, forcing a fresh deployment
-  generateBuildId: async () => {
-    return `memospark-${new Date().getTime()}`;
-  },
-  serverExternalPackages: ['@huggingface/inference'],
   images: {
     unoptimized: true,
     domains: [
@@ -42,14 +34,6 @@ const nextConfig = {
         protocol: "https",
         hostname: "icons.iconarchive.com",
         pathname: "/**",
-      },
-      {
-        protocol: 'https',
-        hostname: 'img.clerk.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.clerk.dev',
       },
     ],
   },
@@ -106,7 +90,7 @@ const nextConfig = {
         ],
       },
       {
-        source: '/manifest.json',
+        source: '/manifest.webmanifest',
         headers: [
           {
             key: 'Content-Type',
@@ -122,10 +106,6 @@ const nextConfig = {
   },
   // Enable Turbopack for development (now stable)
   turbopack: {},
-  webpack: (config) => {
-    config.externals = [...config.externals, 'canvas'];
-    return config;
-  },
 };
 
-module.exports = withPlausibleProxy()(nextConfig);
+module.exports = nextConfig;
