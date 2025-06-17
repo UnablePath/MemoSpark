@@ -5,11 +5,13 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { UserProvider } from "@/lib/user-context";
 import { AIProvider } from "@/lib/ai/aiContext";
-import { TutorialProvider } from "@/components/tutorial";
-import ClientBody from "./ClientBody";
-import { ConditionalHeader } from "@/components/layout/ConditionalHeader";
+import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 import { ThemeAwareClerkProvider } from "@/components/providers/clerk-theme-provider";
 import { PWAProvider } from "@/components/providers/pwa-provider";
+import { ConditionalHeader } from "@/components/layout/ConditionalHeader";
+import ClientBody from "@/app/ClientBody";
+import { PwaInstaller } from "@/components/pwa/PwaInstaller";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,10 +22,6 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "MemoSpark",
-  },
-  formatDetection: {
-    telephone: false,
   },
 };
 
@@ -42,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* Favicon for different browsers and devices */}
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
@@ -51,8 +49,6 @@ export default function RootLayout({
         
         {/* PWA meta tags */}
         <meta name="apple-mobile-web-app-title" content="MemoSpark" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="mobile-web-app-capable" content="yes" />
         
         {/* Microsoft tiles */}
@@ -67,10 +63,11 @@ export default function RootLayout({
                 <AIProvider>
                   <TutorialProvider>
                     <PWAProvider>
-                    <ClientBody>
-                      <ConditionalHeader />
-                      {children}
-                    </ClientBody>
+                      <ClientBody>
+                        {children}
+                        <PwaInstaller />
+                        <Toaster />
+                      </ClientBody>
                     </PWAProvider>
                   </TutorialProvider>
                 </AIProvider>
