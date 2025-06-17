@@ -16,7 +16,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "MemoSpark - AI-Powered Student Productivity",
   description: "Transform your study routine with AI-powered task management, smart scheduling, and gamified progress tracking",
-  manifest: "/manifest.webmanifest",
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
