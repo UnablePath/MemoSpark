@@ -3,10 +3,10 @@
 
 /* eslint-disable no-undef */
 /* eslint-disable no-restricted-globals */
-const CACHE_NAME = 'memospark-v1'; // Change this version to force update
+const CACHE_NAME = 'memospark-v2'; // Incremented version to force update
 const STATIC_CACHE_URLS = [
   '/',
-  '/offline',
+  '/offline.html', // Correctly reference the HTML file
   '/icon.svg',
   '/apple-touch-icon.png',
   '/favicon.ico',
@@ -85,7 +85,7 @@ self.addEventListener('fetch', (event) => {
           console.log('[SW] Fetch failed; returning offline page instead.', error);
 
           const cache = await caches.open(CACHE_NAME);
-          const cachedResponse = await cache.match('/offline');
+          const cachedResponse = await cache.match('/offline.html'); // Correctly match the HTML file
           return cachedResponse;
         }
       })()
