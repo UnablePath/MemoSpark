@@ -153,7 +153,7 @@ export function DashboardSwipeTabs() {
         role="tablist"
         aria-orientation="horizontal"
         aria-label="Dashboard Navigation"
-        className="tab-navigation flex justify-around items-center p-2 border-t bg-background flex-shrink-0 pb-safe-bottom safe-scroll-area"
+        className="tab-navigation flex justify-start items-center p-2 border-t bg-background flex-shrink-0 pb-safe-bottom safe-scroll-area w-full max-w-full overflow-x-auto gap-4"
         onKeyDown={handleKeyDown}
       >
         {TABS_CONFIG.map((tab, index) => {
