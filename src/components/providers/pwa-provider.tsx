@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { usePWA } from '@/hooks/usePWA'
-import InstallPrompt from '@/components/pwa/InstallPrompt'
+import { InstallPrompt } from '@/components/pwa/InstallPrompt'
 import UpdateNotification from '@/components/pwa/UpdateNotification'
 import PWADebug from '@/components/pwa/PWADebug'
 import { PWAErrorBoundary } from '@/components/pwa/PWAErrorBoundary'
@@ -98,7 +98,7 @@ export function PWAProvider({ children }: PWAProviderProps) {
         
         {/* PWA Install Prompt */}
         {showInstallPrompt && (
-          <InstallPrompt onClose={() => setShowInstallPrompt(false)} />
+          <InstallPrompt />
         )}
         
         {/* PWA Update Notification */}

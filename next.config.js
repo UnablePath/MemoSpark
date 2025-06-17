@@ -7,9 +7,7 @@ const nextConfig = {
   generateBuildId: async () => {
     return `memospark-${new Date().getTime()}`;
   },
-  experimental: {
-    serverComponentsExternalPackages: ['@huggingface/inference'],
-  },
+  serverExternalPackages: ['@huggingface/inference'],
   images: {
     unoptimized: true,
     domains: [
