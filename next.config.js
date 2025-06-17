@@ -106,7 +106,7 @@ const nextConfig = {
         ],
       },
       {
-        source: '/manifest.webmanifest',
+        source: '/manifest.json',
         headers: [
           {
             key: 'Content-Type',
