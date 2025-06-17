@@ -15,6 +15,14 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
+  // Skip middleware for PWA files completely FIRST
+  if (req.nextUrl.pathname === '/manifest.webmanifest' || 
+      req.nextUrl.pathname === '/sw.js' ||
+      req.nextUrl.pathname === '/offline') {
+    console.log('PWA Route bypassed middleware:', req.nextUrl.pathname);
+    return NextResponse.next();
+  }
+
   const { userId, sessionClaims, redirectToSignIn } = await auth();
 
   // Basic AI Security Middleware - Simple rate limiting without crypto
@@ -69,8 +77,8 @@ export const config = {
   // for more information about configuring your Middleware
   matcher: [
     // Skip Next.js internals and all static files, unless found in search params
-    // Added sw.js exclusion for PWA service worker
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)|sw\\.js).*)',
+    // Completely exclude PWA files from middleware
+    '/((?!_next|manifest\\.webmanifest$|sw\\.js$|offline$|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
     // Always run for API routes
     '/(api|trpc)(.*)',
   ],
