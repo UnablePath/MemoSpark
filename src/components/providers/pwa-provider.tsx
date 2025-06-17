@@ -5,6 +5,7 @@ import { usePWA } from '@/hooks/usePWA'
 import InstallPrompt from '@/components/pwa/InstallPrompt'
 import UpdateNotification from '@/components/pwa/UpdateNotification'
 import PWADebug from '@/components/pwa/PWADebug'
+import { PWAErrorBoundary } from '@/components/pwa/PWAErrorBoundary'
 
 interface PWAContextType {
   isOnline: boolean
@@ -91,21 +92,23 @@ export function PWAProvider({ children }: PWAProviderProps) {
   }
 
   return (
-    <PWAContext.Provider value={contextValue}>
-      {children}
-      
-      {/* PWA Install Prompt */}
-      {showInstallPrompt && (
-        <InstallPrompt onClose={() => setShowInstallPrompt(false)} />
-      )}
-      
-      {/* PWA Update Notification */}
-      {showUpdateNotification && (
-        <UpdateNotification onClose={() => setShowUpdateNotification(false)} />
-      )}
-      
-      {/* PWA Debug (Development Only) */}
-      {process.env.NODE_ENV === 'development' && <PWADebug />}
-    </PWAContext.Provider>
+    <PWAErrorBoundary>
+      <PWAContext.Provider value={contextValue}>
+        {children}
+        
+        {/* PWA Install Prompt */}
+        {showInstallPrompt && (
+          <InstallPrompt onClose={() => setShowInstallPrompt(false)} />
+        )}
+        
+        {/* PWA Update Notification */}
+        {showUpdateNotification && (
+          <UpdateNotification onClose={() => setShowUpdateNotification(false)} />
+        )}
+        
+        {/* PWA Debug (Development and Staging) */}
+        {(process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview') && <PWADebug />}
+      </PWAContext.Provider>
+    </PWAErrorBoundary>
   )
 } 

@@ -8,7 +8,10 @@ const isPublicRoute = createRouteMatcher([
   '/', 
   '/sign-in(.*)', // Match /sign-in and its sub-paths like /sign-in/factor-one
   '/sign-up(.*)', // Match /sign-up and its sub-paths
-  '/clerk-onboarding(.*)' // Keep onboarding public
+  '/clerk-onboarding(.*)', // Keep onboarding public
+  '/manifest.webmanifest', // PWA manifest
+  '/sw.js', // Service worker
+  '/offline' // Offline page
 ]);
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
@@ -66,7 +69,8 @@ export const config = {
   // for more information about configuring your Middleware
   matcher: [
     // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Added sw.js exclusion for PWA service worker
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)|sw\\.js).*)',
     // Always run for API routes
     '/(api|trpc)(.*)',
   ],

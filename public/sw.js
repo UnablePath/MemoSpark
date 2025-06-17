@@ -1,9 +1,9 @@
 // StudySpark PWA Service Worker
-// Version: 3.0.0
+// Version: 4.0.0
 
-const CACHE_NAME = 'studyspark-v3';
-const STATIC_CACHE_NAME = 'studyspark-static-v3';
-const DYNAMIC_CACHE_NAME = 'studyspark-dynamic-v3';
+const CACHE_NAME = 'studyspark-v4';
+const STATIC_CACHE_NAME = 'studyspark-static-v4';
+const DYNAMIC_CACHE_NAME = 'studyspark-dynamic-v4';
 
 // Assets to cache immediately
 const STATIC_ASSETS = [
