@@ -15,7 +15,7 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
-  // Skip middleware for PWA files completely FIRST
+  // Skip middleware for PWA files completely FIRST - FORCE DEPLOY
   if (req.nextUrl.pathname === '/manifest.webmanifest' || 
       req.nextUrl.pathname === '/sw.js' ||
       req.nextUrl.pathname === '/offline') {
