@@ -174,7 +174,7 @@ export default function PWATestPage() {
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <a
-                href="/manifest.json"
+                href="/manifest.webmanifest"
                 target="_blank"
                 className="text-center bg-white p-3 rounded-lg hover:bg-gray-100 transition-colors"
               >

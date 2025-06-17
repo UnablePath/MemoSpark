@@ -1,22 +1,3 @@
-const withPWA = require('next-pwa')({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-  sw: 'sw.js',
-  runtimeCaching: [
-    {
-      urlPattern: /^https?.*/,
-      handler: 'NetworkFirst',
-      options: {
-        cacheName: 'offlineCache',
-        expiration: {
-          maxEntries: 200,
-        },
-      },
-    },
-  ],
-});
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -87,7 +68,7 @@ const nextConfig = {
           // Removed HSTS for development
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(self), push=(self), notifications=(self)',
+            value: 'camera=(), microphone=(), geolocation=(self)',
           },
         ],
       },
@@ -109,7 +90,7 @@ const nextConfig = {
         ],
       },
       {
-        source: '/manifest.json',
+        source: '/manifest.webmanifest',
         headers: [
           {
             key: 'Content-Type',
@@ -123,6 +104,8 @@ const nextConfig = {
       },
     ]
   },
+  // Enable Turbopack for development (now stable)
+  turbopack: {},
 };
 
-module.exports = withPWA(nextConfig);
+module.exports = nextConfig;

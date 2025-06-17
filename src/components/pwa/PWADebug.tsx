@@ -53,7 +53,7 @@ export default function PWADebug({ className = '' }: PWADebugProps) {
 
       // Check manifest
       try {
-        const manifestResponse = await fetch('/manifest.json')
+        const manifestResponse = await fetch('/manifest.webmanifest')
         info.manifestAccessible = manifestResponse.ok
         if (manifestResponse.ok) {
           const manifest = await manifestResponse.json()
@@ -187,7 +187,7 @@ export default function PWADebug({ className = '' }: PWADebugProps) {
               Register SW
             </button>
             <button
-              onClick={() => window.open('/manifest.json', '_blank')}
+              onClick={() => window.open('/manifest.webmanifest', '_blank')}
               className="bg-purple-500 text-white px-3 py-1 rounded text-xs"
             >
               View Manifest

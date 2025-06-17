@@ -1,1 +1,277 @@
-if(!self.define){let a,e={};const s=(s,i)=>(s=new URL(s+".js",i).href,e[s]||new Promise((e=>{if("document"in self){const a=document.createElement("script");a.src=s,a.onload=e,document.head.appendChild(a)}else a=s,importScripts(s),e()})).then((()=>{let a=e[s];if(!a)throw new Error(`Module ${s} didn’t register its module`);return a})));self.define=(i,c)=>{const t=a||("document"in self?document.currentScript.src:"")||location.href;if(e[t])return;let n={};const r=a=>s(a,t),o={module:{uri:t},exports:n,require:r};e[t]=Promise.all(i.map((a=>o[a]||r(a)))).then((a=>(c(...a),n)))}}define(["./workbox-db63acfa"],(function(a){"use strict";importScripts(),self.skipWaiting(),a.clientsClaim(),a.precacheAndRoute([{url:"/Asset 4.png",revision:"f360e51d93e50dc6d96982a93160edb6"},{url:"/Futura Std Heavy.ttf",revision:"b9a8d4e50c11d86d10412068c5755f70"},{url:"/LINE.ttf",revision:"5b1990bb435e4f6f50849dc3a14351b3"},{url:"/MemoSpark.ai",revision:"720870e08976681f8be2b9a2bb01a8b0"},{url:"/MemoSpark.svg",revision:"ab595c635bf82c3c99108d4b404a6877"},{url:"/Stu-head only.svg",revision:"8ddcde98f4851b703325767ca5be9647"},{url:"/_next/app-build-manifest.json",revision:"de2f13e943596c61f815f50e037d067a"},{url:"/_next/static/aLTR3TJdQmboqa2jwf_Ky/_buildManifest.js",revision:"5d4bfb288a0e9cc0d1de243cdbd24632"},{url:"/_next/static/aLTR3TJdQmboqa2jwf_Ky/_ssgManifest.js",revision:"b6652df95db52feb4daf4eca35380933"},{url:"/_next/static/chunks/14-626419330e2a11b4.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/16.e7cfc0532582cdb1.js",revision:"e7cfc0532582cdb1"},{url:"/_next/static/chunks/1921-8465e3ea019784e3.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/2172-91cf83963c93525c.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/229-a759fc7b525f5ca8.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/2297.03492c30599aad12.js",revision:"03492c30599aad12"},{url:"/_next/static/chunks/241-d20e405fb63b0f8b.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/2809-53ccd6070cbf052d.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/3269.5542d538e96786f2.js",revision:"5542d538e96786f2"},{url:"/_next/static/chunks/3316-f1a3cabfa0038120.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/338-fd8e46ce300cbd1d.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/3759.d0dc1f65e1834174.js",revision:"d0dc1f65e1834174"},{url:"/_next/static/chunks/3f731c04-2e3f71f704a388eb.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/4265.189113cdcee8cfb7.js",revision:"189113cdcee8cfb7"},{url:"/_next/static/chunks/4427-4df4adfb637ea0f7.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/4516-9daa86e6e7e10a75.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/5211-a67a5e2f81791ce5.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/5600-692000f40aea53db.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/5777-40916eb28b06f00d.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/5884-26dc3ae762345ee5.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/5971-0ffbdcd1072775bc.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/6366-cd52ea9fa0cf89da.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/6404-95cd86a6470c8f39.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/6488-ee5c764aad55e409.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/680-c799b95bfdbbcc56.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/7117-baa5418de077005c.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/7197-ea0e613cfd819eb1.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/7285-07e98ae5514b9e12.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/7469-bf16ef8f5c11d852.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/7899-feb84ced7c47721f.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/8087-c32ff809b8fa0035.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/8666-c66ae854bc74878d.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/9393.e74e20cb195f3adc.js",revision:"e74e20cb195f3adc"},{url:"/_next/static/chunks/959-996827039954e219.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/9742-c616d4498ce43296.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/9882.c09712151d7254a3.js",revision:"c09712151d7254a3"},{url:"/_next/static/chunks/9913-49b3f8ca95ba6337.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/a74c0f9d-377d988511191d5b.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/_not-found/page-9ffc48e8d44119ef.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/about/page-1d80a4a4a98257d7.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/admin/gamification/page-3f1e4f4872d5b4c1.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/admin/achievements/route-ec22a4f36ce08384.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/admin/check-orphaned-users/route-1134293fa082890f.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/admin/shop-items/route-04b7e58bf43646e8.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/ai/health/route-5916093122ded641.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/ai/schedule/analytics/route-af851ed9811dede0.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/ai/schedule/route-9c36deb444aea483.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/ai/suggestions/route-0eb9b2cc03f08d47.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/ai/test/route-96977dafdf5b827a.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/analytics/user/route-76dee78500395bff.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/clerk-webhooks/route-e1ef2bda3d40113e.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/debug-clerk/route-b83be28345b6a195.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/dev/reset-usage/route-ea16c75d07eb1b36.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/gamification/balance/route-7b3bba3c3d59b0d0.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/gamification/purchase/route-1cba0f26eb3e25ba.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/gamification/shop-items/route-0202d7e38dc62bb0.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/sync-profile/route-54d3303c57211e75.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/test-auth/route-afb1cb77b4bab8d8.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/test-task-creation/route-1cf56b468e408e99.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/api/webhook-health/route-3120f4e386341b0d.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/clerk-onboarding/layout-66efbc9ee6dd436e.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/clerk-onboarding/page-3c2d6aeb52a4bf8e.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/contact/page-c26b2b687a67aef7.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/dashboard/page-ba7f833716ddf049.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/layout-ef8d0fe352994211.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/login/page-a38607a0eb9ff1ca.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/manifest.webmanifest/route-93ad51f0c6b32e90.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/offline/page-cd4fa82e8cca6537.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/onboarding/page-d474165d654f5de1.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/page-dae1aaef0f7aefbd.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/profile/page-94c35834447d6a55.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/pwa-test/page-75a6b4fd4e28f398.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/questionnaire/page-41b606f72441a76e.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/settings/page-0271fa677716eb2e.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/settings/subscription/page-7ebfbd369512b8a0.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/sign-in/%5B%5B...sign-in%5D%5D/page-a8c66bbed8db6e6f.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/sign-in/%5B%5B...sign-in%5D%5D/page-da191b0c29236f77.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/sign-up/%5B%5B...sign-up%5D%5D/page-5f7e7214f6f1cf0f.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/sign-up/%5B%5B...sign-up%5D%5D/page-8d0ad835ed9edb9f.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/test-reward-shop/page-4060ce0118d2c065.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/test-task-creation/page-306cca30846098e1.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/app/test/gamification-full/page-5acbc2365893cfdb.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/d7a9da12-d1e44a2f5036a9cd.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/eef9e134-25d564be4f97fcc5.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/framework-9f25ea45bced5103.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/main-app-ca0198d4481cdf79.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/main-cb75acac752e06b9.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/pages/_app-36241947778fc204.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/pages/_error-995f0b23908790aa.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/chunks/polyfills-42372ed130431b0a.js",revision:"846118c33b2c0e922d7b3a7676f81f6f"},{url:"/_next/static/chunks/webpack-5899a4924646cfee.js",revision:"aLTR3TJdQmboqa2jwf_Ky"},{url:"/_next/static/css/0c8acbbb35ab7f72.css",revision:"0c8acbbb35ab7f72"},{url:"/_next/static/css/931b179cff3131dc.css",revision:"931b179cff3131dc"},{url:"/_next/static/css/bc7c7ea32fdeef69.css",revision:"bc7c7ea32fdeef69"},{url:"/_next/static/media/26a46d62cd723877-s.woff2",revision:"befd9c0fdfa3d8a645d5f95717ed6420"},{url:"/_next/static/media/55c55f0601d81cf3-s.woff2",revision:"43828e14271c77b87e3ed582dbff9f74"},{url:"/_next/static/media/581909926a08bbc8-s.woff2",revision:"f0b86e7c24f455280b8df606b89af891"},{url:"/_next/static/media/8e9860b6e62d6359-s.woff2",revision:"01ba6c2a184b8cba08b0d57167664d75"},{url:"/_next/static/media/97e0cb1ae144a2a9-s.woff2",revision:"e360c61c5bd8d90639fd4503c829c2dc"},{url:"/_next/static/media/df0a9ae256c0569c-s.woff2",revision:"d54db44de5ccb18886ece2fda72bdfe0"},{url:"/_next/static/media/e4af272ccee01ff0-s.p.woff2",revision:"65850a373e258f1c897a2b3d75eb74de"},{url:"/animations/README.md",revision:"ae2cc4c87c172bf99d785255a85045f8"},{url:"/animations/Stu Waving.json",revision:"33fe38bacf94439ec986a0db13ab8ccd"},{url:"/animations/Stu Waving.lottie",revision:"9a4e9a15a0be875a9d5fa09b43ebed32"},{url:"/animations/stu-waving.json",revision:"33fe38bacf94439ec986a0db13ab8ccd"},{url:"/apple-touch-icon.png",revision:"811e87d18ce86420077dc9bc09b3424a"},{url:"/browserconfig.xml",revision:"d53ed010547f6926eb2e1560eb08e98d"},{url:"/favicon.ico",revision:"43813adbfa4983a000ecd87d721ff16d"},{url:"/icon-192x192.png",revision:"22cd39810b068d23240e56eab053f606"},{url:"/icon-256x256.png",revision:"22cd39810b068d23240e56eab053f606"},{url:"/icon-384x384.png",revision:"80279b5b4083c8f8bb07005151eada07"},{url:"/icon-512x512.png",revision:"80279b5b4083c8f8bb07005151eada07"},{url:"/icon.svg",revision:"c014a269bb1201a6cb5f5386b28e8d82"},{url:"/manifest.json",revision:"57760e676bd3a6236503ed4af2217f09"},{url:"/placeholder-feature1.svg",revision:"d0681868ee673e2cadac021e6a2ba25e"},{url:"/placeholder-feature2.svg",revision:"7519adb4d637448fb0b106caade1fb71"},{url:"/placeholder-feature3.svg",revision:"b529ecc2c8df5cb622321d3737fcff4b"},{url:"/sounds/celebrations/README.md",revision:"9eb78acafb790c20ceaaf518fcaa661d"}],{ignoreURLParametersMatching:[]}),a.cleanupOutdatedCaches(),a.registerRoute("/",new a.NetworkFirst({cacheName:"start-url",plugins:[{cacheWillUpdate:async({request:a,response:e,event:s,state:i})=>e&&"opaqueredirect"===e.type?new Response(e.body,{status:200,statusText:"OK",headers:e.headers}):e}]}),"GET"),a.registerRoute(/^https?.*/,new a.NetworkFirst({cacheName:"offlineCache",plugins:[new a.ExpirationPlugin({maxEntries:200})]}),"GET")}));
+// StudySpark PWA Service Worker
+// Version: 3.0.0
+
+const CACHE_NAME = 'studyspark-v3';
+const STATIC_CACHE_NAME = 'studyspark-static-v3';
+const DYNAMIC_CACHE_NAME = 'studyspark-dynamic-v3';
+
+// Assets to cache immediately
+const STATIC_ASSETS = [
+  '/offline',
+  '/icon.svg',
+  '/icon-192x192.png',
+  '/icon-512x512.png',
+  '/apple-touch-icon.png',
+  '/favicon.ico',
+];
+
+// Install event - cache static assets
+self.addEventListener('install', (event) => {
+  console.log('[SW] Installing service worker...');
+  
+  event.waitUntil(
+    caches.open(STATIC_CACHE_NAME)
+      .then((cache) => {
+        console.log('[SW] Caching static assets');
+        return cache.addAll(STATIC_ASSETS);
+      })
+      .then(() => {
+        console.log('[SW] Static assets cached successfully');
+        // Force the waiting service worker to become the active service worker
+        return self.skipWaiting();
+      })
+      .catch((error) => {
+        console.error('[SW] Failed to cache static assets:', error);
+      })
+  );
+});
+
+// Activate event - clean up old caches
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating service worker...');
+  
+  event.waitUntil(
+    caches.keys()
+      .then((cacheNames) => {
+        const deletePromises = cacheNames
+          .filter((name) => {
+            // Delete ALL old caches to start fresh
+            return name !== STATIC_CACHE_NAME && name !== DYNAMIC_CACHE_NAME;
+          })
+          .map((name) => {
+            console.log('[SW] Deleting old cache:', name);
+            return caches.delete(name);
+          });
+        
+        return Promise.all(deletePromises);
+      })
+      .then(() => {
+        console.log('[SW] Service worker activated and old caches cleared');
+        // Take control of all pages immediately
+        return self.clients.claim();
+      })
+      .catch((error) => {
+        console.error('[SW] Activation failed:', error);
+      })
+  );
+});
+
+// Fetch event - minimal interference, only for offline support
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Only handle GET requests from same origin
+  if (request.method !== 'GET' || url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Skip all Next.js internals and API routes
+  if (url.pathname.startsWith('/_next/') || 
+      url.pathname.startsWith('/api/') ||
+      url.searchParams.has('_rsc')) {
+    return;
+  }
+
+  // Only intervene for navigation requests (pages) and static assets
+  if (request.destination === 'document' || 
+      url.pathname.match(/\.(png|jpg|jpeg|svg|ico|css|js|woff2?)$/)) {
+    
+    event.respondWith(
+      // Network first - only use cache when network fails
+      fetch(request)
+        .then((response) => {
+          // Cache successful responses
+          if (response && response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(STATIC_CACHE_NAME)
+              .then((cache) => {
+                cache.put(request, responseClone);
+              })
+              .catch(() => {}); // Ignore cache errors
+          }
+          return response;
+        })
+        .catch(() => {
+          // Only use cache when network fails
+          return caches.match(request)
+            .then((cachedResponse) => {
+              if (cachedResponse) {
+                console.log('[SW] Serving from cache (offline):', request.url);
+                return cachedResponse;
+              }
+              
+              // For navigation requests, show offline page
+              if (request.destination === 'document') {
+                return caches.match('/offline');
+              }
+              
+              // For assets, return a basic error response
+              return new Response('Offline', { status: 503 });
+            });
+        })
+    );
+  }
+});
+
+// Push notification handling
+self.addEventListener('push', (event) => {
+  console.log('[SW] Push message received');
+  
+  let notificationData = {};
+  
+  if (event.data) {
+    try {
+      notificationData = event.data.json();
+    } catch (e) {
+      notificationData = {
+        title: 'MemoSpark Notification',
+        body: event.data.text() || 'You have a new notification',
+      };
+    }
+  }
+
+  const options = {
+    body: notificationData.body || 'MemoSpark notification',
+    icon: notificationData.icon || '/icon-192x192.png',
+    badge: notificationData.badge || '/icon-192x192.png',
+    tag: notificationData.tag || 'memospark-notification',
+    renotify: true,
+    requireInteraction: false,
+    vibrate: [200, 100, 200],
+    actions: [
+      {
+        action: 'open',
+        title: 'Open App',
+        icon: '/icon-192x192.png'
+      },
+      {
+        action: 'dismiss',
+        title: 'Dismiss',
+      },
+    ],
+    data: {
+      ...notificationData.data,
+      notificationId: notificationData.data?.notificationId,
+      url: notificationData.data?.url || '/dashboard',
+      timestamp: Date.now()
+    },
+  };
+
+  event.waitUntil(
+    Promise.all([
+      // Show the notification
+      self.registration.showNotification(
+        notificationData.title || 'MemoSpark',
+        options
+      ),
+      // Track delivery analytics
+      trackNotificationEvent(
+        notificationData.data?.notificationId,
+        'delivered'
+      )
+    ])
+  );
+});
+
+// Notification click handling
+self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification clicked:', event.action);
+  
+  const notificationData = event.notification.data || {};
+  
+  event.notification.close();
+
+  // Track the click/dismiss event
+  const trackingPromise = event.action === 'dismiss' 
+    ? trackNotificationEvent(notificationData.notificationId, 'dismissed')
+    : trackNotificationEvent(notificationData.notificationId, 'clicked');
+
+  if (event.action === 'dismiss') {
+    event.waitUntil(trackingPromise);
+    return;
+  }
+
+  // Determine target URL
+  const targetUrl = notificationData.url || '/dashboard';
+
+  // Open the app
+  event.waitUntil(
+    Promise.all([
+      trackingPromise,
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then((clientList) => {
+          // If app is already open, focus it and navigate
+          for (const client of clientList) {
+            if (client.url.includes(self.location.origin)) {
+              client.postMessage({
+                type: 'NOTIFICATION_CLICKED',
+                url: targetUrl,
+                data: notificationData
+              });
+              return client.focus();
+            }
+          }
+          
+          // Otherwise, open new window with target URL
+          return self.clients.openWindow(targetUrl);
+        })
+    ])
+  );
+});
+
+// Function to track notification events
+async function trackNotificationEvent(notificationId, eventType) {
+  if (!notificationId) return;
+  
+  try {
+    await fetch('/api/push/analytics', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        notificationId,
+        eventType,
+        additionalData: {
+          userAgent: navigator.userAgent,
+          timestamp: Date.now()
+        }
+      })
+    });
+  } catch (error) {
+    console.error('[SW] Failed to track notification event:', error);
+  }
+}
+
+// Background sync (for offline actions)
+self.addEventListener('sync', (event) => {
+  console.log('[SW] Background sync triggered:', event.tag);
+  
+  if (event.tag === 'studyspark-sync') {
+    event.waitUntil(
+      // Handle offline data sync here
+      Promise.resolve()
+    );
+  }
+});
+
+// Handle service worker updates
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[SW] Skipping waiting...');
+    self.skipWaiting();
+  }
+});
+
+console.log('[SW] Service worker script loaded successfully');

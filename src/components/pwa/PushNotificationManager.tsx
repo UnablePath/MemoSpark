@@ -2,6 +2,13 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { subscribeUser, unsubscribeUser, sendNotification } from '@/app/actions';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Bell, BellOff, TestTube, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
+import { toast } from 'sonner';
 
 interface PushNotificationManagerProps {
   className?: string;
@@ -18,6 +25,7 @@ interface PushSubscriptionData {
 export const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({ 
   className = '' 
 }) => {
+  const { user } = useUser();
   const [isSupported, setIsSupported] = useState(false);
   const [subscription, setSubscription] = useState<PushSubscriptionData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -89,9 +97,17 @@ export const PushNotificationManager: React.FC<PushNotificationManagerProps> = (
 
   // Subscribe to push notifications
   const subscribe = async () => {
-    if (!isSupported || permission !== 'granted') {
+    if (!isSupported || !user?.id) {
+      toast.error('Push notifications not supported or user not authenticated');
+      return;
+    }
+
+    if (permission !== 'granted') {
       const granted = await requestPermission();
-      if (!granted) return;
+      if (!granted) {
+        toast.error('Notification permission denied');
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -103,7 +119,7 @@ export const PushNotificationManager: React.FC<PushNotificationManagerProps> = (
       // Get VAPID public key from environment
       const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapidPublicKey) {
-        throw new Error('VAPID public key not found');
+        throw new Error('VAPID public key not found. Please configure environment variables.');
       }
 
       const pushSubscription = await registration.pushManager.subscribe({
@@ -119,17 +135,21 @@ export const PushNotificationManager: React.FC<PushNotificationManagerProps> = (
         }
       };
 
-      // Send subscription to server
-      const result = await subscribeUser(subscriptionData);
+      // For basic version, we'll use a simple player ID based on endpoint hash
+      const playerId = btoa(subscriptionData.endpoint).slice(0, 32);
+      const result = await subscribeUser(playerId, navigator.userAgent);
       
       if (result.success) {
         setSubscription(subscriptionData);
+        toast.success('Successfully subscribed to push notifications!');
       } else {
         throw new Error(result.error || 'Failed to subscribe');
       }
     } catch (err) {
       console.error('Error subscribing to push notifications:', err);
-      setError(err instanceof Error ? err.message : 'Failed to subscribe to notifications');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to subscribe to notifications';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -150,44 +170,73 @@ export const PushNotificationManager: React.FC<PushNotificationManagerProps> = (
         await pushSubscription.unsubscribe();
       }
 
-      // Remove subscription from server
-      const result = await unsubscribeUser(subscription.endpoint);
+      // Remove subscription from server using the same player ID logic
+      const playerId = btoa(subscription.endpoint).slice(0, 32);
+      const result = await unsubscribeUser(playerId);
       
       if (result.success) {
         setSubscription(null);
+        toast.success('Successfully unsubscribed from push notifications');
       } else {
         throw new Error(result.error || 'Failed to unsubscribe');
       }
     } catch (err) {
       console.error('Error unsubscribing from push notifications:', err);
-      setError(err instanceof Error ? err.message : 'Failed to unsubscribe from notifications');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to unsubscribe from notifications';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Send test notification
-  const sendTestNotification = async () => {
-    if (!subscription) return;
+  // Send different types of test notifications
+  const sendTestNotification = async (type: 'general' | 'task' | 'achievement' | 'break') => {
+    if (!subscription || !user?.id) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const result = await sendNotification({
-        title: 'MemoSpark Test Notification',
-        body: 'This is a test notification from MemoSpark!',
-        icon: '/icon-192x192.png',
-        badge: '/icon-192x192.png',
-        data: { url: '/dashboard' }
-      });
+      let result;
+      
+      switch (type) {
+        case 'task':
+          // Import the specific action for task reminders
+          const { sendTaskReminder } = await import('@/app/actions');
+          result = await sendTaskReminder('test-task-id', 'Complete your study session', new Date(Date.now() + 30 * 60 * 1000).toISOString());
+          break;
+          
+        case 'achievement':
+          const { sendAchievementNotification } = await import('@/app/actions');
+          result = await sendAchievementNotification('Early Bird', 'You successfully set up notifications!');
+          break;
+          
+        case 'break':
+          const { sendBreakSuggestion } = await import('@/app/actions');
+          result = await sendBreakSuggestion();
+          break;
+          
+        default:
+          const { sendNotification } = await import('@/app/actions');
+          result = await sendNotification(
+            'MemoSpark Test Notification',
+            'This is a test notification from MemoSpark!',
+            { test: true },
+            '/dashboard'
+          );
+      }
 
-      if (!result.success) {
+      if (result.success) {
+        toast.success(`Test ${type} notification sent successfully!`);
+      } else {
         throw new Error(result.error || 'Failed to send notification');
       }
     } catch (err) {
       console.error('Error sending test notification:', err);
-      setError(err instanceof Error ? err.message : 'Failed to send test notification');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send test notification';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -195,96 +244,184 @@ export const PushNotificationManager: React.FC<PushNotificationManagerProps> = (
 
   if (!isSupported) {
     return (
-      <div className={`p-4 bg-yellow-50 border border-yellow-200 rounded-lg ${className}`}>
-        <h3 className="font-semibold text-yellow-800 mb-2">Push Notifications Not Supported</h3>
-        <p className="text-yellow-700 text-sm">
-          Your browser doesn't support push notifications. Please use a modern browser like Chrome, Firefox, or Safari.
-        </p>
-      </div>
+      <Card className={`${className}`}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-yellow-800">
+            <AlertCircle className="w-5 h-5" />
+            Push Notifications Not Supported
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-yellow-700 text-sm">
+            Your browser doesn't support push notifications. Please use a modern browser like Chrome, Firefox, or Safari.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className={`p-6 bg-white border border-gray-200 rounded-lg shadow-sm ${className}`}>
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Push Notifications</h3>
-      
-      {/* Permission Status */}
-      <div className="mb-4">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-sm font-medium text-gray-700">Permission Status:</span>
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-            permission === 'granted' 
-              ? 'bg-green-100 text-green-800' 
-              : permission === 'denied'
-              ? 'bg-red-100 text-red-800'
-              : 'bg-yellow-100 text-yellow-800'
-          }`}>
-            {permission === 'granted' ? 'Granted' : permission === 'denied' ? 'Denied' : 'Not Requested'}
-          </span>
+    <Card className={`${className}`}>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Bell className="w-5 h-5" />
+          Push Notifications
+        </CardTitle>
+        <CardDescription>
+          Enable push notifications to receive timely reminders and updates from MemoSpark.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Status Overview */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700">Permission:</span>
+            <Badge variant={permission === 'granted' ? 'default' : permission === 'denied' ? 'destructive' : 'secondary'}>
+              {permission === 'granted' ? (
+                <>
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Granted
+                </>
+              ) : permission === 'denied' ? (
+                <>
+                  <XCircle className="w-3 h-3 mr-1" />
+                  Denied
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="w-3 h-3 mr-1" />
+                  Not Requested
+                </>
+              )}
+            </Badge>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700">Status:</span>
+            <Badge variant={subscription ? 'default' : 'secondary'}>
+              {subscription ? (
+                <>
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Active
+                </>
+              ) : (
+                <>
+                  <BellOff className="w-3 h-3 mr-1" />
+                  Inactive
+                </>
+              )}
+            </Badge>
+          </div>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-700">Subscription Status:</span>
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-            subscription 
-              ? 'bg-green-100 text-green-800' 
-              : 'bg-gray-100 text-gray-800'
-          }`}>
-            {subscription ? 'Subscribed' : 'Not Subscribed'}
-          </span>
-        </div>
-      </div>
 
-      {/* Error Display */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-red-800 text-sm">{error}</p>
-        </div>
-      )}
-
-      {/* Action Buttons */}
-      <div className="flex flex-col gap-3">
-        {!subscription ? (
-          <button
-            onClick={subscribe}
-            disabled={isLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isLoading ? 'Subscribing...' : 'Enable Push Notifications'}
-          </button>
-        ) : (
-          <div className="flex gap-2">
-            <button
-              onClick={sendTestNotification}
-              disabled={isLoading}
-              className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isLoading ? 'Sending...' : 'Send Test Notification'}
-            </button>
-            <button
-              onClick={unsubscribe}
-              disabled={isLoading}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isLoading ? 'Unsubscribing...' : 'Disable'}
-            </button>
+        {/* Error Display */}
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-red-800 text-sm flex items-center gap-2">
+              <XCircle className="w-4 h-4" />
+              {error}
+            </p>
           </div>
         )}
-      </div>
 
-      {/* Subscription Details (Debug Info) */}
-      {subscription && (
-        <details className="mt-4">
-          <summary className="text-sm font-medium text-gray-700 cursor-pointer hover:text-gray-900">
-            Subscription Details
-          </summary>
-          <div className="mt-2 p-3 bg-gray-50 rounded-md">
-            <pre className="text-xs text-gray-600 whitespace-pre-wrap break-all">
-              {JSON.stringify(subscription, null, 2)}
-            </pre>
+        {/* Main Action */}
+        <div className="flex flex-col gap-3">
+          {!subscription ? (
+            <Button
+              onClick={subscribe}
+              disabled={isLoading || !user?.id}
+              className="w-full"
+            >
+              {isLoading ? 'Subscribing...' : 'Enable Push Notifications'}
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              {/* Test Notifications */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Test Notifications</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => sendTestNotification('general')}
+                    disabled={isLoading}
+                    className="flex items-center gap-1"
+                  >
+                    <TestTube className="w-3 h-3" />
+                    General
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => sendTestNotification('task')}
+                    disabled={isLoading}
+                    className="flex items-center gap-1"
+                  >
+                    <TestTube className="w-3 h-3" />
+                    Task Reminder
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => sendTestNotification('achievement')}
+                    disabled={isLoading}
+                    className="flex items-center gap-1"
+                  >
+                    <TestTube className="w-3 h-3" />
+                    Achievement
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => sendTestNotification('break')}
+                    disabled={isLoading}
+                    className="flex items-center gap-1"
+                  >
+                    <TestTube className="w-3 h-3" />
+                    Break Suggestion
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Unsubscribe */}
+              <Button
+                variant="destructive"
+                onClick={unsubscribe}
+                disabled={isLoading}
+                className="w-full"
+              >
+                {isLoading ? 'Unsubscribing...' : 'Disable Push Notifications'}
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Advanced Settings Link */}
+        {subscription && (
+          <div className="pt-3 border-t">
+            <p className="text-xs text-gray-500 text-center">
+              For detailed notification preferences, visit{' '}
+              <a href="/settings" className="text-blue-600 hover:underline">
+                Settings → Notifications
+              </a>
+            </p>
           </div>
-        </details>
-      )}
-    </div>
+        )}
+
+        {/* Subscription Details (Debug Info) */}
+        {subscription && process.env.NODE_ENV === 'development' && (
+          <details className="text-xs">
+            <summary className="text-gray-700 cursor-pointer hover:text-gray-900 font-medium">
+              Debug Information
+            </summary>
+            <div className="mt-2 p-3 bg-gray-50 rounded-md">
+              <pre className="text-xs text-gray-600 whitespace-pre-wrap break-all">
+                {JSON.stringify(subscription, null, 2)}
+              </pre>
+            </div>
+          </details>
+        )}
+      </CardContent>
+    </Card>
   );
 }; 

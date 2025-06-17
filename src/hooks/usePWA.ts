@@ -127,15 +127,20 @@ export function usePWA(): PWAState & PWAActions {
   const registerServiceWorker = useCallback(async () => {
     if ('serviceWorker' in navigator && typeof window !== 'undefined') {
       try {
-        // First, unregister any existing service workers to avoid conflicts
-        const existingRegistrations = await navigator.serviceWorker.getRegistrations()
-        for (const registration of existingRegistrations) {
-          console.log('Unregistering existing service worker:', registration.scope)
-          await registration.unregister()
+        // Only unregister service workers for the current origin/scope
+        const existingRegistration = await navigator.serviceWorker.getRegistration('/')
+        if (existingRegistration) {
+          console.log('Unregistering existing service worker:', existingRegistration.scope)
+          await existingRegistration.unregister()
+          // Wait a bit for cleanup
+          await new Promise(resolve => setTimeout(resolve, 100))
         }
 
-        // Wait a bit for cleanup
-        await new Promise(resolve => setTimeout(resolve, 100))
+        // Check if service worker file exists first
+        const swResponse = await fetch('/sw.js', { method: 'HEAD' })
+        if (!swResponse.ok) {
+          throw new Error('Service worker file not found')
+        }
 
         // Register the new service worker
         const registration = await navigator.serviceWorker.register('/sw.js', {
