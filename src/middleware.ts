@@ -20,6 +20,7 @@ const isPublicRoute = createRouteMatcher([
   '/icon-512x512.png',
   '/apple-touch-icon.png',
   '/favicon.ico',
+  '/browserconfig.xml',
 
   // Public API routes
   '/api/webhook-health',
@@ -38,5 +39,5 @@ export const config = {
   // The following matcher has been tested to work with Clerk authentication.
   // It protects all routes including api/trpc routes.
   // See https://clerk.com/docs/references/nextjs/clerk-middleware
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|manifest.json|sw.js).*)', '/(api|trpc)(.*)'],
+  matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
 }; 

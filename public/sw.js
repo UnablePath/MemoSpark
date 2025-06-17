@@ -1,18 +1,20 @@
 // StudySpark PWA Service Worker
 // Version: 4.0.0
 
-const CACHE_NAME = 'studyspark-v4';
-const STATIC_CACHE_NAME = 'studyspark-static-v4';
-const DYNAMIC_CACHE_NAME = 'studyspark-dynamic-v4';
-
-// Assets to cache immediately
-const STATIC_ASSETS = [
+/* eslint-disable no-undef */
+/* eslint-disable no-restricted-globals */
+const CACHE_NAME = 'memospark-v1'; // Change this version to force update
+const STATIC_CACHE_URLS = [
+  '/',
   '/offline',
   '/icon.svg',
-  '/icon-192x192.png',
-  '/icon-512x512.png',
   '/apple-touch-icon.png',
   '/favicon.ico',
+  '/icon-192x192.png',
+  '/icon-256x256.png',
+  '/icon-384x384.png',
+  '/icon-512x512.png',
+  '/manifest.json', // Ensure correct manifest is cached
 ];
 
 // Install event - cache static assets
@@ -20,10 +22,10 @@ self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker...');
   
   event.waitUntil(
-    caches.open(STATIC_CACHE_NAME)
+    caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('[SW] Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
+        return cache.addAll(STATIC_CACHE_URLS);
       })
       .then(() => {
         console.log('[SW] Static assets cached successfully');
@@ -46,10 +48,10 @@ self.addEventListener('activate', (event) => {
         const deletePromises = cacheNames
           .filter((name) => {
             // Delete ALL old caches to start fresh
-            return name !== STATIC_CACHE_NAME && name !== DYNAMIC_CACHE_NAME;
+            return name !== CACHE_NAME;
           })
           .map((name) => {
-            console.log('[SW] Deleting old cache:', name);
+            console.log(`[SW] Deleting old cache: ${name}`);
             return caches.delete(name);
           });
         
@@ -68,59 +70,32 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - minimal interference, only for offline support
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-
-  // Only handle GET requests from same origin
-  if (request.method !== 'GET' || url.origin !== self.location.origin) {
-    return;
-  }
-
-  // Skip all Next.js internals and API routes
-  if (url.pathname.startsWith('/_next/') || 
-      url.pathname.startsWith('/api/') ||
-      url.searchParams.has('_rsc')) {
-    return;
-  }
-
-  // Only intervene for navigation requests (pages) and static assets
-  if (request.destination === 'document' || 
-      url.pathname.match(/\.(png|jpg|jpeg|svg|ico|css|js|woff2?)$/)) {
-    
+  if (event.request.mode === 'navigate') {
     event.respondWith(
-      // Network first - only use cache when network fails
-      fetch(request)
-        .then((response) => {
-          // Cache successful responses
-          if (response && response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(STATIC_CACHE_NAME)
-              .then((cache) => {
-                cache.put(request, responseClone);
-              })
-              .catch(() => {}); // Ignore cache errors
+      (async () => {
+        try {
+          const preloadResponse = await event.preloadResponse;
+          if (preloadResponse) {
+            return preloadResponse;
           }
-          return response;
-        })
-        .catch(() => {
-          // Only use cache when network fails
-          return caches.match(request)
-            .then((cachedResponse) => {
-              if (cachedResponse) {
-                console.log('[SW] Serving from cache (offline):', request.url);
-                return cachedResponse;
-              }
-              
-              // For navigation requests, show offline page
-              if (request.destination === 'document') {
-                return caches.match('/offline');
-              }
-              
-              // For assets, return a basic error response
-              return new Response('Offline', { status: 503 });
-            });
-        })
+
+          const networkResponse = await fetch(event.request);
+          return networkResponse;
+        } catch (error) {
+          console.log('[SW] Fetch failed; returning offline page instead.', error);
+
+          const cache = await caches.open(CACHE_NAME);
+          const cachedResponse = await cache.match('/offline');
+          return cachedResponse;
+        }
+      })()
     );
+  } else if (STATIC_CACHE_URLS.some(url => event.request.url.endsWith(url))) {
+      event.respondWith(
+        caches.match(event.request).then((response) => {
+          return response || fetch(event.request);
+        })
+      );
   }
 });
 
