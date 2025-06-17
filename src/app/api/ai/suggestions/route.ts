@@ -29,56 +29,138 @@ export async function POST(request: Request) {
     const { userId, getToken } = await auth();
     
     if (!userId) {
+      console.log('AI Suggestions API: No userId provided');
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
+
+    console.log('AI Suggestions API: Processing request for user:', userId);
 
     // Parse request body
     const body = await request.json();
     const { feature, tasks, context } = body;
 
     if (!feature || typeof feature !== 'string' || !isAIFeatureType(feature)) {
+      console.log('AI Suggestions API: Invalid feature type:', feature);
       return NextResponse.json({ error: 'A valid feature type is required' }, { status: 400 });
     }
 
-    // Create Supabase client with native Clerk integration
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    // Validate environment variables
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('AI Suggestions API: Missing Supabase environment variables');
+      return NextResponse.json({ 
+        error: 'Service configuration error',
+        message: 'Missing required environment variables'
+      }, { status: 500 });
+    }
+
+    // Get Clerk token for Supabase authentication
+    let clerkToken;
+    try {
+      clerkToken = await getToken();
+      if (!clerkToken) {
+        console.log('AI Suggestions API: No Clerk token available');
+        return NextResponse.json({ error: 'Authentication token required' }, { status: 401 });
+      }
+    } catch (tokenError) {
+      console.error('AI Suggestions API: Error getting Clerk token:', tokenError);
+      return NextResponse.json({ error: 'Token retrieval failed' }, { status: 401 });
+    }
+
+    // Create Supabase client with Clerk integration
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
       },
-      accessToken: async () => {
-        const token = await getToken();
-        return token;
+      global: {
+        headers: {
+          Authorization: `Bearer ${clerkToken}`,
+        },
       },
     });
 
-    // Check user subscription status
-    const { data: subscription, error: subError } = await supabase
-      .from('user_subscriptions')
-      .select('tier_id')
-      .eq('clerk_user_id', userId)
-      .eq('status', 'active')
-      .single();
+    // Check user subscription status with better error handling
+    let userTier: SubscriptionTier = 'free';
+    try {
+      const { data: subscription, error: subError } = await supabase
+        .from('user_subscriptions')
+        .select('tier_id')
+        .eq('clerk_user_id', userId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    const userTier = (subscription?.tier_id as SubscriptionTier) || 'free';
+      if (subError) {
+        console.log('AI Suggestions API: Subscription query error (defaulting to free):', subError.message);
+        // Don't fail the request, just default to free tier
+      } else if (subscription) {
+        userTier = (subscription.tier_id as SubscriptionTier) || 'free';
+      } else {
+        // No subscription found, user needs to be created with default free tier
+        console.log('AI Suggestions API: No subscription found for user, creating default free subscription');
+        try {
+          await supabase
+            .from('user_subscriptions')
+            .insert({
+              clerk_user_id: userId,
+              tier_id: 'free',
+              status: 'active'
+            });
+          console.log('AI Suggestions API: Created default free subscription for user');
+        } catch (insertError) {
+          console.log('AI Suggestions API: Failed to create default subscription, continuing with free tier');
+        }
+      }
+    } catch (subscriptionError) {
+      console.error('AI Suggestions API: Subscription check failed:', subscriptionError);
+      // Continue with free tier as fallback
+    }
 
-    // Check usage limits
+    // DEVELOPMENT OVERRIDE: Force premium tier for testing
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    if (isDevelopment) {
+      userTier = 'premium'; // Override to premium for testing
+      console.log('AI Suggestions API: Development override - forcing premium tier for testing');
+    }
+
+    console.log('AI Suggestions API: User tier determined as:', userTier);
+
+    // Check usage limits with better error handling
     const today = new Date().toISOString().split('T')[0];
-    const { data: usage, error: usageError } = await supabase
-      .from('ai_usage_tracking')
-      .select('ai_requests_count')
-      .eq('clerk_user_id', userId)
-      .eq('usage_date', today)
-      .single();
+    let requestsToday = 0;
+    
+    try {
+      const { data: usage, error: usageError } = await supabase
+        .from('ai_usage_tracking')
+        .select('ai_requests_count')
+        .eq('clerk_user_id', userId)
+        .eq('usage_date', today)
+        .single();
 
-    const requestsToday = usage?.ai_requests_count || 0;
-    const dailyLimit = userTier === 'free' ? 10 : userTier === 'premium' ? 100 : -1;
+      if (usageError && usageError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        console.log('AI Suggestions API: Usage query error:', usageError.message);
+      } else {
+        requestsToday = usage?.ai_requests_count || 0;
+      }
+    } catch (usageError) {
+      console.error('AI Suggestions API: Usage check failed:', usageError);
+      // Continue with 0 requests as fallback
+    }
 
-    // Check if user has exceeded limits
-    if (dailyLimit > 0 && requestsToday >= dailyLimit) {
+    // More generous limits for development mode
+    const dailyLimit = isDevelopment 
+      ? (userTier === 'free' ? 1000 : userTier === 'premium' ? 5000 : -1)  // Development limits
+      : (userTier === 'free' ? 10 : userTier === 'premium' ? 100 : -1);    // Production limits
+
+    console.log('AI Suggestions API: Environment:', process.env.NODE_ENV, 'Daily limit:', dailyLimit);
+
+    // Check if user has exceeded limits (skip in development if desired)
+    if (!isDevelopment && dailyLimit > 0 && requestsToday >= dailyLimit) {
+      console.log('AI Suggestions API: Daily limit exceeded for user:', userId, 'requests:', requestsToday, 'limit:', dailyLimit);
       return NextResponse.json({
         success: false,
         tier: userTier,
@@ -91,6 +173,11 @@ export async function POST(request: Request) {
         message: 'Daily AI request limit reached',
         error: 'Request limit exceeded'
       }, { status: 403 });
+    }
+
+    // Log when in development mode for easier debugging
+    if (isDevelopment) {
+      console.log('AI Suggestions API: Development mode - rate limiting relaxed. Requests today:', requestsToday);
     }
 
     // Check feature tier requirements
@@ -110,6 +197,7 @@ export async function POST(request: Request) {
     const hasRequiredTier = tierHierarchy[userTier] >= tierHierarchy[requiredTier];
 
     if (!hasRequiredTier) {
+      console.log('AI Suggestions API: Feature not available for tier:', userTier, 'required:', requiredTier);
       return NextResponse.json({
         success: false,
         tier: userTier,
@@ -133,14 +221,19 @@ export async function POST(request: Request) {
     }
 
     // Get updated usage info
-    const { data: updatedUsage } = await supabase
-      .from('ai_usage_tracking')
-      .select('ai_requests_count')
-      .eq('clerk_user_id', userId)
-      .eq('usage_date', today)
-      .single();
+    let updatedRequestsToday = requestsToday;
+    try {
+      const { data: updatedUsage } = await supabase
+        .from('ai_usage_tracking')
+        .select('ai_requests_count')
+        .eq('clerk_user_id', userId)
+        .eq('usage_date', today)
+        .single();
 
-    const updatedRequestsToday = updatedUsage?.ai_requests_count || 0;
+      updatedRequestsToday = updatedUsage?.ai_requests_count || requestsToday;
+    } catch (error) {
+      console.log('AI Suggestions API: Updated usage fetch failed, using cached value');
+    }
 
     return NextResponse.json({
       success: aiResult.success,
@@ -160,7 +253,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: false,
       error: 'AI service temporarily unavailable',
-      message: error.message
+      message: error.message || 'Unknown error occurred'
     }, { status: 500 });
   }
 }

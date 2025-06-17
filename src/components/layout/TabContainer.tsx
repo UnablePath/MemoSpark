@@ -71,7 +71,7 @@ export function TabContainer({
 
   const handlers = useSwipeable({
     onSwipeStart: (eventData: SwipeEventData) => {
-      // Only allow swipes that start from the outer third of the screen
+      // Only allow swipes that start from the outer edges of the screen
       const event = eventData.event as TouchEvent | MouseEvent;
       let startX: number;
       
@@ -87,11 +87,11 @@ export function TabContainer({
       
       const screenWidth = window.innerWidth;
       
-      // Check if swipe starts in outer third (left 1/3 or right 1/3)
-      const isInOuterThird = startX <= screenWidth / 3 || startX >= (screenWidth * 2) / 3;
+      // Check if swipe starts in outer edges (left 20% or right 20%)
+      const isInOuterEdge = startX <= screenWidth * 0.2 || startX >= screenWidth * 0.8;
       
-      if (!isInOuterThird) {
-        // Prevent swipe if not in outer third
+      if (!isInOuterEdge) {
+        // Prevent swipe if not in outer edge
         eventData.event.preventDefault();
         return;
       }
@@ -111,9 +111,9 @@ export function TabContainer({
         }
         
         const screenWidth = window.innerWidth;
-        const isInOuterThird = startX <= screenWidth / 3 || startX >= (screenWidth * 2) / 3;
+        const isInOuterEdge = startX <= screenWidth * 0.2 || startX >= screenWidth * 0.8;
         
-        if (isInOuterThird) {
+        if (isInOuterEdge) {
           changeTab(1);
         }
       }
@@ -133,16 +133,16 @@ export function TabContainer({
         }
         
         const screenWidth = window.innerWidth;
-        const isInOuterThird = startX <= screenWidth / 3 || startX >= (screenWidth * 2) / 3;
+        const isInOuterEdge = startX <= screenWidth * 0.2 || startX >= screenWidth * 0.8;
         
-        if (isInOuterThird) {
+        if (isInOuterEdge) {
           changeTab(-1);
         }
       }
     },
-    delta: 50, // Minimum distance for a swipe to be registered
-    preventScrollOnSwipe: true,
-    trackMouse: true
+    delta: 80, // Increased minimum distance for a swipe to be registered
+    preventScrollOnSwipe: false, // Allow scrolling
+    trackMouse: false // Disable mouse tracking to prevent accidental swipes
   });
 
   if (!tabs.length) {

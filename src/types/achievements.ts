@@ -3,7 +3,7 @@ export interface Achievement {
   name: string;
   description: string;
   icon?: string;
-  type: 'task_completion' | 'streak' | 'points_earned' | 'other';
+  type: 'task_completion' | 'streak' | 'points_earned' | 'social' | 'wellness' | 'tutorial' | 'other';
   criteria: Record<string, any>; // e.g., { count: 5, subject: 'Math' }
   points_reward: number;
   created_at: string;
@@ -14,7 +14,9 @@ export interface UserAchievement {
   user_id: string; // Clerk user ID (TEXT)
   achievement_id: string;
   unlocked_at: string;
+  earned_at: string; // Alias for unlocked_at for compatibility
   progress: Record<string, any>;
+  max_progress?: number;
   achievements?: Achievement; // Optional relation
 }
 
@@ -35,5 +37,5 @@ export interface LeaderboardUser {
 }
 
 export type AchievementInsert = Omit<Achievement, 'id' | 'created_at'>;
-export type UserAchievementInsert = Omit<UserAchievement, 'id' | 'unlocked_at'>;
+export type UserAchievementInsert = Omit<UserAchievement, 'id' | 'unlocked_at' | 'earned_at' | 'achievements' | 'max_progress'>;
 export type UserStatsUpdate = Partial<Omit<UserStats, 'user_id' | 'updated_at'>>; 

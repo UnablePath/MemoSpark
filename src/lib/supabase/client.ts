@@ -7,6 +7,9 @@ export * from './remindersApi';
 export * from './achievementsApi';
 export * from './gamificationApi';
 
+// Export createClient for use in other modules
+export { createClient };
+
 // Supabase configuration for AI features
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://onfnehxkglmvrorcvqcx.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -26,6 +29,7 @@ const DEFAULT_AI_CONFIG: SupabaseAIConfig = {
  */
 function createSupabaseClient() {
   if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase configuration missing. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY');
     return null;
   }
 
@@ -64,16 +68,23 @@ export function createAuthenticatedSupabaseClient(getToken?: () => Promise<strin
       persistSession: false, // Clerk handles session persistence
       autoRefreshToken: false, // Clerk handles token refresh
     },
-    // Session accessed from Clerk SDK, either as Clerk.session (vanilla JavaScript) 
-    // or useAuth (React) - follows official Supabase documentation pattern
-    accessToken: async () => {
-      try {
-        const token = getToken ? await getToken() : null;
-        return token;
-      } catch (error) {
-        console.warn('Failed to get Clerk session token:', error);
-        return null;
-      }
+    global: {
+      // Override fetch to add Authorization header with Clerk token
+      fetch: async (url, options = {}) => {
+                 const token = getToken ? await getToken() : null;
+        
+        const headers = new Headers(options.headers);
+        if (token) {
+          headers.set('Authorization', `Bearer ${token}`);
+        } else {
+          headers.set('Authorization', `Bearer ${supabaseAnonKey}`);
+        }
+
+        return fetch(url, {
+          ...options,
+          headers,
+        });
+      },
     },
     realtime: {
       params: {

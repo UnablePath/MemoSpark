@@ -570,20 +570,25 @@ describe('AI Performance and Reliability Tests', () => {
         },
         {
           name: 'Very large task list',
-          tasks: Array.from({ length: 1000 }, (_, i) => ({
-            id: `edge-task-${i}`,
-            title: `Edge Case Task ${i}`,
-            dueDate: new Date(Date.now() + i * 60000).toISOString(),
-            priority: 'medium' as Priority,
-            type: 'academic' as const,
-            completed: false,
-            reminder: false,
-            recurrenceRule: 'none' as const,
-            recurrenceInterval: 0,
-            recurrenceEndDate: undefined,
-            originalDueDate: undefined,
-            completedOverrides: {}
-          })),
+          tasks: Array.from({ length: 1000 }, (_, i) => {
+            const now = new Date().toISOString();
+            return {
+              id: `edge-task-${i}`,
+              title: `Edge Case Task ${i}`,
+              dueDate: new Date(Date.now() + i * 60000).toISOString(),
+              priority: 'medium' as Priority,
+              type: 'academic' as const,
+              completed: false,
+              reminder: false,
+              createdAt: now,
+              updatedAt: now,
+              recurrenceRule: 'none' as const,
+              recurrenceInterval: 0,
+              recurrenceEndDate: undefined,
+              originalDueDate: undefined,
+              completedOverrides: {}
+            };
+          }),
           shouldSucceed: true
         },
         {

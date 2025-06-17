@@ -159,6 +159,7 @@ export const QuickTaskInput: React.FC<QuickTaskInputProps> = ({
       const taskData = parseQuickInput(input.trim());
       
       // Create the task object
+      const now = new Date().toISOString();
       const newTask: Omit<ExtendedTask, 'id' | 'completed'> = {
         title: taskData.title,
         dueDate: taskData.dueDate,
@@ -167,12 +168,14 @@ export const QuickTaskInput: React.FC<QuickTaskInputProps> = ({
         subject: taskData.subject,
         reminder: taskData.reminder,
         description: taskData.description,
+        createdAt: now,
+        updatedAt: now,
         recurrenceRule: 'none',
         // AI metadata
         aiMetadata: {
           confidenceScore: 0.8, // High confidence for user-created tasks
           learningSource: 'user_preference',
-          createdAt: new Date().toISOString(),
+          createdAt: now,
         },
         estimatedDuration: 60, // Default 1 hour estimate
       };
@@ -210,7 +213,7 @@ export const QuickTaskInput: React.FC<QuickTaskInputProps> = ({
   const isValidInput = input.trim().length >= 1;
 
   return (
-    <div className={cn("relative w-full", className)}>
+    <div className={cn("task-creation-form relative w-full", className)}>
       {/* Main input form */}
       <form onSubmit={handleSubmit} className={cn(
         "flex gap-2 items-center",
@@ -236,6 +239,7 @@ export const QuickTaskInput: React.FC<QuickTaskInputProps> = ({
             autoCapitalize="sentences"
             spellCheck={true}
             inputMode="text"
+            data-testid="task-input"
           />
           
           {/* Input indicator */}

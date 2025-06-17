@@ -323,6 +323,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
         type: 'academic' as const,
         subject: suggestion.subject,
         due_date: suggestion.suggestedTime ? new Date(suggestion.suggestedTime).toISOString() : undefined,
+        completed: false, // Add missing completed field
         reminder_settings: {
           enabled: true,
           offset_minutes: 15,

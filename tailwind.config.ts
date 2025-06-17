@@ -146,6 +146,10 @@ const config: Config = {
         grid: "grid 15s linear infinite",
         ripple: "ripple var(--duration,2s) ease-out infinite",
       },
+      transitionDuration: {
+        '4000': '4000ms',
+        '8000': '8000ms',
+      },
       fontFamily: {
         sans: ['var(--font-sans)', 'sans-serif'], // Assuming you might have a sans variable, or just use system default
         linea: ['Linea', 'sans-serif'],

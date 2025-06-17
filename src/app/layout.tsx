@@ -5,15 +5,33 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { UserProvider } from "@/lib/user-context";
 import { AIProvider } from "@/lib/ai/aiContext";
-import ClientBody from "./ClientBody";
-import { ConditionalHeader } from "@/components/layout/ConditionalHeader";
+import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 import { ThemeAwareClerkProvider } from "@/components/providers/clerk-theme-provider";
+import { PWAProvider } from "@/components/providers/pwa-provider";
+import { ConditionalHeader } from "@/components/layout/ConditionalHeader";
+import ClientBody from "@/app/ClientBody";
+import { PwaInstaller } from "@/components/pwa/PwaInstaller";
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "MemoSpark - Your Ultimate Study Companion",
-  description: "An innovative app designed to enhance your learning experience with smart task management, collaborative features, and gamified reminders.",
+  title: "MemoSpark - AI-Powered Student Productivity",
+  description: "Transform your study routine with AI-powered task management, smart scheduling, and gamified progress tracking",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#fadbdb",
 };
 
 export default function RootLayout({
@@ -24,7 +42,18 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+        {/* Favicon for different browsers and devices */}
+        <link rel="icon" href="/favicon.ico" sizes="32x32" />
+        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        
+        {/* PWA meta tags */}
+        <meta name="apple-mobile-web-app-title" content="MemoSpark" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        
+        {/* Microsoft tiles */}
+        <meta name="msapplication-TileColor" content="#fadbdb" />
+        <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
       <body className={`${inter.className} max-w-full overflow-x-hidden`}>
         <ThemeProvider>
@@ -32,10 +61,15 @@ export default function RootLayout({
             <QueryProvider>
               <UserProvider>
                 <AIProvider>
-                  <ClientBody>
-                    <ConditionalHeader />
-                    {children}
-                  </ClientBody>
+                  <TutorialProvider>
+                    <PWAProvider>
+                      <ClientBody>
+                        {children}
+                        <PwaInstaller />
+                        <Toaster />
+                      </ClientBody>
+                    </PWAProvider>
+                  </TutorialProvider>
                 </AIProvider>
               </UserProvider>
             </QueryProvider>

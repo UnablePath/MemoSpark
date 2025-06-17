@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { AIFeatureType, TierAwareAIRequest, TierAwareAIResponse } from '@/types/ai';
 import { SubscriptionTier } from '@/types/subscription';
 import { useAuth } from '@clerk/nextjs';
@@ -20,7 +20,7 @@ interface TieredAIState {
 }
 
 export const useTieredAI = () => {
-  const { userId, getToken } = useAuth();
+  const { userId, getToken, isLoaded, isSignedIn } = useAuth();
   const [state, setState] = useState<TieredAIState>({
     userTier: 'free',
     usage: {
@@ -34,7 +34,14 @@ export const useTieredAI = () => {
   });
 
   const checkFeatureAccess = useCallback(async (feature: AIFeatureType) => {
-    if (!userId) return { canProceed: false, upgradeRequired: true };
+    // Don't proceed if auth isn't loaded or user isn't signed in
+    if (!isLoaded) {
+      return { canProceed: false, upgradeRequired: false, message: 'Authentication loading...' };
+    }
+    
+    if (!isSignedIn || !userId) {
+      return { canProceed: false, upgradeRequired: false, message: 'Please sign in to continue' };
+    }
     
     try {
       const response = await fetch('/api/ai/suggestions', {
@@ -50,17 +57,27 @@ export const useTieredAI = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
+        
         if (response.status === 403) {
           return {
             canProceed: false,
             upgradeRequired: true,
-            tier: errorData.tier,
-            usage: errorData.usage,
-            message: errorData.message
+            tier: errorData.tier || 'free',
+            usage: errorData.usage || { requestsUsed: 0, requestsRemaining: 0, featureAvailable: false },
+            message: errorData.message || 'Feature access restricted'
           };
         }
-        throw new Error(errorData.error || 'Failed to check access');
+        
+        if (response.status === 401) {
+          return {
+            canProceed: false,
+            upgradeRequired: false,
+            message: 'Authentication required'
+          };
+        }
+        
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -70,49 +87,97 @@ export const useTieredAI = () => {
         tier: data.tier,
         usage: data.usage
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error checking feature access:', error);
-      return { canProceed: false, upgradeRequired: true };
+      
+      // Provide more specific error messages
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        return { 
+          canProceed: false, 
+          upgradeRequired: false, 
+          message: 'Unable to connect to AI service. Please check your internet connection.' 
+        };
+      }
+      
+      return { 
+        canProceed: false, 
+        upgradeRequired: false, 
+        message: 'Service temporarily unavailable' 
+      };
     }
-  }, [userId]);
+  }, [userId, isLoaded, isSignedIn]);
 
   const refreshUsage = useCallback(async () => {
-    if (!userId) return;
+    // Don't fetch if auth isn't ready
+    if (!isLoaded) {
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
+      return;
+    }
+    
+    if (!isSignedIn || !userId) {
+      setState(prev => ({
+        ...prev,
+        userTier: 'free',
+        usage: {
+          requestsUsed: 0,
+          requestsRemaining: 10,
+          dailyLimit: 10,
+          featureAvailable: false
+        },
+        isLoading: false,
+        error: null
+      }));
+      return;
+    }
     
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
       const access = await checkFeatureAccess('basic_suggestions');
+      
+      // Override tier for development mode
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      const developmentTier = 'premium'; // Give premium access in development
+      
       setState(prev => ({
         ...prev,
-        userTier: access.tier || 'free',
+        userTier: isDevelopment ? developmentTier : (access.tier || 'free'),
         usage: access.usage || {
           requestsUsed: 0,
-          requestsRemaining: 10,
-          dailyLimit: 10,
+          requestsRemaining: isDevelopment ? 1000 : 10,
+          dailyLimit: isDevelopment ? 1000 : 10,
           featureAvailable: access.canProceed
         },
-        isLoading: false
+        isLoading: false,
+        error: null
       }));
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error refreshing usage:', error);
       setState(prev => ({
         ...prev,
         error: 'Failed to load tier information',
         isLoading: false
       }));
     }
-  }, [userId, checkFeatureAccess]);
+  }, [userId, isLoaded, isSignedIn, checkFeatureAccess]);
 
   useEffect(() => {
-    refreshUsage();
-  }, [refreshUsage]);
+    // Only run when auth is loaded
+    if (isLoaded) {
+      refreshUsage();
+    }
+  }, [isLoaded, isSignedIn, userId, refreshUsage]);
 
   const generateSuggestions = useCallback(async (
     feature: AIFeatureType,
     tasks: any[],
     context: any
   ): Promise<TierAwareAIResponse> => {
-    if (!userId) {
+    if (!isLoaded) {
+      throw new Error('Authentication is loading');
+    }
+    
+    if (!isSignedIn || !userId) {
       throw new Error('User not authenticated');
     }
     
@@ -136,9 +201,10 @@ export const useTieredAI = () => {
       if (!response.ok) {
         if (response.status === 403) {
           // Update state with usage information from server
+          const isDevelopment = process.env.NODE_ENV === 'development';
           setState(prev => ({
             ...prev,
-            userTier: data.tier || prev.userTier,
+            userTier: isDevelopment ? 'premium' : (data.tier || prev.userTier),
             usage: data.usage || prev.usage,
             isLoading: false
           }));
@@ -152,13 +218,20 @@ export const useTieredAI = () => {
             error: data.error
           };
         }
-        throw new Error(data.error || 'Failed to generate suggestions');
+        
+        if (response.status === 401) {
+          setState(prev => ({ ...prev, isLoading: false, error: 'Authentication required' }));
+          throw new Error('Authentication required');
+        }
+        
+        throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
       }
 
-      // Update state with successful response
+      // Update state with successful response, override tier for development
+      const isDevelopment = process.env.NODE_ENV === 'development';
       setState(prev => ({
         ...prev,
-        userTier: data.tier,
+        userTier: isDevelopment ? 'premium' : data.tier,
         usage: data.usage,
         isLoading: false
       }));
@@ -172,6 +245,7 @@ export const useTieredAI = () => {
         message: data.message
       };
     } catch (error: any) {
+      console.error('Error generating suggestions:', error);
       setState(prev => ({
         ...prev,
         error: error.message,
@@ -180,7 +254,7 @@ export const useTieredAI = () => {
       
       throw error;
     }
-  }, [userId]);
+  }, [userId, isLoaded, isSignedIn]);
 
   const isFeatureAvailable = useCallback((feature: AIFeatureType) => {
     const tierHierarchy = { free: 0, premium: 1, enterprise: 2 };
@@ -208,11 +282,18 @@ export const useTieredAI = () => {
     refreshUsage,
     generateSuggestions,
     isFeatureAvailable,
-    // Tier limits for UI display
-    tierLimits: {
-      free: { suggestions: 3, dailyRequests: 10 },
-      premium: { suggestions: 8, dailyRequests: 100 },
-      enterprise: { suggestions: 15, dailyRequests: -1 }
+    // Auth state info
+    isAuthLoaded: isLoaded,
+    isSignedIn: isSignedIn,
+    // Tier limits for UI display (development-friendly)
+    tierLimits: process.env.NODE_ENV === 'development' ? {
+      free: { suggestions: 15, dailyRequests: 1000 },      // Dev: Very generous
+      premium: { suggestions: 25, dailyRequests: 5000 },   // Dev: Very generous  
+      enterprise: { suggestions: 50, dailyRequests: -1 }   // Dev: Unlimited
+    } : {
+      free: { suggestions: 3, dailyRequests: 10 },         // Prod: Normal limits
+      premium: { suggestions: 8, dailyRequests: 100 },     // Prod: Normal limits
+      enterprise: { suggestions: 15, dailyRequests: -1 }   // Prod: Unlimited
     }
   };
 }; 

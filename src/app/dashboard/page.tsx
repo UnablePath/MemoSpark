@@ -8,6 +8,8 @@ import { SignedIn, UserButton } from "@clerk/nextjs";
 import { User as UserIcon, Settings as SettingsIcon, Crown, Sparkles } from 'lucide-react';
 import { useTieredAI } from '@/hooks/useTieredAI';
 import { Button } from '@/components/ui/button';
+import { InteractiveStu } from '@/components/stu/InteractiveStu';
+import { TutorialTrigger } from '@/components/tutorial';
 // import { useLocalStorage } from "@/hooks/useLocalStorage"; // Widget temporarily commented out
 // import { DraggableWidget } from "@/components/widgets/DraggableWidget";
 // import { WidgetContent } from "@/components/widgets/WidgetContent";
@@ -60,6 +62,9 @@ export default function DashboardPage() {
             </div>
           )}
           
+          {/* Tutorial Trigger */}
+          <TutorialTrigger variant="icon" />
+          
           <SignedIn>
             <UserButton afterSignOutUrl="/">
               <UserButton.UserProfileLink label="My Profile & Progress" url="/profile" labelIcon={<UserIcon className="h-4 w-4" />} />
@@ -75,6 +80,25 @@ export default function DashboardPage() {
         <h1 className="sr-only">User Dashboard</h1>
         <DashboardSwipeTabs />
       </main>
+
+      {/* Interactive Stu Mascot in Lower Right Corner */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <InteractiveStu
+          size="lg"
+          enableTTS={true}
+          showSpeechBubble={true}
+          messages={[
+            "Hi! I'm Stu, your study buddy! 👋",
+            "Ready to tackle some tasks together?",
+            "You're doing great! Keep it up! 🌟",
+            "Time for a quick study break?",
+            "Let's make learning fun today!",
+            "I'm here to help you stay motivated!",
+            "Click me anytime you need encouragement!"
+          ]}
+          className="drop-shadow-lg"
+        />
+      </div>
 
       {/* {isWidgetEnabled && (
         <div role="region" aria-label="Draggable Mascot Widget">

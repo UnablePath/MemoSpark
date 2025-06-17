@@ -238,6 +238,27 @@ export default function ProfilePage() {
 
           <Separator />
 
+          <div>
+            <h3 className="text-lg font-semibold mb-4">AI Personalization</h3>
+            {(user.publicMetadata?.questionnaireCompleted as boolean) ? (
+              <p className="text-sm text-muted-foreground">
+                Your AI learning profile is active. You can retake the assessment at any time to recalibrate your suggestions.
+              </p>
+            ) : (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-center">
+                <h4 className="font-semibold text-blue-800 dark:text-blue-200">Unlock Personalized Insights</h4>
+                <p className="text-sm text-blue-600 dark:text-blue-300 mt-1 mb-3">
+                  Complete our quick assessment to help Stu understand your unique learning style.
+                </p>
+                <Button onClick={() => router.push('/questionnaire')} size="sm">
+                  Start AI Assessment
+                </Button>
+              </div>
+            )}
+          </div>
+          
+          <Separator />
+
           {/* Account Information */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Account Information</h3>

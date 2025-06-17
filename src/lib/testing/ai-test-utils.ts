@@ -59,6 +59,7 @@ export class AITestUtils {
 
   // Mock task data for testing
   createMockTasks(): ExtendedTask[] {
+    const now = new Date().toISOString();
     return [
       {
         id: 'test-task-1',
@@ -70,6 +71,8 @@ export class AITestUtils {
         completed: false,
         reminder: false,
         description: 'Review calculus concepts',
+        createdAt: now,
+        updatedAt: now,
         recurrenceRule: 'none',
         recurrenceInterval: 0,
         recurrenceEndDate: undefined,
@@ -86,6 +89,8 @@ export class AITestUtils {
         completed: false,
         reminder: false,
         description: 'Complete quantum mechanics problems',
+        createdAt: now,
+        updatedAt: now,
         recurrenceRule: 'none',
         recurrenceInterval: 0,
         recurrenceEndDate: undefined,
@@ -306,6 +311,7 @@ export class AITestUtils {
   }
 
   async testBehavioralAnalysis(userId: string): Promise<void> {
+    const now = new Date().toISOString();
     const contextWithHistory = {
       ...this.createMockContext(),
       recentActivity: [
@@ -319,6 +325,8 @@ export class AITestUtils {
           completed: false,
           reminder: true,
           description: 'Critical assignment',
+          createdAt: now,
+          updatedAt: now,
           recurrenceRule: 'none' as const,
           recurrenceInterval: 0,
           recurrenceEndDate: undefined,
@@ -346,6 +354,7 @@ export class AITestUtils {
   }
 
   async testMoodDetection(userId: string): Promise<void> {
+    const now = new Date().toISOString();
     const stressfulContext = {
       ...this.createMockContext(),
       upcomingTasks: [
@@ -359,6 +368,8 @@ export class AITestUtils {
           completed: false,
           reminder: true,
           description: 'Critical exam preparation',
+          createdAt: now,
+          updatedAt: now,
           recurrenceRule: 'none' as const,
           recurrenceInterval: 0,
           recurrenceEndDate: undefined,

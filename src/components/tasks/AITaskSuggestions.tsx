@@ -136,6 +136,8 @@ export const AITaskSuggestions: React.FC<AITaskSuggestionsProps> = ({
         completed: task.completed,
         reminder: task.reminder ?? false,
         description: task.description,
+        createdAt: task.created_at || task.createdAt || new Date().toISOString(),
+        updatedAt: task.updated_at || task.updatedAt || new Date().toISOString(),
         recurrenceRule: task.recurrence_rule || task.recurrenceRule || 'none',
         recurrenceInterval: task.recurrence_interval || task.recurrenceInterval,
         recurrenceEndDate: task.recurrence_end_date || task.recurrenceEndDate,

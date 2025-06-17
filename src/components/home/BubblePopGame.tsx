@@ -69,9 +69,9 @@ export function BubblePopGame() {
   const currentBaseSpeed = useRef(INITIAL_BASE_SPEED);
   const lastDifficultyRampTime = useRef(0);
 
-  const animationFrameId = useRef<number>();
-  const bubbleCreationTimeoutId = useRef<NodeJS.Timeout>();
-  const gameLogicIntervalId = useRef<NodeJS.Timeout>();
+  const animationFrameId = useRef<number | null>(null);
+  const bubbleCreationTimeoutId = useRef<NodeJS.Timeout | null>(null);
+  const gameLogicIntervalId = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
