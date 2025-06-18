@@ -4,12 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Bell, BellOff, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { Bell, BellOff, AlertCircle, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useOneSignal } from '@/components/providers/onesignal-provider';
+import { useUser } from '@clerk/nextjs';
 
 export const PushNotificationManager: React.FC = () => {
   const { toast } = useToast();
+  const { user } = useUser();
   const {
     isInitialized,
     isSubscribed,
@@ -20,6 +22,7 @@ export const PushNotificationManager: React.FC = () => {
   } = useOneSignal();
   
   const [isLoading, setIsLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const handleSubscribe = async () => {
     setIsLoading(true);
@@ -27,14 +30,14 @@ export const PushNotificationManager: React.FC = () => {
       const success = await subscribe();
       if (success) {
         toast({
-          title: "Notifications Enabled",
-          description: "You'll now receive push notifications for important updates.",
+          title: "🔔 Notifications Enabled",
+          description: "You'll now receive push notifications for task reminders and important updates. Database sync completed!",
           variant: "default",
         });
       } else {
         toast({
           title: "Subscription Failed",
-          description: "Unable to enable notifications. Please try again.",
+          description: "Unable to enable notifications. Please check your browser settings and try again.",
           variant: "destructive",
         });
       }
@@ -76,6 +79,52 @@ export const PushNotificationManager: React.FC = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleManualSync = async () => {
+    if (!user?.id || !playerId) {
+      toast({
+        title: "Sync Not Available",
+        description: "User must be logged in and subscribed to sync.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      const response = await fetch('/api/notifications/sync-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          playerId,
+          deviceType: 'web'
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "🔄 Sync Successful",
+          description: "OneSignal subscription synced with database. Task reminders will now work!",
+          variant: "default",
+        });
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to sync subscription');
+      }
+    } catch (err) {
+      console.error('Sync error:', err);
+      toast({
+        title: "Sync Failed",
+        description: err instanceof Error ? err.message : "Unable to sync subscription.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -218,6 +267,29 @@ export const PushNotificationManager: React.FC = () => {
                 <>
                   <BellOff className="mr-2 h-4 w-4" />
                   Disable Notifications
+                </>
+              )}
+            </Button>
+          )}
+
+          {/* Manual Sync Button - for existing subscriptions that need database sync */}
+          {isSubscribed && playerId && user?.id && (
+            <Button 
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              variant="outline"
+              size="sm"
+              className="w-full"
+            >
+              {isSyncing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Sync to Database
                 </>
               )}
             </Button>

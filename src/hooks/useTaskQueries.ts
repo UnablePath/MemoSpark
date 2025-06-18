@@ -197,6 +197,9 @@ export const useCreateTask = (getToken?: () => Promise<string | null>) => {
             });
           } else {
             console.warn(`⚠️ Failed to schedule reminder for task: ${data.title}`);
+            toast.warning('Task created, but reminder not scheduled', {
+              description: 'Enable push notifications in settings to receive task reminders.'
+            });
           }
         } catch (error) {
           console.error('Error scheduling task reminder:', error);

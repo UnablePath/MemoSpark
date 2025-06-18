@@ -54,27 +54,56 @@ export const OneSignalProvider: React.FC<OneSignalProviderProps> = ({ children }
       
       if (window.OneSignal) {
         try {
+          // Set up OneSignal with user authentication if user is logged in
+          if (user?.id) {
+            console.log('🔐 Setting up OneSignal with user:', user.id);
+            await window.OneSignal.login(user.id);
+          }
+          
           // Check OneSignal permission state (not browser state)
           const permission = window.OneSignal.Notifications.permission;
+          console.log('🔍 OneSignal permission detected:', permission);
           setIsSubscribed(permission);
           
           // Get player ID if available
+          let currentPlayerId: string | undefined;
           try {
             const id = window.OneSignal.User.PushSubscription.id;
-            setPlayerId(id || undefined);
+            currentPlayerId = id || undefined;
+            console.log('🔍 OneSignal player ID detected:', currentPlayerId);
+            setPlayerId(currentPlayerId);
+            
+            // Sync with database if we have both user and player ID
+            if (user?.id && currentPlayerId && permission) {
+              console.log('🔄 Syncing subscription to database...');
+              await syncSubscriptionToDatabase(user.id, currentPlayerId);
+            } else {
+              console.log('🔍 Sync conditions not met:', {
+                userId: user?.id,
+                playerId: currentPlayerId,
+                permission
+              });
+            }
           } catch (e) {
-            console.log('No player ID yet');
+            console.log('🔍 Error getting player ID:', e);
           }
           
           // Listen for subscription changes
-          window.OneSignal.User.PushSubscription.addEventListener('change', (event: any) => {
+          window.OneSignal.User.PushSubscription.addEventListener('change', async (event: any) => {
             console.log('OneSignal subscription changed:', event);
             setIsSubscribed(event.current.optedIn);
-            setPlayerId(event.current.id || undefined);
+            const newPlayerId = event.current.id || undefined;
+            setPlayerId(newPlayerId);
+            
+            // Sync to database when subscription changes
+            if (user?.id && newPlayerId && event.current.optedIn) {
+              console.log('🔄 Syncing subscription change to database...');
+              await syncSubscriptionToDatabase(user.id, newPlayerId);
+            }
           });
           
           setIsInitialized(true);
-          console.log('✅ OneSignal initialized');
+          console.log('✅ OneSignal initialized with user:', user?.id);
         } catch (err) {
           console.error('OneSignal init error:', err);
           setError(err instanceof Error ? err.message : 'Failed to initialize');
@@ -88,7 +117,37 @@ export const OneSignalProvider: React.FC<OneSignalProviderProps> = ({ children }
     };
 
     initOneSignal();
-  }, []);
+  }, [user?.id]); // Re-run when user changes
+
+  // Function to sync OneSignal subscription with our database
+  const syncSubscriptionToDatabase = async (userId: string, playerId: string) => {
+    try {
+      console.log('🔄 Starting sync request:', { userId, playerId });
+      
+      const response = await fetch('/api/notifications/sync-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          playerId,
+          deviceType: 'web'
+        })
+      });
+      
+      const result = await response.json();
+      console.log('🔄 Sync response:', { status: response.status, result });
+      
+      if (response.ok) {
+        console.log('✅ Subscription synced to database');
+      } else {
+        console.error('❌ Failed to sync subscription to database:', result);
+      }
+    } catch (error) {
+      console.error('❌ Error syncing subscription to database:', error);
+    }
+  };
 
   const subscribe = async (): Promise<boolean> => {
     console.log('🔔 Subscribe clicked');
@@ -99,22 +158,40 @@ export const OneSignalProvider: React.FC<OneSignalProviderProps> = ({ children }
         return false;
       }
 
-      // Use OneSignal's proper permission flow as per documentation
-      const permission = await window.OneSignal.Notifications.requestPermission();
-      console.log('OneSignal permission result:', permission);
-      
-      if (permission) {
-        setIsSubscribed(true);
-        
-        // Login with Clerk user ID for better tracking
-        if (user?.id) {
-          await window.OneSignal.login(user.id);
+      // First, ensure user is logged in to OneSignal
+      if (user?.id) {
+        await window.OneSignal.login(user.id);
+      }
+
+      // Use OneSignal's slidedown prompt for better UX (as per documentation)
+      try {
+        await window.OneSignal.Slidedown.promptPush();
+      } catch (slidedownError) {
+        console.log('Slidedown not available, falling back to direct permission request');
+        // Fallback to direct permission request
+        const permission = await window.OneSignal.Notifications.requestPermission();
+        if (!permission) {
+          return false;
         }
+      }
+      
+      // Wait a moment for the subscription to register
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Check if subscription was successful
+      const permission = window.OneSignal.Notifications.permission;
+      const playerId = window.OneSignal.User.PushSubscription.id;
+      
+      console.log('OneSignal permission result:', permission, 'Player ID:', playerId);
+      
+      if (permission && playerId) {
+        setIsSubscribed(true);
+        setPlayerId(playerId);
         
-        // Get the player ID
-        const id = window.OneSignal.User.PushSubscription.id;
-        if (id) {
-          setPlayerId(id);
+        // Sync with database
+        if (user?.id) {
+          console.log('🔄 Syncing new subscription to database...');
+          await syncSubscriptionToDatabase(user.id, playerId);
         }
         
         return true;

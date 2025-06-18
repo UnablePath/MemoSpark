@@ -9,14 +9,14 @@ import { CrashoutStats } from './CrashoutStats';
 import { CrashoutPostInput, createCrashoutPost } from '@/lib/supabase/crashoutApi';
 import { Particles } from '@/components/ui/particles';
 import { BorderBeam } from '@/components/ui/border-beam';
-import { Users, UserX, Shield } from 'lucide-react';
+
 import { useAuth } from '@clerk/nextjs';
 
 export const CrashoutRoomTab: React.FC = () => {
   const { userId, getToken } = useAuth();
   const [activeFilter, setActiveFilter] = useState<'latest' | 'popular' | 'trending' | 'top'>('latest');
   const [isRelaxMode, setIsRelaxMode] = useState(false);
-  const [showAnonymousToggle, setShowAnonymousToggle] = useState(false);
+
 
   const filterOptions = [
     { value: 'latest' as const, emoji: '🔥', label: 'Latest' },
@@ -88,54 +88,7 @@ export const CrashoutRoomTab: React.FC = () => {
               </div>
             </div>
 
-            {/* Anonymous Toggle */}
-            <div className="flex items-center justify-center gap-3 mt-4 p-3 bg-black/20 rounded-lg mx-4">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-purple-200" />
-                  <span className="text-sm font-medium text-purple-100">Named</span>
-                </div>
-                
-                <button
-                  onClick={() => setShowAnonymousToggle(!showAnonymousToggle)}
-                  className={`
-                    relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-300/50
-                    ${showAnonymousToggle ? 'bg-purple-500' : 'bg-gray-600'}
-                  `}
-                >
-                  <div
-                    className={`
-                      absolute top-1 w-4 h-4 rounded-full bg-white transition-transform duration-200 shadow-sm
-                      ${showAnonymousToggle ? 'translate-x-7' : 'translate-x-1'}
-                    `}
-                  />
-                </button>
-                
-                <div className="flex items-center gap-2">
-                  <UserX className="h-4 w-4 text-purple-200" />
-                  <span className="text-sm font-medium text-purple-100">Anonymous</span>
-                </div>
-              </div>
-            </div>
 
-            {/* Context Help */}
-            {showAnonymousToggle && (
-              <div className="text-center p-3 mx-4 mt-2 bg-purple-950/50 rounded-lg border border-purple-700">
-                <p className="text-sm text-purple-200">
-                  <Shield className="inline h-4 w-4 mr-1" />
-                  Anonymous posting enabled - your identity will be hidden
-                </p>
-              </div>
-            )}
-
-            {!showAnonymousToggle && (
-              <div className="text-center p-3 mx-4 mt-2 bg-blue-950/50 rounded-lg border border-blue-700">
-                <p className="text-sm text-blue-200">
-                  <Users className="inline h-4 w-4 mr-1" />
-                  Named posting enabled - your profile will be visible
-                </p>
-              </div>
-            )}
           </header>
         </div>
 
@@ -164,39 +117,39 @@ export const CrashoutRoomTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Floating Relaxation Button */}
-      <div className="fixed bottom-32 right-4 z-[9999] relative">
-        <button
-          onClick={() => setIsRelaxMode(!isRelaxMode)}
-          className="relative bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-400 hover:to-purple-400
-                     rounded-full shadow-2xl border-2 border-white/20
-                     flex items-center justify-center
-                     transform hover:scale-110 transition-all duration-200 touch-manipulation
-                     group overflow-hidden
-                     w-14 h-14 sm:w-16 sm:h-16"
-          aria-label={isRelaxMode ? "Exit relaxation mode" : "Enter relaxation mode"}
-        >
-          <BorderBeam 
-            size={80}
-            duration={4}
-            colorFrom="#60A5FA"
-            colorTo="#A855F7"
-            delay={2}
-          />
-          <div className="flex flex-col items-center">
-            <span className="text-lg sm:text-xl">{isRelaxMode ? '🧘' : '🔥'}</span>
-            <span className="text-[7px] sm:text-[8px] font-bold text-white leading-none">
-              {isRelaxMode ? 'EXIT' : 'RELAX'}
-            </span>
-          </div>
-          <div className="hidden sm:block absolute right-16 top-1/2 transform -translate-y-1/2 
-                          bg-gray-800 text-white text-xs px-2 py-1 rounded-md
-                          opacity-0 group-hover:opacity-100 transition-opacity
-                          whitespace-nowrap pointer-events-none shadow-lg border border-gray-600">
-            {isRelaxMode ? '🧘 Exit Relaxation' : '🔥 Stress Relief'}
-          </div>
-        </button>
-      </div>
+      {/* Floating Relaxation Button - Fixed position above all content */}
+      <button
+        onClick={() => setIsRelaxMode(!isRelaxMode)}
+        className="fixed bottom-24 right-4 sm:bottom-32 sm:right-6 z-[99999] 
+                   bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-400 hover:to-purple-400
+                   rounded-full shadow-2xl border-2 border-white/20
+                   flex items-center justify-center
+                   transform hover:scale-110 transition-all duration-200 touch-manipulation
+                   group overflow-hidden
+                   w-14 h-14 sm:w-16 sm:h-16"
+        style={{ zIndex: 99999 }}
+        aria-label={isRelaxMode ? "Exit relaxation mode" : "Enter relaxation mode"}
+      >
+        <BorderBeam 
+          size={80}
+          duration={4}
+          colorFrom="#60A5FA"
+          colorTo="#A855F7"
+          delay={2}
+        />
+        <div className="flex flex-col items-center relative z-10">
+          <span className="text-lg sm:text-xl">{isRelaxMode ? '🧘' : '🔥'}</span>
+          <span className="text-[7px] sm:text-[8px] font-bold text-white leading-none">
+            {isRelaxMode ? 'EXIT' : 'RELAX'}
+          </span>
+        </div>
+        <div className="hidden sm:block absolute right-16 top-1/2 transform -translate-y-1/2 
+                        bg-gray-800 text-white text-xs px-2 py-1 rounded-md
+                        opacity-0 group-hover:opacity-100 transition-opacity
+                        whitespace-nowrap pointer-events-none shadow-lg border border-gray-600 z-10">
+          {isRelaxMode ? '🧘 Exit Relaxation' : '🔥 Stress Relief'}
+        </div>
+      </button>
     </div>
   );
 };

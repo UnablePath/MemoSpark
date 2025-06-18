@@ -413,7 +413,7 @@ export class OneSignalService {
         await this.supabase
           .from('notification_queue')
           .insert({
-            user_id: userId,
+            clerk_user_id: userId, // Use clerk_user_id instead of user_id
             onesignal_notification_id: result.id,
             title: notification.headings?.en || 'Notification',
             body: notification.contents?.en || 'You have a notification',
