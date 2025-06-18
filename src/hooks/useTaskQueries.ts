@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useAuth } from '@clerk/nextjs';
 import {
   fetchTasks,
   getTaskById,
@@ -10,6 +11,7 @@ import {
   fetchTasksPaginated,
   getDashboardCounts,
 } from '@/lib/supabase/tasksApi';
+import { taskReminderService } from '@/lib/notifications/TaskReminderService';
 import type {
   Task,
   TaskInsert,
@@ -171,8 +173,36 @@ export const useCreateTask = (getToken?: () => Promise<string | null>) => {
       toast.error('Failed to create task. Please try again.');
       console.error('Create task error:', err);
     },
-    onSuccess: (data, variables) => {
+    onSuccess: async (data, variables) => {
       toast.success('Task created successfully!');
+      
+      // Schedule reminder notification if enabled
+      if (data.reminder_settings?.enabled && data.due_date) {
+        try {
+          const taskForReminder = {
+            id: data.id,
+            title: data.title,
+            due_date: data.due_date,
+            user_id: data.clerk_user_id || data.user_id, // Use clerk_user_id for OneSignal
+            reminder_offset_minutes: data.reminder_settings?.offset_minutes || 15,
+            is_completed: data.completed
+          };
+
+          const reminderScheduled = await taskReminderService.scheduleTaskReminder(taskForReminder);
+          
+          if (reminderScheduled) {
+            console.log(`✅ Reminder scheduled for task: ${data.title}`);
+            toast.success('Task reminder has been scheduled!', {
+              description: `You'll be notified ${data.reminder_settings?.offset_minutes || 15} minutes before the due date.`
+            });
+          } else {
+            console.warn(`⚠️ Failed to schedule reminder for task: ${data.title}`);
+          }
+        } catch (error) {
+          console.error('Error scheduling task reminder:', error);
+          // Don't show error to user as task was created successfully
+        }
+      }
       
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
@@ -241,8 +271,41 @@ export const useUpdateTask = (getToken?: () => Promise<string | null>) => {
       toast.error('Failed to update task. Please try again.');
       console.error('Update task error:', err);
     },
-    onSuccess: (data, { id }) => {
+    onSuccess: async (data, { id, updates }) => {
       toast.success('Task updated successfully!');
+      
+      // Handle reminder scheduling for updated task
+      if (updates.reminder_settings?.enabled && data.due_date) {
+        try {
+          const taskForReminder = {
+            id: data.id,
+            title: data.title,
+            due_date: data.due_date,
+            user_id: data.clerk_user_id || data.user_id,
+            reminder_offset_minutes: data.reminder_settings?.offset_minutes || 15,
+            is_completed: data.completed
+          };
+
+          const reminderScheduled = await taskReminderService.scheduleTaskReminder(taskForReminder);
+          
+          if (reminderScheduled) {
+            console.log(`✅ Reminder updated for task: ${data.title}`);
+            toast.success('Task reminder has been updated!', {
+              description: `You'll be notified ${data.reminder_settings?.offset_minutes || 15} minutes before the due date.`
+            });
+          }
+        } catch (error) {
+          console.error('Error updating task reminder:', error);
+        }
+      } else if (updates.reminder_settings?.enabled === false) {
+        // Cancel reminders if disabled
+        try {
+          await taskReminderService.cancelTaskReminders(id, data.clerk_user_id || data.user_id);
+          console.log(`✅ Reminders cancelled for task: ${data.title}`);
+        } catch (error) {
+          console.error('Error cancelling task reminders:', error);
+        }
+      }
       
       // Update the cache with the real data
       queryClient.setQueryData(taskKeys.detail(id), data);
@@ -287,8 +350,20 @@ export const useDeleteTask = (getToken?: () => Promise<string | null>) => {
       toast.error('Failed to delete task. Please try again.');
       console.error('Delete task error:', err);
     },
-    onSuccess: (data, id) => {
+    onSuccess: async (data, id) => {
       toast.success('Task deleted successfully!');
+      
+      // Cancel any reminders for the deleted task
+      try {
+        // We need to get the task data before it was deleted to get the user ID
+        const previousTask = queryClient.getQueryData(taskKeys.detail(id)) as Task | undefined;
+        if (previousTask) {
+          await taskReminderService.cancelTaskReminders(id, previousTask.clerk_user_id || previousTask.user_id);
+          console.log(`✅ Reminders cancelled for deleted task: ${previousTask.title}`);
+        }
+      } catch (error) {
+        console.error('Error cancelling reminders for deleted task:', error);
+      }
       
       // Remove from cache
       queryClient.removeQueries({ queryKey: taskKeys.detail(id) });
@@ -350,9 +425,36 @@ export const useToggleTaskCompletion = (getToken?: () => Promise<string | null>)
       toast.error('Failed to update task completion. Please try again.');
       console.error('Toggle task completion error:', err);
     },
-    onSuccess: (data, id) => {
+    onSuccess: async (data, id) => {
       const isCompleted = data.completed;
       toast.success(isCompleted ? 'Task completed!' : 'Task marked as incomplete.');
+      
+      // Cancel reminders if task is completed
+      if (isCompleted) {
+        try {
+          await taskReminderService.cancelTaskReminders(id, data.clerk_user_id || data.user_id);
+          console.log(`✅ Reminders cancelled for completed task: ${data.title}`);
+        } catch (error) {
+          console.error('Error cancelling reminders for completed task:', error);
+        }
+      } else if (!isCompleted && data.reminder_settings?.enabled && data.due_date) {
+        // Reschedule reminders if task is marked incomplete again and has reminders enabled
+        try {
+          const taskForReminder = {
+            id: data.id,
+            title: data.title,
+            due_date: data.due_date,
+            user_id: data.clerk_user_id || data.user_id,
+            reminder_offset_minutes: data.reminder_settings?.offset_minutes || 15,
+            is_completed: data.completed
+          };
+
+          await taskReminderService.scheduleTaskReminder(taskForReminder);
+          console.log(`✅ Reminders rescheduled for incomplete task: ${data.title}`);
+        } catch (error) {
+          console.error('Error rescheduling reminders for incomplete task:', error);
+        }
+      }
       
       // Update the cache with the real data
       queryClient.setQueryData(taskKeys.detail(id), data);

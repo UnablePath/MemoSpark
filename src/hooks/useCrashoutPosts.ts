@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getCrashoutPosts, createCrashoutPost, deletePost, CrashoutPost, CrashoutPostInput } from '@/lib/supabase/crashoutApi';
 import { useAuth } from '@clerk/nextjs';
 
-export const useCrashoutPosts = (filter: 'latest' | 'popular' | 'private' = 'latest') => {
+export const useCrashoutPosts = (filter: 'latest' | 'popular' | 'top' | 'trending' | 'private' = 'latest') => {
   const [posts, setPosts] = useState<CrashoutPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

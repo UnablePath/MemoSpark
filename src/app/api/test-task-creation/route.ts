@@ -1,5 +1,4 @@
 import { auth } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
@@ -74,7 +73,7 @@ export async function GET() {
   });
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     // Get Clerk authentication
     const { userId, getToken } = await auth();
@@ -83,106 +82,70 @@ export async function POST() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Create Supabase client with Clerk integration
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-      accessToken: async () => {
-        // Use the correct template name
-        const token = await getToken({ template: 'supabase-integration' });
-        return token;
-      },
-    });
-
-    console.log('Testing for user:', userId);
-
-    // First, let's check the table structure
-    const { data: tableInfo, error: tableError } = await supabase
-      .from('profiles')
-      .select()
-      .limit(1);
-    
-    console.log('Table structure check:', {
-      sampleRecord: tableInfo?.[0],
-      availableFields: tableInfo?.[0] ? Object.keys(tableInfo[0]) : 'none',
-      tableError
-    });
-
-    // FIRST: Check if user exists in profiles table (this reveals webhook issues)
-    const { data: userProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, clerk_user_id, email, full_name, *')
-      .eq('clerk_user_id', userId)
-      .single();
-
-    console.log('User profile check:', { userProfile, profileError });
-    console.log('Profile ID:', userProfile?.id);
-    console.log('Available fields:', userProfile ? Object.keys(userProfile) : 'none');
-
-    if (!userProfile) {
-      return NextResponse.json({
-        success: false,
-        error: 'User profile not found in Supabase',
-        details: profileError,
-        userId,
-        webhookStatus: 'User NOT found in Supabase - webhook issue!',
-        timestamp: new Date().toISOString(),
-      }, { status: 400 });
+    // Parse request body for custom task data
+    let requestData: any = {};
+    try {
+      requestData = await request.json();
+    } catch (e) {
+      // Use default if no body provided
     }
 
-    // Test task creation with user from profiles table
-    const testTaskData = {
-      user_id: userProfile.id, // This should work now!
-      clerk_user_id: userId, // Also add clerk_user_id for backup
-      title: `Test Task - ${new Date().toISOString()}`,
-      description: 'This is a test task created via API to verify authentication',
-      priority: 'medium',
-      type: 'academic',
+    // Import task creation function
+    const { createTask } = await import('@/lib/supabase/tasksApi');
+    const { taskReminderService } = await import('@/lib/notifications/TaskReminderService');
+
+    console.log('Creating task for user:', userId);
+    console.log('Request data:', requestData);
+
+    // Create token provider function
+    const getTokenForSupabase = () => getToken({ template: 'supabase-integration' });
+
+    // Prepare task data
+    const taskData = {
+      title: requestData.title || `Test Task - ${new Date().toISOString()}`,
+      description: requestData.description || 'This is a test task created via API to verify authentication and notifications',
+      due_date: requestData.due_date || undefined,
+      priority: requestData.priority || 'medium',
+      type: requestData.type || 'academic',
+      subject: requestData.subject || undefined,
+      reminder_settings: requestData.reminder_settings || undefined,
       completed: false,
     };
 
-    console.log('Creating test task with data:', testTaskData);
+    console.log('Creating task with data:', taskData);
 
-    const { data: createdTask, error: createError } = await supabase
-      .from('tasks')
-      .insert(testTaskData)
-      .select()
-      .single();
+    // Create task using the proper API
+    const createdTask = await createTask(taskData, getTokenForSupabase);
 
-    if (createError) {
-      console.error('Task creation error:', createError);
-      return NextResponse.json({
-        success: false,
-        error: 'Failed to create task',
-        details: createError,
-        userId,
-        userProfile,
-        profileError: profileError?.message,
-        webhookStatus: userProfile ? 'User exists in Supabase - webhook working' : 'User NOT found in Supabase - webhook issue!',
-        timestamp: new Date().toISOString(),
-      }, { status: 400 });
+    console.log('Task created:', createdTask);
+
+    // Schedule reminder if enabled
+    let reminderScheduled = false;
+    if (createdTask.reminder_settings?.enabled && createdTask.due_date) {
+      try {
+        console.log('Scheduling reminder for task:', createdTask.id);
+        
+        const taskForReminder = {
+          id: createdTask.id,
+          title: createdTask.title,
+          due_date: createdTask.due_date,
+          user_id: userId, // Use Clerk user ID for OneSignal
+          reminder_offset_minutes: createdTask.reminder_settings.offset_minutes || 15,
+          is_completed: createdTask.completed
+        };
+
+        reminderScheduled = await taskReminderService.scheduleTaskReminder(taskForReminder);
+        console.log('Reminder scheduled:', reminderScheduled);
+      } catch (reminderError) {
+        console.error('Error scheduling reminder:', reminderError);
+      }
     }
-
-    // Test fetching tasks to verify RLS
-    const { data: allTasks, error: fetchError } = await supabase
-      .from('tasks')
-      .select('id, title, user_id')
-      .limit(5);
 
     return NextResponse.json({
       success: true,
       createdTask,
-      allTasks,
-      fetchError: fetchError?.message,
+      reminderScheduled,
       userId,
-      userProfile,
-      profileError: profileError?.message,
-      webhookStatus: userProfile ? 'User exists in Supabase - webhook working' : 'User NOT found in Supabase - webhook issue!',
       timestamp: new Date().toISOString(),
     });
 

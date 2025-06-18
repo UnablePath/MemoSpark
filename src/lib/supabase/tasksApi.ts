@@ -876,14 +876,14 @@ export const getAISuggestionFeedbackSummary = async (
 
     const feedback = data || [];
     const totalFeedback = feedback.length;
-    const likedCount = feedback.filter(f => f.feedback === 'liked').length;
-    const dislikedCount = feedback.filter(f => f.feedback === 'disliked').length;
+    const likedCount = feedback.filter((f: { feedback: string }) => f.feedback === 'liked').length;
+    const dislikedCount = feedback.filter((f: { feedback: string }) => f.feedback === 'disliked').length;
     const likeRatio = totalFeedback > 0 ? likedCount / totalFeedback : 0;
 
     // Group by suggestion type
     const byType: Record<string, { liked: number; disliked: number; ratio: number }> = {};
     
-    feedback.forEach(f => {
+    feedback.forEach((f: { suggestion_type: string; feedback: string }) => {
       if (!byType[f.suggestion_type]) {
         byType[f.suggestion_type] = { liked: 0, disliked: 0, ratio: 0 };
       }

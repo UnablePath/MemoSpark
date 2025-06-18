@@ -501,3 +501,19 @@ export const memoSparkClerkAppearanceDark: Appearance = {
     socialButtonsVariant: 'blockButton' as const,
   }
 } as const;
+
+export const clerkAppearance: Appearance = {
+  // baseTheme: 'light',
+  variables: {
+    colorPrimary: '#3B82F6',
+    colorBackground: '#ffffff',
+    colorInputBackground: '#ffffff',
+    colorInputText: '#1f2937',
+    borderRadius: '8px',
+  },
+  elements: {
+    card: 'shadow-lg border border-gray-200',
+    headerTitle: 'text-lg font-semibold text-gray-900',
+    headerSubtitle: 'text-sm text-gray-600',
+  },
+};

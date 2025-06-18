@@ -54,16 +54,28 @@ function createSupabaseClient() {
 // Create base Supabase client
 export const supabase = createSupabaseClient();
 
+// Cache for authenticated clients to prevent multiple instances
+const authenticatedClients = new Map<string, any>();
+
 /**
  * Create authenticated Supabase client using Clerk session tokens
- * Follows official Supabase-Clerk integration pattern
+ * Follows official Supabase-Clerk integration pattern with singleton pattern
  */
 export function createAuthenticatedSupabaseClient(getToken?: () => Promise<string | null>) {
   if (!supabaseUrl || !supabaseAnonKey) {
     return null;
   }
 
-  return createClient(supabaseUrl, supabaseAnonKey, {
+  // Create a cache key based on the token function
+  const cacheKey = getToken?.toString() || 'default';
+  
+  // Return cached client if exists
+  if (authenticatedClients.has(cacheKey)) {
+    return authenticatedClients.get(cacheKey);
+  }
+
+  // Create new client
+  const client = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: false, // Clerk handles session persistence
       autoRefreshToken: false, // Clerk handles token refresh
@@ -92,6 +104,11 @@ export function createAuthenticatedSupabaseClient(getToken?: () => Promise<strin
       },
     },
   });
+
+  // Cache the client
+  authenticatedClients.set(cacheKey, client);
+  
+  return client;
 }
 
 // AI configuration management

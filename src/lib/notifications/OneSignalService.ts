@@ -1,5 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
+// Global OneSignal interface for TypeScript
+declare global {
+  interface Window {
+    OneSignal?: any;
+  }
+}
+import { supabase } from '@/lib/supabase/client';
+
 interface OneSignalNotification {
   app_id: string;
   contents: { [key: string]: string };
@@ -32,10 +40,12 @@ interface OneSignalResponse {
 }
 
 export class OneSignalService {
+  private static instance: OneSignalService;
   private supabase;
   private appId: string;
   private restApiKey: string;
   private apiUrl = 'https://onesignal.com/api/v1';
+  private isInitialized = false;
 
   constructor() {
     this.supabase = createClient(
@@ -48,6 +58,250 @@ export class OneSignalService {
 
     if (!this.appId || !this.restApiKey) {
       console.warn('OneSignal credentials not properly configured');
+    }
+  }
+
+  public static getInstance(): OneSignalService {
+    if (!OneSignalService.instance) {
+      OneSignalService.instance = new OneSignalService();
+    }
+    return OneSignalService.instance;
+  }
+
+  async initializeOneSignal(): Promise<boolean> {
+    if (this.isInitialized) return true;
+    
+    try {
+      if (typeof window === 'undefined' || !process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID) {
+        return false;
+      }
+
+      // OneSignal is initialized via script tags in layout.tsx
+      // Just wait for it to be available and mark as initialized
+      if (typeof window !== 'undefined' && window.OneSignal) {
+        this.isInitialized = true;
+        return true;
+      }
+      
+      // Wait for OneSignal to be loaded
+      await new Promise<void>((resolve, reject) => {
+        const checkInterval = setInterval(() => {
+          if (window.OneSignal) {
+            clearInterval(checkInterval);
+            resolve();
+          }
+        }, 100);
+        
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          reject(new Error('OneSignal SDK not found'));
+        }, 5000);
+      });
+
+      this.isInitialized = true;
+      return true;
+    } catch (error) {
+      console.error('Failed to initialize OneSignal:', error);
+      return false;
+    }
+  }
+
+  async getSubscriptionStatus(): Promise<{ isSubscribed: boolean; playerId?: string }> {
+    try {
+      if (!this.isInitialized) {
+        await this.initializeOneSignal();
+      }
+      
+      if (!window.OneSignal) {
+        return { isSubscribed: false };
+      }
+      
+      const permission = window.OneSignal.Notifications.permission;
+      const playerId = window.OneSignal.User.PushSubscription.id;
+      
+      return {
+        isSubscribed: permission,
+        playerId: playerId || undefined
+      };
+    } catch (error) {
+      console.error('Failed to get subscription status:', error);
+      return { isSubscribed: false };
+    }
+  }
+
+  async subscribeUser(clerkUserId: string): Promise<string | null> {
+    try {
+      if (!this.isInitialized) {
+        await this.initializeOneSignal();
+      }
+
+      if (!window.OneSignal) {
+        console.error('OneSignal not available');
+        return null;
+      }
+
+      // Prompt for push notification permission
+      await window.OneSignal.Slidedown.promptPush();
+      
+      // Set external user ID for better user tracking
+      await window.OneSignal.login(clerkUserId);
+      
+      // Get the player ID after subscription
+      const playerId = window.OneSignal.User.PushSubscription.id;
+      
+      if (playerId) {
+        await this.storePlayerSubscription(clerkUserId, playerId);
+        return playerId;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Failed to subscribe user:', error);
+      return null;
+    }
+  }
+
+  async unsubscribeUser(playerId: string): Promise<boolean> {
+    try {
+      if (!this.isInitialized) {
+        await this.initializeOneSignal();
+      }
+
+      if (!window.OneSignal) {
+        console.error('OneSignal not available');
+        return false;
+      }
+
+      // Unsubscribe from push notifications
+      await window.OneSignal.User.PushSubscription.optOut();
+      
+      // Remove from database
+      await this.removePlayerSubscription(playerId);
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to unsubscribe user:', error);
+      return false;
+    }
+  }
+
+  async storePlayerSubscription(clerkUserId: string, playerId: string): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .from('push_subscriptions')
+        .upsert({
+          user_id: clerkUserId, // Using auth.users(id) - will be mapped via RLS
+          external_user_id: clerkUserId, // Clerk user ID
+          onesignal_player_id: playerId,
+          device_type: 'web',
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'external_user_id'
+        });
+
+      if (error) {
+        console.error('Error storing player subscription:', error);
+      }
+    } catch (error) {
+      console.error('Failed to store player subscription:', error);
+    }
+  }
+
+  async removePlayerSubscription(playerId: string): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .from('push_subscriptions')
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq('onesignal_player_id', playerId);
+
+      if (error) {
+        console.error('Error removing player subscription:', error);
+      }
+    } catch (error) {
+      console.error('Failed to remove player subscription:', error);
+    }
+  }
+
+  async sendTaskReminder(playerId: string, taskTitle: string, reminderTime: Date): Promise<boolean> {
+    try {
+      const response = await fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          player_ids: [playerId],
+          headings: { en: '📚 Task Reminder' },
+          contents: { en: `Don't forget: ${taskTitle}` },
+          data: {
+            type: 'task_reminder',
+            task_title: taskTitle,
+            reminder_time: reminderTime.toISOString(),
+          },
+          url: '/dashboard',
+        }),
+      });
+
+      const result = await response.json();
+      return response.ok && result.success;
+    } catch (error) {
+      console.error('Failed to send task reminder:', error);
+      return false;
+    }
+  }
+
+  async sendAchievementNotification(playerId: string, achievementTitle: string): Promise<boolean> {
+    try {
+      const response = await fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          player_ids: [playerId],
+          headings: { en: '🎉 Achievement Unlocked!' },
+          contents: { en: `Congratulations! You earned: ${achievementTitle}` },
+          data: {
+            type: 'achievement',
+            achievement_title: achievementTitle,
+          },
+          url: '/dashboard',
+        }),
+      });
+
+      const result = await response.json();
+      return response.ok && result.success;
+    } catch (error) {
+      console.error('Failed to send achievement notification:', error);
+      return false;
+    }
+  }
+
+  async sendBreakSuggestion(playerId: string, message: string): Promise<boolean> {
+    try {
+      const response = await fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          player_ids: [playerId],
+          headings: { en: '🌟 Take a Break' },
+          contents: { en: message },
+          data: {
+            type: 'break_suggestion',
+            message,
+          },
+          url: '/dashboard',
+        }),
+      });
+
+      const result = await response.json();
+      return response.ok && result.success;
+    } catch (error) {
+      console.error('Failed to send break suggestion:', error);
+      return false;
     }
   }
 
@@ -87,107 +341,6 @@ export class OneSignalService {
   }
 
   /**
-   * Send task reminder notification
-   * Real-time delivery - no cron dependency
-   */
-  async sendTaskReminder(userId: string, taskTitle: string, dueDate: Date, taskId: string): Promise<boolean> {
-    try {
-      // Get user's OneSignal player ID from database
-      const { data: subscription } = await this.supabase
-        .from('push_subscriptions')
-        .select('onesignal_player_id')
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .single();
-
-      if (!subscription?.onesignal_player_id) {
-        console.warn('No OneSignal player ID found for user:', userId);
-        return false;
-      }
-
-      // Calculate time until due
-      const timeUntilDue = Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 60)); // minutes
-      const timeText = timeUntilDue > 60 
-        ? `${Math.ceil(timeUntilDue / 60)} hours`
-        : `${timeUntilDue} minutes`;
-
-      const result = await this.sendNotification({
-        contents: { 
-          en: `⏰ "${taskTitle}" is due in ${timeText}!` 
-        },
-        headings: { 
-          en: '📋 Task Reminder' 
-        },
-        include_player_ids: [subscription.onesignal_player_id],
-        data: { 
-          taskId, 
-          type: 'task_reminder',
-          dueDate: dueDate.toISOString() 
-        },
-        url: `/dashboard?task=${taskId}`,
-        android_channel_id: 'task_reminders',
-        small_icon: 'ic_notification_task',
-        priority: 8, // High priority
-        ttl: 3600, // 1 hour TTL
-      });
-
-      if (result) {
-        // Track analytics in database
-        await this.trackNotificationEvent(userId, result.id, 'sent', 'task_reminder');
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      console.error('Error sending task reminder:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Send achievement notification
-   */
-  async sendAchievementNotification(userId: string, achievementTitle: string, description: string): Promise<boolean> {
-    try {
-      const { data: subscription } = await this.supabase
-        .from('push_subscriptions')
-        .select('onesignal_player_id')
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .single();
-
-      if (!subscription?.onesignal_player_id) return false;
-
-      const result = await this.sendNotification({
-        contents: { 
-          en: `🎉 ${description}` 
-        },
-        headings: { 
-          en: `🏆 Achievement: ${achievementTitle}` 
-        },
-        include_player_ids: [subscription.onesignal_player_id],
-        data: { 
-          type: 'achievement',
-          achievement: achievementTitle 
-        },
-        url: '/dashboard?tab=achievements',
-        android_channel_id: 'achievements',
-        priority: 6,
-      });
-
-      if (result) {
-        await this.trackNotificationEvent(userId, result.id, 'sent', 'achievement');
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      console.error('Error sending achievement notification:', error);
-      return false;
-    }
-  }
-
-  /**
    * Send study break suggestion
    */
   async sendStudyBreakSuggestion(userId: string, message: string): Promise<boolean> {
@@ -195,7 +348,7 @@ export class OneSignalService {
       const { data: subscription } = await this.supabase
         .from('push_subscriptions')
         .select('onesignal_player_id')
-        .eq('user_id', userId)
+        .eq('external_user_id', userId)
         .eq('is_active', true)
         .single();
 
@@ -242,7 +395,7 @@ export class OneSignalService {
       const { data: subscription } = await this.supabase
         .from('push_subscriptions')
         .select('onesignal_player_id')
-        .eq('user_id', userId)
+        .eq('external_user_id', userId)
         .eq('is_active', true)
         .single();
 
@@ -318,60 +471,6 @@ export class OneSignalService {
   }
 
   /**
-   * Store OneSignal player ID when user subscribes
-   */
-  async storePlayerSubscription(userId: string, playerId: string, userAgent?: string): Promise<boolean> {
-    try {
-      const { error } = await this.supabase
-        .from('push_subscriptions')
-        .upsert({
-          user_id: userId,
-          onesignal_player_id: playerId,
-          user_agent: userAgent,
-          is_active: true,
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'user_id,onesignal_player_id'
-        });
-
-      if (error) {
-        console.error('Error storing player subscription:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error in storePlayerSubscription:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Remove OneSignal player subscription when user unsubscribes
-   */
-  async removePlayerSubscription(playerId: string): Promise<boolean> {
-    try {
-      const { error } = await this.supabase
-        .from('push_subscriptions')
-        .update({ 
-          is_active: false,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('onesignal_player_id', playerId);
-
-      if (error) {
-        console.error('Error removing player subscription:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error in removePlayerSubscription:', error);
-      return false;
-    }
-  }
-
-  /**
    * Track notification events for analytics
    */
   async trackNotificationEvent(
@@ -424,7 +523,7 @@ export class OneSignalService {
     const { data } = await this.supabase
       .from('push_subscriptions')
       .select('onesignal_player_id')
-      .eq('user_id', userId)
+      .eq('external_user_id', userId)
       .eq('is_active', true)
       .single();
 
@@ -433,4 +532,4 @@ export class OneSignalService {
 }
 
 // Export singleton instance
-export const oneSignalService = new OneSignalService(); 
+export const oneSignalService = OneSignalService.getInstance(); 

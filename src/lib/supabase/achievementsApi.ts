@@ -127,7 +127,7 @@ export const subscribeToUserAchievements = (
         table: 'user_achievements',
         filter: `user_id=eq.${userId}`,
       },
-      (payload) => {
+      (payload: RealtimePostgresChangesPayload<UserAchievement>) => {
         callback(payload as RealtimePostgresChangesPayload<UserAchievement>);
       }
     )

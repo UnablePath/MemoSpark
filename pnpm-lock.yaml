@@ -113,9 +113,6 @@ importers:
       '@types/rrule':
         specifier: ^2.1.7
         version: 2.2.9
-      '@types/web-push':
-        specifier: ^3.6.4
-        version: 3.6.4
       canvas-confetti:
         specifier: ^1.9.3
         version: 1.9.3
@@ -243,6 +240,9 @@ importers:
       '@types/react-dom':
         specifier: 19.1.6
         version: 19.1.6(@types/react@19.1.8)
+      '@types/web-push':
+        specifier: ^3.6.4
+        version: 3.6.4
       depcheck:
         specifier: ^1.4.7
         version: 1.4.7

@@ -219,7 +219,7 @@ export const subscribeToReminders = (
         .on(
             'postgres_changes',
             { event: '*', schema: 'public', table: 'reminders' },
-            (payload) => {
+            (payload: RealtimePostgresChangesPayload<Reminder>) => {
                 callback(payload as RealtimePostgresChangesPayload<Reminder>);
             }
         )
