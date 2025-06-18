@@ -8,7 +8,6 @@ import { CrashoutPost, addReaction, getUserVote, addVote, removeVote, getUserRea
 import { useAuth } from '@clerk/nextjs';
 import { CommentSystem } from './CommentSystem';
 import { BorderBeam } from '@/components/ui/border-beam';
-import { supabase } from '@/lib/supabase/client';
 
 const moodOptions: Record<string, { bg: string; border: string; emoji: string; label: string }> = {
   stressed: { bg: 'bg-red-500/80', border: 'border-red-400', emoji: '😤', label: 'STRESSED AF' },
@@ -34,7 +33,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
-  const [userReaction, setUserReaction] = useState<'heart' | 'wow' | 'hug' | null>(null);
+  const [userReaction, setUserReaction] = useState<'heart' | 'support' | 'mind_blown' | null>(null);
   const [reactionCounts, setReactionCounts] = useState(post.reaction_counts);
   const [isVoting, setIsVoting] = useState(false);
   const [isReacting, setIsReacting] = useState(false);
@@ -45,24 +44,25 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
   useEffect(() => {
     if (post.is_anonymous === false && post.user_id) {
       const fetchUserProfile = async () => {
-        if (!supabase) return;
-        
         try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('clerk_user_id', post.user_id)
-            .single();
+          const response = await fetch(`/api/user-profile/${post.user_id}`);
+          const data = await response.json();
           
-          if (!error && data) {
-            setUserProfile(data);
+          if (response.ok && data.success) {
+            setUserProfile(data.profile || {});
+          } else {
+            console.error('Error fetching user profile:', data.error);
+            setUserProfile({});
           }
         } catch (error) {
           console.error('Error fetching user profile:', error);
+          setUserProfile({});
         }
       };
-      
+
       fetchUserProfile();
+    } else {
+      setUserProfile({});
     }
   }, [post.is_anonymous, post.user_id]);
 
@@ -163,7 +163,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
     }
   };
 
-  const handleReaction = async (reactionType: 'heart' | 'wow' | 'hug') => {
+  const handleReaction = async (reactionType: 'heart' | 'support' | 'mind_blown') => {
     if (!userId || isReacting) return;
     
     setIsReacting(true);
@@ -244,8 +244,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
           <div>
             <div className="flex items-center space-x-2">
               <span className="font-bold text-white">
-                {post.is_anonymous === false && userProfile?.full_name 
-                  ? userProfile.full_name 
+                {post.is_anonymous === false 
+                  ? (userProfile?.full_name || 'Unknown User')
                   : 'Anonymous Crasher'
                 }
               </span>
@@ -378,33 +378,33 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
         <Button
           variant="ghost"
           size="sm"
-            onClick={() => handleReaction('hug')}
+            onClick={() => handleReaction('support')}
             disabled={isReacting}
             className={`bg-black/20 hover:bg-black/40 transition-colors flex-shrink-0 ${
-              userReaction === 'hug' 
+              userReaction === 'support' 
                 ? 'bg-blue-500/30 text-blue-300 ring-2 ring-blue-400' 
                 : 'text-white/80 hover:text-blue-300'
             }`}
-            title="Send a virtual hug"
+            title="Send support"
         >
             <span className="mr-1 text-base">🤗</span>
-            <span className="text-sm">{reactionCounts.hug || 0}</span>
+            <span className="text-sm">{reactionCounts.support || 0}</span>
         </Button>
 
         <Button
           variant="ghost"
           size="sm"
-            onClick={() => handleReaction('wow')}
+            onClick={() => handleReaction('mind_blown')}
             disabled={isReacting}
             className={`bg-black/20 hover:bg-black/40 transition-colors flex-shrink-0 ${
-              userReaction === 'wow' 
+              userReaction === 'mind_blown' 
                 ? 'bg-yellow-500/30 text-yellow-300 ring-2 ring-yellow-400' 
                 : 'text-white/80 hover:text-yellow-300'
             }`}
-            title="I feel you / Relatable"
+            title="Mind blown / That's deep"
         >
-            <span className="mr-1 text-base">🫂</span>
-            <span className="text-sm">{reactionCounts.wow || 0}</span>
+            <span className="mr-1 text-base">🤯</span>
+            <span className="text-sm">{reactionCounts.mind_blown || 0}</span>
         </Button>
         </div>
       </div>

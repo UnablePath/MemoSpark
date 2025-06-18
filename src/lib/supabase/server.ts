@@ -13,12 +13,23 @@ export { createClient };
 // Supabase configuration for server-side operations
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://onfnehxkglmvrorcvqcx.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Create Supabase client for server-side operations
+// Create Supabase client for server-side operations (regular)
 export const supabaseServer = (supabaseUrl && supabaseAnonKey) 
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: false, // Server doesn't need session persistence
+        autoRefreshToken: false,
+      },
+    })
+  : null;
+
+// Create Supabase client with service role for admin operations (bypasses RLS)
+export const supabaseServerAdmin = (supabaseUrl && supabaseServiceRoleKey) 
+  ? createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        persistSession: false,
         autoRefreshToken: false,
       },
     })
@@ -75,17 +86,34 @@ export const supabaseServerHelpers = {
    * Enhanced version that gets full Clerk data
    */
   async ensureUserExists(): Promise<boolean> {
-    if (!supabaseServer) return false;
+    if (!supabaseServer || !supabaseServerAdmin) {
+      console.error('Supabase clients not initialized');
+      return false;
+    }
 
     try {
-      const profile = await this.getCurrentUserProfile();
-      if (profile) return true;
-
-      // User doesn't exist in Supabase, get full Clerk data and create profile
       const clerkUserId = await this.getCurrentUserId();
       if (!clerkUserId) return false;
 
-      // Get the authenticated Clerk user for more complete data
+      // First check if profile already exists (using regular client for READ)
+      const { data: existingProfile, error: checkError } = await supabaseServer
+        .from('profiles')
+        .select('id, clerk_user_id')
+        .eq('clerk_user_id', clerkUserId)
+        .maybeSingle();
+
+      // If profile exists, return success
+      if (existingProfile && !checkError) {
+        return true;
+      }
+
+      // If the error is something other than "no rows", throw it
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Failed to check existing profile:', checkError);
+        return false;
+      }
+
+      // Profile doesn't exist, get full Clerk data and create profile
       const { currentUser } = await import('@clerk/nextjs/server');
       const user = await currentUser();
 
@@ -98,7 +126,10 @@ export const supabaseServerHelpers = {
       const primaryEmail = user.emailAddresses?.[0]?.emailAddress;
       const fullName = [user.firstName, user.lastName]
         .filter(Boolean)
-        .join(' ') || null;
+        .join(' ') || user.publicMetadata?.name as string || null;
+
+      // Extract data from public metadata
+      const metadata = user.publicMetadata || {};
 
       // Create a comprehensive profile using available Clerk data
       const profileData = {
@@ -106,17 +137,28 @@ export const supabaseServerHelpers = {
         email: primaryEmail || null,
         full_name: fullName,
         avatar_url: user.imageUrl || null,
-        onboarding_completed: false, // User should still complete onboarding for app-specific data
+        onboarding_completed: metadata.onboardingComplete === true, // Use metadata value
+        year_of_study: metadata.yearOfStudy as string || null,
+        interests: Array.isArray(metadata.interests) ? metadata.interests : [],
+        subjects: Array.isArray(metadata.subjects) ? metadata.subjects : [],
+        bio: metadata.bio as string || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabaseServer
+      // Use SERVICE ROLE CLIENT for INSERT operation (bypasses RLS)
+      const { error: createError } = await supabaseServerAdmin
         .from('profiles')
         .insert(profileData);
 
-      if (error) {
-        console.error('Failed to create user profile:', error);
+      if (createError) {
+        // If it's a unique constraint violation, the profile might have been created by another request
+        if (createError.code === '23505') {
+          // Profile was created by another request, return success
+          return true;
+        }
+        
+        console.error('Failed to create user profile:', createError);
         return false;
       }
 
@@ -157,13 +199,17 @@ export const supabaseServerHelpers = {
    * This updates the Supabase profile with latest information (typically from Clerk)
    */
   async updateUserProfile(updateData: any): Promise<boolean> {
-    if (!supabaseServer) return false;
+    if (!supabaseServerAdmin) {
+      console.error('Supabase admin client not initialized');
+      return false;
+    }
     
     try {
       const clerkUserId = await this.getCurrentUserId();
       if (!clerkUserId) return false;
 
-      const { error } = await supabaseServer
+      // Use SERVICE ROLE CLIENT for UPDATE operation (bypasses RLS)
+      const { error } = await supabaseServerAdmin
         .from('profiles')
         .update(updateData)
         .eq('clerk_user_id', clerkUserId);
