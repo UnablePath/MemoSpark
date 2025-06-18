@@ -4,10 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, Eye, Lock, Trash2, Clock, ThumbsUp } from 'lucide-react';
-import { CrashoutPost, addReaction, getUserVote, addVote, removeVote } from '@/lib/supabase/crashoutApi';
+import { CrashoutPost, addReaction, getUserVote, addVote, removeVote, getUserReaction, removeReaction } from '@/lib/supabase/crashoutApi';
 import { useAuth } from '@clerk/nextjs';
 import { CommentSystem } from './CommentSystem';
 import { BorderBeam } from '@/components/ui/border-beam';
+import { supabase } from '@/lib/supabase/client';
 
 const moodOptions: Record<string, { bg: string; border: string; emoji: string; label: string }> = {
   stressed: { bg: 'bg-red-500/80', border: 'border-red-400', emoji: '😤', label: 'STRESSED AF' },
@@ -33,26 +34,58 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
+  const [userReaction, setUserReaction] = useState<'heart' | 'wow' | 'hug' | null>(null);
   const [reactionCounts, setReactionCounts] = useState(post.reaction_counts);
   const [isVoting, setIsVoting] = useState(false);
+  const [isReacting, setIsReacting] = useState(false);
+  const [userProfile, setUserProfile] = useState<{ full_name?: string } | null>(null);
   const moodStyle = moodOptions[post.mood_type || ''] || moodOptions.stressed;
   
-  // Load user vote on mount
+  // Fetch user profile if post is not anonymous
+  useEffect(() => {
+    if (post.is_anonymous === false && post.user_id) {
+      const fetchUserProfile = async () => {
+        if (!supabase) return;
+        
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('clerk_user_id', post.user_id)
+            .single();
+          
+          if (!error && data) {
+            setUserProfile(data);
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+        }
+      };
+      
+      fetchUserProfile();
+    }
+  }, [post.is_anonymous, post.user_id]);
+
+  // Load user vote and reaction on mount
   useEffect(() => {
     if (!userId) return;
     
-    const loadUserVote = async () => {
+    const loadUserInteractions = async () => {
       try {
-        const vote = await getUserVote(post.id, userId);
+        const [vote, reaction] = await Promise.all([
+          getUserVote(post.id, userId),
+          getUserReaction(post.id, userId)
+        ]);
         setUserVote(vote);
+        setUserReaction(reaction);
       } catch (error) {
-        console.error('Error loading user vote:', error);
+        console.error('Error loading user interactions:', error);
       }
     };
     
-    loadUserVote();
+    loadUserInteractions();
   }, [userId, post.id]);
-
+  
   // Calculate if post is within 10-second deletion window
   useEffect(() => {
     if (!userId || post.user_id !== userId || post.is_private) return;
@@ -131,21 +164,49 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
   };
 
   const handleReaction = async (reactionType: 'heart' | 'wow' | 'hug') => {
-    if (!userId) return;
+    if (!userId || isReacting) return;
     
+    setIsReacting(true);
     try {
-      await addReaction(post.id, reactionType, userId);
-      // Update local reaction counts
-      setReactionCounts(prev => ({
-        ...prev,
-        [reactionType]: (prev[reactionType] || 0) + 1
-      }));
+      if (userReaction === reactionType) {
+        // Remove reaction if clicking the same one
+        await removeReaction(post.id, userId);
+        setUserReaction(null);
+        // Update local reaction counts
+        setReactionCounts(prev => ({
+          ...prev,
+          [reactionType]: Math.max(0, (prev[reactionType] || 0) - 1)
+        }));
+      } else {
+        // Add new reaction or switch reaction
+        const oldReaction = userReaction;
+        await addReaction(post.id, reactionType, userId);
+        setUserReaction(reactionType);
+        
+        // Update local reaction counts
+        setReactionCounts(prev => {
+          const newCounts = { ...prev };
+          
+          // Remove old reaction count
+          if (oldReaction) {
+            newCounts[oldReaction] = Math.max(0, (newCounts[oldReaction] || 0) - 1);
+          }
+          
+          // Add new reaction count
+          newCounts[reactionType] = (newCounts[reactionType] || 0) + 1;
+          
+          return newCounts;
+        });
+      }
+      
       // Call parent callback if provided
       if (onReaction) {
         onReaction(post.id, reactionType);
       }
     } catch (error) {
-      console.error('Error adding reaction:', error);
+      console.error('Error handling reaction:', error);
+    } finally {
+      setIsReacting(false);
     }
   };
   
@@ -182,7 +243,12 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="font-bold text-white">Anonymous Crasher</span>
+              <span className="font-bold text-white">
+                {post.is_anonymous === false && userProfile?.full_name 
+                  ? userProfile.full_name 
+                  : 'Anonymous Crasher'
+                }
+              </span>
               {post.is_private && <Lock className="h-4 w-4 text-purple-300" />}
             </div>
             <span className="text-xs text-white/60">{formatTimeAgo(post.created_at)}</span>
@@ -262,23 +328,23 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
       <div className="space-y-3 pt-2 border-t border-white/10">
         {/* Voting Section */}
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
+        <Button
+          variant="ghost"
+          size="sm"
             onClick={() => handleVote('up')}
             disabled={isVoting}
             title="This helps me / Good advice"
             className={`bg-black/20 hover:bg-black/40 transition-colors flex-shrink-0 ${
               userVote === 'up' ? 'bg-green-500/30 text-green-300' : 'text-white/80 hover:text-green-300'
             }`}
-          >
+        >
             <span className="mr-1 text-base">👍</span>
             <span className="text-sm">{reactionCounts.upvotes || 0}</span>
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="sm"
             onClick={() => handleVote('down')}
             disabled={isVoting}
             title="Not helpful / Bad advice"
@@ -297,34 +363,49 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
             variant="ghost"
             size="sm"
             onClick={() => handleReaction('heart')}
-            className="bg-black/20 hover:bg-black/40 text-white/80 hover:text-pink-300 transition-colors flex-shrink-0"
+            disabled={isReacting}
+            className={`bg-black/20 hover:bg-black/40 transition-colors flex-shrink-0 ${
+              userReaction === 'heart' 
+                ? 'bg-pink-500/30 text-pink-300 ring-2 ring-pink-400' 
+                : 'text-white/80 hover:text-pink-300'
+            }`}
             title="Send support"
-          >
+        >
             <span className="mr-1 text-base">💜</span>
             <span className="text-sm">{reactionCounts.heart || 0}</span>
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="sm"
             onClick={() => handleReaction('hug')}
-            className="bg-black/20 hover:bg-black/40 text-white/80 hover:text-blue-300 transition-colors flex-shrink-0"
+            disabled={isReacting}
+            className={`bg-black/20 hover:bg-black/40 transition-colors flex-shrink-0 ${
+              userReaction === 'hug' 
+                ? 'bg-blue-500/30 text-blue-300 ring-2 ring-blue-400' 
+                : 'text-white/80 hover:text-blue-300'
+            }`}
             title="Send a virtual hug"
-          >
+        >
             <span className="mr-1 text-base">🤗</span>
             <span className="text-sm">{reactionCounts.hug || 0}</span>
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
             onClick={() => handleReaction('wow')}
-            className="bg-black/20 hover:bg-black/40 text-white/80 hover:text-yellow-300 transition-colors flex-shrink-0"
+            disabled={isReacting}
+            className={`bg-black/20 hover:bg-black/40 transition-colors flex-shrink-0 ${
+              userReaction === 'wow' 
+                ? 'bg-yellow-500/30 text-yellow-300 ring-2 ring-yellow-400' 
+                : 'text-white/80 hover:text-yellow-300'
+            }`}
             title="I feel you / Relatable"
-          >
+        >
             <span className="mr-1 text-base">🫂</span>
             <span className="text-sm">{reactionCounts.wow || 0}</span>
-          </Button>
+        </Button>
         </div>
       </div>
 

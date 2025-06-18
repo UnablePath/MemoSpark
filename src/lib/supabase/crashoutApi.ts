@@ -9,6 +9,7 @@ export interface CrashoutPost {
   mood_emoji?: string;
   mood_type?: 'stressed' | 'overwhelmed' | 'frustrated' | 'anxious' | 'sad' | 'angry' | 'exhausted' | 'excited' | 'calm';
   is_private: boolean;
+  is_anonymous?: boolean;
   tags?: string[];
   attachment_urls?: string[];
   reaction_counts: {
@@ -29,6 +30,7 @@ export interface CrashoutPostInput {
   mood_emoji?: string;
   mood_type?: string;
   is_private?: boolean;
+  is_anonymous?: boolean;
   tags?: string[];
   attachment_urls?: string[];
 }
@@ -170,9 +172,9 @@ export const getUserVote = async (postId: string, userId: string) => {
     .select('vote_type')
     .eq('post_id', postId)
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
   
-  if (error && error.code !== 'PGRST116') throw error;
+  if (error) throw error;
   return data?.vote_type || null;
 };
 
@@ -192,18 +194,33 @@ export const getCommentsForPost = async (postId: string) => {
   return data || [];
 };
 
-export const removeReaction = async (postId: string, reactionType: 'heart' | 'wow' | 'hug', userId: string) => {
+export const removeReaction = async (postId: string, userId: string) => {
   if (!supabase) {
     throw new Error('Supabase client not initialized');
   }
   
   const { error } = await supabase.rpc('remove_reaction', {
     post_id_param: postId,
-    user_id_param: userId,
-    reaction_type_param: reactionType
+    user_id_param: userId
   });
   
   if (error) throw error;
+};
+
+export const getUserReaction = async (postId: string, userId: string): Promise<'heart' | 'wow' | 'hug' | null> => {
+  if (!supabase) {
+    throw new Error('Supabase client not initialized');
+  }
+  
+  const { data, error } = await supabase
+    .from('crashout_post_reactions')
+    .select('reaction_type')
+    .eq('post_id', postId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  
+  if (error) throw error;
+  return data?.reaction_type || null;
 };
 
 export const getUserReactions = async (userId: string, postIds: string[]) => {
@@ -250,14 +267,12 @@ export const addComment = async (postId: string, content: string, userId: string
         }
       })
       .eq('id', postId);
-    
+  
     if (updateError) console.error('Error updating comment count:', updateError);
   }
   
   return data as PostComment;
 };
-
-
 
 export const deletePost = async (postId: string, userId: string, getToken?: () => Promise<string | null>) => {
   const client = getToken ? createAuthenticatedSupabaseClient(getToken) : await getAuthenticatedClient();

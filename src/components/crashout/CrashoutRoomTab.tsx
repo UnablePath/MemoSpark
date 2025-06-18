@@ -60,8 +60,8 @@ export function CrashoutRoomTab() {
               colorTo="#3B82F6"
               className="from-purple-400 via-blue-400 to-purple-400"
             />
-            <h1 className="text-xl sm:text-3xl font-bold text-center">CRASHOUT ROOM 🔥</h1>
-            <p className="text-center text-purple-100 font-medium text-sm sm:text-base">Crashout here, not in their DMs.</p>
+          <h1 className="text-xl sm:text-3xl font-bold text-center">CRASHOUT ROOM 🔥</h1>
+          <p className="text-center text-purple-100 font-medium text-sm sm:text-base">Crashout here, not in their DMs.</p>
           
           {/* Filter Tabs */}
           <div className="flex justify-center mt-4 px-2">
@@ -85,7 +85,7 @@ export function CrashoutRoomTab() {
               ))}
             </div>
           </div>
-          </header>
+        </header>
         </div>
 
         <div className="p-2 sm:p-4">
@@ -101,18 +101,18 @@ export function CrashoutRoomTab() {
 
               {/* Main Content */}
               <div className="order-last lg:order-first lg:col-span-3 space-y-4 sm:space-y-6">
-                <PostComposer onPost={handlePost} />
-                {loading ? (
-                  <div className="flex justify-center items-center py-12">
-                    <Loader2 className="h-12 w-12 animate-spin text-purple-400" />
-                  </div>
-                ) : error ? (
-                  <div className="text-center py-12 text-red-400">
-                    <p>Error: {error}</p>
-                  </div>
-                ) : (
-                  <PostFeed posts={posts} moodStyles={moodStyles} onReaction={handleReaction} onDelete={handleDelete} />
-                )}
+              <PostComposer onPost={handlePost} />
+              {loading ? (
+                <div className="flex justify-center items-center py-12">
+                  <Loader2 className="h-12 w-12 animate-spin text-purple-400" />
+                </div>
+              ) : error ? (
+                <div className="text-center py-12 text-red-400">
+                  <p>Error: {error}</p>
+                </div>
+              ) : (
+                <PostFeed posts={posts} moodStyles={moodStyles} onReaction={handleReaction} onDelete={handleDelete} />
+              )}
               </div>
             </div>
           )}
@@ -121,16 +121,16 @@ export function CrashoutRoomTab() {
 
       {/* Floating Relaxation Button - Above Stu Icon */}
       <div className="fixed bottom-32 right-4 z-[9999] relative">
-        <button
-          onClick={() => setIsRelaxMode(!isRelaxMode)}
+      <button
+        onClick={() => setIsRelaxMode(!isRelaxMode)}
           className="relative bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-400 hover:to-purple-400
-                     rounded-full shadow-2xl border-2 border-white/20
-                     flex items-center justify-center
-                     transform hover:scale-110 transition-all duration-200 touch-manipulation
+                   rounded-full shadow-2xl border-2 border-white/20
+                   flex items-center justify-center
+                   transform hover:scale-110 transition-all duration-200 touch-manipulation
                      group overflow-hidden
-                     w-14 h-14 sm:w-16 sm:h-16"
-          aria-label={isRelaxMode ? "Exit relaxation mode" : "Enter relaxation mode"}
-        >
+                   w-14 h-14 sm:w-16 sm:h-16"
+        aria-label={isRelaxMode ? "Exit relaxation mode" : "Enter relaxation mode"}
+      >
           <BorderBeam 
             size={80}
             duration={4}
@@ -144,13 +144,13 @@ export function CrashoutRoomTab() {
             {isRelaxMode ? 'EXIT' : 'RELAX'}
           </span>
         </div>
-          <div className="hidden sm:block absolute right-16 top-1/2 transform -translate-y-1/2 
-                          bg-gray-800 text-white text-xs px-2 py-1 rounded-md
-                          opacity-0 group-hover:opacity-100 transition-opacity
-                          whitespace-nowrap pointer-events-none shadow-lg border border-gray-600">
-            {isRelaxMode ? '🧘 Exit Relaxation' : '🔥 Stress Relief'}
-          </div>
-        </button>
+        <div className="hidden sm:block absolute right-16 top-1/2 transform -translate-y-1/2 
+                        bg-gray-800 text-white text-xs px-2 py-1 rounded-md
+                        opacity-0 group-hover:opacity-100 transition-opacity
+                        whitespace-nowrap pointer-events-none shadow-lg border border-gray-600">
+          {isRelaxMode ? '🧘 Exit Relaxation' : '🔥 Stress Relief'}
+        </div>
+      </button>
       </div>
     </div>
   );

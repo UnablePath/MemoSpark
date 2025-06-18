@@ -29,7 +29,7 @@ const MOOD_OPTIONS = [
 export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
-  const [isPrivate, setIsPrivate] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(true);
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [selectedMood, setSelectedMood] = useState<string>('');
   const [tags, setTags] = useState<string[]>([]);
@@ -51,6 +51,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
         mood_type: selectedMood || undefined,
         mood_emoji: selectedMoodObj?.emoji || undefined,
         is_private: isPrivate,
+        is_anonymous: isAnonymous,
         tags: tags.length > 0 ? tags : undefined
       });
       
@@ -92,20 +93,20 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
           
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
             {/* Privacy Toggle */}
-            <div className="flex items-center space-x-2">
-              {isPrivate ? (
-                <Lock className="h-4 w-4 text-purple-400" />
-              ) : (
-                <Unlock className="h-4 w-4 text-green-400" />
-              )}
-              <span className="text-sm text-gray-300">
-                {isPrivate ? 'Private' : 'Public'}
-              </span>
-              <Switch
-                checked={isPrivate}
-                onCheckedChange={setIsPrivate}
-                className="data-[state=checked]:bg-purple-600"
-              />
+          <div className="flex items-center space-x-2">
+            {isPrivate ? (
+              <Lock className="h-4 w-4 text-purple-400" />
+            ) : (
+              <Unlock className="h-4 w-4 text-green-400" />
+            )}
+            <span className="text-sm text-gray-300">
+              {isPrivate ? 'Private' : 'Public'}
+            </span>
+            <Switch
+              checked={isPrivate}
+              onCheckedChange={setIsPrivate}
+              className="data-[state=checked]:bg-purple-600"
+            />
             </div>
 
             {/* Anonymous Toggle */}
