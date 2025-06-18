@@ -29,7 +29,8 @@ const MOOD_OPTIONS = [
 export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
-  const [isPrivate, setIsPrivate] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(true);
+  const [isAnonymous, setIsAnonymous] = useState(true);
   const [selectedMood, setSelectedMood] = useState<string>('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
@@ -50,6 +51,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
         mood_type: selectedMood || undefined,
         mood_emoji: selectedMoodObj?.emoji || undefined,
         is_private: isPrivate,
+        is_anonymous: isAnonymous,
         tags: tags.length > 0 ? tags : undefined
       });
       
@@ -85,9 +87,12 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
   return (
     <Card className="w-full bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-xl">
       <CardContent className="p-6">
-        {/* Header with Privacy Toggle */}
-        <div className="flex items-center justify-between mb-4">
+        {/* Header with Privacy and Anonymous Toggles */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <h3 className="text-lg font-semibold text-white">Crashout Composer</h3>
+          
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            {/* Privacy Toggle */}
           <div className="flex items-center space-x-2">
             {isPrivate ? (
               <Lock className="h-4 w-4 text-purple-400" />
@@ -102,6 +107,26 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
               onCheckedChange={setIsPrivate}
               className="data-[state=checked]:bg-purple-600"
             />
+            </div>
+
+            {/* Anonymous Toggle */}
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 flex items-center justify-center">
+                {isAnonymous ? (
+                  <span className="text-purple-400 text-xs">👤</span>
+                ) : (
+                  <span className="text-green-400 text-xs">🆔</span>
+                )}
+              </div>
+              <span className="text-sm text-gray-300">
+                {isAnonymous ? 'Anonymous' : 'Show Name'}
+              </span>
+              <Switch
+                checked={!isAnonymous}
+                onCheckedChange={(checked) => setIsAnonymous(!checked)}
+                className="data-[state=checked]:bg-green-600"
+              />
+            </div>
           </div>
         </div>
 
@@ -151,7 +176,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
             </div>
 
             {showMoodSelector && (
-              <div className="grid grid-cols-3 gap-2 p-3 bg-gray-700/30 rounded-lg border border-gray-600">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 bg-gray-700/30 rounded-lg border border-gray-600">
                 {MOOD_OPTIONS.map((mood) => (
                   <Button
                     key={mood.type}
@@ -162,14 +187,14 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
                       setSelectedMood(mood.type);
                       setShowMoodSelector(false);
                     }}
-                    className={`justify-start text-xs ${
+                    className={`justify-start text-xs break-words ${
                       selectedMood === mood.type 
                         ? 'bg-purple-600 text-white' 
                         : 'bg-gray-700/50 border-gray-600 text-gray-300 hover:bg-gray-600'
                     }`}
                   >
-                    <span className="mr-1">{mood.emoji}</span>
-                    {mood.label}
+                    <span className="mr-1 flex-shrink-0">{mood.emoji}</span>
+                    <span className="truncate">{mood.label}</span>
                   </Button>
                 ))}
               </div>
@@ -214,7 +239,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
             )}
           </div>
 
-          {/* Public Posting Awareness Notice */}
+          {          /* Public Posting Awareness Notice */}
           {!isPrivate && content.trim() && (
             <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-3 flex items-start space-x-2">
               <div className="text-blue-400 mt-0.5">
@@ -223,9 +248,11 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
                 </svg>
               </div>
               <div className="text-sm text-blue-300">
-                <p className="font-medium">You're sharing this publicly!</p>
+                <p className="font-medium">
+                  You're sharing this {isAnonymous ? 'anonymously' : 'with your name'} publicly!
+                </p>
                 <p className="text-blue-200/80 text-xs mt-1">
-                  Other students can see and react to this post. You'll have <strong>10 seconds</strong> to delete it if you change your mind.
+                  Other students can see and react to this post{!isAnonymous ? ' and will see your profile name' : ''}. You'll have <strong>10 seconds</strong> to delete it if you change your mind.
                 </p>
               </div>
             </div>

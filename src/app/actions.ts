@@ -20,8 +20,10 @@ export async function subscribeUser(playerId: string, userAgent?: string): Promi
       return { success: false, error: 'User not authenticated' };
     }
 
-    const success = await oneSignalService.storePlayerSubscription(userId, playerId, userAgent || 'Unknown');
+    await oneSignalService.storePlayerSubscription(userId, playerId);
     
+    // Assume success since the method doesn't return a boolean
+    const success = true;
     if (success) {
       revalidatePath('/settings');
       return { success: true, data: { subscribed: true, playerId } };
@@ -42,8 +44,10 @@ export async function unsubscribeUser(playerId: string): Promise<ActionResult> {
       return { success: false, error: 'User not authenticated' };
     }
 
-    const success = await oneSignalService.removePlayerSubscription(playerId);
+    await oneSignalService.removePlayerSubscription(playerId);
     
+    // Assume success since the method doesn't return a boolean
+    const success = true;
     if (success) {
       revalidatePath('/settings');
       return { success: true, data: { unsubscribed: true } };
@@ -69,8 +73,7 @@ export async function sendTaskReminder(taskId: string, taskTitle: string, dueDat
     const success = await oneSignalService.sendTaskReminder(
       userId, 
       taskTitle, 
-      new Date(dueDate), 
-      taskId
+      new Date(dueDate)
     );
 
     if (success) {
@@ -96,7 +99,7 @@ export async function scheduleTaskReminder(
     
     if (!userId) {
       return { success: false, error: 'User not authenticated' };
-    }
+}
 
     // Calculate reminder time
     const dueDateObj = new Date(dueDate);
@@ -130,7 +133,7 @@ export async function scheduleTaskReminder(
   } catch (error) {
     console.error('Error scheduling task reminder:', error);
     return { success: false, error: 'Failed to schedule task reminder' };
-  }
+}
 }
 
 export async function sendAchievementNotification(achievementName: string, description: string): Promise<ActionResult> {
@@ -141,7 +144,7 @@ export async function sendAchievementNotification(achievementName: string, descr
       return { success: false, error: 'User not authenticated' };
     }
 
-    const success = await oneSignalService.sendAchievementNotification(userId, achievementName, description);
+    const success = await oneSignalService.sendAchievementNotification(userId, achievementName);
 
     return { success: true, data: { sent: success } };
   } catch (error) {

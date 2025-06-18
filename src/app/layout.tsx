@@ -1,5 +1,5 @@
 import "@/app/globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
@@ -12,36 +12,122 @@ import { ConditionalHeader } from "@/components/layout/ConditionalHeader";
 import ClientBody from "@/app/ClientBody";
 import { PwaInstaller } from "@/components/pwa/PwaInstaller";
 import { Toaster } from "@/components/ui/sonner";
+import { OneSignalProvider } from '@/components/providers/onesignal-provider';
+import { memoSparkClerkAppearance } from '@/lib/clerk-appearance';
+import { ClerkProvider } from '@clerk/nextjs';
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "MemoSpark - AI-Powered Student Productivity",
-  description: "Transform your study routine with AI-powered task management, smart scheduling, and gamified progress tracking",
+  title: {
+    template: '%s | MemoSpark',
+    default: 'MemoSpark - AI-Powered Study Companion',
+  },
+  description: 'Transform your learning with AI-powered task management, smart scheduling, and personalized study insights.',
+  keywords: ['study', 'ai', 'task management', 'education', 'productivity', 'learning'],
+  authors: [{ name: 'MemoSpark Team' }],
+  creator: 'MemoSpark',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://memospark.live'),
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: process.env.NEXT_PUBLIC_APP_URL || 'https://memospark.live',
+    title: 'MemoSpark - AI-Powered Study Companion',
+    description: 'Transform your learning with AI-powered task management, smart scheduling, and personalized study insights.',
+    siteName: 'MemoSpark',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'MemoSpark - AI-Powered Study Companion',
+    description: 'Transform your learning with AI-powered task management, smart scheduling, and personalized study insights.',
+    creator: '@memospark',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-256x256.png', sizes: '256x256', type: 'image/png' },
+      { url: '/icon-384x384.png', sizes: '384x384', type: 'image/png' },
+      { url: '/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
+    title: 'MemoSpark',
+  },
+  formatDetection: {
+    telephone: false,
   },
 };
 
-export const viewport = {
-  width: "device-width",
+export const viewport: Viewport = {
+  width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: "cover",
-  themeColor: "#fadbdb",
+  minimumScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+  ],
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <ClerkProvider 
+      appearance={memoSparkClerkAppearance}
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+    >
+      <html lang="en" suppressHydrationWarning>
       <head>
+          {/* OneSignal Web SDK - Official Implementation */}
+          <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                window.OneSignalDeferred = window.OneSignalDeferred || [];
+                OneSignalDeferred.push(async function(OneSignal) {
+                  await OneSignal.init({
+                    appId: "${process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID}",
+                    allowLocalhostAsSecureOrigin: true,
+                    autoRegister: false,
+                    autoResubscribe: false,
+                    safari_web_id: "${process.env.NEXT_PUBLIC_ONESIGNAL_SAFARI_WEB_ID || ''}",
+                    notifyButton: {
+                      enable: false,
+                    },
+                    welcomeNotification: {
+                      disable: false,
+                      title: 'MemoSpark',
+                      message: 'Thanks for subscribing! 🎉',
+                      url: '/dashboard'
+                    }
+                  });
+                });
+              `
+            }}
+          />
+          
         {/* Favicon for different browsers and devices */}
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
@@ -63,11 +149,13 @@ export default function RootLayout({
                 <AIProvider>
                   <TutorialProvider>
                     <PWAProvider>
-                      <ClientBody>
-                        {children}
-                        <PwaInstaller />
-                        <Toaster />
-                      </ClientBody>
+                        <OneSignalProvider>
+                    <ClientBody>
+                      {children}
+                            <PwaInstaller />
+                            <Toaster />
+                    </ClientBody>
+                        </OneSignalProvider>
                     </PWAProvider>
                   </TutorialProvider>
                 </AIProvider>
@@ -77,5 +165,6 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
     </html>
+    </ClerkProvider>
   );
 }

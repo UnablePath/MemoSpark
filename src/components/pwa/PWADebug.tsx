@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { usePWAContext } from '@/components/providers/pwa-provider'
 import { PushNotificationManager } from './PushNotificationManager'
+import { Badge } from '@/components/ui/badge'
 
 interface PWADebugProps {
   className?: string
@@ -166,9 +167,34 @@ export default function PWADebug({ className = '' }: PWADebugProps) {
           </div>
         </div>
 
-        <div className="pt-4 border-t">
-          <h3 className="font-semibold mb-2">Push Notifications</h3>
-          <PushNotificationManager className="mb-4" />
+        {/* Network Diagnostics */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <h3 className="font-semibold text-amber-800 mb-2">🌐 Network Diagnostics</h3>
+          <div className="space-y-2 text-sm">
+            <div>Online Status: <Badge variant={debugInfo.isOnline ? "default" : "destructive"}>{debugInfo.isOnline ? "Online" : "Offline"}</Badge></div>
+            <div>Connection Type: {(navigator as any)?.connection?.effectiveType || 'Unknown'}</div>
+            <div>User Agent: {debugInfo.userAgent.substring(0, 50)}...</div>
+            
+            <details className="mt-2">
+              <summary className="cursor-pointer text-amber-700 font-medium">OneSignal CDN Test</summary>
+              <div className="mt-2 p-2 bg-amber-100 rounded text-xs">
+                <p>If OneSignal is stuck on "Initializing...", try:</p>
+                <ul className="list-disc list-inside mt-1 space-y-1">
+                  <li>Check if <code>cdn.onesignal.com</code> is reachable</li>
+                  <li>Disable VPN/proxy temporarily</li>
+                  <li>Try a different network (mobile hotspot)</li>
+                  <li>Check corporate firewall settings</li>
+                  <li>Clear browser cache and cookies</li>
+                </ul>
+                <p className="mt-2 font-semibold">The app works normally without OneSignal!</p>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        {/* Push Notification Manager */}
+        <div className="mb-4">
+          <PushNotificationManager />
         </div>
 
         <div className="pt-4 border-t">

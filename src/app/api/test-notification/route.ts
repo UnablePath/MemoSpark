@@ -1,21 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { oneSignalService } from '@/lib/notifications/OneSignalService';
 
-// Send test notification to a specific user (for testing background notifications)
+// Send test notification via OneSignal REST API
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, type = 'test', message } = body;
+    const { playerId, type = 'test', message, title } = body;
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+    if (!playerId) {
+      return NextResponse.json({ error: 'Player ID required' }, { status: 400 });
+    }
+
+    if (!process.env.ONESIGNAL_REST_API_KEY || !process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID) {
+      return NextResponse.json({ error: 'OneSignal configuration missing' }, { status: 500 });
     }
 
     // Test messages
     const testMessages = {
       test: {
-        title: '🧪 Background Test',
-        body: message || 'This is a background notification test! Your browser can be closed.'
+        title: '🧪 Test Notification',
+        body: message || 'This is a test notification from StudySpark!'
       },
       task: {
         title: '📋 Task Reminder',
@@ -23,7 +26,7 @@ export async function POST(request: NextRequest) {
       },
       achievement: {
         title: '🏆 Achievement Unlocked!',
-        body: 'You successfully set up background notifications!'
+        body: 'You successfully set up push notifications!'
       },
       break: {
         title: '☕ Take a Break',
@@ -36,44 +39,56 @@ export async function POST(request: NextRequest) {
     };
 
     const messageData = testMessages[type as keyof typeof testMessages] || testMessages.test;
+    
+    // Allow custom title and message from request
+    const finalTitle = title || messageData.title;
+    const finalMessage = message || messageData.body;
 
-    // Send notification using external user ID (Clerk user ID)
-    const result = await oneSignalService.sendNotification({
-      contents: { en: messageData.body },
-      headings: { en: messageData.title },
-      include_external_user_ids: [userId],
+    // Send notification via OneSignal REST API
+    const notification = {
+      app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
+      include_player_ids: [playerId],
+      headings: { en: finalTitle },
+      contents: { en: finalMessage },
       data: { 
-        type: 'background_test',
+        type: 'test_notification',
         testType: type,
         timestamp: new Date().toISOString()
       },
       url: '/dashboard',
-      android_channel_id: 'background_tests',
-      priority: 8,
-      buttons: [
+      web_buttons: [
         {
           id: 'open_app',
           text: 'Open StudySpark',
           url: '/dashboard'
-        },
-        {
-          id: 'dismiss',
-          text: 'Dismiss'
         }
       ]
+    };
+
+    const response = await fetch('https://onesignal.com/api/v1/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY}`,
+      },
+      body: JSON.stringify(notification),
     });
 
-    if (result) {
+    const result = await response.json();
+
+    if (response.ok) {
       return NextResponse.json({ 
         success: true, 
-        message: `Background ${type} notification sent successfully`,
+        message: `Test ${type} notification sent successfully`,
         notificationId: result.id,
-        recipients: result.recipients
+        recipients: result.recipients || 1
       });
     } else {
+      console.error('OneSignal API error:', result);
       return NextResponse.json({ 
         success: false, 
-        message: 'Failed to send notification - user may not be subscribed'
+        message: 'Failed to send notification',
+        error: result.errors || 'Unknown error'
       }, { status: 500 });
     }
 
@@ -86,23 +101,15 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Get current user ID for testing
-export async function GET(request: NextRequest) {
+// Get test endpoint information
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const testKey = searchParams.get('key');
-    
-    // Simple security - in production you'd use proper auth
-    if (testKey !== 'test123') {
-      return NextResponse.json({ error: 'Invalid test key' }, { status: 401 });
-    }
-
     return NextResponse.json({
-      message: 'Background notification test endpoint',
+      message: 'OneSignal test notification endpoint',
       usage: {
         method: 'POST',
         body: {
-          userId: 'your_clerk_user_id',
+          playerId: 'onesignal_player_id',
           type: 'test|task|achievement|break|overdue',
           message: 'Optional custom message'
         }
@@ -110,8 +117,12 @@ export async function GET(request: NextRequest) {
       example: `
         curl -X POST http://localhost:3000/api/test-notification \\
           -H "Content-Type: application/json" \\
-          -d '{"userId": "user_123", "type": "test"}'
-      `
+          -d '{"playerId": "your_player_id", "type": "test"}'
+      `,
+      configured: {
+        appId: !!process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
+        restApiKey: !!process.env.ONESIGNAL_REST_API_KEY
+      }
     });
 
   } catch (error) {

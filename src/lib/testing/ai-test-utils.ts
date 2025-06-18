@@ -576,3 +576,71 @@ export class AITestUtils {
 
 // Export singleton instance
 export const aiTestUtils = new AITestUtils();
+
+// Export functions for backwards compatibility with existing tests
+export const createMockTask = (overrides: Partial<ExtendedTask> = {}): ExtendedTask => {
+  const now = new Date().toISOString();
+  return {
+    id: 'test-task-1',
+    title: 'Test Task',
+    dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    priority: 'medium',
+    type: 'academic',
+    subject: 'General',
+    completed: false,
+    reminder: false,
+    description: 'Test task description',
+    createdAt: now,
+    updatedAt: now,
+    recurrenceRule: 'none',
+    recurrenceInterval: 0,
+    recurrenceEndDate: undefined,
+    originalDueDate: undefined,
+    completedOverrides: {},
+    ...overrides
+  };
+};
+
+export const createMockUserPreferences = (): any => {
+  return {
+    enableSuggestions: true,
+    suggestionFrequency: 'moderate',
+    difficultyPreference: 'adaptive',
+    preferredStudyTimes: [9, 10, 14, 15],
+    preferredStudyDuration: 90,
+    preferredBreakDuration: 15,
+    maxDailyStudyHours: 8,
+    cloudSyncEnabled: false,
+    shareAnonymousData: false,
+    personalizedStuInteraction: true,
+    enableBreakReminders: true,
+    enableStudyReminders: true,
+    reminderAdvanceTime: 15,
+    adaptiveDifficulty: true,
+    focusOnWeakSubjects: true,
+    balanceSubjects: true,
+    availableStudyHours: [9, 10, 11, 14, 15, 16, 19, 20],
+    strugglingSubjects: ['Mathematics', 'Physics']
+  };
+};
+
+export const createMockPatternData = (): any => {
+  return {
+    timePattern: {
+      mostProductiveHours: [9, 10, 14, 15],
+      averageSessionLength: 90,
+      breakFrequency: 15
+    },
+    subjectInsights: {
+      subjectPerformance: {
+        Mathematics: { completionRate: 0.8, avgScore: 85 },
+        Physics: { completionRate: 0.7, avgScore: 78 },
+        Chemistry: { completionRate: 0.9, avgScore: 92 }
+      }
+    },
+    difficultyAnalysis: {
+      averageDifficulty: 6,
+      improvementRate: 0.15
+    }
+  };
+};

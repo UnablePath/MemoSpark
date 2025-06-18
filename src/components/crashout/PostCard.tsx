@@ -3,9 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Heart, MessageCircle, Eye, Lock, Trash2, Clock } from 'lucide-react';
-import { CrashoutPost } from '@/lib/supabase/crashoutApi';
+import { MessageCircle, Eye, Lock, Trash2, Clock, ThumbsUp } from 'lucide-react';
+import { CrashoutPost, addReaction, getUserVote, addVote, removeVote, getUserReaction, removeReaction } from '@/lib/supabase/crashoutApi';
 import { useAuth } from '@clerk/nextjs';
+import { CommentSystem } from './CommentSystem';
+import { BorderBeam } from '@/components/ui/border-beam';
 
 const moodOptions: Record<string, { bg: string; border: string; emoji: string; label: string }> = {
   stressed: { bg: 'bg-red-500/80', border: 'border-red-400', emoji: '😤', label: 'STRESSED AF' },
@@ -30,7 +32,59 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
   const { userId } = useAuth();
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
+  const [userReaction, setUserReaction] = useState<'heart' | 'support' | 'mind_blown' | null>(null);
+  const [reactionCounts, setReactionCounts] = useState(post.reaction_counts);
+  const [isVoting, setIsVoting] = useState(false);
+  const [isReacting, setIsReacting] = useState(false);
+  const [userProfile, setUserProfile] = useState<{ full_name?: string } | null>(null);
   const moodStyle = moodOptions[post.mood_type || ''] || moodOptions.stressed;
+  
+  // Fetch user profile if post is not anonymous
+  useEffect(() => {
+    if (post.is_anonymous === false && post.user_id) {
+      const fetchUserProfile = async () => {
+        try {
+          const response = await fetch(`/api/user-profile/${post.user_id}`);
+          const data = await response.json();
+          
+          if (response.ok && data.success) {
+            setUserProfile(data.profile || {});
+          } else {
+            console.error('Error fetching user profile:', data.error);
+            setUserProfile({});
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+          setUserProfile({});
+        }
+      };
+
+      fetchUserProfile();
+    } else {
+      setUserProfile({});
+    }
+  }, [post.is_anonymous, post.user_id]);
+
+  // Load user vote and reaction on mount
+  useEffect(() => {
+    if (!userId) return;
+    
+    const loadUserInteractions = async () => {
+      try {
+        const [vote, reaction] = await Promise.all([
+          getUserVote(post.id, userId),
+          getUserReaction(post.id, userId)
+        ]);
+        setUserVote(vote);
+        setUserReaction(reaction);
+      } catch (error) {
+        console.error('Error loading user interactions:', error);
+      }
+    };
+    
+    loadUserInteractions();
+  }, [userId, post.id]);
   
   // Calculate if post is within 10-second deletion window
   useEffect(() => {
@@ -66,6 +120,95 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
       setShowDeleteConfirm(false);
     }
   };
+
+  const handleVote = async (voteType: 'up' | 'down') => {
+    if (!userId || isVoting) return;
+    
+    setIsVoting(true);
+    try {
+      if (userVote === voteType) {
+        // Remove vote if clicking same vote
+        await removeVote(post.id, userId);
+        setUserVote(null);
+        // Update local reaction counts
+        setReactionCounts(prev => ({
+          ...prev,
+          upvotes: voteType === 'up' ? Math.max(0, (prev.upvotes || 0) - 1) : (prev.upvotes || 0),
+          downvotes: voteType === 'down' ? Math.max(0, (prev.downvotes || 0) - 1) : (prev.downvotes || 0)
+        }));
+      } else {
+        // Add new vote or change vote
+        await addVote(post.id, voteType, userId);
+        const oldVote = userVote;
+        setUserVote(voteType);
+        // Update local reaction counts
+        setReactionCounts(prev => ({
+          ...prev,
+          upvotes: voteType === 'up' 
+            ? (prev.upvotes || 0) + 1 
+            : oldVote === 'up' 
+              ? Math.max(0, (prev.upvotes || 0) - 1) 
+              : (prev.upvotes || 0),
+          downvotes: voteType === 'down' 
+            ? (prev.downvotes || 0) + 1 
+            : oldVote === 'down' 
+              ? Math.max(0, (prev.downvotes || 0) - 1) 
+              : (prev.downvotes || 0)
+        }));
+      }
+    } catch (error) {
+      console.error('Error voting:', error);
+    } finally {
+      setIsVoting(false);
+    }
+  };
+
+  const handleReaction = async (reactionType: 'heart' | 'support' | 'mind_blown') => {
+    if (!userId || isReacting) return;
+    
+    setIsReacting(true);
+    try {
+      if (userReaction === reactionType) {
+        // Remove reaction if clicking the same one
+        await removeReaction(post.id, userId);
+        setUserReaction(null);
+        // Update local reaction counts
+        setReactionCounts(prev => ({
+          ...prev,
+          [reactionType]: Math.max(0, (prev[reactionType] || 0) - 1)
+        }));
+      } else {
+        // Add new reaction or switch reaction
+        const oldReaction = userReaction;
+        await addReaction(post.id, reactionType, userId);
+        setUserReaction(reactionType);
+        
+        // Update local reaction counts
+        setReactionCounts(prev => {
+          const newCounts = { ...prev };
+          
+          // Remove old reaction count
+          if (oldReaction) {
+            newCounts[oldReaction] = Math.max(0, (newCounts[oldReaction] || 0) - 1);
+          }
+          
+          // Add new reaction count
+          newCounts[reactionType] = (newCounts[reactionType] || 0) + 1;
+          
+          return newCounts;
+        });
+      }
+      
+      // Call parent callback if provided
+      if (onReaction) {
+        onReaction(post.id, reactionType);
+      }
+    } catch (error) {
+      console.error('Error handling reaction:', error);
+    } finally {
+      setIsReacting(false);
+    }
+  };
   
   const canDelete = userId && post.user_id === userId && !post.is_private && timeLeft !== null;
   
@@ -82,8 +225,16 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
   };
 
   return (
-    <div className={`backdrop-blur-md rounded-2xl p-6 shadow-xl border-l-8 ${moodStyle.border} ${moodStyle.bg}
-                     transform hover:scale-[1.02] transition-all duration-200`}>
+    <div className={`relative backdrop-blur-md rounded-2xl p-6 shadow-xl border-l-8 ${moodStyle.border} ${moodStyle.bg}
+                     transform hover:scale-[1.02] transition-all duration-200 overflow-hidden`}>
+      <BorderBeam 
+        size={120}
+        duration={12}
+        colorFrom="#A855F7"
+        colorTo="#3B82F6"
+        className="opacity-50"
+        delay={Math.random() * 5}
+      />
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
@@ -92,7 +243,12 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="font-bold text-white">Anonymous Crasher</span>
+              <span className="font-bold text-white">
+                {post.is_anonymous === false 
+                  ? (userProfile?.full_name || 'Unknown User')
+                  : 'Anonymous Crasher'
+                }
+              </span>
               {post.is_private && <Lock className="h-4 w-4 text-purple-300" />}
             </div>
             <span className="text-xs text-white/60">{formatTimeAgo(post.created_at)}</span>
@@ -168,46 +324,96 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
         </div>
       )}
       
-      {/* Reactions */}
-      <div className="flex items-center space-x-2 pt-2 border-t border-white/10">
+      {/* Reactions & Voting */}
+      <div className="space-y-3 pt-2 border-t border-white/10">
+        {/* Voting Section */}
+        <div className="flex items-center gap-2">
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onReaction(post.id, 'heart')}
-          className="bg-black/20 hover:bg-black/40 text-white/80 hover:text-pink-300 transition-colors"
+            onClick={() => handleVote('up')}
+            disabled={isVoting}
+            title="This helps me / Good advice"
+            className={`bg-black/20 hover:bg-black/40 transition-colors flex-shrink-0 ${
+              userVote === 'up' ? 'bg-green-500/30 text-green-300' : 'text-white/80 hover:text-green-300'
+            }`}
         >
-          <Heart className="h-4 w-4 mr-1" />
-          {post.reaction_counts.heart}
+            <span className="mr-1 text-base">👍</span>
+            <span className="text-sm">{reactionCounts.upvotes || 0}</span>
         </Button>
         
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onReaction(post.id, 'wow')}
-          className="bg-black/20 hover:bg-black/40 text-white/80 hover:text-yellow-300 transition-colors"
+            onClick={() => handleVote('down')}
+            disabled={isVoting}
+            title="Not helpful / Bad advice"
+            className={`bg-black/20 hover:bg-black/40 transition-colors flex-shrink-0 ${
+              userVote === 'down' ? 'bg-red-500/30 text-red-300' : 'text-white/80 hover:text-red-300'
+            }`}
+          >
+            <span className="mr-1 text-base">👎</span>
+            <span className="text-sm">{reactionCounts.downvotes || 0}</span>
+          </Button>
+        </div>
+
+        {/* Support Reactions */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleReaction('heart')}
+            disabled={isReacting}
+            className={`bg-black/20 hover:bg-black/40 transition-colors flex-shrink-0 ${
+              userReaction === 'heart' 
+                ? 'bg-pink-500/30 text-pink-300 ring-2 ring-pink-400' 
+                : 'text-white/80 hover:text-pink-300'
+            }`}
+            title="Send support"
         >
-          <Eye className="h-4 w-4 mr-1" />
-          {post.reaction_counts.wow}
+            <span className="mr-1 text-base">💜</span>
+            <span className="text-sm">{reactionCounts.heart || 0}</span>
         </Button>
         
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onReaction(post.id, 'hug')}
-          className="bg-black/20 hover:bg-black/40 text-white/80 hover:text-blue-300 transition-colors"
+            onClick={() => handleReaction('support')}
+            disabled={isReacting}
+            className={`bg-black/20 hover:bg-black/40 transition-colors flex-shrink-0 ${
+              userReaction === 'support' 
+                ? 'bg-blue-500/30 text-blue-300 ring-2 ring-blue-400' 
+                : 'text-white/80 hover:text-blue-300'
+            }`}
+            title="Send support"
         >
-          🫂 {post.reaction_counts.hug}
+            <span className="mr-1 text-base">🤗</span>
+            <span className="text-sm">{reactionCounts.support || 0}</span>
         </Button>
 
         <Button
           variant="ghost"
           size="sm"
-          className="bg-black/20 hover:bg-black/40 text-white/80 hover:text-green-300 transition-colors ml-auto"
+            onClick={() => handleReaction('mind_blown')}
+            disabled={isReacting}
+            className={`bg-black/20 hover:bg-black/40 transition-colors flex-shrink-0 ${
+              userReaction === 'mind_blown' 
+                ? 'bg-yellow-500/30 text-yellow-300 ring-2 ring-yellow-400' 
+                : 'text-white/80 hover:text-yellow-300'
+            }`}
+            title="Mind blown / That's deep"
         >
-          <MessageCircle className="h-4 w-4 mr-1" />
-          {post.reaction_counts.comment}
+            <span className="mr-1 text-base">🤯</span>
+            <span className="text-sm">{reactionCounts.mind_blown || 0}</span>
         </Button>
+        </div>
       </div>
+
+      {/* Comment System */}
+      <CommentSystem
+        postId={post.id}
+        className="mt-3"
+      />
     </div>
   );
 }; 

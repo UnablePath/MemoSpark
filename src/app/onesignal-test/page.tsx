@@ -3,9 +3,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useOneSignalProduction as useOneSignal } from '@/hooks/useOneSignalProduction';
+import { useOneSignal } from '@/components/providers/onesignal-provider';
 import { useAuth } from '@clerk/nextjs';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, BellOff, Check, X, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -15,17 +15,27 @@ export default function OneSignalTestPage() {
     isInitialized,
     isSubscribed,
     playerId,
-    isPushSupported,
     error,
     subscribe,
     unsubscribe,
-    sendTestNotification,
-    getAnalytics,
   } = useOneSignal();
-
+  
+  const [isPushSupported, setIsPushSupported] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [testResults, setTestResults] = useState<Record<string, boolean>>({});
   const [analytics, setAnalytics] = useState<any[]>([]);
+
+  // Check push support properly
+  useEffect(() => {
+    const checkPushSupport = () => {
+      if (typeof window !== 'undefined') {
+        const isSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+        setIsPushSupported(isSupported);
+      }
+    };
+    
+    checkPushSupport();
+  }, []);
 
   const handleSubscribe = async () => {
     setIsLoading(true);
@@ -33,9 +43,12 @@ export default function OneSignalTestPage() {
       const success = await subscribe();
       if (success) {
         setTestResults(prev => ({ ...prev, subscribe: true }));
+      } else {
+        setTestResults(prev => ({ ...prev, subscribe: false }));
       }
     } catch (error) {
       console.error('Subscription failed:', error);
+      setTestResults(prev => ({ ...prev, subscribe: false }));
     } finally {
       setIsLoading(false);
     }
@@ -47,9 +60,12 @@ export default function OneSignalTestPage() {
       const success = await unsubscribe();
       if (success) {
         setTestResults(prev => ({ ...prev, unsubscribe: true }));
+      } else {
+        setTestResults(prev => ({ ...prev, unsubscribe: false }));
       }
     } catch (error) {
       console.error('Unsubscription failed:', error);
+      setTestResults(prev => ({ ...prev, unsubscribe: false }));
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +74,23 @@ export default function OneSignalTestPage() {
   const handleTestNotification = async (type: 'task' | 'achievement' | 'break' | 'streak') => {
     setIsLoading(true);
     try {
-      const success = await sendTestNotification(type);
+      if (!playerId) {
+        setTestResults(prev => ({ ...prev, [type]: false }));
+        return;
+      }
+      
+      const response = await fetch('/api/test-notification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerId,
+          type
+        }),
+      });
+      
+      const success = response.ok;
       setTestResults(prev => ({ ...prev, [type]: success }));
     } catch (error) {
       console.error(`Test ${type} notification failed:`, error);
@@ -71,8 +103,14 @@ export default function OneSignalTestPage() {
   const handleGetAnalytics = async () => {
     setIsLoading(true);
     try {
-      const data = await getAnalytics(); // No parameters for basic version
-      setAnalytics([data]); // Wrap in array since analytics state expects array
+      // Placeholder analytics for now
+      const data = {
+        totalNotifications: 0,
+        delivered: 0,
+        clicked: 0,
+        message: 'Analytics coming soon!'
+      };
+      setAnalytics([data]);
     } catch (error) {
       console.error('Failed to get analytics:', error);
     } finally {
@@ -107,7 +145,7 @@ export default function OneSignalTestPage() {
         <div>
           <h1 className="text-3xl font-bold">OneSignal Integration Test</h1>
           <p className="text-muted-foreground">
-            Test the new OneSignal notification system - solves Vercel cron limitations!
+            Test the OneSignal notification system properly configured
           </p>
         </div>
         {process.env.NODE_ENV === 'development' && (
@@ -135,13 +173,13 @@ export default function OneSignalTestPage() {
               </Badge>
             </div>
             <div className="space-y-2">
-              <p className="text-sm font-medium">Initialized</p>
+              <p className="text-sm font-medium">OneSignal Ready</p>
               <Badge variant={isInitialized ? "default" : "secondary"}>
                 {isInitialized ? "Ready" : "Loading..."}
               </Badge>
             </div>
             <div className="space-y-2">
-              <p className="text-sm font-medium">Subscription</p>
+              <p className="text-sm font-medium">Subscription Status</p>
               <Badge variant={isSubscribed ? "default" : "outline"}>
                 {isSubscribed ? "Subscribed" : "Not Subscribed"}
               </Badge>
@@ -169,7 +207,7 @@ export default function OneSignalTestPage() {
         <CardHeader>
           <CardTitle>Subscription Management</CardTitle>
           <CardDescription>
-            Manage your notification subscription
+            Test OneSignal subscription flow according to documentation
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -195,26 +233,38 @@ export default function OneSignalTestPage() {
             {getStatusBadge(testResults.unsubscribe)}
           </div>
           
-          <Alert>
-            <CheckCircle className="h-4 w-4" />
-            <AlertTitle>Real-time Delivery</AlertTitle>
-            <AlertDescription>
-              OneSignal delivers notifications instantly - no more waiting for cron jobs!
-              Vercel Hobby plan limitation (2 cron jobs/day) is now irrelevant.
-            </AlertDescription>
-          </Alert>
+          {!isPushSupported && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Push Notifications Not Supported</AlertTitle>
+              <AlertDescription>
+                Your browser or device doesn't support push notifications. Try using Chrome, Firefox, or Edge on desktop.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {isPushSupported && !isSubscribed && (
+            <Alert>
+              <Bell className="h-4 w-4" />
+              <AlertTitle>Ready to Subscribe</AlertTitle>
+              <AlertDescription>
+                Click "Subscribe to Notifications" to enable push notifications. You'll see a browser permission dialog.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Background Testing Instructions */}
-          {isSubscribed && (
+          {isSubscribed && playerId && (
             <Alert className="border-blue-200 bg-blue-50">
               <Bell className="h-4 w-4 text-blue-600" />
               <AlertTitle className="text-blue-800">Test Background Notifications</AlertTitle>
               <AlertDescription className="text-blue-700">
                 <div className="space-y-2">
                   <p><strong>Your User ID:</strong> <code className="bg-blue-100 px-1 rounded text-xs">{userId}</code></p>
+                  <p><strong>Your Player ID:</strong> <code className="bg-blue-100 px-1 rounded text-xs">{playerId}</code></p>
                   <p><strong>To test background notifications:</strong></p>
                   <ol className="list-decimal list-inside space-y-1 text-sm">
-                    <li>Copy your User ID above</li>
+                    <li>Copy your Player ID above</li>
                     <li>Close this browser completely</li>
                     <li>Use another device/browser to send: <code className="bg-blue-100 px-1 rounded text-xs">POST /api/test-notification</code></li>
                     <li>Or use the curl command below</li>
@@ -222,7 +272,7 @@ export default function OneSignalTestPage() {
                   <div className="mt-2 p-2 bg-blue-100 rounded text-xs font-mono overflow-x-auto">
                     {`curl -X POST http://localhost:3000/api/test-notification \\
   -H "Content-Type: application/json" \\
-  -d '{"userId": "${userId}", "type": "test"}'`}
+  -d '{"playerId": "${playerId}", "type": "test"}'`}
                   </div>
                 </div>
               </AlertDescription>

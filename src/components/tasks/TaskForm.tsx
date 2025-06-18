@@ -883,6 +883,8 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
+                              <SelectItem value="0">Immediate reminder</SelectItem>
+                              <SelectItem value="1">1 minute before</SelectItem>
                               <SelectItem value="5">5 minutes before</SelectItem>
                               <SelectItem value="15">15 minutes before</SelectItem>
                               <SelectItem value="30">30 minutes before</SelectItem>
@@ -909,9 +911,9 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="notification">In-app notification</SelectItem>
-                              <SelectItem value="email">Email notification</SelectItem>
-                              <SelectItem value="both">Both notification types</SelectItem>
+                              <SelectItem value="notification">Push notification</SelectItem>
+                              <SelectItem value="email" disabled>Email notification (Coming Soon)</SelectItem>
+                              <SelectItem value="both" disabled>Both notification types (Coming Soon)</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import ThemeSettings from '@/components/settings/ThemeSettings';
 import AccessibilitySettings from '@/components/settings/AccessibilitySettings';
+import { NotificationSettings } from '@/components/settings/NotificationSettings';
 import Link from 'next/link';
 
 
@@ -65,6 +66,7 @@ const SettingsPage: React.FC = () => {
             </CardContent>
           </Card>
 
+          <NotificationSettings />
           <ThemeSettings />
           <AccessibilitySettings />
         </div>

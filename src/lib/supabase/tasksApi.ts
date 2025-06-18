@@ -662,32 +662,14 @@ export const ensureUserProfile = async (
   const client = getAuthenticatedClient(getToken);
 
   try {
-    // First, try to get existing profile
-    const { data: existingProfile, error: profileError } = await client
-      .from('profiles')
-      .select('id, clerk_user_id')
-      .single();
-
-    // If profile exists, return it
-    if (existingProfile && !profileError) {
-      return existingProfile;
-    }
-
-    // If profile doesn't exist, we need to get user data from Clerk and create it
-    // Since we're on the client side, we need to get Clerk data differently
-    
-    // Try to get the Clerk user ID from the JWT token
-    // This is a fallback approach - the profile should ideally be created via webhooks
-    let clerkUserId: string;
-    
-    // Get the JWT token and decode it to extract the user ID
+    // Get the JWT token and decode it to extract the user ID first
     const token = await (getToken ? getToken() : null);
     if (!token) {
       throw new SupabaseApiError('No authentication token available');
     }
 
     // Decode the JWT token to get the Clerk user ID
-    // Note: This is a simple base64 decode - in production you'd want to properly verify the JWT
+    let clerkUserId: string;
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       clerkUserId = payload.sub;
@@ -699,8 +681,24 @@ export const ensureUserProfile = async (
       throw new SupabaseApiError('No user ID found in authentication token');
     }
 
-    // Create a basic profile for the user
-    // Note: This creates a minimal profile - the user should complete onboarding to fill in details
+    // Try to get existing profile for this specific user
+    const { data: existingProfile, error: profileError } = await client
+      .from('profiles')
+      .select('id, clerk_user_id')
+      .eq('clerk_user_id', clerkUserId)
+      .maybeSingle(); // Use maybeSingle instead of single to handle no results gracefully
+
+    // If profile exists, return it
+    if (existingProfile && !profileError) {
+      return existingProfile;
+    }
+
+    // If the error is something other than "no rows", throw it
+    if (profileError && profileError.code !== 'PGRST116') {
+      throw new SupabaseApiError('Failed to check existing profile', profileError.code, profileError);
+    }
+
+    // Profile doesn't exist, create a new one
     const newProfileData = {
       clerk_user_id: clerkUserId,
       onboarding_completed: false,
@@ -715,6 +713,20 @@ export const ensureUserProfile = async (
       .single();
 
     if (createError) {
+      // If it's a unique constraint violation, the profile might have been created by another request
+      if (createError.code === '23505') {
+        // Try to get the existing profile one more time
+        const { data: retryProfile, error: retryError } = await client
+          .from('profiles')
+          .select('id, clerk_user_id')
+          .eq('clerk_user_id', clerkUserId)
+          .single();
+
+        if (retryProfile && !retryError) {
+          return retryProfile;
+        }
+      }
+      
       throw new SupabaseApiError('Failed to create user profile', createError.code, createError);
     }
 
@@ -876,14 +888,14 @@ export const getAISuggestionFeedbackSummary = async (
 
     const feedback = data || [];
     const totalFeedback = feedback.length;
-    const likedCount = feedback.filter(f => f.feedback === 'liked').length;
-    const dislikedCount = feedback.filter(f => f.feedback === 'disliked').length;
+    const likedCount = feedback.filter((f: { feedback: string }) => f.feedback === 'liked').length;
+    const dislikedCount = feedback.filter((f: { feedback: string }) => f.feedback === 'disliked').length;
     const likeRatio = totalFeedback > 0 ? likedCount / totalFeedback : 0;
 
     // Group by suggestion type
     const byType: Record<string, { liked: number; disliked: number; ratio: number }> = {};
     
-    feedback.forEach(f => {
+    feedback.forEach((f: { suggestion_type: string; feedback: string }) => {
       if (!byType[f.suggestion_type]) {
         byType[f.suggestion_type] = { liked: 0, disliked: 0, ratio: 0 };
       }
