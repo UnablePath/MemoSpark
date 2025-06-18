@@ -97,14 +97,15 @@ export class TaskReminderService {
         // Send immediate notification using OneSignal
         console.log(`⚡ Sending immediate task reminder via OneSignal`);
         
-        // Get user's OneSignal player ID first
+        // Check if user has OneSignal subscription
         const hasSubscription = await oneSignalService.hasActiveSubscription(task.user_id);
         if (!hasSubscription) {
-          console.log(`❌ No active OneSignal subscription for user: ${task.user_id}`);
+          console.log(`⚠️ No active OneSignal subscription for user: ${task.user_id}`);
+          console.log(`💡 User needs to enable push notifications first`);
           return false;
         }
 
-        // Send immediate notification
+        // Get user's OneSignal player ID
         const { data: subscription } = await oneSignalService['supabase']
           .from('push_subscriptions')
           .select('onesignal_player_id')
@@ -113,7 +114,8 @@ export class TaskReminderService {
           .single();
 
         if (!subscription?.onesignal_player_id) {
-          console.log(`❌ No OneSignal player ID found for user: ${task.user_id}`);
+          console.log(`⚠️ No OneSignal player ID found for user: ${task.user_id}`);
+          console.log(`💡 User needs to complete OneSignal subscription process`);
           return false;
         }
 
@@ -125,6 +127,14 @@ export class TaskReminderService {
       } else {
         // Schedule future notification using OneSignal's send_after
         console.log(`📅 Scheduling future task reminder via OneSignal for: ${reminderTime.toISOString()}`);
+        
+        // Check if user has OneSignal subscription before scheduling
+        const hasSubscription = await oneSignalService.hasActiveSubscription(task.user_id);
+        if (!hasSubscription) {
+          console.log(`⚠️ No active OneSignal subscription for user: ${task.user_id}`);
+          console.log(`💡 User needs to enable push notifications first`);
+          return false;
+        }
         
         success = await oneSignalService.scheduleNotification(
           task.user_id,
