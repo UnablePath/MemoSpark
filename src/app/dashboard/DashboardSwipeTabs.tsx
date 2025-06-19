@@ -79,6 +79,23 @@ export function DashboardSwipeTabs() {
     console.log(`Switching to tab: ${newActiveTabConfig?.key} (index: ${index})`);
   };
 
+  // Listen for tutorial tab change events
+  useEffect(() => {
+    const handleTutorialTabChange = (event: CustomEvent) => {
+      const { tabIndex } = event.detail;
+      if (typeof tabIndex === 'number' && tabIndex >= 0 && tabIndex < TABS_CONFIG.length) {
+        console.log(`Tutorial requesting tab change to index: ${tabIndex}`);
+        handleTabChange(tabIndex);
+      }
+    };
+
+    window.addEventListener('tutorialTabChange', handleTutorialTabChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('tutorialTabChange', handleTutorialTabChange as EventListener);
+    };
+  }, [handleTabChange]);
+
   // Memoize rendered components to prevent unnecessary re-renders and maintain state
   const memoizedTabComponents = useMemo(() => {
     return TABS_CONFIG.map((tabConfig) => {
