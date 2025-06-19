@@ -70,79 +70,54 @@ export function TabContainer({
   }, [currentIndex, tabs.length, controlledIndex, onTabChange, internalIndex]);
 
   const handlers = useSwipeable({
-    onSwipeStart: (eventData: SwipeEventData) => {
-      // Only allow swipes that start from the outer edges of the screen
+    onSwipedLeft: (eventData: SwipeEventData) => {
+      if (!swipingEnabled) return;
+      
       const event = eventData.event as TouchEvent | MouseEvent;
       let startX: number;
       
       if ('touches' in event && event.touches.length > 0) {
-        // Touch event
         startX = event.touches[0].clientX;
       } else if ('clientX' in event) {
-        // Mouse event
         startX = event.clientX;
       } else {
-        return; // Unknown event type, allow swipe
+        changeTab(1);
+        return;
       }
       
       const screenWidth = window.innerWidth;
+      const isInOuterEdge = startX <= 70 || startX >= screenWidth - 70;
       
-      // Check if swipe starts in outer edges (left 20% or right 20%)
-      const isInOuterEdge = startX <= screenWidth * 0.2 || startX >= screenWidth * 0.8;
-      
-      if (!isInOuterEdge) {
-        // Prevent swipe if not in outer edge
-        eventData.event.preventDefault();
-        return;
-      }
-    },
-    onSwipedLeft: (eventData: SwipeEventData) => {
-      if (swipingEnabled) {
-        const event = eventData.event as TouchEvent | MouseEvent;
-        let startX: number;
-        
-        if ('touches' in event && event.touches.length > 0) {
-          startX = event.touches[0].clientX;
-        } else if ('clientX' in event) {
-          startX = event.clientX;
-        } else {
-          changeTab(1);
-          return;
-        }
-        
-        const screenWidth = window.innerWidth;
-        const isInOuterEdge = startX <= screenWidth * 0.2 || startX >= screenWidth * 0.8;
-        
-        if (isInOuterEdge) {
-          changeTab(1);
-        }
+      if (isInOuterEdge) {
+        changeTab(1);
       }
     },
     onSwipedRight: (eventData: SwipeEventData) => {
-      if (swipingEnabled) {
-        const event = eventData.event as TouchEvent | MouseEvent;
-        let startX: number;
-        
-        if ('touches' in event && event.touches.length > 0) {
-          startX = event.touches[0].clientX;
-        } else if ('clientX' in event) {
-          startX = event.clientX;
-        } else {
-          changeTab(-1);
-          return;
-        }
-        
-        const screenWidth = window.innerWidth;
-        const isInOuterEdge = startX <= screenWidth * 0.2 || startX >= screenWidth * 0.8;
-        
-        if (isInOuterEdge) {
-          changeTab(-1);
-        }
+      if (!swipingEnabled) return;
+      
+      const event = eventData.event as TouchEvent | MouseEvent;
+      let startX: number;
+      
+      if ('touches' in event && event.touches.length > 0) {
+        startX = event.touches[0].clientX;
+      } else if ('clientX' in event) {
+        startX = event.clientX;
+      } else {
+        changeTab(-1);
+        return;
+      }
+      
+      const screenWidth = window.innerWidth;
+      const isInOuterEdge = startX <= 70 || startX >= screenWidth - 70;
+      
+      if (isInOuterEdge) {
+        changeTab(-1);
       }
     },
-    delta: 80, // Increased minimum distance for a swipe to be registered
-    preventScrollOnSwipe: false, // Allow scrolling
-    trackMouse: false // Disable mouse tracking to prevent accidental swipes
+    delta: 80, // Minimum distance for a swipe to be registered
+    preventScrollOnSwipe: false, // Critical: Allow vertical scrolling
+    trackMouse: false, // Disable mouse tracking to prevent accidental swipes
+    trackTouch: true // Enable touch tracking for mobile
   });
 
   if (!tabs.length) {

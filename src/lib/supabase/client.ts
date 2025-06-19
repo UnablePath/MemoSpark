@@ -13,6 +13,7 @@ export { createClient };
 // Supabase configuration for AI features
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://onfnehxkglmvrorcvqcx.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Default AI configuration
 const DEFAULT_AI_CONFIG: SupabaseAIConfig = {
@@ -53,6 +54,24 @@ function createSupabaseClient() {
 
 // Create base Supabase client
 export const supabase = createSupabaseClient();
+
+/**
+ * Create Supabase client with service role key for bypassing RLS
+ * Only use this for server-side operations that need elevated permissions
+ */
+export function createServiceRoleClient() {
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.warn('Service role configuration missing. Please set SUPABASE_SERVICE_ROLE_KEY');
+    return null;
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
 
 // Cache for authenticated clients to prevent multiple instances
 const authenticatedClients = new Map<string, any>();

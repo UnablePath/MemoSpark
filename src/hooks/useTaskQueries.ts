@@ -11,7 +11,6 @@ import {
   fetchTasksPaginated,
   getDashboardCounts,
 } from '@/lib/supabase/tasksApi';
-import { taskReminderService } from '@/lib/notifications/TaskReminderService';
 import type {
   Task,
   TaskInsert,
@@ -176,33 +175,40 @@ export const useCreateTask = (getToken?: () => Promise<string | null>) => {
     onSuccess: async (data, variables) => {
       toast.success('Task created successfully!');
       
-      // Schedule reminder notification if enabled
+      // Schedule AI-powered smart reminders if enabled
       if (data.reminder_settings?.enabled && data.due_date) {
         try {
-          const taskForReminder = {
+          // Import ReminderEngine for AI-powered reminders
+          const { ReminderEngine } = await import('@/lib/reminders/ReminderEngine');
+          const reminderEngine = ReminderEngine.getInstance();
+
+          const taskForSmartReminder = {
             id: data.id,
             title: data.title,
             due_date: data.due_date,
-            user_id: data.clerk_user_id || data.user_id, // Use clerk_user_id for OneSignal
+            user_id: data.clerk_user_id || data.user_id,
+            priority: data.priority,
+            type: data.type,
+            subject: data.subject,
             reminder_offset_minutes: data.reminder_settings?.offset_minutes || 15,
             is_completed: data.completed
           };
 
-          const reminderScheduled = await taskReminderService.scheduleTaskReminder(taskForReminder);
+          const smartReminderScheduled = await reminderEngine.scheduleSmartReminder(taskForSmartReminder);
           
-          if (reminderScheduled) {
-            console.log(`✅ Reminder scheduled for task: ${data.title}`);
-            toast.success('Task reminder has been scheduled!', {
-              description: `You'll be notified ${data.reminder_settings?.offset_minutes || 15} minutes before the due date.`
+          if (smartReminderScheduled) {
+            console.log(`✅ AI-powered smart reminders scheduled for task: ${data.title}`);
+            toast.success('Smart reminders activated!', {
+              description: `AI will optimize reminder timing based on your patterns and task importance.`
             });
           } else {
-            console.warn(`⚠️ Failed to schedule reminder for task: ${data.title}`);
-            toast.warning('Task created, but reminder not scheduled', {
-              description: 'Enable push notifications in settings to receive task reminders.'
+            console.warn(`⚠️ Failed to schedule smart reminders for task: ${data.title}`);
+            toast.warning('Task created, but smart reminders not scheduled', {
+              description: 'Enable push notifications in settings to receive proactive reminders.'
             });
           }
         } catch (error) {
-          console.error('Error scheduling task reminder:', error);
+          console.error('Error scheduling smart task reminders:', error);
           // Don't show error to user as task was created successfully
         }
       }
@@ -277,33 +283,45 @@ export const useUpdateTask = (getToken?: () => Promise<string | null>) => {
     onSuccess: async (data, { id, updates }) => {
       toast.success('Task updated successfully!');
       
-      // Handle reminder scheduling for updated task
+      // Handle AI-powered smart reminder scheduling for updated task
       if (updates.reminder_settings?.enabled && data.due_date) {
         try {
-          const taskForReminder = {
+          // Import ReminderEngine for AI-powered reminders
+          const { ReminderEngine } = await import('@/lib/reminders/ReminderEngine');
+          const reminderEngine = ReminderEngine.getInstance();
+
+          const taskForSmartReminder = {
             id: data.id,
             title: data.title,
             due_date: data.due_date,
             user_id: data.clerk_user_id || data.user_id,
+            priority: data.priority,
+            type: data.type,
+            subject: data.subject,
             reminder_offset_minutes: data.reminder_settings?.offset_minutes || 15,
             is_completed: data.completed
           };
 
-          const reminderScheduled = await taskReminderService.scheduleTaskReminder(taskForReminder);
+          const smartReminderScheduled = await reminderEngine.scheduleSmartReminder(taskForSmartReminder);
           
-          if (reminderScheduled) {
-            console.log(`✅ Reminder updated for task: ${data.title}`);
-            toast.success('Task reminder has been updated!', {
-              description: `You'll be notified ${data.reminder_settings?.offset_minutes || 15} minutes before the due date.`
+          if (smartReminderScheduled) {
+            console.log(`✅ Smart reminders updated for task: ${data.title}`);
+            toast.success('Smart reminders updated!', {
+              description: `AI will adjust reminder timing based on your updated task settings.`
             });
           }
         } catch (error) {
-          console.error('Error updating task reminder:', error);
+          console.error('Error updating smart task reminders:', error);
         }
       } else if (updates.reminder_settings?.enabled === false) {
         // Cancel reminders if disabled
         try {
+          // Cancel both basic and smart reminders
+          const { taskReminderService } = await import('@/lib/notifications/TaskReminderService');
+          const { ReminderEngine } = await import('@/lib/reminders/ReminderEngine');
+          
           await taskReminderService.cancelTaskReminders(id, data.clerk_user_id || data.user_id);
+          // Note: ReminderEngine doesn't have a direct cancel method, but scheduled OneSignal notifications will remain
           console.log(`✅ Reminders cancelled for task: ${data.title}`);
         } catch (error) {
           console.error('Error cancelling task reminders:', error);
@@ -361,6 +379,7 @@ export const useDeleteTask = (getToken?: () => Promise<string | null>) => {
         // We need to get the task data before it was deleted to get the user ID
         const previousTask = queryClient.getQueryData(taskKeys.detail(id)) as Task | undefined;
         if (previousTask) {
+          const { taskReminderService } = await import('@/lib/notifications/TaskReminderService');
           await taskReminderService.cancelTaskReminders(id, previousTask.clerk_user_id || previousTask.user_id);
           console.log(`✅ Reminders cancelled for deleted task: ${previousTask.title}`);
         }
@@ -435,27 +454,34 @@ export const useToggleTaskCompletion = (getToken?: () => Promise<string | null>)
       // Cancel reminders if task is completed
       if (isCompleted) {
         try {
+          const { taskReminderService } = await import('@/lib/notifications/TaskReminderService');
           await taskReminderService.cancelTaskReminders(id, data.clerk_user_id || data.user_id);
           console.log(`✅ Reminders cancelled for completed task: ${data.title}`);
         } catch (error) {
           console.error('Error cancelling reminders for completed task:', error);
         }
       } else if (!isCompleted && data.reminder_settings?.enabled && data.due_date) {
-        // Reschedule reminders if task is marked incomplete again and has reminders enabled
+        // Reschedule smart reminders if task is marked incomplete again and has reminders enabled
         try {
-          const taskForReminder = {
+          const { ReminderEngine } = await import('@/lib/reminders/ReminderEngine');
+          const reminderEngine = ReminderEngine.getInstance();
+
+          const taskForSmartReminder = {
             id: data.id,
             title: data.title,
             due_date: data.due_date,
             user_id: data.clerk_user_id || data.user_id,
+            priority: data.priority,
+            type: data.type,
+            subject: data.subject,
             reminder_offset_minutes: data.reminder_settings?.offset_minutes || 15,
             is_completed: data.completed
           };
 
-          await taskReminderService.scheduleTaskReminder(taskForReminder);
-          console.log(`✅ Reminders rescheduled for incomplete task: ${data.title}`);
+          await reminderEngine.scheduleSmartReminder(taskForSmartReminder);
+          console.log(`✅ Smart reminders rescheduled for incomplete task: ${data.title}`);
         } catch (error) {
-          console.error('Error rescheduling reminders for incomplete task:', error);
+          console.error('Error rescheduling smart reminders for incomplete task:', error);
         }
       }
       

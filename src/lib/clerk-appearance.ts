@@ -243,6 +243,52 @@ export const memoSparkClerkAppearance: Appearance = {
     alert: {
       color: 'hsl(0, 0%, 5%)',
     },
+    // UserButton specific overrides - remove all backgrounds and make smaller
+    userButtonTrigger: {
+      backgroundColor: 'transparent !important',
+      backdropFilter: 'none !important',
+      WebkitBackdropFilter: 'none !important',
+      boxShadow: 'none !important',
+      border: 'none !important',
+      padding: '0 !important',
+      width: '28px !important',
+      height: '28px !important',
+      '&:hover': {
+        backgroundColor: 'transparent !important',
+      },
+      '&:focus': {
+        backgroundColor: 'transparent !important',
+        boxShadow: 'none !important',
+      },
+    },
+    userButtonBox: {
+      backgroundColor: 'transparent !important',
+      backdropFilter: 'none !important',
+      WebkitBackdropFilter: 'none !important',
+      boxShadow: 'none !important',
+      border: 'none !important',
+    },
+    userButtonOuterBox: {
+      backgroundColor: 'transparent !important',
+      backdropFilter: 'none !important',
+      WebkitBackdropFilter: 'none !important',
+      boxShadow: 'none !important',
+      border: 'none !important',
+    },
+    userButtonAvatarBox: {
+      backgroundColor: 'transparent !important',
+      boxShadow: 'none !important',
+      border: 'none !important',
+      width: '28px !important',
+      height: '28px !important',
+    },
+    avatarBox: {
+      backgroundColor: 'transparent !important',
+      backdropFilter: 'none !important',
+      WebkitBackdropFilter: 'none !important',
+      boxShadow: 'none !important',
+      border: 'none !important',
+    },
   } as any,
   layout: {
     logoPlacement: 'none' as const,
@@ -493,6 +539,52 @@ export const memoSparkClerkAppearanceDark: Appearance = {
     },
     alert: {
       color: 'hsl(0, 0%, 98%)',
+    },
+    // UserButton specific overrides - remove all backgrounds and make smaller
+    userButtonTrigger: {
+      backgroundColor: 'transparent !important',
+      backdropFilter: 'none !important',
+      WebkitBackdropFilter: 'none !important',
+      boxShadow: 'none !important',
+      border: 'none !important',
+      padding: '0 !important',
+      width: '28px !important',
+      height: '28px !important',
+      '&:hover': {
+        backgroundColor: 'transparent !important',
+      },
+      '&:focus': {
+        backgroundColor: 'transparent !important',
+        boxShadow: 'none !important',
+      },
+    },
+    userButtonBox: {
+      backgroundColor: 'transparent !important',
+      backdropFilter: 'none !important',
+      WebkitBackdropFilter: 'none !important',
+      boxShadow: 'none !important',
+      border: 'none !important',
+    },
+    userButtonOuterBox: {
+      backgroundColor: 'transparent !important',
+      backdropFilter: 'none !important',
+      WebkitBackdropFilter: 'none !important',
+      boxShadow: 'none !important',
+      border: 'none !important',
+    },
+    userButtonAvatarBox: {
+      backgroundColor: 'transparent !important',
+      boxShadow: 'none !important',
+      border: 'none !important',
+      width: '28px !important',
+      height: '28px !important',
+    },
+    avatarBox: {
+      backgroundColor: 'transparent !important',
+      backdropFilter: 'none !important',
+      WebkitBackdropFilter: 'none !important',
+      boxShadow: 'none !important',
+      border: 'none !important',
     },
   } as any,
   layout: {

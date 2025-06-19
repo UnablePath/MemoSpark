@@ -747,3 +747,81 @@
   --chart-4: 160 65% 45%;
   --chart-5: 240 65% 45%;
 }
+
+/* Clerk UserButton Background Override - Force transparent backgrounds */
+/* Using high specificity to override Clerk's internal styling */
+div[data-clerk-component] .cl-userButtonTrigger,
+.cl-userButtonTrigger,
+[data-clerk-user-button] .cl-userButtonTrigger,
+.cl-userButton .cl-userButtonTrigger {
+  background: transparent !important;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+}
+
+div[data-clerk-component] .cl-userButtonTrigger:hover,
+.cl-userButtonTrigger:hover,
+[data-clerk-user-button] .cl-userButtonTrigger:hover,
+.cl-userButton .cl-userButtonTrigger:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+div[data-clerk-component] .cl-userButtonBox,
+.cl-userButtonBox,
+[data-clerk-user-button] .cl-userButtonBox,
+.cl-userButton .cl-userButtonBox {
+  background: transparent !important;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+div[data-clerk-component] .cl-userButtonOuterBox,
+.cl-userButtonOuterBox,
+[data-clerk-user-button] .cl-userButtonOuterBox,
+.cl-userButton .cl-userButtonOuterBox {
+  background: transparent !important;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+div[data-clerk-component] .cl-avatarBox,
+.cl-avatarBox,
+[data-clerk-user-button] .cl-avatarBox,
+.cl-userButton .cl-avatarBox {
+  background: transparent !important;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+div[data-clerk-component] .cl-userButtonAvatarBox,
+.cl-userButtonAvatarBox,
+[data-clerk-user-button] .cl-userButtonAvatarBox,
+.cl-userButton .cl-userButtonAvatarBox {
+  background: transparent !important;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  width: 28px !important;
+  height: 28px !important;
+}

@@ -13,6 +13,7 @@ import ClientBody from "@/app/ClientBody";
 import { PwaInstaller } from "@/components/pwa/PwaInstaller";
 import { Toaster } from "@/components/ui/sonner";
 import { OneSignalProvider } from '@/components/providers/onesignal-provider';
+import { NotificationPrompt } from '@/components/notifications/NotificationPrompt';
 import { memoSparkClerkAppearance } from '@/lib/clerk-appearance';
 import { ClerkProvider } from '@clerk/nextjs';
 
@@ -153,6 +154,7 @@ export default function RootLayout({
                     <ClientBody>
                       {children}
                             <PwaInstaller />
+                            <NotificationPrompt />
                             <Toaster />
                     </ClientBody>
                         </OneSignalProvider>

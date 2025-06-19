@@ -86,13 +86,7 @@ export const QueryProvider: React.FC<QueryProviderProps> = ({ children }) => {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      {/* Show devtools only in development */}
-      {process.env.NODE_ENV === 'development' && (
-        <ReactQueryDevtools 
-          initialIsOpen={false} 
-          position="bottom"
-        />
-      )}
+      {/* DevTools removed to reduce mobile screen clutter */}
     </QueryClientProvider>
   );
 }; 

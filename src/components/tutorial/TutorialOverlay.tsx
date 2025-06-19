@@ -216,7 +216,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
         }}
       />
 
-      {/* Tutorial Card - Moved up and to the left */}
+      {/* Tutorial Card - Mobile responsive positioning */}
       <motion.div
         variants={cardVariants}
         initial="initial"
@@ -224,8 +224,11 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
         exit="exit"
         transition={{ duration: 0.2, ease: 'easeOut' }}
         className={cn(
-          "fixed z-50 top-[35%] left-[40%] -translate-x-1/2 -translate-y-1/2",
-          "w-full max-w-2xl mx-4",
+          "fixed z-50",
+          // Mobile: centered with top margin, tablet+: positioned left-center
+          "top-4 left-4 right-4 sm:top-[30%] sm:left-[50%] sm:right-auto sm:-translate-x-1/2 sm:-translate-y-1/2",
+          "w-auto sm:w-full max-w-md sm:max-w-xl lg:max-w-2xl",
+          "max-h-[calc(100vh-2rem)] overflow-y-auto",
           className
         )}
       >
@@ -243,8 +246,8 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
                   />
                 </div>
                 <div>
-                  <CardTitle className="text-xl">{currentStepConfig.title}</CardTitle>
-                  <CardDescription className="text-sm text-muted-foreground">
+                  <CardTitle className="text-lg sm:text-xl">{currentStepConfig.title}</CardTitle>
+                  <CardDescription className="text-sm sm:text-base text-muted-foreground">
                     Step {currentStepIndex + 1} of {allSteps.length}
                   </CardDescription>
                 </div>
@@ -257,7 +260,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
             {/* Progress Bar */}
             <div className="mt-4">
               <Progress value={progressPercentage} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-sm sm:text-base text-muted-foreground mt-2">
                 {currentProgress.completed_steps.length} of {allSteps.length} steps completed
               </p>
             </div>
@@ -269,8 +272,8 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
               <div className="flex items-start gap-3">
                 <div className="text-2xl">🐨</div>
                 <div>
-                  <p className="text-sm font-medium text-primary">Stu says:</p>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-sm sm:text-base font-medium text-primary">Stu says:</p>
+                  <p className="text-sm sm:text-base text-muted-foreground mt-1">
                     {currentStepConfig.stuMessage}
                   </p>
                 </div>
@@ -279,7 +282,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
 
             {/* Step Description */}
             <div>
-              <p className="text-sm leading-relaxed">{currentStepConfig.description}</p>
+              <p className="text-sm sm:text-base leading-relaxed">{currentStepConfig.description}</p>
             </div>
 
             {/* Contextual Help */}
@@ -293,8 +296,8 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
                   className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3"
                 >
                   <div className="flex items-start gap-2">
-                    <div className="text-blue-500 text-sm">💡</div>
-                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                    <div className="text-blue-500 text-base">💡</div>
+                    <p className="text-sm sm:text-base text-blue-700 dark:text-blue-300">
                       {currentStepConfig.contextualHelp.message}
                     </p>
                   </div>
@@ -303,25 +306,25 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
             </AnimatePresence>
 
             {/* Action Buttons */}
-            <div className="flex items-center justify-between pt-4 border-t">
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={restartTutorial}>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between pt-4 border-t gap-3 sm:gap-2">
+              <div className="flex gap-2 flex-wrap">
+                <Button variant="outline" size="sm" onClick={restartTutorial} className="flex-1 sm:flex-initial">
                   <RotateCcw className="h-3 w-3 mr-1" />
                   Restart
                 </Button>
-                <Button variant="outline" size="sm" onClick={skipTutorial}>
+                <Button variant="outline" size="sm" onClick={skipTutorial} className="flex-1 sm:flex-initial">
                   <SkipForward className="h-3 w-3 mr-1" />
                   Skip Tutorial
                 </Button>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {currentStepConfig.skipAllowed && (
-                  <Button variant="ghost" size="sm" onClick={skipStep}>
+                  <Button variant="ghost" size="sm" onClick={skipStep} className="flex-1 sm:flex-initial">
                     Skip Step
                   </Button>
                 )}
-                <Button onClick={advanceStep} size="sm">
+                <Button onClick={advanceStep} size="sm" className="flex-1 sm:flex-initial">
                   {currentStepConfig.id === 'completion' ? 'Finish' : 'Next'}
                   <ChevronRight className="h-3 w-3 ml-1" />
                 </Button>

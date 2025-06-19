@@ -11,16 +11,17 @@ export async function POST(request: NextRequest) {
   try {
     const { 
       userId, 
-      notification 
+      notification, 
+      deliveryTime 
     } = await request.json();
 
-    if (!userId || !notification) {
+    if (!userId || !notification || !deliveryTime) {
       return NextResponse.json({ 
-        error: 'Missing required fields: userId, notification' 
+        error: 'Missing required fields: userId, notification, deliveryTime' 
       }, { status: 400 });
     }
 
-    console.log(`📨 Sending immediate OneSignal notification to user: ${userId}`);
+    console.log(`📅 Scheduling OneSignal notification for user: ${userId} at ${deliveryTime}`);
 
     // Get user's OneSignal player ID from database
     const { data: subscription, error: subscriptionError } = await supabase
@@ -57,6 +58,8 @@ export async function POST(request: NextRequest) {
       headings: notification.headings || { en: 'StudySpark' },
       data: notification.data || {},
       url: notification.url,
+      send_after: new Date(deliveryTime).toISOString(),
+      delayed_option: 'timezone', // Respect user's timezone
       priority: notification.priority || 5,
       ttl: 259200, // 3 days in seconds
       ...(notification.buttons && { buttons: notification.buttons })
@@ -67,9 +70,10 @@ export async function POST(request: NextRequest) {
       oneSignalPayload.android_channel_id = notification.android_channel_id;
     }
 
-    console.log(`🚀 Sending immediate notification to OneSignal API:`, {
+    console.log(`🚀 Sending to OneSignal API:`, {
       app_id: oneSignalPayload.app_id,
       include_player_ids: oneSignalPayload.include_player_ids,
+      send_after: oneSignalPayload.send_after,
       contents: oneSignalPayload.contents,
       headings: oneSignalPayload.headings,
       priority: oneSignalPayload.priority,
@@ -102,9 +106,9 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log('✅ OneSignal notification sent successfully:', oneSignalResult);
+    console.log('✅ OneSignal notification scheduled successfully:', oneSignalResult);
 
-    // Store the sent notification in our database for tracking
+    // Store the scheduled notification in our database for tracking
     const { error: trackingError } = await supabase
       .from('notification_queue')
       .insert({
@@ -112,8 +116,8 @@ export async function POST(request: NextRequest) {
         onesignal_notification_id: oneSignalResult.id,
         title: notification.headings?.en || 'Notification',
         body: notification.contents?.en || 'You have a notification',
-        scheduled_for: new Date().toISOString(),
-        status: 'sent',
+        scheduled_for: new Date(deliveryTime).toISOString(),
+        status: 'scheduled',
         data: notification.data || {},
         onesignal_player_id: playerId
       });
@@ -128,11 +132,12 @@ export async function POST(request: NextRequest) {
       oneSignalId: oneSignalResult.id,
       recipients: oneSignalResult.recipients,
       playerId,
-      message: 'Notification sent successfully'
+      scheduledFor: deliveryTime,
+      message: 'Notification scheduled successfully'
     });
 
   } catch (error) {
-    console.error('❌ Notification sending error:', error);
+    console.error('❌ Notification scheduling error:', error);
     return NextResponse.json({ 
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'
