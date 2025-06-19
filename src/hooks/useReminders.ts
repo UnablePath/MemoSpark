@@ -1,13 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import {
-  fetchReminders,
-  createReminder,
-  updateReminder,
-  deleteReminder,
-  subscribeToReminders,
-} from '@/lib/supabase/client';
-import type { Reminder, ReminderInsert, ReminderUpdate, ReminderFilters } from '@/types/reminders';
+import type { Reminder, ReminderCreateInput, ReminderUpdate, ReminderFilters } from '@/types/reminders';
 
 export const useReminders = (filters?: ReminderFilters) => {
   const { getToken, userId } = useAuth();
@@ -20,41 +13,56 @@ export const useReminders = (filters?: ReminderFilters) => {
 
     setLoading(true);
     try {
-      const token = await getToken({ template: 'supabase-integration' });
-      const data = await fetchReminders(filters, () => Promise.resolve(token));
-      setReminders(data);
+      const response = await fetch('/api/reminders');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch reminders: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (data.success) {
+        setReminders(data.reminders || []);
+      } else {
+        throw new Error(data.error || 'Failed to fetch reminders');
+      }
     } catch (e: any) {
       setError(e);
+      console.error('Error loading reminders:', e);
     } finally {
       setLoading(false);
     }
-  }, [userId, getToken, JSON.stringify(filters)]);
+  }, [userId]);
 
   useEffect(() => {
     loadReminders();
   }, [loadReminders]);
 
-  useEffect(() => {
-    if (!userId) return;
+  // Real-time updates removed for now - using direct API calls for reliability
 
-    const handleUpdate = (payload: any) => {
-      console.log('Real-time update received:', payload);
-      loadReminders(); // Simple reload for now
-    };
-    
-    const tokenProvider = async () => getToken({ template: 'supabase-integration' });
-    const unsubscribe = subscribeToReminders(handleUpdate, tokenProvider);
-
-    return () => {
-      unsubscribe();
-    };
-  }, [userId, getToken, loadReminders]);
-
-  const addReminder = async (reminderData: ReminderInsert) => {
-    const token = await getToken({ template: 'supabase-integration' });
-    const newReminder = await createReminder(reminderData, () => Promise.resolve(token));
-    setReminders((prev) => [newReminder, ...prev]);
-    return newReminder;
+  const addReminder = async (reminderData: ReminderCreateInput) => {
+    try {
+      const response = await fetch('/api/reminders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reminderData),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to create reminder: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      if (data.success) {
+        const newReminder = data.reminder;
+        setReminders((prev) => [newReminder, ...prev]);
+        return newReminder;
+      } else {
+        throw new Error(data.error || 'Failed to create reminder');
+      }
+    } catch (error) {
+      console.error('Error creating reminder:', error);
+      throw error;
+    }
   };
 
   const editReminder = async (id: string, updates: ReminderUpdate) => {
@@ -63,22 +71,55 @@ export const useReminders = (filters?: ReminderFilters) => {
     setReminders((prev) => prev.map((r) => (r.id === id ? { ...r, ...updates } : r)));
     
     try {
-      const token = await getToken({ template: 'supabase-integration' });
-      const updated = await updateReminder(id, updates, () => Promise.resolve(token));
-      // Replace with final data from server
-      setReminders((prev) => prev.map((r) => (r.id === id ? updated : r)));
-      return updated;
+      const response = await fetch('/api/reminders', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, ...updates }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update reminder: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      if (data.success) {
+        const updated = data.reminder;
+        // Replace with final data from server
+        setReminders((prev) => prev.map((r) => (r.id === id ? updated : r)));
+        return updated;
+      } else {
+        throw new Error(data.error || 'Failed to update reminder');
+      }
     } catch (e) {
       // Revert on error
+      console.error('Error updating reminder:', e);
       setReminders(originalReminders);
       throw e;
     }
   };
 
   const removeReminder = async (id: string) => {
-    const token = await getToken({ template: 'supabase-integration' });
-    await deleteReminder(id, () => Promise.resolve(token));
-    setReminders((prev) => prev.filter((r) => r.id !== id));
+    try {
+      const response = await fetch(`/api/reminders?id=${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to delete reminder: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      if (data.success) {
+        setReminders((prev) => prev.filter((r) => r.id !== id));
+      } else {
+        throw new Error(data.error || 'Failed to delete reminder');
+      }
+    } catch (error) {
+      console.error('Error deleting reminder:', error);
+      throw error;
+    }
   };
 
   return {

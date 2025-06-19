@@ -439,11 +439,11 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
       return (
         <ShimmerButton
           onClick={() => openTimetableForm()}
-          className="whitespace-nowrap h-8 px-2 sm:h-9 sm:px-3 md:h-10 md:px-4 scale-[0.94] sm:scale-100"
+          className="whitespace-nowrap h-8 text-xs sm:text-sm flex-shrink-0 px-1 xs:px-2 sm:px-3 md:px-4 min-w-[28px] xs:min-w-[32px] sm:min-w-auto"
           aria-label="Add new class (Ctrl+N)"
         >
-          <GraduationCap className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          <span className="hidden sm:inline ml-1 sm:ml-2 text-xs sm:text-sm">Add Class</span>
+          <GraduationCap className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+          <span className="hidden xs:inline ml-1 sm:ml-2">Add Class</span>
         </ShimmerButton>
       );
     }
@@ -451,11 +451,11 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
     return (
       <ShimmerButton
         onClick={() => openTaskForm()}
-        className="whitespace-nowrap h-8 px-2 sm:h-9 sm:px-3 md:h-10 md:px-4 scale-[0.94] sm:scale-100"
+        className="whitespace-nowrap h-8 text-xs sm:text-sm flex-shrink-0 px-1 xs:px-2 sm:px-3 md:px-4 min-w-[28px] xs:min-w-[32px] sm:min-w-auto"
         aria-label="Create new task (Ctrl+N)"
       >
-        <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-        <span className="hidden sm:inline ml-1 sm:ml-2 text-xs sm:text-sm">Add Task</span>
+        <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+        <span className="hidden xs:inline ml-1 sm:ml-2">Add Task</span>
       </ShimmerButton>
     );
   };
@@ -471,25 +471,26 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
             Your all-in-one productivity hub.
           </p>
         </div>
-        <div className="flex w-full md:w-auto items-center gap-2 md:gap-4">
+        <div className="flex w-full md:w-auto items-center gap-1 xs:gap-1.5 sm:gap-2 md:gap-4">
           {renderAddButton()}
 
-          {/* AI Suggestions Toggle - Tier Aware */}
+          {/* AI Suggestions Toggle - Tier Aware - becomes more compact on small screens */}
           <Button
             variant={showAISuggestions ? "default" : "outline"}
             size="default"
             onClick={toggleAISuggestions}
             className={cn(
-              "whitespace-nowrap transition-all duration-200 relative h-8 px-2 sm:h-9 sm:px-3 md:h-10 md:px-4 scale-[0.94] sm:scale-100",
+              "whitespace-nowrap transition-all duration-200 relative h-8 text-xs sm:text-sm flex-shrink-0",
+              // Responsive padding that gets smaller for screens < 440px
+              "px-1 xs:px-1.5 sm:px-3 md:px-4 min-w-[28px] xs:min-w-[32px] sm:min-w-auto",
               showAISuggestions && "bg-primary hover:bg-primary/90 text-primary-foreground",
-              userTier === 'premium' && "border-amber-300",
-              userTier === 'enterprise' && "border-purple-300"
+              userTier === 'premium' && "border-amber-300"
             )}
             aria-label={`Toggle AI Suggestions - ${userTier} tier (${usage.requestsRemaining} remaining)`}
           >
-            <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
             {userTier !== 'free' && (
-              <Crown className="h-2.5 w-2.5 sm:h-3 sm:w-3 ml-1 sm:mr-1 -ml-1 sm:ml-0" />
+              <Crown className="h-2.5 w-2.5 sm:h-3 sm:w-3 ml-0.5 sm:ml-1 flex-shrink-0" />
             )}
             <span className="hidden sm:inline ml-1 sm:ml-2 text-xs sm:text-sm">
               {showAISuggestions ? 'Hide AI' : 'AI Suggestions'}
@@ -532,8 +533,8 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
             </span>
           </div>
 
-          {/* Mobile view switcher - icons only */}
-          <div className="flex md:hidden items-center gap-1 rounded-md bg-muted p-1 scale-[0.94] sm:scale-100">
+          {/* Mobile view switcher - compact buttons, no scrolling */}
+          <div className="flex md:hidden items-center gap-0.5 rounded-md bg-muted p-0.5 flex-shrink-0">
             {viewOptions.map((option) => (
               <InteractiveHoverButton
                 key={option.id}
@@ -544,11 +545,12 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                     viewTabVariants({
                       state: currentView === option.id ? "active" : "inactive",
                     }),
-                    "px-1.5 py-1.5 sm:px-2 sm:py-2" // Smaller padding for mobile icons
+                    // Very compact for screens < 440px, gradually bigger for larger screens
+                    "px-0.5 py-0.5 xs:px-1 xs:py-1 sm:px-1.5 sm:py-1.5 min-w-[24px] xs:min-w-[28px] sm:min-w-[32px] flex items-center justify-center"
                   )}
                   title={option.label}
                 >
-                  <option.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <option.icon className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                 </div>
               </InteractiveHoverButton>
             ))}

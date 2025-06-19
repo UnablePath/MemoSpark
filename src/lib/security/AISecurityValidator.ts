@@ -351,7 +351,6 @@ export class AISecurityValidator {
       // Clear behavioral data
       this.rateLimitStore.delete(`${userId}_free`);
       this.rateLimitStore.delete(`${userId}_premium`);
-      this.rateLimitStore.delete(`${userId}_enterprise`);
       deletedItems.push('Rate limit data');
 
       // Log the deletion
@@ -482,8 +481,6 @@ export class AISecurityValidator {
    */
   static getTierLimits(tier: SubscriptionTier): { maxRequests: number } {
     switch (tier) {
-      case 'enterprise':
-        return { maxRequests: 1000 };
       case 'premium':
         return { maxRequests: 300 };
       case 'free':

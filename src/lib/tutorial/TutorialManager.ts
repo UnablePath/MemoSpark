@@ -46,6 +46,10 @@ export interface TutorialStepConfig {
   requiredActions?: string[]; // Actions user must complete
   skipAllowed: boolean;
   autoAdvance: boolean;
+  targetTab?: number; // Which dashboard tab this step should show
+  interactiveMode?: boolean; // If true, tutorial waits for user action
+  waitForAction?: string; // Specific action to wait for (e.g., 'click_tab', 'create_task')
+  actionInstructions?: string; // Instructions for what user should do
   contextualHelp?: {
     message: string;
     position: 'top' | 'bottom' | 'left' | 'right';
@@ -72,6 +76,7 @@ export class TutorialManager {
       stuMessage: 'Hey! Welcome to StudySpark! I\'m Stu, and I\'m here to help you become the best student you can be! Ready for a quick tour?',
       stuAnimation: 'excited',
       duration: 30,
+      targetTab: 0, // Stay on connections tab initially
       skipAllowed: true,
       autoAdvance: false,
       contextualHelp: {
@@ -82,72 +87,92 @@ export class TutorialManager {
     {
       id: 'navigation',
       title: 'Getting Around',
-      description: 'Let me show you how to navigate through different sections of StudySpark.',
-      stuMessage: 'See these tabs? They\'re your gateway to becoming organized! Each one has special tools to help you succeed.',
+      description: 'Try clicking on the different tabs to explore StudySpark!',
+      stuMessage: 'See these tabs at the bottom? Each one unlocks amazing features! Go ahead and tap on the Tasks tab (second one) to see where the magic happens!',
       stuAnimation: 'talking',
       duration: 45,
+      targetTab: 0, // Stay on connections tab to show navigation
       targetElements: ['.tab-navigation', '[role="tablist"]'],
+      interactiveMode: true,
+      waitForAction: 'tab_click',
+      actionInstructions: 'Click on the Tasks tab (calendar icon) to continue',
       skipAllowed: true,
       autoAdvance: false,
       contextualHelp: {
-        message: 'Try clicking on different tabs to explore!',
+        message: 'The tabs are at the bottom of your screen!',
         position: 'top'
       }
     },
     {
       id: 'task_creation',
       title: 'Create Your First Task',
-      description: 'Tasks are the building blocks of your productivity. Let\'s create one together!',
-      stuMessage: 'This is where the magic happens! Creating tasks helps you stay organized and focused. Go ahead, give it a try!',
+      description: 'Now create your very first task! Try something like "Study math for 1 hour".',
+      stuMessage: 'Perfect! You\'re now in the Tasks section. This is where productivity magic happens! Try creating your first task - maybe something like "Study math for 1 hour" or "Read chapter 5". Just type it and hit enter!',
       stuAnimation: 'encouraging',
       duration: 90,
-      targetElements: ['[data-testid="task-input"]', '.task-creation-form'],
+      targetTab: 1, // Switch to tasks tab
+      targetElements: ['[data-testid="task-input"]', '.task-creation-form', '.task-input'],
+      interactiveMode: true,
+      waitForAction: 'task_created',
+      actionInstructions: 'Create a task by typing in the input field and pressing Enter',
       requiredActions: ['create_task'],
       skipAllowed: true,
       autoAdvance: false,
       contextualHelp: {
-        message: 'Type something like "Study math for 1 hour" and hit enter!',
+        message: 'Look for the text input field to add your task!',
         position: 'bottom'
       }
     },
     {
       id: 'ai_suggestions',
       title: 'AI-Powered Study Help',
-      description: 'Our AI analyzes your patterns and suggests the perfect study routine for you.',
-      stuMessage: 'I have an AI friend who\'s really smart about studying! It learns how you work best and gives amazing suggestions. Pretty cool, right?',
+      description: 'Great job creating a task! Now explore the AI features that can help optimize your study routine.',
+      stuMessage: 'Awesome! You just created your first task! 🎉 Now here\'s where things get really cool - our AI can help you study smarter. Look around this Tasks tab and try interacting with any AI features you see!',
       stuAnimation: 'thinking',
       duration: 60,
-      targetElements: ['.ai-suggestions', '[data-testid="ai-suggestions"]'],
+      targetTab: 1, // Stay on tasks tab to show AI features
+      targetElements: ['.ai-suggestions', '[data-testid="ai-suggestions"]', '.ai-features', '.smart-schedule'],
+      interactiveMode: true,
+      waitForAction: 'ai_interaction',
+      actionInstructions: 'Explore the AI features or schedule suggestions in this tab',
       skipAllowed: true,
       autoAdvance: false,
       contextualHelp: {
-        message: 'The AI gets smarter as you use StudySpark more!',
+        message: 'Look for AI-powered buttons, smart scheduling, or suggestion features!',
         position: 'right'
       }
     },
     {
       id: 'social_features',
       title: 'Connect with Fellow Students',
-      description: 'Study buddies make everything better! Find study partners and join groups.',
-      stuMessage: 'Studying alone can be tough. That\'s why you can connect with other students here! Find study buddies, share tips, and motivate each other!',
+      description: 'Now let\'s go back to the Connections tab to see how you can find study buddies!',
+      stuMessage: 'Amazing work with the AI features! Now let\'s head back to the Connections tab (first one) to see how you can find study buddies and connect with other students. Studying together is always better!',
       stuAnimation: 'excited',
       duration: 45,
+      targetTab: 0, // Switch back to connections tab
       targetElements: ['.social-features', '.student-connections'],
+      interactiveMode: true,
+      waitForAction: 'connections_explored',
+      actionInstructions: 'Go back to the Connections tab and explore the social features',
       skipAllowed: true,
       autoAdvance: false,
       contextualHelp: {
-        message: 'Building a study network is one of the best things you can do!',
+        message: 'Click the first tab to explore connections!',
         position: 'left'
       }
     },
     {
       id: 'crashout_room',
       title: 'Stress Relief Zone',
-      description: 'When studying gets overwhelming, we\'ve got your back with stress relief tools.',
-      stuMessage: 'Feeling stressed? Don\'t worry - it happens to everyone! The Crashout Room is your safe space to vent, relax, and get back on track.',
+      description: 'Now visit the Crashout Room - your safe space for when studying gets overwhelming!',
+      stuMessage: 'Great! You\'ve seen the social features. Now let\'s check out something super important - the Crashout Room! Click on the fourth tab (the spa icon) to visit your stress relief zone. Everyone needs a mental break sometimes!',
       stuAnimation: 'encouraging',
       duration: 30,
+      targetTab: 3, // Switch to crashout tab
       targetElements: ['.crashout-features', '[data-testid="crashout-room"]'],
+      interactiveMode: true,
+      waitForAction: 'crashout_visited',
+      actionInstructions: 'Visit the Crashout Room tab and explore the stress relief features',
       skipAllowed: true,
       autoAdvance: false,
       contextualHelp: {
@@ -158,11 +183,15 @@ export class TutorialManager {
     {
       id: 'achievements',
       title: 'Level Up Your Studies',
-      description: 'Earn coins, unlock achievements, and track your progress as you study.',
-      stuMessage: 'Who says studying can\'t be fun? Earn coins for completing tasks, unlock cool achievements, and see your progress grow!',
+      description: 'Finally, check out the Gamification tab to see your achievements and progress!',
+      stuMessage: 'Awesome! You\'ve explored the Crashout Room. Now for the fun part - let\'s see your achievements! Click on the last tab (the game controller) to see your progress, coins, and achievements. You might have already earned some just from this tutorial!',
       stuAnimation: 'celebrating',
       duration: 30,
+      targetTab: 4, // Switch to gamification tab
       targetElements: ['.gamification-features', '.achievements-display'],
+      interactiveMode: true,
+      waitForAction: 'achievements_viewed',
+      actionInstructions: 'Visit the Gamification tab to see your achievements and progress',
       skipAllowed: true,
       autoAdvance: false,
       contextualHelp: {
@@ -177,6 +206,7 @@ export class TutorialManager {
       stuMessage: 'Awesome! You\'ve completed the tour and you\'re officially ready to rock your studies! I\'ll be here whenever you need encouragement or tips. You\'ve got this! 🎉',
       stuAnimation: 'celebrating',
       duration: 30,
+      targetTab: 1, // End on tasks tab to encourage task creation
       skipAllowed: false,
       autoAdvance: true,
       contextualHelp: {
@@ -491,6 +521,92 @@ export class TutorialManager {
     } catch (error) {
       console.error('Error updating step data:', error);
       return false;
+    }
+  }
+
+  /**
+   * Mark a specific action as completed for the current step
+   */
+  async markActionCompleted(userId: string, action: string): Promise<boolean> {
+    try {
+      const progress = await this.getTutorialProgress(userId);
+      if (!progress) return false;
+
+      const currentStepData = progress.step_data || {};
+      const completedActions = currentStepData.completedActions || [];
+      
+      if (!completedActions.includes(action)) {
+        completedActions.push(action);
+        currentStepData.completedActions = completedActions;
+        currentStepData.lastActionCompleted = action;
+        currentStepData.lastActionTime = new Date().toISOString();
+
+        return await this.updateStepData(userId, currentStepData);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error marking action completed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if a specific action is completed for the current step
+   */
+  async isActionCompleted(userId: string, action: string): Promise<boolean> {
+    try {
+      const progress = await this.getTutorialProgress(userId);
+      if (!progress) return false;
+
+      const completedActions = progress.step_data?.completedActions || [];
+      return completedActions.includes(action);
+    } catch (error) {
+      console.error('Error checking action completion:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Resume tutorial after required action is completed
+   */
+  async resumeTutorial(userId: string): Promise<boolean> {
+    try {
+      // Dispatch event to show tutorial overlay again
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('tutorialActionCompleted', {
+          detail: { userId }
+        }));
+      }
+      return true;
+    } catch (error) {
+      console.error('Error resuming tutorial:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if current step requires user action and if it's completed
+   */
+  async checkStepActionCompletion(userId: string): Promise<{ needsAction: boolean; actionCompleted: boolean; action?: string }> {
+    try {
+      const progress = await this.getTutorialProgress(userId);
+      if (!progress) return { needsAction: false, actionCompleted: false };
+
+      const stepConfig = this.getStepConfig(progress.current_step);
+      if (!stepConfig?.interactiveMode || !stepConfig.waitForAction) {
+        return { needsAction: false, actionCompleted: true };
+      }
+
+      const actionCompleted = await this.isActionCompleted(userId, stepConfig.waitForAction);
+      return {
+        needsAction: true,
+        actionCompleted,
+        action: stepConfig.waitForAction
+      };
+    } catch (error) {
+      console.error('Error checking step action completion:', error);
+      return { needsAction: false, actionCompleted: false };
     }
   }
 } 

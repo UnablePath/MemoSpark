@@ -849,12 +849,23 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                           aria-describedby="reminder-help"
                         />
                       </FormControl>
-                      <div className="space-y-1 leading-none">
+                      <div className="space-y-1 leading-none flex-1">
+                        <div className="flex items-center gap-2">
                         <FormLabel className="text-sm font-medium cursor-pointer">
                           Enable Reminders
                         </FormLabel>
+                          {field.value && (
+                            <div className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                              <Brain className="h-3 w-3" />
+                              AI-Powered
+                            </div>
+                          )}
+                        </div>
                         <FormDescription id="reminder-help">
-                          Get notified before the task is due to help you stay on track.
+                          {field.value 
+                            ? "AI will create smart reminders optimized for your patterns and task importance."
+                            : "Get notified before the task is due to help you stay on track."
+                          }
                         </FormDescription>
                       </div>
                     </FormItem>
@@ -1201,8 +1212,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
         )}>
                                 <Card className={cn(
             "border-primary/20 bg-gradient-to-b from-primary/5 to-background shadow-sm",
-            userTier === 'premium' && "border-amber-200",
-            userTier === 'enterprise' && "border-purple-200"
+            userTier === 'premium' && "border-amber-200"
           )}>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">

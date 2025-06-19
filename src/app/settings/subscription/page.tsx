@@ -4,13 +4,17 @@ import React, { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { SubscriptionCard } from '@/components/subscription/SubscriptionCard';
 import { TierComparison } from '@/components/subscription/TierComparison';
+import { BillingPortal } from '@/components/billing/BillingPortal';
 import { UsageDashboard } from '@/components/subscription/UsageDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, RefreshCw } from 'lucide-react';
 import { SubscriptionTierManager } from '@/lib/subscription/SubscriptionTierManager';
+import { supabase } from '@/lib/supabase/client';
 import type { UserSubscriptionData, SubscriptionTierConfig } from '@/types/subscription';
 import Link from 'next/link';
 
@@ -20,6 +24,9 @@ export default function SubscriptionPage() {
   const [availableTiers, setAvailableTiers] = useState<SubscriptionTierConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [refundReason, setRefundReason] = useState('');
+  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+  const [isRequestingRefund, setIsRequestingRefund] = useState(false);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -27,10 +34,51 @@ export default function SubscriptionPage() {
     }
   }, [isLoaded, user]);
 
+  // Handle URL parameters for payment success/error messages
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const error = urlParams.get('error');
+    const tier = urlParams.get('tier');
+
+    if (success === 'payment_completed') {
+      toast.success(
+        tier 
+          ? `Payment successful! Welcome to ${tier} plan.`
+          : 'Payment successful! Your subscription has been updated.'
+      );
+      setActiveTab('overview');
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (error) {
+      let errorMessage = 'Payment failed. Please try again.';
+      switch (error) {
+        case 'payment_failed':
+          errorMessage = 'Payment was not successful. Please try again.';
+          break;
+        case 'missing_reference':
+          errorMessage = 'Payment reference is missing. Please contact support.';
+          break;
+        case 'callback_failed':
+          errorMessage = 'Payment processing failed. Please contact support.';
+          break;
+      }
+      toast.error(errorMessage);
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
   const loadSubscriptionData = async () => {
     try {
       setIsLoading(true);
-      const tierManager = new SubscriptionTierManager();
+      
+      // Check if Supabase is available
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
+      
+      const tierManager = new SubscriptionTierManager(supabase);
       
       // Load subscription data and available tiers in parallel
       const [userData, tiers] = await Promise.all([
@@ -49,38 +97,48 @@ export default function SubscriptionPage() {
   };
 
   const handleUpgrade = async () => {
-    try {
-      // This would normally redirect to Clerk's billing portal
-      // For now, we'll show a toast
-      toast.info('Redirecting to billing portal...');
-      
-      // Simulated upgrade flow - in production this would:
-      // 1. Create Stripe checkout session
-      // 2. Redirect to Stripe checkout
-      // 3. Handle webhook callbacks
-      // 4. Update user subscription in database
-      
-      console.log('Upgrade flow initiated for user:', user?.id);
-    } catch (error) {
-      console.error('Error initiating upgrade:', error);
-      toast.error('Failed to initiate upgrade');
-    }
+    // This now redirects to the billing portal with Paystack integration
+    setActiveTab('billing');
   };
 
   const handleTierSelection = async (tierId: string) => {
+    // This now redirects to the billing portal for payment processing
+    setActiveTab('billing');
+  };
+
+  const handleRefundRequest = async () => {
+    if (!refundReason.trim()) {
+      toast.error('Please provide a reason for the refund request');
+      return;
+    }
+
     try {
-      toast.info(`Selecting ${tierId} plan...`);
+      setIsRequestingRefund(true);
       
-      // This would normally:
-      // 1. Create or update Stripe subscription
-      // 2. Handle payment processing
-      // 3. Update user subscription in database
-      // 4. Redirect to success page
-      
-      console.log('Tier selection:', tierId, 'for user:', user?.id);
+      const response = await fetch('/api/billing/request-refund', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userEmail: user?.emailAddresses?.[0]?.emailAddress,
+          reason: refundReason,
+          subscriptionId: subscriptionData?.subscription?.id,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('Refund request submitted successfully. Our team will review and respond within 24 hours.');
+        setIsRefundModalOpen(false);
+        setRefundReason('');
+      } else {
+        throw new Error('Failed to submit refund request');
+      }
     } catch (error) {
-      console.error('Error selecting tier:', error);
-      toast.error('Failed to select plan');
+      console.error('Refund request error:', error);
+      toast.error('Failed to submit refund request. Please contact support directly.');
+    } finally {
+      setIsRequestingRefund(false);
     }
   };
 
@@ -107,6 +165,8 @@ export default function SubscriptionPage() {
     );
   }
 
+  const isPremiumUser = subscriptionData?.subscription?.tier_id !== 'free';
+
   return (
     <div className="container max-w-6xl mx-auto py-8 space-y-6">
       {/* Header */}
@@ -119,17 +179,18 @@ export default function SubscriptionPage() {
         <div>
           <h1 className="text-3xl font-bold">Subscription Management</h1>
           <p className="text-muted-foreground">
-            Manage your StudySpark subscription and AI usage
+            Manage your MemoSpark subscription and AI usage
           </p>
         </div>
       </div>
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="usage">Usage & Limits</TabsTrigger>
           <TabsTrigger value="plans">Compare Plans</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -207,11 +268,18 @@ export default function SubscriptionPage() {
             isLoading={isLoading}
           />
         </TabsContent>
+
+        {/* Billing Tab */}
+        <TabsContent value="billing" className="space-y-6">
+          <BillingPortal />
+        </TabsContent>
       </Tabs>
 
       {/* Quick Actions Footer */}
       <Card>
         <CardContent className="pt-6">
+          <div className="space-y-4">
+            {/* Contact Support */}
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold">Need help?</h3>
@@ -222,6 +290,67 @@ export default function SubscriptionPage() {
             <Button variant="outline">
               Contact Support
             </Button>
+            </div>
+            
+            {/* Request Refund - Only for premium users */}
+            {isPremiumUser && (
+              <>
+                <hr className="border-muted" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold">Request Refund</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Need a refund? We offer a 30-day money-back guarantee
+                    </p>
+                  </div>
+                  <Dialog open={isRefundModalOpen} onOpenChange={setIsRefundModalOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Request Refund
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Request Refund</DialogTitle>
+                        <DialogDescription>
+                          Tell us why you'd like a refund and we'll process your request within 24 hours.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Reason for refund</label>
+                          <Textarea
+                            placeholder="Please explain why you're requesting a refund..."
+                            value={refundReason}
+                            onChange={(e) => setRefundReason(e.target.value)}
+                            rows={4}
+                          />
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="outline"
+                            onClick={() => setIsRefundModalOpen(false)}
+                            disabled={isRequestingRefund}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={handleRefundRequest}
+                            disabled={isRequestingRefund || !refundReason.trim()}
+                          >
+                            {isRequestingRefund ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : null}
+                            Submit Request
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>

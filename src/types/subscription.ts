@@ -1,7 +1,7 @@
-// Subscription system types for StudySpark
+// Subscription system types for MemoSpark
 // Matches the database schema in src/lib/subscription/schema.sql
 
-export type SubscriptionTier = 'free' | 'premium' | 'enterprise';
+export type SubscriptionTier = 'free' | 'premium';
 
 export type SubscriptionStatus = 'active' | 'inactive' | 'cancelled' | 'past_due';
 
@@ -111,7 +111,7 @@ export interface StripeSubscriptionData {
   cancel_at_period_end: boolean;
 }
 
-// Constants for default tiers
+// Constants for default tiers with Ghana Cedis pricing
 export const DEFAULT_TIER_CONFIGS: Record<SubscriptionTier, Omit<SubscriptionTierConfig, 'created_at' | 'updated_at'>> = {
   free: {
     id: 'free',
@@ -136,8 +136,8 @@ export const DEFAULT_TIER_CONFIGS: Record<SubscriptionTier, Omit<SubscriptionTie
     name: 'premium',
     display_name: 'Premium',
     description: 'Full AI capabilities with enhanced features',
-    price_monthly: 9.99,
-    price_yearly: 99.99,
+    price_monthly: 20, // 20 Ghana Cedis
+    price_yearly: 212, // 212 Ghana Cedis (save 20%)
     ai_requests_per_day: 100,
     ai_requests_per_month: 3000,
     features: {
@@ -147,27 +147,6 @@ export const DEFAULT_TIER_CONFIGS: Record<SubscriptionTier, Omit<SubscriptionTie
       voice_notes: true,
       premium_features: true,
       priority_support: true,
-    },
-    is_active: true,
-  },
-  enterprise: {
-    id: 'enterprise',
-    name: 'enterprise',
-    display_name: 'Enterprise',
-    description: 'Unlimited AI with advanced analytics',
-    price_monthly: 29.99,
-    price_yearly: 299.99,
-    ai_requests_per_day: 1000,
-    ai_requests_per_month: 30000,
-    features: {
-      basic_ai: true,
-      task_suggestions: true,
-      study_planning: true,
-      voice_notes: true,
-      premium_features: true,
-      priority_support: true,
-      analytics: true,
-      unlimited_ai: true,
     },
     is_active: true,
   },

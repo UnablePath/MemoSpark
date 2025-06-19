@@ -6,11 +6,13 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { cn } from "@/lib/utils";
 import { Expand } from 'lucide-react';
 import { format } from "date-fns";
+import { StuLottieAnimation } from '@/components/stu/StuLottieAnimation';
+import { useState } from 'react';
 
 interface DraggableWidgetProps {
   widgetId: string;
   initialPosition?: { x: number; y: number };
-  dragConstraintsRef?: React.RefObject<HTMLElement>;
+  dragConstraintsRef?: React.RefObject<HTMLDivElement | null>;
   className?: string;
   initialWidth?: number;
   initialHeight?: number;
@@ -20,10 +22,10 @@ interface DraggableWidgetProps {
   maxHeight?: number;
 }
 
-const DEFAULT_WIDTH = 150;
-const DEFAULT_HEIGHT = 100;
-const MIN_WIDTH = 100;
-const MIN_HEIGHT = 80;
+const DEFAULT_WIDTH = 180;
+const DEFAULT_HEIGHT = 120;
+const MIN_WIDTH = 120;
+const MIN_HEIGHT = 100;
 const MAX_WIDTH = 500;
 const MAX_HEIGHT = 400;
 
@@ -82,12 +84,13 @@ export function DraggableWidget({
     width: initialWidth,
     height: initialHeight,
   });
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const prefersReducedMotion = useReducedMotion();
 
   const shapeClasses = {
     square: 'rounded-none aspect-square',
-    rounded: 'rounded-lg',
+    rounded: 'rounded-xl',
     pill: 'rounded-full',
   };
 
@@ -95,6 +98,14 @@ export function DraggableWidget({
     const newWidth = Math.max(minWidth, Math.min(maxWidth, size.width + info.delta.x));
     const newHeight = Math.max(minHeight, Math.min(maxHeight, size.height + info.delta.y));
     setSize({ width: newWidth, height: newHeight });
+  };
+
+  const handleStuClick = () => {
+    setIsAnimating(true);
+    // Reset animation after 3 seconds
+    setTimeout(() => {
+      setIsAnimating(false);
+    }, 3000);
   };
 
   // Find the latest uncompleted reminder
@@ -131,51 +142,71 @@ export function DraggableWidget({
       }}
       className={cn(
         'absolute z-50 cursor-grab active:cursor-grabbing',
-        'bg-card/80 dark:bg-card/70 backdrop-blur-sm',
-        'shadow-lg border border-green-500/60 dark:border-green-400/50',
-        'overflow-hidden',
+        'bg-card/90 dark:bg-card/80 backdrop-blur-md',
+        'shadow-xl border-2 border-primary/30 dark:border-primary/40',
+        'overflow-hidden transition-all duration-300',
         shapeClasses[shape as keyof typeof shapeClasses] || shapeClasses.rounded,
         className
       )}
     >
-      <div className="h-full w-full flex items-center justify-center p-2">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className={cn(
-            "rounded-full bg-white shadow-lg p-1 max-w-[120px] aspect-square flex flex-col items-center justify-center border-4 border-primary overflow-hidden relative",
-            // Optionally add more classes for responsiveness
-          )}
-        >
-          {latestReminder ? (
-            <>
-              <div className="absolute top-0 left-0 w-full h-2 bg-secondary" />
-              <div className="text-center px-2">
-                <div className="text-xs font-semibold line-clamp-2">{latestReminder.taskName}</div>
-                <div className="text-[10px] text-muted-foreground mt-1">
-                  {latestReminder.dueDate}
-                </div>
-                <div className={`h-1.5 w-1.5 rounded-full mt-1 mx-auto ${priorityColors[getPriority(latestReminder)]}`} />
+      <div className="h-full w-full flex flex-col p-3">
+        {/* Header with Stu */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs font-bold text-primary">MemoSpark</div>
+          <div 
+            className="w-8 h-8 cursor-pointer hover:scale-110 transition-transform"
+            onClick={handleStuClick}
+          >
+            {isAnimating ? (
+              <StuLottieAnimation
+                className="w-full h-full"
+                loop={false}
+                autoplay={true}
+                onComplete={() => setIsAnimating(false)}
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                🐨
               </div>
-            </>
+            )}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 flex flex-col justify-center">
+          {latestReminder ? (
+            <div className="text-center space-y-1">
+              <div className={`h-1 w-full rounded-full ${priorityColors[getPriority(latestReminder)]}`} />
+              <div className="text-xs font-semibold line-clamp-2 text-foreground">
+                {latestReminder.taskName}
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                {latestReminder.dueDate}
+              </div>
+              <div className="text-[10px] font-medium text-primary">
+                +{latestReminder.points} pts
+              </div>
+            </div>
           ) : (
-            <div className="text-center px-2">
-              <div className="text-xs font-semibold">No urgent tasks</div>
-              <div className="text-[10px] text-muted-foreground mt-1">All caught up!</div>
+            <div className="text-center space-y-1">
+              <div className="text-xs font-semibold text-green-600">All Clear!</div>
+              <div className="text-[10px] text-muted-foreground">No urgent tasks</div>
+              <div className="text-lg">✅</div>
             </div>
           )}
-          <div className="absolute bottom-2 text-[8px] font-medium">MemoSpark</div>
-        </motion.div>
+        </div>
       </div>
+      
+      {/* Resize handle */}
       <motion.div
         drag
         dragMomentum={false}
         onDrag={handleResize}
         onPointerDown={(e) => e.stopPropagation()}
-        className="absolute bottom-0 right-0 cursor-nwse-resize p-1 text-muted-foreground/50 hover:text-foreground"
+        className="absolute bottom-0 right-0 cursor-nwse-resize p-1 text-muted-foreground/50 hover:text-foreground opacity-0 hover:opacity-100 transition-opacity"
         aria-label="Resize widget"
       >
-        <Expand size={16} />
+        <Expand size={12} />
       </motion.div>
     </motion.div>
   );

@@ -12,7 +12,16 @@ export interface Reminder {
   updated_at: string;
 }
 
+// For API creation (server-side with user_id)
 export type ReminderInsert = Omit<Reminder, 'id' | 'created_at' | 'updated_at'>;
+
+// For frontend creation (client-side without user_id)
+export type ReminderCreateInput = Omit<ReminderInsert, 'user_id' | 'completed'> & {
+  user_id?: string; // Optional for frontend, API will add it
+  completed?: boolean; // Optional for frontend, defaults to false
+  reminder_time?: string; // Optional reminder time field
+};
+
 export type ReminderUpdate = Partial<ReminderInsert>;
 
 export interface ReminderFilters {

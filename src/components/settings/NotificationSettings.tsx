@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { oneSignalService } from '@/lib/notifications/OneSignalService';
+import { useOneSignal } from '@/components/providers/onesignal-provider';
 import { cn } from '@/lib/utils';
 
 interface SubscriptionStatus {
@@ -32,6 +32,16 @@ interface NotificationCategory {
 
 export const NotificationSettings: React.FC = () => {
   const { userId } = useAuth();
+  const { 
+    isInitialized, 
+    isSubscribed, 
+    playerId, 
+    error, 
+    isSyncing,
+    subscribe, 
+    unsubscribe 
+  } = useOneSignal();
+  
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>({
     isSubscribed: false,
     browserSupported: false,
@@ -63,42 +73,34 @@ export const NotificationSettings: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Check subscription status on component mount
+  // Update local state when OneSignal provider state changes
   useEffect(() => {
-    checkSubscriptionStatus();
-  }, [userId]);
+    if (!isInitialized) return;
 
-  const checkSubscriptionStatus = async () => {
-    if (!userId) return;
+    // Check browser support
+    const browserSupported = 'Notification' in window && 'serviceWorker' in navigator;
+    
+    // Check permission status
+    const permissionStatus = browserSupported ? Notification.permission : 'denied';
 
-    try {
-      setIsLoading(true);
+    // Get platform info
+    const platform = getPlatformInfo();
 
-      // Check browser support
-      const browserSupported = 'Notification' in window && 'serviceWorker' in navigator;
-      
-      // Check permission status
-      const permissionStatus = browserSupported ? Notification.permission : 'denied';
+    setSubscriptionStatus({
+      isSubscribed,
+      playerId,
+      browserSupported,
+      permissionStatus,
+      platform
+    });
 
-      // Check OneSignal subscription status
-      const { isSubscribed, playerId } = await oneSignalService.getSubscriptionStatus();
+    setIsLoading(false);
+  }, [isInitialized, isSubscribed, playerId]);
 
-      // Get platform info
-      const platform = getPlatformInfo();
-
-      setSubscriptionStatus({
-        isSubscribed,
-        playerId,
-        browserSupported,
-        permissionStatus,
-        platform
-      });
-
-    } catch (error) {
-      console.error('Error checking subscription status:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  const refreshStatus = () => {
+    setIsLoading(true);
+    // The useEffect above will handle updating when the provider refreshes
+    window.location.reload(); // Simple refresh to re-initialize OneSignal
   };
 
   const getPlatformInfo = (): string => {
@@ -115,29 +117,11 @@ export const NotificationSettings: React.FC = () => {
 
     try {
       setIsUpdating(true);
-
-      // Request permission first
-      if (Notification.permission === 'default') {
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-          throw new Error('Notification permission denied');
-        }
-      }
-
-      // Subscribe via OneSignal
-      const playerId = await oneSignalService.subscribeUser(userId);
+      const success = await subscribe();
       
-      if (playerId) {
-        setSubscriptionStatus(prev => ({
-          ...prev,
-          isSubscribed: true,
-          playerId,
-          permissionStatus: 'granted'
-        }));
-      } else {
+      if (!success) {
         throw new Error('Failed to subscribe to notifications');
       }
-
     } catch (error) {
       console.error('Subscription error:', error);
       alert('Failed to enable notifications. Please check your browser settings.');
@@ -147,23 +131,13 @@ export const NotificationSettings: React.FC = () => {
   };
 
   const handleUnsubscribe = async () => {
-    if (!subscriptionStatus.playerId) return;
-
     try {
       setIsUpdating(true);
-
-      const success = await oneSignalService.unsubscribeUser(subscriptionStatus.playerId);
+      const success = await unsubscribe();
       
-      if (success) {
-        setSubscriptionStatus(prev => ({
-          ...prev,
-          isSubscribed: false,
-          playerId: undefined
-        }));
-      } else {
+      if (!success) {
         throw new Error('Failed to unsubscribe');
       }
-
     } catch (error) {
       console.error('Unsubscribe error:', error);
       alert('Failed to disable notifications. Please try again.');
@@ -286,35 +260,49 @@ export const NotificationSettings: React.FC = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             {!subscriptionStatus.isSubscribed ? (
               <Button 
                 onClick={handleSubscribe}
-                disabled={!subscriptionStatus.browserSupported || isUpdating}
-                className="flex items-center gap-2"
+                disabled={!subscriptionStatus.browserSupported || isUpdating || isSyncing}
+                className="flex items-center justify-center gap-2 w-full sm:w-auto"
+                size="sm"
               >
                 <Bell className="h-4 w-4" />
-                {isUpdating ? 'Enabling...' : 'Enable Notifications'}
+                <span className="hidden xs:inline">
+                  {isUpdating || isSyncing ? 'Enabling...' : 'Enable Notifications'}
+                </span>
+                <span className="xs:hidden">
+                  {isUpdating || isSyncing ? 'Enabling...' : 'Enable'}
+                </span>
               </Button>
             ) : (
               <Button 
                 variant="outline"
                 onClick={handleUnsubscribe}
-                disabled={isUpdating}
-                className="flex items-center gap-2"
+                disabled={isUpdating || isSyncing}
+                className="flex items-center justify-center gap-2 w-full sm:w-auto"
+                size="sm"
               >
                 <BellOff className="h-4 w-4" />
-                {isUpdating ? 'Disabling...' : 'Disable Notifications'}
+                <span className="hidden xs:inline">
+                  {isUpdating || isSyncing ? 'Disabling...' : 'Disable Notifications'}
+                </span>
+                <span className="xs:hidden">
+                  {isUpdating || isSyncing ? 'Disabling...' : 'Disable'}
+                </span>
               </Button>
             )}
             
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={checkSubscriptionStatus}
-              disabled={isLoading}
+              onClick={refreshStatus}
+              disabled={isLoading || isSyncing}
+              className="w-full sm:w-auto"
             >
-              Refresh Status
+              <span className="hidden xs:inline">Refresh Status</span>
+              <span className="xs:hidden">Refresh</span>
             </Button>
           </div>
 
@@ -390,19 +378,38 @@ export const NotificationSettings: React.FC = () => {
           <CardContent>
             <Button 
               variant="outline"
-              onClick={() => {
-                // Send test notification via OneSignal
-                oneSignalService.sendNotification({
-                  contents: { en: '🧪 Test notification from StudySpark!' },
-                  headings: { en: '✅ Notifications Working!' },
-                  include_external_user_ids: [userId!],
-                  data: { type: 'test', url: '/settings' }
-                });
+              onClick={async () => {
+                // Send test notification via API
+                try {
+                  const response = await fetch('/api/notifications/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      userId: userId!,
+                      notification: {
+                        contents: { en: '🧪 Test notification from StudySpark!' },
+                        headings: { en: '✅ Notifications Working!' },
+                        data: { type: 'test', url: '/settings' }
+                      }
+                    })
+                  });
+                  
+                  if (response.ok) {
+                    alert('Test notification sent!');
+                  } else {
+                    alert('Failed to send test notification');
+                  }
+                } catch (error) {
+                  console.error('Test notification error:', error);
+                  alert('Failed to send test notification');
+                }
               }}
-              className="flex items-center gap-2"
+              className="flex items-center justify-center gap-2 w-full sm:w-auto"
+              size="sm"
             >
               <Bell className="h-4 w-4" />
-              Send Test Notification
+              <span className="hidden xs:inline">Send Test Notification</span>
+              <span className="xs:hidden">Test</span>
             </Button>
           </CardContent>
         </Card>

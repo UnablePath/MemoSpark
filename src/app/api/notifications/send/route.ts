@@ -1,122 +1,141 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-// OneSignal API configuration
-const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
-const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
-const ONESIGNAL_API_URL = 'https://onesignal.com/api/v1';
-
-interface SendNotificationRequest {
-  player_ids?: string[];
-  include_external_user_ids?: string[];
-  headings: { [key: string]: string };
-  contents: { [key: string]: string };
-  data?: Record<string, any>;
-  url?: string;
-  send_after?: string;
-  delayed_option?: 'timezone' | 'last-active';
-  delivery_time_of_day?: string;
-  ttl?: number;
-  priority?: number;
-  small_icon?: string;
-  large_icon?: string;
-}
+// Use service role for database operations
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: NextRequest) {
   try {
-    if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
-      console.error('OneSignal configuration missing');
-      return NextResponse.json(
-        { error: 'OneSignal configuration missing' },
-        { status: 500 }
-      );
+    const { 
+      userId, 
+      notification 
+    } = await request.json();
+
+    if (!userId || !notification) {
+      return NextResponse.json({ 
+        error: 'Missing required fields: userId, notification' 
+      }, { status: 400 });
     }
 
-    const body: SendNotificationRequest = await request.json();
+    console.log(`📨 Sending immediate OneSignal notification to user: ${userId}`);
 
-    // Validate required fields
-    if (!body.contents || !body.headings) {
-      return NextResponse.json(
-        { error: 'Contents and headings are required' },
-        { status: 400 }
-      );
+    // Get user's OneSignal player ID from database
+    const { data: subscription, error: subscriptionError } = await supabase
+      .from('push_subscriptions')
+      .select('onesignal_player_id')
+      .eq('external_user_id', userId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (subscriptionError) {
+      console.error('❌ Error fetching subscription:', subscriptionError);
+      return NextResponse.json({ 
+        error: 'Failed to fetch user subscription',
+        details: subscriptionError.message 
+      }, { status: 500 });
     }
 
-    if (!body.player_ids && !body.include_external_user_ids) {
-      return NextResponse.json(
-        { error: 'Either player_ids or include_external_user_ids must be provided' },
-        { status: 400 }
-      );
+    if (!subscription?.onesignal_player_id) {
+      console.log(`❌ No active OneSignal subscription found for user: ${userId}`);
+      return NextResponse.json({ 
+        error: 'No active OneSignal subscription found for user',
+        hasSubscription: false
+      }, { status: 404 });
     }
 
-    // Prepare OneSignal notification payload
-    const notificationPayload = {
-      app_id: ONESIGNAL_APP_ID,
-      contents: body.contents,
-      headings: body.headings,
-      data: body.data || {},
-      url: body.url || '/dashboard',
-      ...(body.player_ids && { include_player_ids: body.player_ids }),
-      ...(body.include_external_user_ids && { include_external_user_ids: body.include_external_user_ids }),
-      ...(body.send_after && { send_after: body.send_after }),
-      ...(body.delayed_option && { delayed_option: body.delayed_option }),
-      ...(body.delivery_time_of_day && { delivery_time_of_day: body.delivery_time_of_day }),
-      ...(body.ttl && { ttl: body.ttl }),
-      ...(body.priority && { priority: body.priority }),
-      ...(body.small_icon && { small_icon: body.small_icon }),
-      ...(body.large_icon && { large_icon: body.large_icon }),
+    const playerId = subscription.onesignal_player_id;
+    console.log(`🎯 Found player ID: ${playerId}`);
+
+    // Prepare OneSignal notification payload according to REST API docs
+    const oneSignalPayload = {
+      app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
+      include_player_ids: [playerId],
+      contents: notification.contents || { en: 'You have a new notification' },
+      headings: notification.headings || { en: 'StudySpark' },
+      data: notification.data || {},
+      url: notification.url,
+      priority: notification.priority || 5,
+      ttl: 259200, // 3 days in seconds
+      ...(notification.buttons && { buttons: notification.buttons })
     };
 
-    console.log('📤 Sending OneSignal notification:', {
-      app_id: ONESIGNAL_APP_ID,
-      recipients: body.player_ids?.length || body.include_external_user_ids?.length || 0,
-      heading: body.headings.en,
-      content: body.contents.en,
+    // Only add android_channel_id if specifically provided, otherwise let OneSignal use default
+    if (notification.android_channel_id) {
+      oneSignalPayload.android_channel_id = notification.android_channel_id;
+    }
+
+    console.log(`🚀 Sending immediate notification to OneSignal API:`, {
+      app_id: oneSignalPayload.app_id,
+      include_player_ids: oneSignalPayload.include_player_ids,
+      contents: oneSignalPayload.contents,
+      headings: oneSignalPayload.headings,
+      priority: oneSignalPayload.priority,
+      android_channel_id: oneSignalPayload.android_channel_id || 'not set'
     });
 
-    // Send notification to OneSignal
-    const response = await fetch(`${ONESIGNAL_API_URL}/notifications`, {
+    // Send to OneSignal REST API
+    const oneSignalResponse = await fetch('https://onesignal.com/api/v1/notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Basic ${ONESIGNAL_REST_API_KEY}`,
+        'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY!}`,
       },
-      body: JSON.stringify(notificationPayload),
+      body: JSON.stringify(oneSignalPayload)
     });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('OneSignal API error:', response.status, errorData);
-      return NextResponse.json(
-        { 
-          error: 'Failed to send notification',
-          details: errorData,
-          status: response.status 
-        },
-        { status: response.status }
-      );
+    const oneSignalResult = await oneSignalResponse.json();
+
+    if (!oneSignalResponse.ok) {
+      console.error('❌ OneSignal API error:', {
+        status: oneSignalResponse.status,
+        response: oneSignalResult,
+        payload: oneSignalPayload
+      });
+      return NextResponse.json({ 
+        error: 'OneSignal API error',
+        details: oneSignalResult,
+        oneSignalStatus: oneSignalResponse.status,
+        sentPayload: oneSignalPayload
+      }, { status: 500 });
     }
 
-    const result = await response.json();
-    console.log('✅ OneSignal notification sent successfully:', {
-      id: result.id,
-      recipients: result.recipients,
-    });
+    console.log('✅ OneSignal notification sent successfully:', oneSignalResult);
 
-    return NextResponse.json({
+    // Store the sent notification in our database for tracking
+    const { error: trackingError } = await supabase
+      .from('notification_queue')
+      .insert({
+        clerk_user_id: userId,
+        onesignal_notification_id: oneSignalResult.id,
+        title: notification.headings?.en || 'Notification',
+        body: notification.contents?.en || 'You have a notification',
+        scheduled_for: new Date().toISOString(),
+        status: 'sent',
+        data: notification.data || {},
+        onesignal_player_id: playerId
+      });
+
+    if (trackingError) {
+      console.warn('⚠️ Failed to store notification tracking:', trackingError);
+      // Don't fail the request for tracking errors
+    }
+
+    return NextResponse.json({ 
       success: true,
-      id: result.id,
-      recipients: result.recipients,
-      message: 'Notification sent successfully',
+      oneSignalId: oneSignalResult.id,
+      recipients: oneSignalResult.recipients,
+      playerId,
+      message: 'Notification sent successfully'
     });
 
   } catch (error) {
-    console.error('Error sending notification:', error);
-    return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    console.error('❌ Notification sending error:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 } 

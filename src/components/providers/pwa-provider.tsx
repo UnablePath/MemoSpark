@@ -105,9 +105,6 @@ export function PWAProvider({ children }: PWAProviderProps) {
         {showUpdateNotification && (
           <UpdateNotification onClose={() => setShowUpdateNotification(false)} />
         )}
-        
-        {/* PWA Debug (Development and Staging) */}
-        {(process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview') && <PWADebug />}
       </PWAContext.Provider>
     </PWAErrorBoundary>
   )

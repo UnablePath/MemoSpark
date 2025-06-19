@@ -60,10 +60,19 @@ export class TaskReminderService {
         reminderTime = new Date(dueDate.getTime() - (reminderOffset * 60 * 1000));
         console.log(`⏰ Calculated reminder time: ${reminderTime.toISOString()}`);
         
-        // Don't schedule if reminder time is in the past (unless immediate)
-        if (reminderTime <= new Date()) {
-          console.log(`❌ Reminder time is in the past for task ${task.id} - not scheduling`);
+        // Handle past reminder times intelligently
+        const now = new Date();
+        if (reminderTime <= now) {
+          // If the calculated reminder time is in the past, but the task is still due in the future
+          if (dueDate > now) {
+            // Schedule reminder for 1-2 minutes from now instead of rejecting
+            reminderTime = new Date(now.getTime() + 60 * 1000); // 1 minute from now
+            console.log(`🔄 Reminder was in past, rescheduled for 1 minute from now: ${reminderTime.toISOString()}`);
+          } else {
+            // Task is already overdue
+            console.log(`❌ Task ${task.id} is already overdue - not scheduling reminder`);
           return false;
+          }
         }
       }
 
@@ -98,65 +107,111 @@ export class TaskReminderService {
         console.log(`⚡ Sending immediate task reminder via OneSignal`);
         
         // Check if user has OneSignal subscription
-        const hasSubscription = await oneSignalService.hasActiveSubscription(task.user_id);
-        if (!hasSubscription) {
+        const subscriptionCheck = await fetch('/api/notifications/check-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: task.user_id })
+        });
+        
+        const subscriptionResult = await subscriptionCheck.json();
+        if (!subscriptionCheck.ok || !subscriptionResult.hasActiveSubscription) {
           console.log(`⚠️ No active OneSignal subscription for user: ${task.user_id}`);
           console.log(`💡 User needs to enable push notifications first`);
           return false;
         }
 
-        // Get user's OneSignal player ID
-        const { data: subscription } = await oneSignalService['supabase']
-          .from('push_subscriptions')
-          .select('onesignal_player_id')
-          .eq('external_user_id', task.user_id)
-          .eq('is_active', true)
-          .single();
-
-        if (!subscription?.onesignal_player_id) {
+        const playerId = subscriptionResult.playerId;
+        if (!playerId) {
           console.log(`⚠️ No OneSignal player ID found for user: ${task.user_id}`);
           console.log(`💡 User needs to complete OneSignal subscription process`);
           return false;
         }
 
-        success = await oneSignalService.sendTaskReminder(
-          subscription.onesignal_player_id,
-          task.title,
-          dueDate
-        );
+        // Send immediate notification via server-side API
+        const sendResponse = await fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: task.user_id,
+            notification: {
+              contents: { 
+                en: `⏰ Task reminder: "${task.title}" is due now!` 
+              },
+              headings: { 
+                en: '📋 Task Due Now' 
+              },
+              data: {
+                type: 'task_reminder',
+                taskTitle: task.title,
+                dueDate: dueDate.toISOString(),
+                url: '/dashboard'
+              },
+                             url: '/dashboard',
+               priority: 8, // Higher priority for immediate reminders
+            }
+          })
+        });
+        
+        const sendResult = await sendResponse.json();
+        success = sendResponse.ok && sendResult.success;
+        
+        if (!success) {
+          console.error('❌ Failed to send immediate notification:', sendResult);
+        } else {
+          console.log('✅ Immediate notification sent with OneSignal ID:', sendResult.oneSignalId);
+        }
       } else {
         // Schedule future notification using OneSignal's send_after
         console.log(`📅 Scheduling future task reminder via OneSignal for: ${reminderTime.toISOString()}`);
         
         // Check if user has OneSignal subscription before scheduling
-        const hasSubscription = await oneSignalService.hasActiveSubscription(task.user_id);
-        if (!hasSubscription) {
+        const subscriptionCheck = await fetch('/api/notifications/check-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: task.user_id })
+        });
+        
+        const subscriptionResult = await subscriptionCheck.json();
+        if (!subscriptionCheck.ok || !subscriptionResult.hasActiveSubscription) {
           console.log(`⚠️ No active OneSignal subscription for user: ${task.user_id}`);
           console.log(`💡 User needs to enable push notifications first`);
           return false;
         }
         
-        success = await oneSignalService.scheduleNotification(
-          task.user_id,
-          {
-            contents: { 
-              en: `⏰ Don't forget: "${task.title}" is due soon!` 
+        // Schedule notification via server-side API
+        const scheduleResponse = await fetch('/api/notifications/schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: task.user_id,
+            notification: {
+              contents: { 
+                en: `⏰ Don't forget: "${task.title}" is due soon!` 
+              },
+              headings: { 
+                en: '📋 Task Reminder' 
+              },
+              data: {
+                type: 'task_reminder',
+                taskTitle: task.title,
+                dueDate: dueDate.toISOString(),
+                url: '/dashboard'
+              },
+              url: '/dashboard',
+              priority: 5,
             },
-            headings: { 
-              en: '📋 Task Reminder' 
-            },
-            data: {
-              type: 'task_reminder',
-              taskTitle: task.title,
-              dueDate: dueDate.toISOString(),
-              url: '/dashboard'
-            },
-            url: '/dashboard',
-            android_channel_id: 'task_reminders',
-            priority: 5,
-          },
-          reminderTime
-        );
+            deliveryTime: reminderTime.toISOString()
+          })
+        });
+        
+        const scheduleResult = await scheduleResponse.json();
+        success = scheduleResponse.ok && scheduleResult.success;
+        
+        if (!success) {
+          console.error('❌ Failed to schedule notification:', scheduleResult);
+        } else {
+          console.log('✅ Notification scheduled with OneSignal ID:', scheduleResult.oneSignalId);
+        }
       }
 
       if (success) {
@@ -227,22 +282,22 @@ export class TaskReminderService {
 
       console.log(`⏰ Task is ${hoursOverdue} hours overdue`);
 
-      // Send overdue notification via OneSignal
-      const hasSubscription = await oneSignalService.hasActiveSubscription(task.user_id);
-      if (!hasSubscription) {
+      // Check for OneSignal subscription
+      const subscriptionCheck = await fetch('/api/notifications/check-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: task.user_id })
+      });
+      
+      const subscriptionResult = await subscriptionCheck.json();
+      if (!subscriptionCheck.ok || !subscriptionResult.hasActiveSubscription) {
         console.log(`❌ No active OneSignal subscription for user: ${task.user_id}`);
         return false;
       }
 
-      // Get user's OneSignal player ID
-      const { data: subscription } = await oneSignalService['supabase']
-        .from('push_subscriptions')
-        .select('onesignal_player_id')
-        .eq('external_user_id', task.user_id)
-        .eq('is_active', true)
-        .single();
-
-      if (!subscription?.onesignal_player_id) {
+      // Get player ID from subscription check result
+      const playerId = subscriptionResult.playerId;
+      if (!playerId) {
         console.log(`❌ No OneSignal player ID found for user: ${task.user_id}`);
         return false;
       }
@@ -255,23 +310,34 @@ export class TaskReminderService {
         message = `⚠️ "${task.title}" is ${hoursOverdue} hours overdue!`;
       }
 
-      const result = await oneSignalService.sendNotification({
-        contents: { en: message },
-        headings: { en: '⚠️ Overdue Task' },
-        include_player_ids: [subscription.onesignal_player_id],
-        data: {
-          type: 'task_overdue',
-          taskTitle: task.title,
-          dueDate: dueDate.toISOString(),
-          hoursOverdue,
-          url: '/dashboard'
-        },
-        url: '/dashboard',
-        android_channel_id: 'task_reminders',
-        priority: 10, // High priority for overdue tasks
+      // Send overdue notification via server-side API
+      const sendResponse = await fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: task.user_id,
+          notification: {
+            contents: { en: message },
+            headings: { en: '⚠️ Overdue Task' },
+            data: {
+              type: 'task_overdue',
+              taskTitle: task.title,
+              dueDate: dueDate.toISOString(),
+              hoursOverdue,
+              url: '/dashboard'
+            },
+            url: '/dashboard',
+            priority: 10, // High priority for overdue tasks
+          }
+        })
       });
-
-      const success = !!result;
+      
+      const sendResult = await sendResponse.json();
+      const success = sendResponse.ok && sendResult.success;
+      
+      if (!success) {
+        console.error('❌ Failed to send overdue notification:', sendResult);
+      }
 
       if (success) {
         console.log(`✅ Successfully sent overdue reminder for task: "${task.title}"`);

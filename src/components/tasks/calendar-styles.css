@@ -13,6 +13,9 @@
   --fc-event-text-color: white;
   --fc-today-bg-color: hsl(var(--accent));
   font-family: inherit;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .fc-theme-standard td,
@@ -29,6 +32,9 @@
   color: hsl(var(--muted-foreground));
   font-weight: 600;
   padding: 8px 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fc-daygrid-day:hover {
@@ -46,6 +52,10 @@
   min-height: 18px;
   display: flex;
   align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .fc-event:hover {
@@ -59,6 +69,9 @@
   padding: 2px 4px;
   border-radius: 4px;
   background-color: hsl(var(--muted));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fc-more-link:hover {
@@ -72,6 +85,8 @@
   border-color: hsl(var(--border));
   box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   border-radius: 8px;
+  max-width: calc(100vw - 20px);
+  overflow: hidden;
 }
 
 .fc-popover-header {
@@ -79,12 +94,18 @@
   border-bottom-color: hsl(var(--border));
   color: hsl(var(--muted-foreground));
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fc-daygrid-day-number {
   color: hsl(var(--foreground));
   font-weight: 500;
   padding: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fc-day-today .fc-daygrid-day-number {
@@ -98,16 +119,19 @@
 
 .fc-daygrid-day-frame {
   min-height: 80px;
+  overflow: hidden;
 }
 
 .fc-daygrid-day-events {
   margin: 2px;
+  overflow: hidden;
 }
 
 .fc-event-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
 }
 
 /* Week and Day view styles */
@@ -131,6 +155,8 @@
 @media (max-width: 768px) {
   .fc {
     font-size: 14px;
+    max-width: 100%;
+    overflow-x: hidden;
   }
   
   .fc-event {
@@ -139,26 +165,38 @@
     margin: 0.5px 0;
     min-height: 16px;
     border-radius: 4px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
   .fc-daygrid-day-frame {
     min-height: 50px;
+    overflow: hidden;
   }
   
   .fc-col-header-cell {
     padding: 6px 2px;
     font-size: 11px;
     font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
   .fc-daygrid-day-number {
     font-size: 11px;
     padding: 3px;
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
   .fc-daygrid-day-events {
     margin: 1px;
+    overflow: hidden;
   }
   
   .fc-more-link {
@@ -167,11 +205,15 @@
     min-height: 16px;
     display: flex;
     align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
   .fc-popover {
     margin: 4px;
     max-width: calc(100vw - 16px);
+    overflow: hidden;
   }
   
   /* Better touch targets */
@@ -186,31 +228,92 @@
   }
 }
 
-/* Extra small screens */
-@media (max-width: 480px) {
+/* Extra small screens - screens smaller than 440px */
+@media (max-width: 440px) {
+  .fc {
+    font-size: 12px;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  
   .fc-event {
-    font-size: 9px;
+    font-size: 8px;
     padding: 1px 2px;
-    min-height: 14px;
+    min-height: 12px;
+    border-radius: 2px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
   .fc-daygrid-day-frame {
-    min-height: 40px;
+    min-height: 35px;
+    overflow: hidden;
   }
   
   .fc-col-header-cell {
-    padding: 4px 1px;
-    font-size: 10px;
+    padding: 3px 1px;
+    font-size: 9px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
   .fc-daygrid-day-number {
-    font-size: 10px;
-    padding: 2px;
+    font-size: 9px;
+    padding: 1px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
   .fc-more-link {
-    font-size: 9px;
-    min-height: 14px;
+    font-size: 8px;
+    padding: 1px 2px;
+    min-height: 12px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .fc-popover {
+    margin: 2px;
+    max-width: calc(100vw - 8px);
+    overflow: hidden;
+  }
+  
+  .fc-popover-header {
+    padding: 4px;
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  /* Toolbar buttons for very small screens */
+  .fc-toolbar-chunk {
+    overflow: hidden;
+  }
+  
+  .fc-button {
+    font-size: 10px !important;
+    padding: 2px 4px !important;
+    margin: 0 1px !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .fc-toolbar-title {
+    font-size: 14px !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
@@ -218,11 +321,15 @@
 @media (max-width: 768px) and (orientation: landscape) {
   .fc-daygrid-day-frame {
     min-height: 45px;
+    overflow: hidden;
   }
   
   .fc-event {
     font-size: 10px;
     min-height: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 

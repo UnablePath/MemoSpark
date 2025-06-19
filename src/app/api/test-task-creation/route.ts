@@ -1,5 +1,9 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { reminderEngine } from '@/lib/reminders/ReminderEngine';
+import { NextRequest } from 'next/server';
+import { createServiceRoleClient } from '@/lib/supabase/client';
+import { ReminderEngine } from '@/lib/reminders/ReminderEngine';
 
 export async function GET() {
   const html = `
@@ -73,89 +77,116 @@ export async function GET() {
   });
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    // Get Clerk authentication
-    const { userId, getToken } = await auth();
+    // Get authenticated user
+    const { userId } = await auth();
     
     if (!userId) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Parse request body for custom task data
-    let requestData: any = {};
+    // Parse request body with error handling
+    let body;
     try {
-      requestData = await request.json();
-    } catch (e) {
-      // Use default if no body provided
+      const text = await request.text();
+      if (!text || text.trim() === '') {
+        // Default values for empty body (for testing purposes)
+        body = {
+          title: `Test Task - ${new Date().toLocaleDateString()}`,
+          description: 'Test task created for reminder system testing',
+          due_date: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
+          priority: 'medium',
+          subject: 'General'
+        };
+        console.log('📝 Using default task data for empty request body');
+      } else {
+        body = JSON.parse(text);
+      }
+    } catch (parseError) {
+      console.error('Task creation: Invalid JSON in request body:', parseError);
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
     }
 
-    // Import task creation function
-    const { createTask } = await import('@/lib/supabase/tasksApi');
-    const { taskReminderService } = await import('@/lib/notifications/TaskReminderService');
+    const { title, description, due_date, priority = 'medium', subject } = body;
 
-    console.log('Creating task for user:', userId);
-    console.log('Request data:', requestData);
+    if (!title) {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+    }
 
-    // Create token provider function
-    const getTokenForSupabase = () => getToken({ template: 'supabase-integration' });
+    // Create Supabase client
+    const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json({ error: 'Database not available' }, { status: 500 });
+    }
 
-    // Prepare task data
-    const taskData = {
-      title: requestData.title || `Test Task - ${new Date().toISOString()}`,
-      description: requestData.description || 'This is a test task created via API to verify authentication and notifications',
-      due_date: requestData.due_date || undefined,
-      priority: requestData.priority || 'medium',
-      type: requestData.type || 'academic',
-      subject: requestData.subject || undefined,
-      reminder_settings: requestData.reminder_settings || undefined,
-      completed: false,
-    };
+    console.log(`📝 Creating task for user: ${userId}`);
+    console.log(`Task details:`, { title, description, due_date, priority, subject });
 
-    console.log('Creating task with data:', taskData);
+    // Create the task
+    const { data: task, error: taskError } = await supabase
+      .from('tasks')
+      .insert([{
+        user_id: userId,
+        title,
+        description,
+        due_date: due_date ? new Date(due_date).toISOString() : null,
+        priority,
+        subject,
+        completed: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
 
-    // Create task using the proper API
-    const createdTask = await createTask(taskData, getTokenForSupabase);
+    if (taskError) {
+      console.error('❌ Error creating task:', taskError);
+      return NextResponse.json({ error: 'Failed to create task' }, { status: 500 });
+    }
 
-    console.log('Task created:', createdTask);
+    console.log('✅ Task created successfully:', task);
 
-    // Schedule reminder if enabled
-    let reminderScheduled = false;
-    if (createdTask.reminder_settings?.enabled && createdTask.due_date) {
+    // If task has a due date, create reminders
+    if (due_date && task) {
       try {
-        console.log('Scheduling reminder for task:', createdTask.id);
+        console.log('📅 Task has due date, creating reminders...');
         
-        const taskForReminder = {
-          id: createdTask.id,
-          title: createdTask.title,
-          due_date: createdTask.due_date,
-          user_id: userId, // Use Clerk user ID for OneSignal
-          reminder_offset_minutes: createdTask.reminder_settings.offset_minutes || 15,
-          is_completed: createdTask.completed
-        };
+        const reminderEngine = ReminderEngine.getInstance();
+        
+        // Create both regular reminder and smart reminders
+        // Pass the Clerk user ID to avoid UUID/text mismatch issues
+        const reminderSuccess = await reminderEngine.scheduleSmartReminder({
+          id: task.id,
+          title: task.title,
+          due_date: task.due_date,
+          user_id: task.user_id, // Keep for task reference (UUID format)
+          priority: task.priority,
+          subject: task.subject
+        }, undefined, userId); // Pass Clerk user ID as third parameter
 
-        reminderScheduled = await taskReminderService.scheduleTaskReminder(taskForReminder);
-        console.log('Reminder scheduled:', reminderScheduled);
+        if (reminderSuccess) {
+          console.log('✅ Reminders created successfully');
+        } else {
+          console.warn('⚠️ Failed to create reminders, but task created successfully');
+        }
       } catch (reminderError) {
-        console.error('Error scheduling reminder:', reminderError);
+        console.error('❌ Error creating reminders:', reminderError);
+        // Don't fail the task creation if reminders fail
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      createdTask,
-      reminderScheduled,
-      userId,
-      timestamp: new Date().toISOString(),
+    return NextResponse.json({ 
+      success: true, 
+      task,
+      message: 'Task created successfully' + (due_date ? ' with smart reminders' : '')
     });
 
-  } catch (error: any) {
-    console.error('Test task creation error:', error);
-    return NextResponse.json({
-      success: false,
-      error: error.message,
-      stack: error.stack,
-      timestamp: new Date().toISOString(),
-    }, { status: 500 });
+  } catch (error) {
+    console.error('❌ Error in task creation API:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 } 

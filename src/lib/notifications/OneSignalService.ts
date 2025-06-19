@@ -345,14 +345,14 @@ export class OneSignalService {
    */
   async sendStudyBreakSuggestion(userId: string, message: string): Promise<boolean> {
     try {
-      const { data: subscription } = await this.supabase
+      const { data: subscription, error } = await this.supabase
         .from('push_subscriptions')
         .select('onesignal_player_id')
         .eq('external_user_id', userId)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
-      if (!subscription?.onesignal_player_id) return false;
+      if (error || !subscription?.onesignal_player_id) return false;
 
       const result = await this.sendNotification({
         contents: { 
@@ -392,14 +392,14 @@ export class OneSignalService {
     deliveryTime: Date
   ): Promise<boolean> {
     try {
-      const { data: subscription } = await this.supabase
+      const { data: subscription, error } = await this.supabase
         .from('push_subscriptions')
         .select('onesignal_player_id')
         .eq('external_user_id', userId)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
-      if (!subscription?.onesignal_player_id) return false;
+      if (error || !subscription?.onesignal_player_id) return false;
 
       const result = await this.sendNotification({
         ...notification,
@@ -520,12 +520,17 @@ export class OneSignalService {
    * Check if user has active subscription
    */
   async hasActiveSubscription(userId: string): Promise<boolean> {
-    const { data } = await this.supabase
+    const { data, error } = await this.supabase
       .from('push_subscriptions')
       .select('onesignal_player_id')
       .eq('external_user_id', userId)
       .eq('is_active', true)
-      .single();
+      .maybeSingle(); // Use maybeSingle to avoid 406 error when no record found
+
+    if (error) {
+      console.error('Error checking subscription status:', error);
+      return false;
+    }
 
     return !!data?.onesignal_player_id;
   }

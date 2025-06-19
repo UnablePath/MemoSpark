@@ -35,8 +35,20 @@ export async function POST(request: Request) {
 
     console.log('AI Suggestions API: Processing request for user:', userId);
 
-    // Parse request body
-    const body = await request.json();
+    // Parse request body with error handling
+    let body;
+    try {
+      const text = await request.text();
+      if (!text || text.trim() === '') {
+        console.log('AI Suggestions API: Empty request body received');
+        return NextResponse.json({ error: 'Request body is required' }, { status: 400 });
+      }
+      body = JSON.parse(text);
+    } catch (parseError) {
+      console.error('AI Suggestions API: Invalid JSON in request body:', parseError);
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    }
+    
     const { feature, tasks, context } = body;
 
     if (!feature || typeof feature !== 'string' || !isAIFeatureType(feature)) {
@@ -189,11 +201,11 @@ export async function POST(request: Request) {
       stu_personality: 'premium',
       ml_predictions: 'premium',
       collaborative_filtering: 'premium',
-      premium_analytics: 'enterprise'
+      premium_analytics: 'premium'
     };
 
     const requiredTier = featureRequirements[feature];
-    const tierHierarchy: Record<SubscriptionTier, number> = { free: 0, premium: 1, enterprise: 2 };
+    const tierHierarchy: Record<SubscriptionTier, number> = { free: 0, premium: 1 };
     const hasRequiredTier = tierHierarchy[userTier] >= tierHierarchy[requiredTier];
 
     if (!hasRequiredTier) {

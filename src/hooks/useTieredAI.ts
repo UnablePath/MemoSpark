@@ -266,7 +266,7 @@ export const useTieredAI = () => {
       stu_personality: 'premium',
       ml_predictions: 'premium',
       collaborative_filtering: 'premium',
-      premium_analytics: 'enterprise'
+      premium_analytics: 'premium'
     };
     
     const required = requiredTiers[feature] || 'premium';

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { TutorialManager, type TutorialProgress } from '@/lib/tutorial';
+import { TutorialActionDetector } from '@/lib/tutorial/TutorialActionDetector';
 import { TutorialOverlay } from './TutorialOverlay';
 
 interface TutorialContextValue {
@@ -20,14 +21,17 @@ const TutorialContext = createContext<TutorialContextValue | null>(null);
 interface TutorialProviderProps {
   children: React.ReactNode;
   autoStart?: boolean; // Whether to auto-start tutorial for new users
+  onTabChange?: (tabIndex: number) => void; // Function to change dashboard tabs
 }
 
 export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
   children,
-  autoStart = true
+  autoStart = true,
+  onTabChange
 }) => {
   const { user, isLoaded } = useUser();
   const tutorialManager = useMemo(() => TutorialManager.getInstance(), []);
+  const actionDetector = useMemo(() => TutorialActionDetector.getInstance(), []);
   const [isActive, setIsActive] = useState(false);
   const [currentProgress, setCurrentProgress] = useState<TutorialProgress | null>(null);
   const [shouldShowTutorial, setShouldShowTutorial] = useState(false);
@@ -49,12 +53,20 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
         const progress = await tutorialManager.getTutorialProgress(user.id);
         setCurrentProgress(progress);
         
-        // Auto-start tutorial for new users
+        // Auto-start tutorial for new users on dashboard
         if (autoStart && (!progress || progress.current_step === 'welcome')) {
-          // Use requestAnimationFrame for smooth performance
-          requestAnimationFrame(() => {
-            setTimeout(() => setIsActive(true), 1000); // Small delay for better UX
-          });
+          // Check if we're on the dashboard page
+          const isDashboardPage = window.location.pathname === '/dashboard';
+          
+          if (isDashboardPage) {
+            // Use requestAnimationFrame for smooth performance
+            requestAnimationFrame(() => {
+              setTimeout(() => {
+                console.log('Auto-starting tutorial for new user on dashboard');
+                setIsActive(true);
+              }, 1500); // Slightly longer delay to let dashboard load
+            });
+          }
         }
       }
     } catch (error) {
@@ -69,6 +81,21 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
     if (!isLoaded) return;
     checkTutorialStatus();
   }, [isLoaded, checkTutorialStatus]);
+
+  // Initialize action detection when tutorial becomes active
+  useEffect(() => {
+    if (isActive && user?.id) {
+      console.log('Initializing tutorial action detection for user:', user.id);
+      actionDetector.initialize(user.id);
+    } else if (!isActive) {
+      console.log('Cleaning up tutorial action detection');
+      actionDetector.cleanup();
+    }
+
+    return () => {
+      actionDetector.cleanup();
+    };
+  }, [isActive, user?.id, actionDetector]);
 
   const showTutorial = useCallback(() => {
     setIsActive(true);
@@ -118,6 +145,7 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
           isVisible={isActive}
           onClose={hideTutorial}
           onComplete={completeTutorial}
+          onTabChange={onTabChange}
         />
       )}
     </TutorialContext.Provider>
