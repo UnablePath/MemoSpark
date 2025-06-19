@@ -484,8 +484,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
               // Responsive padding that gets smaller for screens < 440px
               "px-1 xs:px-1.5 sm:px-3 md:px-4 min-w-[28px] xs:min-w-[32px] sm:min-w-auto",
               showAISuggestions && "bg-primary hover:bg-primary/90 text-primary-foreground",
-              userTier === 'premium' && "border-amber-300",
-              userTier === 'enterprise' && "border-purple-300"
+              userTier === 'premium' && "border-amber-300"
             )}
             aria-label={`Toggle AI Suggestions - ${userTier} tier (${usage.requestsRemaining} remaining)`}
           >

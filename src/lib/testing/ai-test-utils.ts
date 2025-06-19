@@ -289,7 +289,7 @@ export class AITestUtils {
   async testIntelligenceTierRouting(userId: string, userTier: SubscriptionTier): Promise<void> {
     const response = await this.tieredAI.generateSuggestions({
       userId,
-      feature: userTier === 'premium' || userTier === 'enterprise' ? 'advanced_suggestions' : 'basic_suggestions',
+      feature: userTier === 'premium' ? 'advanced_suggestions' : 'basic_suggestions',
       tasks: this.createMockTasks(),
       context: this.createMockContext(),
       userTier
@@ -301,8 +301,7 @@ export class AITestUtils {
 
     const expectedTiers: Record<SubscriptionTier, string[]> = {
       'free': ['adaptive_learning', 'cost_optimized', 'local_ml'],
-      'premium': ['super_intelligent', 'adaptive_learning'],
-      'enterprise': ['super_intelligent', 'adaptive_learning']
+      'premium': ['super_intelligent', 'adaptive_learning']
     };
 
     if (!expectedTiers[userTier].includes(response.metadata?.tier || '')) {

@@ -1212,8 +1212,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
         )}>
                                 <Card className={cn(
             "border-primary/20 bg-gradient-to-b from-primary/5 to-background shadow-sm",
-            userTier === 'premium' && "border-amber-200",
-            userTier === 'enterprise' && "border-purple-200"
+            userTier === 'premium' && "border-amber-200"
           )}>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">

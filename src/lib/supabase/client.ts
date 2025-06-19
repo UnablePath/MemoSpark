@@ -12,7 +12,7 @@ export { createClient };
 
 // Supabase configuration for AI features
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://onfnehxkglmvrorcvqcx.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uZm5laHhrZ2xtdnJvcmN2cXgiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczMjk4NjY4NywiZXhwIjoyMDQ4NTYyNjg3fQ.xMl3vQ4YNK5PdPOC3zRq8n_7QihlRPc1BXMg7C6PGi4';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Default AI configuration

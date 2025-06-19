@@ -157,16 +157,16 @@ class ConsolidatedAIService {
     const finalContext = request.context || defaultContext;
 
     try {
-      // Tier 1: Super Intelligent ML (Enterprise)
-      if (userTier === 'enterprise') {
+      // Tier 1: Super Intelligent ML (Premium)
+      if (userTier === 'premium') {
         try {
           const suggestions = await this._generateSuperIntelligentSuggestions(tasks, userId, finalContext);
-          if (suggestions.length > 0) return this.createSuccessResponse(suggestions, 'enterprise');
+          if (suggestions.length > 0) return this.createSuccessResponse(suggestions, 'premium');
         } catch (error) { console.warn('Super Intelligent Tier failed, falling back.', error); }
       }
 
       // Tier 2: Adaptive Learning ML (Premium)
-      if (userTier === 'premium' || userTier === 'enterprise') {
+      if (userTier === 'premium') {
         try {
           const suggestions = await this._generateAdaptiveMLSuggestions(tasks, userId, finalContext);
           if (suggestions.length > 0) return this.createSuccessResponse(suggestions, 'premium');

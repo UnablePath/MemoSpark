@@ -201,11 +201,11 @@ export async function POST(request: Request) {
       stu_personality: 'premium',
       ml_predictions: 'premium',
       collaborative_filtering: 'premium',
-      premium_analytics: 'enterprise'
+      premium_analytics: 'premium'
     };
 
     const requiredTier = featureRequirements[feature];
-    const tierHierarchy: Record<SubscriptionTier, number> = { free: 0, premium: 1, enterprise: 2 };
+    const tierHierarchy: Record<SubscriptionTier, number> = { free: 0, premium: 1 };
     const hasRequiredTier = tierHierarchy[userTier] >= tierHierarchy[requiredTier];
 
     if (!hasRequiredTier) {

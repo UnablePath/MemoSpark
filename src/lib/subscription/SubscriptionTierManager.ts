@@ -9,15 +9,29 @@ import {
   DEFAULT_TIER_CONFIGS
 } from '../../types/subscription';
 
+// Track ongoing subscription creations to prevent double execution in dev mode
+const subscriptionCreationFlags = new Map<string, Promise<UserSubscriptionData>>();
+
 export class SubscriptionTierManager {
   private supabase: SupabaseClient;
 
   constructor(supabaseClient?: SupabaseClient) {
-    // Use provided client or create new one
-    this.supabase = supabaseClient || createClient(
+    // Use provided client or create new one with environment check
+    if (supabaseClient) {
+      this.supabase = supabaseClient;
+    } else {
+      // Only access process.env on server side or provide fallback
+      if (typeof window === 'undefined') {
+        // Server side
+        this.supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
+      } else {
+        // Client side - should always pass supabaseClient
+        throw new Error('SubscriptionTierManager requires a Supabase client on the client side');
+      }
+    }
   }
 
   /**
@@ -200,6 +214,14 @@ export class SubscriptionTierManager {
     }
   ): Promise<UserSubscription> {
     try {
+      // First, try to update existing subscription
+      const { data: existingSubscription } = await this.supabase
+        .from('user_subscriptions')
+        .select('id')
+        .eq('clerk_user_id', clerkUserId)
+        .eq('status', 'active')
+        .single();
+
       const subscriptionData = {
         clerk_user_id: clerkUserId,
         tier_id: tierId,
@@ -213,14 +235,24 @@ export class SubscriptionTierManager {
         updated_at: new Date().toISOString()
       };
 
-      const { data, error } = await this.supabase
+      let data, error;
+
+      if (existingSubscription) {
+        // Update existing subscription
+        ({ data, error } = await this.supabase
+          .from('user_subscriptions')
+          .update(subscriptionData)
+          .eq('id', existingSubscription.id)
+          .select()
+          .single());
+      } else {
+        // Create new subscription
+        ({ data, error } = await this.supabase
         .from('user_subscriptions')
-        .upsert(subscriptionData, {
-          onConflict: 'clerk_user_id',
-          ignoreDuplicates: false
-        })
+          .insert(subscriptionData)
         .select()
-        .single();
+          .single());
+      }
 
       if (error) {
         throw new Error(`Failed to update subscription: ${error.message}`);
@@ -259,7 +291,57 @@ export class SubscriptionTierManager {
   // Private helper methods
 
   private async createFreeSubscription(clerkUserId: string): Promise<UserSubscriptionData> {
+    // Check if subscription creation is already in progress for this user
+    const existingCreation = subscriptionCreationFlags.get(clerkUserId);
+    if (existingCreation) {
+      console.log('Subscription creation already in progress, waiting...');
+      return existingCreation;
+    }
+
+    // Create a promise for this subscription creation
+    const creationPromise = this.performFreeSubscriptionCreation(clerkUserId);
+    subscriptionCreationFlags.set(clerkUserId, creationPromise);
+
     try {
+      const result = await creationPromise;
+      return result;
+    } finally {
+      // Clean up the flag after completion (success or failure)
+      subscriptionCreationFlags.delete(clerkUserId);
+    }
+  }
+
+  private async performFreeSubscriptionCreation(clerkUserId: string): Promise<UserSubscriptionData> {
+    try {
+      // Double-check if subscription was created while we were waiting
+      const { data: existingSubscription } = await this.supabase
+        .from('user_subscriptions')
+        .select('*')
+        .eq('clerk_user_id', clerkUserId)
+        .eq('status', 'active')
+        .single();
+
+      if (existingSubscription) {
+        console.log('Subscription found during creation, using existing one');
+        // Get tier config and usage data
+        const freeTier = DEFAULT_TIER_CONFIGS.free;
+        const tierWithTimestamps = {
+          ...freeTier,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        const todayUsage = await this.createTodayUsageRecord(clerkUserId);
+        const limits = this.calculateLimits(tierWithTimestamps, todayUsage);
+
+        return {
+          subscription: existingSubscription,
+          tier: tierWithTimestamps,
+          usage: todayUsage,
+          limits
+        };
+      }
+
       // Create free subscription
       const freeSubscription = await this.updateUserSubscription(clerkUserId, 'free');
       

@@ -237,7 +237,7 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
     if (!accessCheck.canProceed) {
       return {
         success: false,
-        tier: accessCheck.tier,
+        tier: accessCheck.tier === 'enterprise' ? 'premium' : accessCheck.tier as SubscriptionTier,
         usage: {
           ...accessCheck.usage,
           featureAvailable: false
@@ -262,8 +262,7 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
     const tierLimits = {
       free: 10,
       premium: 100,
-      premium_plus: 500,
-      enterprise: -1 // unlimited
+      premium_plus: 500
     };
     
     const dailyLimit = tierLimits[accessCheck.tier as keyof typeof tierLimits];
@@ -271,7 +270,7 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
     if (dailyLimit > 0 && requestsToday >= dailyLimit) {
       return {
         success: false,
-        tier: accessCheck.tier,
+        tier: accessCheck.tier === 'enterprise' ? 'premium' : accessCheck.tier as SubscriptionTier,
         usage: {
           requestsUsed: requestsToday,
           requestsRemaining: 0,
@@ -519,7 +518,7 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
       return {
         success: true,
         data: suggestions,
-        tier: accessCheck.tier,
+        tier: accessCheck.tier === 'enterprise' ? 'premium' : accessCheck.tier as SubscriptionTier,
         usage: {
           requestsUsed: updatedRequestsToday,
           requestsRemaining: Math.max(0, dailyLimit - updatedRequestsToday),
