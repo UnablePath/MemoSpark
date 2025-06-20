@@ -234,6 +234,20 @@ export async function addReaction(
     console.error('Error adding reaction:', error);
     throw error;
   }
+
+  // Trigger achievement for adding a reaction
+  try {
+    await fetch('/api/achievements', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'social_action',
+        metadata: { socialAction: 'crashout_reaction_added' }
+      }),
+    });
+  } catch (e) {
+    console.error('Failed to trigger crashout_reaction_added achievement', e);
+  }
 }
 
 export const addVote = async (postId: string, voteType: 'up' | 'down', userId: string) => {

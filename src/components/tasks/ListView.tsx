@@ -4,6 +4,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Task {
   id: string;
@@ -18,9 +19,10 @@ export interface ListViewProps {
   tasks: Task[];
   onEdit: (task?: Task) => void;
   onDelete: (taskId: string) => Promise<void>;
+  onToggleCompletion: (taskId: string) => Promise<void>;
 }
 
-export const ListView: React.FC<ListViewProps> = ({ tasks, onEdit, onDelete }) => {
+export const ListView: React.FC<ListViewProps> = ({ tasks, onEdit, onDelete, onToggleCompletion }) => {
   const getPriorityColor = (priority?: string) => {
     switch (priority) {
       case 'high': return 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/20';
@@ -45,9 +47,15 @@ export const ListView: React.FC<ListViewProps> = ({ tasks, onEdit, onDelete }) =
         <Card key={task.id} className="w-full">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className={`font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
+              <div className="flex-1 flex items-center gap-4">
+                <Checkbox
+                  id={`task-${task.id}`}
+                  checked={task.completed}
+                  onCheckedChange={() => onToggleCompletion(task.id)}
+                  aria-labelledby={`task-title-${task.id}`}
+                />
+                <div className="flex-1">
+                  <h3 id={`task-title-${task.id}`} className={`font-medium ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
                     {task.title}
                   </h3>
                   {task.priority && (

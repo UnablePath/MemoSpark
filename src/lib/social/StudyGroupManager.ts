@@ -91,6 +91,20 @@ export class StudyGroupManager {
       // 3. Add the creator as the first member of the group
       await this.addMember(groupData.id, userId, 'owner');
       
+      // 4. Trigger achievement for creating a group
+      try {
+        await fetch('/api/achievements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'social_action',
+            metadata: { socialAction: 'group_created' }
+          }),
+        });
+      } catch (e) {
+        console.error('Failed to trigger group_created achievement', e);
+      }
+
       return groupData;
     } catch (error) {
       this.logError('createGroup', error, { name, userId });

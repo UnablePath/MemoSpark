@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
+import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
 
 // Global OneSignal interface for TypeScript
 declare global {
@@ -39,6 +40,7 @@ interface OneSignalProviderProps {
 
 export const OneSignalProvider: React.FC<OneSignalProviderProps> = ({ children }) => {
   const { user } = useUser();
+  const { triggerAchievement } = useAchievementTrigger();
   const [isInitialized, setIsInitialized] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [playerId, setPlayerId] = useState<string | undefined>();
@@ -233,6 +235,10 @@ export const OneSignalProvider: React.FC<OneSignalProviderProps> = ({ children }
       // We can check the final status here to return a success state.
       await new Promise(resolve => setTimeout(resolve, 100)); // Give SDK a moment to update
       const newOptedIn = window.OneSignal.User.PushSubscription.optedIn;
+
+      if (newOptedIn) {
+        triggerAchievement('notifications_enabled');
+      }
 
       return !!newOptedIn;
     } catch (err) {

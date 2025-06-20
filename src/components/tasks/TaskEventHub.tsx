@@ -13,7 +13,7 @@ import { TimetableView } from './TimetableView';
 import { TaskForm } from './TaskForm';
 import { TimetableEntryForm } from './TimetableEntryForm';
 import { useAuth } from '@clerk/nextjs';
-import { useFetchTasks, useDeleteTask, useCreateTask } from '@/hooks/useTaskQueries';
+import { useFetchTasks, useDeleteTask, useCreateTask, useToggleTaskCompletion } from '@/hooks/useTaskQueries';
 import { useToast } from '@/components/ui/use-toast';
 import { ShimmerButton } from '@/components/ui/shimmer-button';
 import { InteractiveHoverButton } from '@/components/ui/interactive-hover-button';
@@ -183,6 +183,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
   const { data: tasks = [], isLoading: isLoadingTasks, error: tasksError, refetch: refetchTasks } = useFetchTasks(undefined, getTokenForSupabase);
   const deleteTaskMutation = useDeleteTask(getTokenForSupabase);
   const createTaskMutation = useCreateTask(getTokenForSupabase);
+  const toggleTaskCompletionMutation = useToggleTaskCompletion(getTokenForSupabase);
   const { toast } = useToast();
   
   // Tier-aware AI integration with backwards compatibility
@@ -306,6 +307,14 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
     } catch (error) {
       // The mutation already handles error toast
       console.error('Error deleting task:', error);
+    }
+  };
+
+  const handleToggleCompletion = async (taskId: string) => {
+    try {
+      await toggleTaskCompletionMutation.mutateAsync(taskId);
+    } catch (error) {
+      console.error('Error toggling task completion:', error);
     }
   };
 
@@ -593,6 +602,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                     tasks={tasks}
                     onEdit={openTaskForm}
                     onDelete={handleDelete}
+                    onToggleCompletion={handleToggleCompletion}
                   />
                 )}
               </>

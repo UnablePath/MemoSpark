@@ -47,6 +47,20 @@ export class StudentDiscovery {
       .eq('requester_id', requesterId)
       .eq('receiver_id', receiverId);
     if (error) throw error;
+
+    // Trigger achievement for making the first connection
+    try {
+      await fetch('/api/achievements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'social_action',
+          metadata: { socialAction: 'first_connection' }
+        }),
+      });
+    } catch (e) {
+      console.error('Failed to trigger first_connection achievement', e);
+    }
   }
 
   async rejectConnectionRequest(requesterId: string, receiverId: string): Promise<void> {

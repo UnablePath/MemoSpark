@@ -18,6 +18,7 @@ import type {
   TaskFilters,
   TasksResponse,
 } from '@/types/taskTypes';
+import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
 
 // ========================================
 // QUERY KEYS
@@ -125,6 +126,7 @@ export const useDashboardCounts = (getToken?: () => Promise<string | null>) => {
  */
 export const useCreateTask = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
+  const { triggerTaskCompleted } = useAchievementTrigger();
 
   return useMutation({
     mutationFn: (taskData: Omit<TaskInsert, 'user_id'>) => createTask(taskData, getToken),
@@ -174,6 +176,9 @@ export const useCreateTask = (getToken?: () => Promise<string | null>) => {
     },
     onSuccess: async (data, variables) => {
       toast.success('Task created successfully!');
+      
+      // Trigger achievement for task completion
+      triggerTaskCompleted(variables.title);
       
       // Schedule AI-powered smart reminders if enabled
       if (data.reminder_settings?.enabled && data.due_date) {
@@ -232,6 +237,7 @@ export const useCreateTask = (getToken?: () => Promise<string | null>) => {
  */
 export const useUpdateTask = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
+  const { triggerAchievement } = useAchievementTrigger();
 
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: TaskUpdate }) =>
@@ -280,9 +286,15 @@ export const useUpdateTask = (getToken?: () => Promise<string | null>) => {
       toast.error('Failed to update task. Please try again.');
       console.error('Update task error:', err);
     },
-    onSuccess: async (data, { id, updates }) => {
+    onSuccess: async (data, { id, updates }, context) => {
       toast.success('Task updated successfully!');
       
+      // Check if a reminder was just added for the first time
+      const previousTask = context?.previousTask as Task | undefined;
+      if (updates.reminder_settings?.enabled && !previousTask?.reminder_settings?.enabled) {
+        triggerAchievement('first_reminder');
+      }
+
       // Handle AI-powered smart reminder scheduling for updated task
       if (updates.reminder_settings?.enabled && data.due_date) {
         try {

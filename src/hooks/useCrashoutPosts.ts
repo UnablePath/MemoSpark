@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getCrashoutPosts, createCrashoutPost, deletePost, CrashoutPost, CrashoutPostInput, hasMorePosts } from '@/lib/supabase/crashoutApi';
 import { useAuth } from '@clerk/nextjs';
+import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
 
 interface UseCrashoutPostsOptions {
   filter: 'latest' | 'popular' | 'trending' | 'top' | 'mine';
@@ -28,6 +29,7 @@ export function useCrashoutPosts({
   initialLimit = 5
 }: UseCrashoutPostsOptions): UseCrashoutPostsReturn {
   const { userId, getToken } = useAuth();
+  const { triggerWellnessAction } = useAchievementTrigger();
   
   const [posts, setPosts] = useState<CrashoutPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,6 +112,12 @@ export function useCrashoutPosts({
       console.log('Created post:', newPost);
       if (newPost) {
         setPosts(prevPosts => [newPost, ...prevPosts]);
+        // Trigger achievement for first post
+        triggerWellnessAction('first_crashout_post');
+        // Trigger achievement for posting with a mood
+        if (post.mood_type) {
+          triggerWellnessAction('mood_posted');
+        }
       }
       return newPost;
     } catch (err: any) {

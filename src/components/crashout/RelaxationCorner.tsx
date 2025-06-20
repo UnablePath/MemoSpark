@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
 import { Gamepad2, Wind, Music, Palette } from 'lucide-react';
 
 const breathingCycle = [
@@ -16,6 +17,7 @@ interface RelaxationCornerProps {
 type RelaxationMode = 'breathing' | 'ragdoll' | 'music' | 'drawing';
 
 export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) => {
+  const { triggerWellnessAction } = useAchievementTrigger();
   const [currentMode, setCurrentMode] = useState<RelaxationMode>('breathing');
   const [cycleIndex, setCycleIndex] = useState(0);
   const [isBreathingActive, setIsBreathingActive] = useState(false);
@@ -72,6 +74,12 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
       color: 'from-gray-500 to-gray-600'
     }
   ];
+
+  const handleModeChange = (mode: RelaxationMode) => {
+    setCurrentMode(mode);
+    // Trigger achievement when a session is started
+    triggerWellnessAction('stress_relief_session_started');
+  };
 
   const getBreathingScale = () => {
     const currentPhase = breathingCycle[cycleIndex];
@@ -284,7 +292,7 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
             return (
               <button
                 key={mode.id}
-                onClick={() => !isDisabled && setCurrentMode(mode.id)}
+                onClick={() => !isDisabled && handleModeChange(mode.id)}
                 disabled={isDisabled}
                 className={`flex items-center space-x-2 px-3 sm:px-6 py-2 sm:py-3 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                   currentMode === mode.id

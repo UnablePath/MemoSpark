@@ -162,6 +162,7 @@ describe('Task Lifecycle Integration Tests', () => {
           tasks={[listViewTask]} 
           onEdit={() => {}} 
           onDelete={async () => {}} 
+          onToggleCompletion={async () => {}}
         />
       );
       
@@ -230,6 +231,7 @@ describe('Task Lifecycle Integration Tests', () => {
           tasks={listViewTasks} 
           onEdit={() => {}} 
           onDelete={async () => {}} 
+          onToggleCompletion={async () => {}}
         />
       );
       
@@ -282,6 +284,7 @@ describe('Task Lifecycle Integration Tests', () => {
           tasks={[listViewTask]} 
           onEdit={() => {}} 
           onDelete={async () => {}} 
+          onToggleCompletion={async () => {}}
         />
       );
       
@@ -340,6 +343,7 @@ describe('Task Lifecycle Integration Tests', () => {
           tasks={[listViewTask]} 
           onEdit={() => {}} 
           onDelete={async () => {}} 
+          onToggleCompletion={async () => {}}
         />
       );
       
@@ -381,6 +385,7 @@ describe('Task Lifecycle Integration Tests', () => {
           tasks={[listViewTask]} 
           onEdit={() => {}} 
           onDelete={async () => {}} 
+          onToggleCompletion={async () => {}}
         />
       );
       
@@ -456,6 +461,7 @@ describe('Task Lifecycle Integration Tests', () => {
           tasks={[listViewTask]} 
           onEdit={() => {}} 
           onDelete={async () => {}} 
+          onToggleCompletion={async () => {}}
         />
       );
       
@@ -502,6 +508,7 @@ describe('Task Lifecycle Integration Tests', () => {
           tasks={[]} 
           onEdit={() => {}} 
           onDelete={async () => {}} 
+          onToggleCompletion={async () => {}}
         />
       );
       
@@ -525,6 +532,7 @@ describe('Task Lifecycle Integration Tests', () => {
           tasks={[]} 
           onEdit={() => {}} 
           onDelete={async () => {}} 
+          onToggleCompletion={async () => {}}
         />
       );
       
@@ -587,6 +595,7 @@ describe('Task Lifecycle Integration Tests', () => {
           tasks={[]} 
           onEdit={() => {}} 
           onDelete={async () => {}} 
+          onToggleCompletion={async () => {}}
         />
       );
       

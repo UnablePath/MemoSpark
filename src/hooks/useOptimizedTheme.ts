@@ -3,6 +3,7 @@
 import { useTheme } from 'next-themes';
 import { useCallback, useEffect, useState } from 'react';
 import { useThemeContext } from '@/components/providers/theme-provider';
+import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
 
 /**
  * Optimized theme hook that provides immediate theme switching
@@ -11,12 +12,16 @@ import { useThemeContext } from '@/components/providers/theme-provider';
 export function useOptimizedTheme() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const { forceThemeUpdate } = useThemeContext();
+  const { triggerAchievement } = useAchievementTrigger();
   const [isChanging, setIsChanging] = useState(false);
 
   // Optimized theme setter with immediate DOM updates
   const setOptimizedTheme = useCallback((newTheme: string) => {
     setIsChanging(true);
     
+    // Trigger achievement for changing the theme
+    triggerAchievement('theme_changed');
+
     // Apply theme immediately to DOM
     requestAnimationFrame(() => {
       const html = document.documentElement;
@@ -51,7 +56,7 @@ export function useOptimizedTheme() {
         setTimeout(() => setIsChanging(false), 50);
       });
     });
-  }, [setTheme, forceThemeUpdate]);
+  }, [setTheme, forceThemeUpdate, triggerAchievement]);
 
   // Toggle between light and dark modes for current theme
   const toggleMode = useCallback(() => {

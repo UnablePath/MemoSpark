@@ -296,6 +296,106 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // --- Task Completion Specific Logic ---
+    if (action === 'task_completed') {
+      // Increment the tasks_completed count
+      const newTasksCompleted = (userStats.tasks_completed || 0) + 1;
+      
+      const { data: updatedUserStats, error: statsUpdateError } = await supabaseServerAdmin
+        .from('user_stats')
+        .update({ tasks_completed: newTasksCompleted })
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (statsUpdateError) {
+        console.error('Error updating tasks_completed count:', statsUpdateError);
+        // Continue anyway, but log the error
+      } else {
+        // Use the updated stats for the rest of the checks
+        userStats = updatedUserStats;
+      }
+    }
+    // --- End Task Completion Logic ---
+
+    // --- Streak Update Specific Logic ---
+    if (action === 'streak_increased' && typeof value === 'number') {
+      const newStreak = value;
+      const { data: updatedUserStats, error: statsUpdateError } = await supabaseServerAdmin
+        .from('user_stats')
+        .update({ 
+          current_streak: newStreak,
+          longest_streak: Math.max(userStats.longest_streak || 0, newStreak)
+        })
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (statsUpdateError) {
+        console.error('Error updating streak count:', statsUpdateError);
+      } else {
+        userStats = updatedUserStats;
+      }
+    }
+    // --- End Streak Update Logic ---
+
+    // --- Mood Post Specific Logic ---
+    if (action === 'mood_posted') {
+      const newMoodCount = (userStats.mood_posts_count || 0) + 1;
+      
+      const { data: updatedUserStats, error: statsUpdateError } = await supabaseServerAdmin
+        .from('user_stats')
+        .update({ mood_posts_count: newMoodCount })
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (statsUpdateError) {
+        console.error('Error updating mood_posts_count:', statsUpdateError);
+      } else {
+        userStats = updatedUserStats;
+      }
+    }
+    // --- End Mood Post Logic ---
+
+    // --- Stress Relief Session Logic ---
+    if (action === 'stress_relief_session_started') {
+      const newSessionCount = (userStats.stress_relief_sessions_count || 0) + 1;
+      
+      const { data: updatedUserStats, error: statsUpdateError } = await supabaseServerAdmin
+        .from('user_stats')
+        .update({ stress_relief_sessions_count: newSessionCount })
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (statsUpdateError) {
+        console.error('Error updating stress_relief_sessions_count:', statsUpdateError);
+      } else {
+        userStats = updatedUserStats;
+      }
+    }
+    // --- End Stress Relief Session Logic ---
+
+    // --- Crashout Reaction Logic ---
+    if (action === 'social_action' && metadata?.socialAction === 'crashout_reaction_added') {
+      const newReactionCount = (userStats.crashout_reactions_count || 0) + 1;
+      
+      const { data: updatedUserStats, error: statsUpdateError } = await supabaseServerAdmin
+        .from('user_stats')
+        .update({ crashout_reactions_count: newReactionCount })
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (statsUpdateError) {
+        console.error('Error updating crashout_reactions_count:', statsUpdateError);
+      } else {
+        userStats = updatedUserStats;
+      }
+    }
+    // --- End Crashout Reaction Logic ---
+
     // Get all achievements that match this action type
     const { data: relevantAchievements } = await supabaseServerAdmin
       .from('achievements')
@@ -378,7 +478,13 @@ export async function POST(request: NextRequest) {
           if (statsUpdateError) {
             console.error('Error updating user stats:', statsUpdateError);
             // Don't fail the whole operation, just log the error
+          } else {
+            // After updating points, check for points-based achievements
+            await checkAndUnlockPointsAchievements(userId, userStats.total_points, supabaseServerAdmin);
           }
+
+          // Check for meta-achievements after unlocking a new one
+          await checkAndUnlockMetaAchievements(userId, supabaseServerAdmin);
 
           unlockedAchievements.push({
             ...achievement,
@@ -446,17 +552,13 @@ function checkAchievementCriteria(
       if (criteria.tasks && userStats?.tasks_completed) {
         return userStats.tasks_completed >= criteria.tasks;
       }
-      if (action === 'task_completed') {
-        return true; // First task completion
-      }
+      // The generic check for "first task" is now implicitly handled
+      // by the counter and the achievement with "tasks: 1"
       break;
       
     case 'streak':
       if (criteria.days && userStats?.current_streak) {
         return userStats.current_streak >= criteria.days;
-      }
-      if (action === 'streak_increased' && value) {
-        return value >= (criteria.days || 1);
       }
       break;
       
@@ -492,11 +594,23 @@ function checkAchievementCriteria(
       if (criteria.action === 'first_crashout_post' && action === 'wellness_action' && metadata?.wellnessAction === 'first_crashout_post') {
         return true;
       }
+      if (criteria.action === 'mood_tracking' && userStats?.mood_posts_count) {
+        return userStats.mood_posts_count >= (criteria.count || 1);
+      }
+      if (criteria.action === 'stress_relief_sessions' && userStats?.stress_relief_sessions_count) {
+        return userStats.stress_relief_sessions_count >= (criteria.count || 1);
+      }
       break;
       
     case 'social':
       if (criteria.action && action === 'social_action' && metadata?.socialAction === criteria.action) {
         return true;
+      }
+      if (criteria.action === 'crashout_reactions' && userStats?.crashout_reactions_count) {
+        return userStats.crashout_reactions_count >= (criteria.count || 1);
+      }
+      if (criteria.points && userStats?.total_points) {
+        return userStats.total_points >= criteria.points;
       }
       break;
       
@@ -508,4 +622,83 @@ function checkAchievementCriteria(
   }
   
   return false;
+}
+
+async function checkAndUnlockPointsAchievements(userId: string, totalPoints: number, client: any) {
+  try {
+    const { data: pointsAchievements } = await client
+      .from('achievements')
+      .select('*')
+      .eq('type', 'points_earned');
+
+    if (!pointsAchievements) return;
+
+    for (const achievement of pointsAchievements) {
+      if (totalPoints >= achievement.criteria.points) {
+        // Check if user already has this achievement
+        const { data: existing } = await client
+          .from('user_achievements')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('achievement_id', achievement.id)
+          .single();
+        
+        if (!existing) {
+          // Unlock it
+          await client.from('user_achievements').insert({
+            user_id: userId,
+            achievement_id: achievement.id,
+            unlocked_at: new Date().toISOString(),
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error in checkAndUnlockPointsAchievements:', error);
+  }
+}
+
+async function checkAndUnlockMetaAchievements(userId: string, client: any) {
+  try {
+    // Get the count of unlocked achievements
+    const { count, error: countError } = await client
+      .from('user_achievements')
+      .select('id', { count: 'exact' })
+      .eq('user_id', userId);
+
+    if (countError) throw countError;
+    const unlockedCount = count || 0;
+
+    // Get all meta-achievements (achievements based on other achievements)
+    const { data: metaAchievements } = await client
+      .from('achievements')
+      .select('*')
+      .eq('type', 'task_completion') // Currently miscategorized
+      .not('criteria->>achievements', 'is', null);
+
+    if (!metaAchievements) return;
+
+    for (const achievement of metaAchievements) {
+      if (unlockedCount >= achievement.criteria.achievements) {
+        // Check if user already has this achievement
+        const { data: existing } = await client
+          .from('user_achievements')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('achievement_id', achievement.id)
+          .single();
+
+        if (!existing) {
+          // Unlock it
+          await client.from('user_achievements').insert({
+            user_id: userId,
+            achievement_id: achievement.id,
+            unlocked_at: new Date().toISOString(),
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error in checkAndUnlockMetaAchievements:', error);
+  }
 } 
