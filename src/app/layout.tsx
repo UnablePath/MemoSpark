@@ -14,6 +14,7 @@ import { PwaInstaller } from "@/components/pwa/PwaInstaller";
 import { Toaster } from "@/components/ui/sonner";
 import { OneSignalProvider } from '@/components/providers/onesignal-provider';
 import { NotificationPrompt } from '@/components/notifications/NotificationPrompt';
+import { ProfileSyncProvider } from "@/components/providers/ProfileSyncProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -139,24 +140,26 @@ export default function RootLayout({
       <body className={`${inter.className} max-w-full overflow-x-hidden`}>
         <ThemeProvider>
           <ThemeAwareClerkProvider>
-            <QueryProvider>
-              <UserProvider>
-                <AIProvider>
-                  <TutorialProvider>
-                    <PWAProvider>
+            <ProfileSyncProvider>
+              <QueryProvider>
+                <UserProvider>
+                  <AIProvider>
+                    <TutorialProvider>
+                      <PWAProvider>
                         <OneSignalProvider>
-                    <ClientBody>
-                      {children}
+                          <ClientBody>
+                            {children}
                             <PwaInstaller />
                             <NotificationPrompt />
                             <Toaster />
-                    </ClientBody>
+                          </ClientBody>
                         </OneSignalProvider>
-                    </PWAProvider>
-                  </TutorialProvider>
-                </AIProvider>
-              </UserProvider>
-            </QueryProvider>
+                      </PWAProvider>
+                    </TutorialProvider>
+                  </AIProvider>
+                </UserProvider>
+              </QueryProvider>
+            </ProfileSyncProvider>
           </ThemeAwareClerkProvider>
         </ThemeProvider>
       </body>
