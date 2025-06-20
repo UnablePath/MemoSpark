@@ -2,12 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react'
 
+type OSType = 'ios' | 'android' | 'windows' | 'macos' | 'linux' | 'unknown'
+
 interface PWAState {
   isOnline: boolean
   isInstalled: boolean
   canInstall: boolean
   hasUpdate: boolean
   isRegistered: boolean
+  os: OSType
 }
 
 interface PWAActions {
@@ -18,6 +21,19 @@ interface PWAActions {
   getOfflineCapabilities: () => Promise<string[]>
 }
 
+const getOperatingSystem = (): OSType => {
+  if (typeof window === 'undefined') return 'unknown'
+  const userAgent = window.navigator.userAgent
+
+  if (/iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream) return 'ios'
+  if (/android/i.test(userAgent)) return 'android'
+  if (/Win/i.test(userAgent)) return 'windows'
+  if (/Mac/i.test(userAgent)) return 'macos'
+  if (/Linux/i.test(userAgent)) return 'linux'
+
+  return 'unknown'
+}
+
 export function usePWA(): PWAState & PWAActions {
   const [isOnline, setIsOnline] = useState(true)
   const [isInstalled, setIsInstalled] = useState(false)
@@ -25,6 +41,11 @@ export function usePWA(): PWAState & PWAActions {
   const [hasUpdate, setHasUpdate] = useState(false)
   const [isRegistered, setIsRegistered] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [os, setOs] = useState<OSType>('unknown')
+
+  useEffect(() => {
+    setOs(getOperatingSystem())
+  }, [])
 
   // Check if PWA is installed
   useEffect(() => {
@@ -114,8 +135,13 @@ export function usePWA(): PWAState & PWAActions {
       try {
         const registration = await navigator.serviceWorker.getRegistration()
         if (registration && registration.waiting) {
+          // Listen for the controlling service worker to change
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            // Reload the page once the new service worker has taken control
+            window.location.reload()
+          })
+          // Send a message to the waiting service worker to skip waiting
           registration.waiting.postMessage({ type: 'SKIP_WAITING' })
-          window.location.reload()
         }
       } catch (error) {
         console.error('Error updating PWA:', error)
@@ -263,6 +289,7 @@ export function usePWA(): PWAState & PWAActions {
     canInstall,
     hasUpdate,
     isRegistered,
+    os,
     
     // Actions
     install,

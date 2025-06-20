@@ -4,6 +4,8 @@
 // import { useUser } from '@/lib/user-context'; // Old context, to be removed or replaced if necessary
 import { usePathname } from 'next/navigation'; // useRouter might not be needed anymore here
 import { Toaster } from "@/components/ui/sonner";
+import { InstallPrompt } from '@/components/pwa/InstallPrompt';
+import { UpdateAvailable } from '@/components/pwa/UpdateAvailable';
 // If we need to check Clerk's auth status for loading, import useUser from Clerk
 // import { useUser as useClerkUser } from '@clerk/nextjs'; 
 import { useEffect } from 'react';
@@ -184,6 +186,8 @@ devHelpers.help()          - Show this help message
   return (
     <>
       {children}
+      <InstallPrompt />
+      <UpdateAvailable />
       <Toaster />
     </>
   );

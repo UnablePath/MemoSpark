@@ -1,80 +1,90 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { usePWAContext } from '@/components/providers/pwa-provider'
+import React, { useState, useEffect } from 'react'
+import { usePWA } from '@/hooks/usePWA'
 import { Button } from '@/components/ui/button'
-import { X, Download, Share } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ArrowDownToLine, Share, X } from 'lucide-react'
 
-// Helper to detect iOS/iPadOS
-const isIOS = () => {
-  if (typeof window === 'undefined') return false
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
-}
+// iOS Share Sheet icon (approximated)
+const IosShareIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 4L12 16M12 4L8 8M12 4L16 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5 12V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
 
-export default function InstallPrompt({ onClose }: { onClose: () => void }) {
-  const { install, canInstall, isInstalled } = usePWAContext()
-  const [isIosUser, setIsIosUser] = useState(false)
+export const InstallPrompt: React.FC = () => {
+  const { os, canInstall, install } = usePWA()
+  const [showPrompt, setShowPrompt] = useState(false)
+  const [showIOSHint, setShowIOSHint] = useState(false)
 
+  // Decide when to show the prompt
   useEffect(() => {
-    setIsIosUser(isIOS())
-  }, [])
+    // For non-iOS devices, show when the browser says it's installable
+    if (os !== 'ios' && canInstall) {
+      setShowPrompt(true)
+    }
+    // For iOS, show after a delay if not installed
+    else if (os === 'ios' && !window.navigator.standalone) {
+      const timer = setTimeout(() => {
+        // Check if the user has already seen the hint
+        const hasSeenHint = localStorage.getItem('hasSeenIOSInstallHint')
+        if (!hasSeenHint) {
+          setShowIOSHint(true)
+        }
+      }, 5000) // Show after 5 seconds
+      return () => clearTimeout(timer)
+    }
+  }, [canInstall, os])
+
+  const handleCloseIOSHint = () => {
+    localStorage.setItem('hasSeenIOSInstallHint', 'true')
+    setShowIOSHint(false)
+  }
 
   const handleInstallClick = async () => {
     await install()
-    onClose()
+    setShowPrompt(false)
   }
 
-  // Do not show any prompt if already installed
-  if (isInstalled) {
-    return null
-  }
-
-  // Specific prompt for iOS users
-  if (isIosUser) {
+  if (showIOSHint) {
     return (
-      <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 max-w-sm p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg animate-in fade-in slide-in-from-bottom-5 z-50">
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-        >
-          <X size={20} />
-        </button>
-        <div className="flex flex-col items-center text-center">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            Install MemoSpark
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-            To get the best experience, add the app to your Home Screen. Tap the
-            <Share className="inline-block h-4 w-4 mx-1" />
-            button and then select 'Add to Home Screen'.
-          </p>
-        </div>
+      <div className="fixed bottom-4 right-4 z-50">
+        <Card className="max-w-sm bg-background/90 backdrop-blur-sm border-border shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <span className="mr-2">Install MemoSpark</span>
+              <X className="ml-auto h-5 w-5 cursor-pointer" onClick={handleCloseIOSHint} />
+            </CardTitle>
+            <CardDescription>
+              For the best experience, add the app to your home screen.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm">
+            <p>1. Tap the <IosShareIcon /> icon in the Safari menu bar.</p>
+            <p className="mt-2">2. Scroll down and tap 'Add to Home Screen'.</p>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
-  // Standard prompt for other devices (Android/Desktop)
-  if (canInstall) {
+  if (showPrompt) {
     return (
-      <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 max-w-sm p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg animate-in fade-in slide-in-from-bottom-5 z-50">
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-        >
-          <X size={20} />
-        </button>
-        <div className="flex flex-col items-center text-center">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            Install MemoSpark App
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-            Get a faster, full-screen experience with offline access by installing our app.
-          </p>
-          <Button onClick={handleInstallClick} className="w-full">
-            <Download className="mr-2 h-4 w-4" />
-            Install App
-          </Button>
-        </div>
+      <div className="fixed bottom-4 right-4 z-50">
+        <Card className="max-w-sm bg-background/90 backdrop-blur-sm border-border shadow-lg">
+          <CardHeader>
+            <CardTitle>Install MemoSpark</CardTitle>
+            <CardDescription>Get the full app experience.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={handleInstallClick} className="w-full">
+              <ArrowDownToLine className="mr-2 h-4 w-4" />
+              Install App
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }

@@ -6,4 +6,10 @@ declare global {
       onboardingComplete?: boolean
     }
   }
+}
+
+declare global {
+  interface Navigator {
+    standalone?: boolean;
+  }
 } 
