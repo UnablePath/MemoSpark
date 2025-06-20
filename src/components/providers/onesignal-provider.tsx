@@ -211,7 +211,7 @@ export const OneSignalProvider: React.FC<OneSignalProviderProps> = ({ children }
   };
 
   const subscribe = async (force: boolean = false): Promise<boolean> => {
-    console.log('🔔 Subscribe clicked', { force });
+    console.log('🔔 Subscribe called', { force });
     
     try {
       if (!window.OneSignal) {
@@ -223,79 +223,18 @@ export const OneSignalProvider: React.FC<OneSignalProviderProps> = ({ children }
       if (user?.id) {
         await window.OneSignal.login(user.id);
       }
-
-      // Check if user is already opted in but just needs permission
-      const currentPermission = window.OneSignal.Notifications.permission;
-      const currentOptedIn = window.OneSignal.User.PushSubscription.optedIn;
       
-      console.log('🔍 Current state before subscribe:', { currentPermission, currentOptedIn });
-
-      if (currentPermission && !currentOptedIn) {
-        // User has permission but is opted out - just opt back in
-        console.log('🔄 User has permission but is opted out, opting back in...');
-        await window.OneSignal.User.PushSubscription.optIn();
-        
-        // Wait a moment for the state to update
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        const playerId = window.OneSignal.User.PushSubscription.id;
-        const optedIn = window.OneSignal.User.PushSubscription.optedIn;
-        
-        if (playerId && optedIn) {
-          setIsSubscribed(true);
-          setPlayerId(playerId);
-          
-          if (user?.id) {
-            await syncSubscriptionStatus(user.id, playerId, true);
-          }
-          
-          return true;
-        }
-      } else if (!currentPermission) {
-        // User doesn't have permission - show prompt
-        try {
-          if (force) {
-            console.log('🔔 Forcing slidedown prompt');
-            await window.OneSignal.Slidedown.promptPush({ force: true });
-          } else {
-            await window.OneSignal.Slidedown.promptPush();
-          }
-          setHasShownPrompt(true);
-        } catch (slidedownError) {
-          console.log('Slidedown not available, falling back to direct permission request');
-          const permission = await window.OneSignal.Notifications.requestPermission();
-          if (!permission) {
-            return false;
-          }
-        }
-        
-        // Wait for the subscription to register
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Check if subscription was successful
-        const permission = window.OneSignal.Notifications.permission;
-        const optedIn = window.OneSignal.User.PushSubscription.optedIn;
-        const playerId = window.OneSignal.User.PushSubscription.id;
-        
-        console.log('🔍 OneSignal result after prompt:', { permission, optedIn, playerId });
-        
-        if (permission && optedIn && playerId) {
-          setIsSubscribed(true);
-          setPlayerId(playerId);
-          
-          if (user?.id) {
-            await syncSubscriptionStatus(user.id, playerId, true);
-          }
-          
-          return true;
-        }
-      } else {
-        // User is already fully subscribed
-        console.log('✅ User is already subscribed');
-        return true;
-      }
+      // Use the slidedown prompt. OneSignal handles the logic of whether to show it.
+      // The `force` parameter overrides the "cool down" period if the user previously dismissed it.
+      // This is ideal when the action is initiated by a user click.
+      await window.OneSignal.Slidedown.promptPush({ force });
       
-      return false;
+      // The event listener for 'change' will handle updating state and syncing to the DB.
+      // We can check the final status here to return a success state.
+      await new Promise(resolve => setTimeout(resolve, 100)); // Give SDK a moment to update
+      const newOptedIn = window.OneSignal.User.PushSubscription.optedIn;
+
+      return !!newOptedIn;
     } catch (err) {
       console.error('Subscribe error:', err);
       setError(err instanceof Error ? err.message : 'Failed to subscribe');
@@ -312,43 +251,13 @@ export const OneSignalProvider: React.FC<OneSignalProviderProps> = ({ children }
         return false;
       }
 
-      // Check current state
-      const currentPermission = window.OneSignal.Notifications.permission;
-      const currentOptedIn = window.OneSignal.User.PushSubscription.optedIn;
-      const currentPlayerId = window.OneSignal.User.PushSubscription.id;
+      // The SDK handles the case where the user is already opted out.
+      await window.OneSignal.User.PushSubscription.optOut();
+        
+      // The event listener will handle the state change and DB sync.
+      console.log('✅ Unsubscribe command sent.');
+      return true;
       
-      console.log('🔍 Current state before unsubscribe:', { currentPermission, currentOptedIn, currentPlayerId });
-
-      if (currentPermission && currentOptedIn) {
-        // User is subscribed - opt them out
-        await window.OneSignal.User.PushSubscription.optOut();
-        
-        // Wait for state to update
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        const newOptedIn = window.OneSignal.User.PushSubscription.optedIn;
-        console.log('🔍 State after opt out:', { newOptedIn });
-        
-        setIsSubscribed(false);
-        
-        // Sync unsubscription to database
-        if (user?.id) {
-          await syncSubscriptionStatus(user.id, currentPlayerId, false);
-        }
-        
-        return true;
-      } else {
-        // User is already unsubscribed
-        console.log('✅ User is already unsubscribed');
-        setIsSubscribed(false);
-        
-        // Still sync to ensure database is correct
-        if (user?.id) {
-          await syncSubscriptionStatus(user.id, currentPlayerId, false);
-        }
-        
-        return true;
-      }
     } catch (err) {
       console.error('Unsubscribe error:', err);
       setError(err instanceof Error ? err.message : 'Failed to unsubscribe');
@@ -358,7 +267,9 @@ export const OneSignalProvider: React.FC<OneSignalProviderProps> = ({ children }
 
   // Function to prompt user for notifications (can be called from anywhere)
   const promptUser = async (): Promise<boolean> => {
-    console.log('🔔 Prompting user for notifications');
+    console.log('🔔 Actively prompting user for notifications');
+    // We call subscribe with `force: true` because this function is meant
+    // to be called by an explicit user action, like clicking a button.
     return await subscribe(true);
   };
 

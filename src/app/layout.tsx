@@ -106,7 +106,7 @@ export default function RootLayout({
                     appId: "${process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID}",
                     allowLocalhostAsSecureOrigin: true,
                     autoRegister: false,
-                    autoResubscribe: false,
+                    autoResubscribe: true,
                     safari_web_id: "${process.env.NEXT_PUBLIC_ONESIGNAL_SAFARI_WEB_ID || ''}",
                     notifyButton: {
                       enable: false,
