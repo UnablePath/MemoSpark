@@ -36,6 +36,11 @@ const GamificationHub = () => {
   const [coinBalance, setCoinBalance] = useState(0);
   const [selectedAchievement, setSelectedAchievement] = useState<any>(null);
 
+  // Trigger achievement on mount
+  useEffect(() => {
+    triggerAchievement('gamification_opened');
+  }, [triggerAchievement]);
+
   // Load real coin balance
   useEffect(() => {
     const loadCoinBalance = async () => {
@@ -54,8 +59,6 @@ const GamificationHub = () => {
       loadCoinBalance();
     }
   }, [user?.id]);
-
-
 
   // Calculate reward tier progression
   const calculateTierInfo = (points: number) => {
@@ -87,8 +90,6 @@ const GamificationHub = () => {
   };
   
   const tierInfo = calculateTierInfo(userStats?.total_points || 0);
-
-
 
   if (loading) {
     return <GamificationHubSkeleton />;
@@ -132,8 +133,6 @@ const GamificationHub = () => {
             </Button>
           </div>
         </header>
-
-
 
         {/* User Stats & Real Coin Balance */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -487,6 +486,5 @@ const GamificationHubSkeleton = () => (
         </Card>
     </div>
 );
-
 
 export default GamificationHub; 

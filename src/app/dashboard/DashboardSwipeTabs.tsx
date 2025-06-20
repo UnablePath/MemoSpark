@@ -47,7 +47,7 @@ export function DashboardSwipeTabs() {
   const { userTier } = tieredAI;
 
   // Achievement system
-  const { triggerTutorialStep } = useAchievementTrigger();
+  const { triggerAchievement } = useAchievementTrigger();
 
   useEffect(() => {
     tabRefs.current = tabRefs.current.slice(0, TABS_CONFIG.length);
@@ -94,26 +94,26 @@ export function DashboardSwipeTabs() {
         if (wasNewTab) {
           switch (tabKey) {
             case 'gamification':
-              triggerTutorialStep('gamification_opened');
+              triggerAchievement('gamification_opened');
               break;
             case 'connections':
-              triggerTutorialStep('connections_opened');
+              triggerAchievement('connections_opened');
               break;
             case 'tasks':
-              triggerTutorialStep('tasks_opened');
+              triggerAchievement('tasks_opened');
               break;
             case 'reminders':
-              triggerTutorialStep('reminders_opened');
+              triggerAchievement('reminders_opened');
               break;
             case 'crashout':
-              triggerTutorialStep('crashout_opened');
+              triggerAchievement('crashout_opened');
               break;
           }
         }
         
         // Check if all tabs have been visited
         if (newVisited.size === TABS_CONFIG.length) {
-          triggerTutorialStep('all_tabs_visited');
+          triggerAchievement('all_tabs_visited');
         }
         
         return newVisited;
@@ -143,8 +143,8 @@ export function DashboardSwipeTabs() {
   // Trigger initial dashboard visit achievement
   useEffect(() => {
     // Trigger on first load
-    triggerTutorialStep('dashboard_visited');
-  }, [triggerTutorialStep]);
+    triggerAchievement('dashboard_visited');
+  }, [triggerAchievement]);
 
   // Memoize rendered components to prevent unnecessary re-renders and maintain state
   const memoizedTabComponents = useMemo(() => {

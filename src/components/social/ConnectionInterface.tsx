@@ -26,6 +26,7 @@ import { SwipeInterface } from './SwipeInterface';
 import { StudyGroupHub } from './StudyGroupHub';
 import { ActivityFeed } from './ActivityFeed';
 import { ConnectionManager } from './ConnectionManager';
+import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
 
 interface ConnectionInterfaceProps {
   onSwipeModeChange?: (isSwipeMode: boolean) => void;
@@ -34,6 +35,7 @@ interface ConnectionInterfaceProps {
 export const ConnectionInterface: React.FC<ConnectionInterfaceProps> = ({ onSwipeModeChange }) => {
   const { getToken } = useAuth();
   const { user } = useUser();
+  const { triggerAchievement } = useAchievementTrigger();
 
   const studentDiscovery = useMemo(() => new StudentDiscovery(getToken), [getToken]);
   const studyGroupManager = useMemo(() => new StudyGroupManager(getToken), [getToken]);
@@ -51,6 +53,11 @@ export const ConnectionInterface: React.FC<ConnectionInterfaceProps> = ({ onSwip
   useEffect(() => {
     onSwipeModeChange?.(isSwipeMode);
   }, [isSwipeMode, onSwipeModeChange]);
+
+  // Trigger achievement on mount
+  useEffect(() => {
+    triggerAchievement('connections_opened');
+  }, [triggerAchievement]);
 
   const handleSearch = async () => {
     if (!user || !searchTerm.trim()) return;
