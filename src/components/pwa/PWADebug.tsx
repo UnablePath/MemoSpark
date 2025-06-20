@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { usePWAContext } from '@/components/providers/pwa-provider'
+import { usePWA } from '@/hooks/usePWA'
 import { PushNotificationManager } from './PushNotificationManager'
 import { Badge } from '@/components/ui/badge'
 
@@ -12,7 +12,7 @@ interface PWADebugProps {
 export default function PWADebug({ className = '' }: PWADebugProps) {
   const [debugInfo, setDebugInfo] = useState<any>({})
   const [showDebug, setShowDebug] = useState(false)
-  const pwa = usePWAContext()
+  const pwa = usePWA()
 
   useEffect(() => {
     const checkPWAStatus = async () => {

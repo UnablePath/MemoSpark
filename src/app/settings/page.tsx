@@ -11,14 +11,20 @@ import { NotificationSettings } from '@/components/settings/NotificationSettings
 import { NotificationAnalytics } from '@/components/notifications/NotificationAnalytics';
 import Link from 'next/link';
 import { ReminderSettings } from '@/components/reminders/ReminderSettings';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
 
 // interface SettingsPageProps {} // Add if props are needed
 
 const SettingsPage: React.FC = () => {
   const router = useRouter();
+  const { triggerAchievement } = useAchievementTrigger();
   const [isReminderSettingsOpen, setIsReminderSettingsOpen] = useState(false);
   const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    triggerAchievement('settings_opened');
+  }, [triggerAchievement]);
 
   const handleBack = () => {
     router.push('/dashboard');

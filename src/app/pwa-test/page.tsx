@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { PushNotificationManager } from '@/components/pwa/PushNotificationManager';
-import { usePWAContext } from '@/components/providers/pwa-provider';
 import PWADebug from '@/components/pwa/PWADebug';
 import { useOneSignal } from '@/components/providers/onesignal-provider';
 import { OneSignalService } from '@/lib/notifications/OneSignalService';
@@ -23,7 +22,6 @@ interface ConnectivityTest {
 }
 
 export default function PWATestPage() {
-  const pwa = usePWAContext();
   const { user } = useUser();
   const { isInitialized, playerId, isSubscribed } = useOneSignal();
   const [tests, setTests] = useState<ConnectivityTest[]>([

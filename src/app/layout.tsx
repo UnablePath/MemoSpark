@@ -7,7 +7,6 @@ import { UserProvider } from "@/lib/user-context";
 import { AIProvider } from "@/lib/ai/aiContext";
 import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 import { ThemeAwareClerkProvider } from "@/components/providers/clerk-theme-provider";
-import { PWAProvider } from "@/components/providers/pwa-provider";
 import { ConditionalHeader } from "@/components/layout/ConditionalHeader";
 import ClientBody from "@/app/ClientBody";
 import { PwaInstaller } from "@/components/pwa/PwaInstaller";
@@ -145,16 +144,14 @@ export default function RootLayout({
                 <UserProvider>
                   <AIProvider>
                     <TutorialProvider>
-                      <PWAProvider>
-                        <OneSignalProvider>
-                          <ClientBody>
-                            {children}
-                            <PwaInstaller />
-                            <NotificationPrompt />
-                            <Toaster />
-                          </ClientBody>
-                        </OneSignalProvider>
-                      </PWAProvider>
+                      <OneSignalProvider>
+                        <ClientBody>
+                          {children}
+                          <PwaInstaller />
+                          <NotificationPrompt />
+                          <Toaster />
+                        </ClientBody>
+                      </OneSignalProvider>
                     </TutorialProvider>
                   </AIProvider>
                 </UserProvider>

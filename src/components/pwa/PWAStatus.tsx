@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { usePWAContext } from '@/components/providers/pwa-provider'
+import { usePWA } from '@/hooks/usePWA'
 import { 
   Wifi, 
   WifiOff, 
@@ -27,7 +27,7 @@ export default function PWAStatus({ detailed = false, className = '' }: PWAStatu
     hasUpdate, 
     isRegistered,
     getOfflineCapabilities 
-  } = usePWAContext()
+  } = usePWA()
   
   const [capabilities, setCapabilities] = useState<string[]>([])
   const [showDetails, setShowDetails] = useState(detailed)

@@ -20,11 +20,13 @@ import { toast } from 'sonner';
 import { format } from "date-fns";
 import { ProfileSync } from '@/components/profile/ProfileSync';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
 
 export default function ProfilePage() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const { profile, isLoading: profileLoading, error: profileError, refetch, updateProfile } = useUserProfile();
+  const { triggerAchievement } = useAchievementTrigger();
   const [isEditing, setIsEditing] = useState(false);
 
   // Form state from Supabase profile data
@@ -46,6 +48,11 @@ export default function ProfilePage() {
       setSubjects(profile.subjects?.join(', ') || '');
     }
   }, [profile]);
+
+  // Trigger achievement on page load
+  useEffect(() => {
+    triggerAchievement('profile_opened');
+  }, [triggerAchievement]);
 
   const getInitials = (nameStr: string) => {
     if (!nameStr) return "U";
