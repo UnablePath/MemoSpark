@@ -89,7 +89,7 @@ export const grantPoints = async (
 ): Promise<{ success: boolean; newTotal?: number }> => {
   // This is a placeholder for a secure server-side operation.
   // Directly calling this from the client is insecure.
-  console.log(`Granting ${points} points to user ${userId}. This should be a server-side call.`);
+  // Points granting operation (should be server-side)
   const stats = await fetchUserStats(userId, getToken);
   if (stats) {
     const newTotal = (stats.total_points || 0) + points;

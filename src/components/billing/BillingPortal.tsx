@@ -212,7 +212,7 @@ export const BillingPortal: React.FC<BillingPortalProps> = ({ className }) => {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
-              {availableTiers.filter(tier => tier.id !== 'free' && tier.id !== 'enterprise').map((tier) => (
+              {availableTiers.filter(tier => tier.id !== 'free' && tier.id !== 'enterprise').map((tier) => (  
                 <div key={tier.id} className="border rounded-lg p-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
                     <h3 className="text-lg font-semibold">{tier.display_name}</h3>
@@ -267,7 +267,7 @@ export const BillingPortal: React.FC<BillingPortalProps> = ({ className }) => {
                     {/* Money-back guarantee */}
                     <div className="flex items-center gap-1 text-xs text-muted-foreground justify-center">
                       <AlertCircle className="h-3 w-3" />
-                      <span>30-day money-back guarantee</span>
+                      <span>7 day refund</span>
                     </div>
                   </div>
                 </div>

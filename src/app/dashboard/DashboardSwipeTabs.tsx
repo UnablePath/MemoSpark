@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { TabContainer } from '@/components/layout/TabContainer';
-import StudentConnectionTab from '@/components/home/StudentConnectionTab';
+import { ConnectionInterface } from '@/components/social/ConnectionInterface';
 import { ConnectionsDebug } from '@/components/home/ConnectionsDebug';
 import ConnectionsErrorBoundary from '@/components/home/ConnectionsErrorBoundary';
 import { TaskEventHub } from '@/components/tasks/TaskEventHub';
@@ -12,19 +12,20 @@ import GamificationHub from '@/components/gamification/GamificationHub';
 import { FaUserFriends, FaCalendarAlt, FaBell, FaSpa, FaGamepad } from 'react-icons/fa';
 import { useLocalStorageState } from '@/hooks/useStudentConnection';
 import { useTieredAI } from '@/hooks/useTieredAI';
+import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
 import { Crown } from 'lucide-react';
 
 // Toggle this to test - set to true to show debug component instead of actual connections tab
 const USE_DEBUG_COMPONENT = false;
 
-// Development mode - allows access to all features for testing
-const isDevelopmentMode = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_ENABLE_DEV_FEATURES === 'true';
+// Launch mode - allows all users to experience premium features during launch period
+const isLaunchMode = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_ENABLE_LAUNCH_MODE === 'true';
 
 // Define the order of tabs and their corresponding icons
 const TABS_CONFIG = [
   { 
     key: 'connections', 
-    component: USE_DEBUG_COMPONENT ? ConnectionsDebug : StudentConnectionTab, 
+    component: USE_DEBUG_COMPONENT ? ConnectionsDebug : ConnectionInterface, 
     icon: FaUserFriends 
   },
   { key: 'tasks', component: TaskEventHub, icon: FaCalendarAlt },
@@ -37,12 +38,16 @@ export function DashboardSwipeTabs() {
   const [persistentActiveTab, setPersistentActiveTab] = useLocalStorageState<number>('dashboard_active_tab', 0);
   const [activeTabIndex, setActiveTabIndex] = useState(persistentActiveTab);
   const [isTinderModeActive, setIsTinderModeActive] = useState(false);
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set(['connections'])); // Start with connections as visited
   const tablistRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   
   // Tier-aware features with backwards compatibility
   const tieredAI = useTieredAI ? useTieredAI() : { userTier: 'free', isFeatureAvailable: () => true };
   const { userTier } = tieredAI;
+
+  // Achievement system
+  const { triggerTutorialStep } = useAchievementTrigger();
 
   useEffect(() => {
     tabRefs.current = tabRefs.current.slice(0, TABS_CONFIG.length);
@@ -62,7 +67,7 @@ export function DashboardSwipeTabs() {
 
     const newActiveTabConfig = TABS_CONFIG[index];
     const isPremiumFeature = newActiveTabConfig?.key === 'gamification' || newActiveTabConfig?.key === 'crashout';
-    const hasAccess = isPremiumFeature ? (userTier !== 'free' || isDevelopmentMode) : true;
+    const hasAccess = isPremiumFeature ? (userTier !== 'free' || isLaunchMode) : true;
     
     if (isPremiumFeature && !hasAccess) {
       // Maybe show an upgrade modal in the future
@@ -76,6 +81,45 @@ export function DashboardSwipeTabs() {
     
     setActiveTabIndex(index);
     setPersistentActiveTab(index);
+    
+    // Track visited tabs and trigger achievements
+    const tabKey = newActiveTabConfig?.key;
+    if (tabKey) {
+      setVisitedTabs(prev => {
+        const newVisited = new Set(prev);
+        const wasNewTab = !newVisited.has(tabKey);
+        newVisited.add(tabKey);
+        
+        // Trigger achievements for tab visits
+        if (wasNewTab) {
+          switch (tabKey) {
+            case 'gamification':
+              triggerTutorialStep('gamification_opened');
+              break;
+            case 'connections':
+              triggerTutorialStep('connections_opened');
+              break;
+            case 'tasks':
+              triggerTutorialStep('tasks_opened');
+              break;
+            case 'reminders':
+              triggerTutorialStep('reminders_opened');
+              break;
+            case 'crashout':
+              triggerTutorialStep('crashout_opened');
+              break;
+          }
+        }
+        
+        // Check if all tabs have been visited
+        if (newVisited.size === TABS_CONFIG.length) {
+          triggerTutorialStep('all_tabs_visited');
+        }
+        
+        return newVisited;
+      });
+    }
+    
     console.log(`Switching to tab: ${newActiveTabConfig?.key} (index: ${index})`);
   };
 
@@ -96,6 +140,12 @@ export function DashboardSwipeTabs() {
     };
   }, [handleTabChange]);
 
+  // Trigger initial dashboard visit achievement
+  useEffect(() => {
+    // Trigger on first load
+    triggerTutorialStep('dashboard_visited');
+  }, [triggerTutorialStep]);
+
   // Memoize rendered components to prevent unnecessary re-renders and maintain state
   const memoizedTabComponents = useMemo(() => {
     return TABS_CONFIG.map((tabConfig) => {
@@ -108,7 +158,7 @@ export function DashboardSwipeTabs() {
               {USE_DEBUG_COMPONENT ? (
                 <TabComponent />
               ) : (
-                <TabComponent onViewModeChange={handleStudentTabViewModeChange} />
+                <TabComponent onSwipeModeChange={handleStudentTabViewModeChange} />
               )}
             </ConnectionsErrorBoundary>
           </div>
@@ -121,7 +171,7 @@ export function DashboardSwipeTabs() {
         </div>
       );
     });
-  }, []);
+  }, [handleStudentTabViewModeChange]);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (!tablistRef.current) return;
@@ -145,10 +195,10 @@ export function DashboardSwipeTabs() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Development Mode Indicator */}
-      {isDevelopmentMode && (
-        <div className="bg-yellow-500/10 border-b border-yellow-500/20 px-4 py-2 text-center text-sm text-yellow-600 dark:text-yellow-400">
-          🔧 Development Mode: All premium features unlocked for testing
+      {/* Launch Mode Indicator */}
+      {isLaunchMode && (
+        <div className="bg-green-500/10 border-b border-green-500/20 px-4 py-2 text-center text-sm text-green-600 dark:text-green-400">
+          🚀 Launch Mode: Experience all premium features for free during our launch period!
         </div>
       )}
 
@@ -177,7 +227,8 @@ export function DashboardSwipeTabs() {
           const Icon = tab.icon;
           const isActive = index === activeTabIndex;
           const isPremiumFeature = tab.key === 'gamification' || tab.key === 'crashout';
-          const hasAccess = isPremiumFeature ? (userTier !== 'free' || isDevelopmentMode) : true;
+          const hasAccess = isPremiumFeature ? (userTier !== 'free' || isLaunchMode) : true;
+          const isVisited = visitedTabs.has(tab.key);
           
           return (
             <button
@@ -197,11 +248,17 @@ export function DashboardSwipeTabs() {
               disabled={!hasAccess && isPremiumFeature}
             >
               <Icon className="h-6 w-6" aria-hidden="true" />
+              
+              {/* New tab indicator */}
+              {!isVisited && hasAccess && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse" title="New!" />
+              )}
+              
               {isPremiumFeature && !hasAccess && (
                 <Crown className="absolute -top-1 -right-1 h-3 w-3 text-yellow-500" />
               )}
-              {isDevelopmentMode && isPremiumFeature && (
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full" title="Dev Mode Active" />
+              {isLaunchMode && isPremiumFeature && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full" title="Launch Mode Active" />
               )}
             </button>
           );

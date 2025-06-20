@@ -416,7 +416,7 @@ export const StreakDisplay: React.FC<StreakDisplayProps> = ({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="internal">StudySpark Community</SelectItem>
+                          <SelectItem value="internal">MemoSpark Community</SelectItem>
                           <SelectItem value="twitter">Twitter</SelectItem>
                           <SelectItem value="facebook">Facebook</SelectItem>
                           <SelectItem value="instagram">Instagram</SelectItem>

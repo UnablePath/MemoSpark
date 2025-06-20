@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 
 type ThemeProviderProps = {
@@ -16,6 +16,7 @@ type AccessibilityOptions = {
 type ThemeProviderState = {
   accessibilityOptions: AccessibilityOptions;
   setAccessibilityOption: (option: keyof AccessibilityOptions, value: boolean) => void;
+  forceThemeUpdate: () => void;
 };
 
 const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undefined);
@@ -26,6 +27,17 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     reducedMotion: false,
     largeText: false,
   });
+  const [forceUpdateCounter, setForceUpdateCounter] = useState(0);
+
+  // Force theme update function for immediate theme changes
+  const forceThemeUpdate = useCallback(() => {
+    setForceUpdateCounter(prev => prev + 1);
+    // Force DOM update by triggering a small delay
+    requestAnimationFrame(() => {
+      document.documentElement.style.colorScheme = 
+        document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+    });
+  }, []);
 
   // Load accessibility options from localStorage on mount
   useEffect(() => {
@@ -56,33 +68,36 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     }
   }, []);
 
-  // Apply accessibility classes based on options
+  // Apply accessibility classes based on options with immediate effect
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // Apply high contrast mode
-      if (accessibilityOptions.highContrast) {
-        document.documentElement.classList.add("high-contrast");
-      } else {
-        document.documentElement.classList.remove("high-contrast");
-      }
+      // Use requestAnimationFrame for immediate DOM updates
+      requestAnimationFrame(() => {
+        // Apply high contrast mode
+        if (accessibilityOptions.highContrast) {
+          document.documentElement.classList.add("high-contrast");
+        } else {
+          document.documentElement.classList.remove("high-contrast");
+        }
 
-      // Apply reduced motion
-      if (accessibilityOptions.reducedMotion) {
-        document.documentElement.classList.add("reduced-motion");
-      } else {
-        document.documentElement.classList.remove("reduced-motion");
-      }
+        // Apply reduced motion
+        if (accessibilityOptions.reducedMotion) {
+          document.documentElement.classList.add("reduced-motion");
+        } else {
+          document.documentElement.classList.remove("reduced-motion");
+        }
 
-      // Apply large text
-      if (accessibilityOptions.largeText) {
-        document.documentElement.classList.add("large-text");
-      } else {
-        document.documentElement.classList.remove("large-text");
-      }
+        // Apply large text
+        if (accessibilityOptions.largeText) {
+          document.documentElement.classList.add("large-text");
+        } else {
+          document.documentElement.classList.remove("large-text");
+        }
+      });
     }
   }, [accessibilityOptions]);
 
-  const setAccessibilityOption = (option: keyof AccessibilityOptions, value: boolean) => {
+  const setAccessibilityOption = useCallback((option: keyof AccessibilityOptions, value: boolean) => {
     setAccessibilityOptions(prev => ({ ...prev, [option]: value }));
 
     // Save to localStorage based on which setting it belongs to
@@ -107,23 +122,30 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
         console.error("Error saving accessibility settings", error);
       }
     }
-  };
+    
+    // Force immediate update
+    forceThemeUpdate();
+  }, [forceThemeUpdate]);
 
   return (
     <ThemeProviderContext.Provider
       value={{
         accessibilityOptions,
-        setAccessibilityOption
+        setAccessibilityOption,
+        forceThemeUpdate
       }}
     >
       <NextThemesProvider
         attribute="class"
         defaultTheme="dark"
-        enableSystem
-        disableTransitionOnChange
+        enableSystem={false}
+        disableTransitionOnChange={true}
+        storageKey="memospark-theme"
+        forcedTheme={undefined}
         themes={[
           'light', 
-          'dark', 
+          'dark',
+          // Dark themes
           'theme-amoled', 
           'theme-sea-blue', 
           'theme-hello-kitty-pink', 
@@ -132,7 +154,17 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
           'theme-sunset-orange',
           'theme-midnight-blue',
           'theme-cherry-blossom',
-          'theme-carbon'
+          'theme-carbon',
+          // Light theme variants
+          'theme-amoled-light',
+          'theme-sea-blue-light',
+          'theme-hello-kitty-pink-light',
+          'theme-hacker-green-light',
+          'theme-void-purple-light',
+          'theme-sunset-orange-light',
+          'theme-midnight-blue-light',
+          'theme-cherry-blossom-light',
+          'theme-carbon-light'
         ]}
       >
         {children}

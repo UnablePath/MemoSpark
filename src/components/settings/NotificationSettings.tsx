@@ -387,7 +387,7 @@ export const NotificationSettings: React.FC = () => {
                     body: JSON.stringify({
                       userId: userId!,
                       notification: {
-                        contents: { en: '🧪 Test notification from StudySpark!' },
+                        contents: { en: '🧪 Test notification from MemoSpark!' },
                         headings: { en: '✅ Notifications Working!' },
                         data: { type: 'test', url: '/settings' }
                       }

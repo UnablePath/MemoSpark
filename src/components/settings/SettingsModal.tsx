@@ -60,7 +60,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ children }) => {
                   <Badge variant="secondary">Premium</Badge>
                 </CardTitle>
                 <CardDescription>
-                  Manage your StudySpark subscription and view usage statistics
+                  Manage your MemoSpark subscription and view usage statistics
                 </CardDescription>
               </CardHeader>
               <CardContent>

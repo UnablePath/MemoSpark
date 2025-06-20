@@ -33,13 +33,13 @@ export const AchievementSharing: React.FC<AchievementSharingProps> = ({
     title: `Achievement Unlocked: ${achievement.name}`,
     description: achievement.description,
     url: window.location.origin,
-    hashtags: ['StudySpark', 'Achievement', 'Learning', 'Productivity']
+    hashtags: ['MemoSpark', 'Achievement', 'Learning', 'Productivity']
   };
 
   const generateShareText = (platform: string = 'generic') => {
-    const baseText = `🎉 Just unlocked "${achievement.name}" on StudySpark! ${achievement.description}`;
+    const baseText = `🎉 Just unlocked "${achievement.name}" on MemoSpark! ${achievement.description}`;
     const statsText = userStats ? `\n\n📊 My Stats:\n🏆 Level ${userStats.level}\n⭐ ${userStats.totalPoints} points\n🔥 ${userStats.currentStreak} day streak` : '';
-    const urlText = `\n\n🚀 Join me on StudySpark: ${shareData.url}`;
+    const urlText = `\n\n🚀 Join me on MemoSpark: ${shareData.url}`;
     const hashtagText = platform === 'twitter' ? `\n\n${shareData.hashtags.map(tag => `#${tag}`).join(' ')}` : '';
     
     return customMessage || `${baseText}${statsText}${urlText}${hashtagText}`;
@@ -125,10 +125,10 @@ export const AchievementSharing: React.FC<AchievementSharingProps> = ({
     ctx.font = 'bold 32px Arial';
     ctx.fillText(`+${achievement.points_reward} Points`, canvas.width / 2, 350);
 
-    // StudySpark branding
+    // MemoSpark branding
     ctx.fillStyle = '#9ca3af';
     ctx.font = '20px Arial';
-    ctx.fillText('StudySpark - Your Study Companion', canvas.width / 2, 500);
+    ctx.fillText('MemoSpark - Your Study Companion', canvas.width / 2, 500);
 
     // Download the image
     const link = document.createElement('a');

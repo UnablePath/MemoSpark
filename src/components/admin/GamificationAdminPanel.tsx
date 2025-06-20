@@ -1,36 +1,59 @@
+// ADMIN COMPONENT COMMENTED OUT FOR PRODUCTION
+/*
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { 
-  Plus, Edit2, Trash2, Save, X, Eye, EyeOff, 
-  Package, Trophy, Coins, Users, Settings,
-  Star, Crown, Shield, Zap, Heart, Target,
-  Sparkles, Gift, Lock, Unlock, RefreshCw
-} from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { 
+  Package, 
+  Plus, 
+  Edit2, 
+  Trash2, 
+  Trophy, 
+  Settings, 
+  RefreshCw, 
+  Users, 
+  Coins,
+  Crown,
+  Eye,
+  EyeOff,
+  Save,
+  X
+} from 'lucide-react';
 
+// Types
 interface RewardShopItem {
   id: string;
   name: string;
   description: string;
-  category: string;
   price: number;
-  icon: string;
-  effect: any;
-  requirements: any;
-  availability: any;
-  metadata: any;
+  category: 'theme' | 'avatar' | 'perk' | 'boost' | 'cosmetic';
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  availability: {
+    enabled: boolean;
+    startDate?: string;
+    endDate?: string;
+    maxPurchases?: number;
+    tierRequired?: 'free' | 'premium';
+  };
+  metadata: {
+    imageUrl?: string;
+    duration?: number; // for temporary items
+    stackable?: boolean;
+    transferable?: boolean;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -40,11 +63,10 @@ interface AchievementTemplate {
   name: string;
   description: string;
   category: string;
-  icon: string;
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
   points: number;
-  requirements: any;
-  reward: any;
+  requirements: Record<string, any>;
+  reward: Record<string, any>;
   hidden: boolean;
   repeatable: boolean;
   created_at: string;
@@ -57,148 +79,87 @@ interface AdminStats {
   totalAchievementsUnlocked: number;
   totalShopPurchases: number;
   averageUserLevel: number;
-  topSpendingCategories: Array<{ category: string; amount: number }>;
+  topSpendingCategories: Array<{
+    category: string;
+    amount: number;
+  }>;
 }
 
+// Hook
 const useGamificationAdmin = () => {
-  const { user } = useUser();
   const [shopItems, setShopItems] = useState<RewardShopItem[]>([]);
   const [achievements, setAchievements] = useState<AchievementTemplate[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
-    if (!user?.id) return;
-
-    setLoading(true);
+  const refreshData = async () => {
     try {
-      // In a real implementation, these would be actual API calls
-      const [itemsRes, achievementsRes, statsRes] = await Promise.all([
-        fetch('/api/admin/shop-items'),
-        fetch('/api/admin/achievements'),
-        fetch('/api/admin/stats')
-      ]);
-
-      // Mock data for development
-      setShopItems([
-        {
-          id: '1',
-          name: 'Streak Freeze',
-          description: 'Protects your streak for one missed day',
-          category: 'streak_recovery',
-          price: 100,
-          icon: 'shield',
-          effect: { type: 'streak_protection', duration: 1 },
-          requirements: { min_level: 1 },
-          availability: { enabled: true, stock: null },
-          metadata: {},
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: '2',
-          name: 'Double XP Boost',
-          description: 'Doubles XP earned for 24 hours',
-          category: 'boosts',
-          price: 200,
-          icon: 'zap',
-          effect: { type: 'xp_multiplier', multiplier: 2, duration: 24 },
-          requirements: { min_level: 3 },
-          availability: { enabled: true, stock: null },
-          metadata: {},
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ]);
-
-      setAchievements([
-        {
-          id: '1',
-          name: 'First Steps',
-          description: 'Complete your first task',
-          category: 'streak',
-          icon: 'zap',
-          rarity: 'common',
-          points: 10,
-          requirements: { type: 'tasks_completed', count: 1 },
-          reward: { coins: 50 },
-          hidden: false,
-          repeatable: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: '2',
-          name: 'Week Warrior',
-          description: 'Maintain a 7-day streak',
-          category: 'streak',
-          icon: 'fire',
-          rarity: 'rare',
-          points: 50,
-          requirements: { type: 'consecutive_days', count: 7 },
-          reward: { coins: 200 },
-          hidden: false,
-          repeatable: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ]);
-
-      setStats({
-        totalUsers: 1247,
-        totalCoinsInCirculation: 156420,
-        totalAchievementsUnlocked: 3892,
-        totalShopPurchases: 1156,
-        averageUserLevel: 8.3,
-        topSpendingCategories: [
-          { category: 'boosts', amount: 45230 },
-          { category: 'streak_recovery', amount: 32180 },
-          { category: 'customization', amount: 28470 }
-        ]
-      });
-
+      setLoading(true);
+      
+      // Fetch shop items
+      const shopResponse = await fetch('/api/admin/shop-items');
+      if (shopResponse.ok) {
+        const shopData = await shopResponse.json();
+        setShopItems(shopData.items || []);
+      }
+      
+      // Fetch achievements
+      const achievementsResponse = await fetch('/api/admin/achievements');
+      if (achievementsResponse.ok) {
+        const achievementsData = await achievementsResponse.json();
+        setAchievements(achievementsData.achievements || []);
+      }
+      
+      // Fetch stats
+      const statsResponse = await fetch('/api/admin/stats');
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        setStats(statsData);
+      }
     } catch (error) {
       console.error('Error fetching admin data:', error);
-      toast.error('Failed to fetch admin data');
+      toast.error('Failed to load admin data');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [user?.id]);
-
-  const createShopItem = async (item: Partial<RewardShopItem>) => {
+  const createShopItem = async (item: Omit<RewardShopItem, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       const response = await fetch('/api/admin/shop-items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(item)
       });
-
-      if (!response.ok) throw new Error('Failed to create item');
-
-      toast.success('Shop item created successfully!');
-      await fetchData();
+      
+      if (response.ok) {
+        toast.success('Shop item created successfully');
+        refreshData();
+      } else {
+        throw new Error('Failed to create shop item');
+      }
     } catch (error) {
+      console.error('Error creating shop item:', error);
       toast.error('Failed to create shop item');
     }
   };
 
-  const updateShopItem = async (id: string, updates: Partial<RewardShopItem>) => {
+  const updateShopItem = async (id: string, item: Partial<RewardShopItem>) => {
     try {
       const response = await fetch(`/api/admin/shop-items/${id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
+        body: JSON.stringify(item)
       });
-
-      if (!response.ok) throw new Error('Failed to update item');
-
-      toast.success('Shop item updated successfully!');
-      await fetchData();
+      
+      if (response.ok) {
+        toast.success('Shop item updated successfully');
+        refreshData();
+      } else {
+        throw new Error('Failed to update shop item');
+      }
     } catch (error) {
+      console.error('Error updating shop item:', error);
       toast.error('Failed to update shop item');
     }
   };
@@ -208,46 +169,55 @@ const useGamificationAdmin = () => {
       const response = await fetch(`/api/admin/shop-items/${id}`, {
         method: 'DELETE'
       });
-
-      if (!response.ok) throw new Error('Failed to delete item');
-
-      toast.success('Shop item deleted successfully!');
-      await fetchData();
+      
+      if (response.ok) {
+        toast.success('Shop item deleted successfully');
+        refreshData();
+      } else {
+        throw new Error('Failed to delete shop item');
+      }
     } catch (error) {
+      console.error('Error deleting shop item:', error);
       toast.error('Failed to delete shop item');
     }
   };
 
-  const createAchievement = async (achievement: Partial<AchievementTemplate>) => {
+  const createAchievement = async (achievement: Omit<AchievementTemplate, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       const response = await fetch('/api/admin/achievements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(achievement)
       });
-
-      if (!response.ok) throw new Error('Failed to create achievement');
-
-      toast.success('Achievement created successfully!');
-      await fetchData();
+      
+      if (response.ok) {
+        toast.success('Achievement created successfully');
+        refreshData();
+      } else {
+        throw new Error('Failed to create achievement');
+      }
     } catch (error) {
+      console.error('Error creating achievement:', error);
       toast.error('Failed to create achievement');
     }
   };
 
-  const updateAchievement = async (id: string, updates: Partial<AchievementTemplate>) => {
+  const updateAchievement = async (id: string, achievement: Partial<AchievementTemplate>) => {
     try {
       const response = await fetch(`/api/admin/achievements/${id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
+        body: JSON.stringify(achievement)
       });
-
-      if (!response.ok) throw new Error('Failed to update achievement');
-
-      toast.success('Achievement updated successfully!');
-      await fetchData();
+      
+      if (response.ok) {
+        toast.success('Achievement updated successfully');
+        refreshData();
+      } else {
+        throw new Error('Failed to update achievement');
+      }
     } catch (error) {
+      console.error('Error updating achievement:', error);
       toast.error('Failed to update achievement');
     }
   };
@@ -257,15 +227,22 @@ const useGamificationAdmin = () => {
       const response = await fetch(`/api/admin/achievements/${id}`, {
         method: 'DELETE'
       });
-
-      if (!response.ok) throw new Error('Failed to delete achievement');
-
-      toast.success('Achievement deleted successfully!');
-      await fetchData();
+      
+      if (response.ok) {
+        toast.success('Achievement deleted successfully');
+        refreshData();
+      } else {
+        throw new Error('Failed to delete achievement');
+      }
     } catch (error) {
+      console.error('Error deleting achievement:', error);
       toast.error('Failed to delete achievement');
     }
   };
+
+  useEffect(() => {
+    refreshData();
+  }, []);
 
   return {
     shopItems,
@@ -278,37 +255,40 @@ const useGamificationAdmin = () => {
     createAchievement,
     updateAchievement,
     deleteAchievement,
-    refreshData: fetchData
+    refreshData
   };
 };
 
+// Components
 const ShopItemForm: React.FC<{
   item?: RewardShopItem;
-  onSave: (item: Partial<RewardShopItem>) => void;
+  onSave: (item: Omit<RewardShopItem, 'id' | 'created_at' | 'updated_at'>) => void;
   onCancel: () => void;
 }> = ({ item, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     name: item?.name || '',
     description: item?.description || '',
-    category: item?.category || 'boosts',
-    price: item?.price || 100,
-    icon: item?.icon || 'zap',
-    effect: JSON.stringify(item?.effect || {}, null, 2),
-    requirements: JSON.stringify(item?.requirements || {}, null, 2)
+    price: item?.price || 0,
+    category: item?.category || 'cosmetic',
+    rarity: item?.rarity || 'common',
+    availability: {
+      enabled: item?.availability?.enabled ?? true,
+      startDate: item?.availability?.startDate || '',
+      endDate: item?.availability?.endDate || '',
+      maxPurchases: item?.availability?.maxPurchases || 0,
+      tierRequired: item?.availability?.tierRequired || 'free'
+    },
+    metadata: {
+      imageUrl: item?.metadata?.imageUrl || '',
+      duration: item?.metadata?.duration || 0,
+      stackable: item?.metadata?.stackable ?? true,
+      transferable: item?.metadata?.transferable ?? false
+    }
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const parsedItem = {
-        ...formData,
-        effect: JSON.parse(formData.effect),
-        requirements: JSON.parse(formData.requirements)
-      };
-      onSave(parsedItem);
-    } catch (error) {
-      toast.error('Invalid JSON in effect or requirements');
-    }
+    onSave(formData);
   };
 
   return (
@@ -324,12 +304,12 @@ const ShopItemForm: React.FC<{
           />
         </div>
         <div>
-          <Label htmlFor="price">Price (coins)</Label>
+          <Label htmlFor="price">Price (Coins)</Label>
           <Input
             id="price"
             type="number"
             value={formData.price}
-            onChange={(e) => setFormData(prev => ({ ...prev, price: parseInt(e.target.value) }))}
+            onChange={(e) => setFormData(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
             required
           />
         </div>
@@ -341,57 +321,173 @@ const ShopItemForm: React.FC<{
           id="description"
           value={formData.description}
           onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+          required
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="category">Category</Label>
-          <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+          <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value as any }))}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="boosts">Boosts</SelectItem>
-              <SelectItem value="streak_recovery">Streak Recovery</SelectItem>
-              <SelectItem value="customization">Customization</SelectItem>
-              <SelectItem value="productivity">Productivity</SelectItem>
-              <SelectItem value="social">Social</SelectItem>
-              <SelectItem value="wellness">Wellness</SelectItem>
+              <SelectItem value="theme">Theme</SelectItem>
+              <SelectItem value="avatar">Avatar</SelectItem>
+              <SelectItem value="perk">Perk</SelectItem>
+              <SelectItem value="boost">Boost</SelectItem>
+              <SelectItem value="cosmetic">Cosmetic</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label htmlFor="icon">Icon</Label>
-          <Input
-            id="icon"
-            value={formData.icon}
-            onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
-            placeholder="lucide-react icon name"
-          />
+          <Label htmlFor="rarity">Rarity</Label>
+          <Select value={formData.rarity} onValueChange={(value) => setFormData(prev => ({ ...prev, rarity: value as any }))}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="common">Common</SelectItem>
+              <SelectItem value="rare">Rare</SelectItem>
+              <SelectItem value="epic">Epic</SelectItem>
+              <SelectItem value="legendary">Legendary</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      <div>
-        <Label htmlFor="effect">Effect (JSON)</Label>
-        <Textarea
-          id="effect"
-          value={formData.effect}
-          onChange={(e) => setFormData(prev => ({ ...prev, effect: e.target.value }))}
-          rows={4}
-          className="font-mono text-sm"
-        />
-      </div>
+      <Separator />
 
       <div>
-        <Label htmlFor="requirements">Requirements (JSON)</Label>
-        <Textarea
-          id="requirements"
-          value={formData.requirements}
-          onChange={(e) => setFormData(prev => ({ ...prev, requirements: e.target.value }))}
-          rows={3}
-          className="font-mono text-sm"
-        />
+        <Label>Availability Settings</Label>
+        <div className="space-y-4 mt-2">
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={formData.availability.enabled}
+              onCheckedChange={(checked) => setFormData(prev => ({
+                ...prev,
+                availability: { ...prev.availability, enabled: checked }
+              }))}
+            />
+            <Label>Enabled</Label>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="startDate">Start Date</Label>
+              <Input
+                id="startDate"
+                type="datetime-local"
+                value={formData.availability.startDate}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  availability: { ...prev.availability, startDate: e.target.value }
+                }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="endDate">End Date</Label>
+              <Input
+                id="endDate"
+                type="datetime-local"
+                value={formData.availability.endDate}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  availability: { ...prev.availability, endDate: e.target.value }
+                }))}
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="maxPurchases">Max Purchases (0 = unlimited)</Label>
+              <Input
+                id="maxPurchases"
+                type="number"
+                value={formData.availability.maxPurchases}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  availability: { ...prev.availability, maxPurchases: parseInt(e.target.value) || 0 }
+                }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="tierRequired">Tier Required</Label>
+              <Select 
+                value={formData.availability.tierRequired} 
+                onValueChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  availability: { ...prev.availability, tierRequired: value as any }
+                }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="free">Free</SelectItem>
+                  <SelectItem value="premium">Premium</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      <div>
+        <Label>Metadata</Label>
+        <div className="space-y-4 mt-2">
+          <div>
+            <Label htmlFor="imageUrl">Image URL</Label>
+            <Input
+              id="imageUrl"
+              value={formData.metadata.imageUrl}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                metadata: { ...prev.metadata, imageUrl: e.target.value }
+              }))}
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="duration">Duration (minutes, 0 = permanent)</Label>
+            <Input
+              id="duration"
+              type="number"
+              value={formData.metadata.duration}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                metadata: { ...prev.metadata, duration: parseInt(e.target.value) || 0 }
+              }))}
+            />
+          </div>
+          
+          <div className="flex gap-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={formData.metadata.stackable}
+                onCheckedChange={(checked) => setFormData(prev => ({
+                  ...prev,
+                  metadata: { ...prev.metadata, stackable: checked }
+                }))}
+              />
+              <Label>Stackable</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={formData.metadata.transferable}
+                onCheckedChange={(checked) => setFormData(prev => ({
+                  ...prev,
+                  metadata: { ...prev.metadata, transferable: checked }
+                }))}
+              />
+              <Label>Transferable</Label>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="flex justify-end gap-2">
@@ -410,33 +506,40 @@ const ShopItemForm: React.FC<{
 
 const AchievementForm: React.FC<{
   achievement?: AchievementTemplate;
-  onSave: (achievement: Partial<AchievementTemplate>) => void;
+  onSave: (achievement: Omit<AchievementTemplate, 'id' | 'created_at' | 'updated_at'>) => void;
   onCancel: () => void;
 }> = ({ achievement, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     name: achievement?.name || '',
     description: achievement?.description || '',
-    category: achievement?.category || 'tasks',
-    icon: achievement?.icon || 'trophy',
+    category: achievement?.category || 'task',
     rarity: achievement?.rarity || 'common',
-    points: achievement?.points || 10,
-    requirements: JSON.stringify(achievement?.requirements || {}, null, 2),
-    reward: JSON.stringify(achievement?.reward || {}, null, 2),
-    hidden: achievement?.hidden || false,
-    repeatable: achievement?.repeatable || false
+    points: achievement?.points || 0,
+    requirements: achievement?.requirements ? JSON.stringify(achievement.requirements, null, 2) : '{}',
+    reward: achievement?.reward ? JSON.stringify(achievement.reward, null, 2) : '{}',
+    hidden: achievement?.hidden ?? false,
+    repeatable: achievement?.repeatable ?? false
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const parsedAchievement = {
-        ...formData,
-        requirements: JSON.parse(formData.requirements),
-        reward: JSON.parse(formData.reward)
-      };
-      onSave(parsedAchievement);
+      const requirements = JSON.parse(formData.requirements);
+      const reward = JSON.parse(formData.reward);
+      
+      onSave({
+        name: formData.name,
+        description: formData.description,
+        category: formData.category,
+        rarity: formData.rarity as any,
+        points: formData.points,
+        requirements,
+        reward,
+        hidden: formData.hidden,
+        repeatable: formData.repeatable
+      });
     } catch (error) {
-      toast.error('Invalid JSON in requirements or reward');
+      toast.error('Invalid JSON in requirements or reward fields');
     }
   };
 
@@ -458,7 +561,7 @@ const AchievementForm: React.FC<{
             id="points"
             type="number"
             value={formData.points}
-            onChange={(e) => setFormData(prev => ({ ...prev, points: parseInt(e.target.value) }))}
+            onChange={(e) => setFormData(prev => ({ ...prev, points: parseInt(e.target.value) || 0 }))}
             required
           />
         </div>
@@ -470,26 +573,19 @@ const AchievementForm: React.FC<{
           id="description"
           value={formData.description}
           onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+          required
         />
       </div>
 
       <div className="grid grid-cols-3 gap-4">
         <div>
           <Label htmlFor="category">Category</Label>
-          <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="tasks">Tasks</SelectItem>
-              <SelectItem value="streak">Streak</SelectItem>
-              <SelectItem value="subjects">Subjects</SelectItem>
-              <SelectItem value="social">Social</SelectItem>
-              <SelectItem value="speed">Speed</SelectItem>
-              <SelectItem value="special">Special</SelectItem>
-              <SelectItem value="progression">Progression</SelectItem>
-            </SelectContent>
-          </Select>
+          <Input
+            id="category"
+            value={formData.category}
+            onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+            required
+          />
         </div>
         <div>
           <Label htmlFor="rarity">Rarity</Label>
@@ -504,14 +600,6 @@ const AchievementForm: React.FC<{
               <SelectItem value="legendary">Legendary</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-        <div>
-          <Label htmlFor="icon">Icon</Label>
-          <Input
-            id="icon"
-            value={formData.icon}
-            onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
-          />
         </div>
       </div>
 
@@ -610,7 +698,6 @@ export const GamificationAdminPanel: React.FC = () => {
         </Button>
       </div>
 
-      {/* Admin Stats */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <Card>
@@ -922,7 +1009,6 @@ export const GamificationAdminPanel: React.FC = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Create/Edit Shop Item Dialog */}
       <Dialog open={showCreateShopItem || !!editingShopItem} onOpenChange={() => {
         setShowCreateShopItem(false);
         setEditingShopItem(null);
@@ -956,7 +1042,6 @@ export const GamificationAdminPanel: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Create/Edit Achievement Dialog */}
       <Dialog open={showCreateAchievement || !!editingAchievement} onOpenChange={() => {
         setShowCreateAchievement(false);
         setEditingAchievement(null);
@@ -993,4 +1078,21 @@ export const GamificationAdminPanel: React.FC = () => {
   );
 };
 
-export default GamificationAdminPanel; 
+export default GamificationAdminPanel;
+*/
+
+// Production replacement component
+import React from 'react';
+
+export const GamificationAdminPanel: React.FC = () => {
+  return (
+    <div className="p-6 text-center">
+      <h2 className="text-xl font-bold mb-4">Admin Panel Disabled</h2>
+      <p className="text-muted-foreground">
+        Admin functionality has been disabled for production.
+      </p>
+    </div>
+  );
+};
+
+export default GamificationAdminPanel;

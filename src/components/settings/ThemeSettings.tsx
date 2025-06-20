@@ -1,11 +1,11 @@
 'use client';
 
 import type React from 'react';
-import { useTheme } from 'next-themes';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useThemeContext } from '@/components/providers/theme-provider';
+import { useOptimizedTheme } from '@/hooks/useOptimizedTheme';
 import { Check, Palette, Sun, Moon } from 'lucide-react';
 
 // Define theme pairs with both light and dark variants
@@ -93,7 +93,7 @@ const themePairs = [
 ];
 
 export const ThemeSettings: React.FC = () => {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, isDark, isLight, isChanging } = useOptimizedTheme();
   const { accessibilityOptions, setAccessibilityOption } = useThemeContext();
   const { highContrast } = accessibilityOptions;
 
@@ -101,8 +101,8 @@ export const ThemeSettings: React.FC = () => {
     setAccessibilityOption('highContrast', checked);
   };
 
-  // Determine if current theme is light or dark
-  const isLightTheme = theme === 'light' || theme?.includes('-light');
+  // Use optimized theme detection
+  const isLightTheme = isLight;
 
   // Group theme pairs by category
   const groupedThemes = themePairs.reduce((acc, themePair) => {
@@ -135,6 +135,7 @@ export const ThemeSettings: React.FC = () => {
           <Switch 
             id="theme-mode-toggle"
             checked={!isLightTheme}
+            disabled={isChanging}
             onCheckedChange={(checked) => {
               if (currentThemePair) {
                 setTheme(checked ? currentThemePair.dark.id : currentThemePair.light.id);
@@ -145,6 +146,9 @@ export const ThemeSettings: React.FC = () => {
             aria-label="Toggle between light and dark mode"
           />
           <Moon className="h-4 w-4 text-muted-foreground" />
+          {isChanging && (
+            <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+          )}
         </div>
       </div>
 
@@ -162,6 +166,7 @@ export const ThemeSettings: React.FC = () => {
           <Label htmlFor="theme-selector">Current Theme</Label>
           <Select
             value={currentThemePair?.id || 'default'}
+            disabled={isChanging}
             onValueChange={(value) => {
               const selectedTheme = themePairs.find(pair => pair.id === value);
               if (selectedTheme) {

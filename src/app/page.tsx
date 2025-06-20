@@ -11,6 +11,7 @@ import { HomepageNavbar } from '@/components/layout/HomepageNavbar';
 import { ArrowRight, BrainCircuit, CalendarCheck, Gem } from 'lucide-react';
 import RetroGrid from "@/components/ui/retro-grid";
 import AnimatedShinyText from "@/components/ui/animated-shiny-text";
+import { BubblePopGame } from "@/components/home/BubblePopGame";
 
 // Feature Card Component
 interface FeatureCardProps {
@@ -98,6 +99,19 @@ export default function LandingPage() {
             </Button>
           </div>
         </motion.div>
+      </div>
+
+      {/* Bubble Pop Game Section */}
+      <div className="w-full py-16 bg-black/10 border-y border-white/5">
+        <div className="responsive-container">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold mb-4 text-white">Take a Study Break</h2>
+            <p className="text-muted-foreground">Pop some bubbles to relax your mind!</p>
+          </div>
+          <div className="max-w-4xl mx-auto">
+            <BubblePopGame />
+          </div>
+        </div>
       </div>
 
       {/* Features Section */}

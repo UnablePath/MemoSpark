@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
       userId,
       environment: {
-        developmentMode: process.env.NODE_ENV === 'development',
+        launchMode: process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_ENABLE_LAUNCH_MODE === 'true',
         huggingFaceApiKey: !!process.env.HUGGINGFACE_API_KEY,
         supabaseConfigured: !!process.env.NEXT_PUBLIC_SUPABASE_URL
       },
@@ -203,9 +203,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Development mode info
-    if (testResults.environment.developmentMode) {
-      testResults.summary.recommendations.push('🔧 Development mode active - premium features unlocked for testing');
+    // Launch mode info
+    if (testResults.environment.launchMode) {
+      testResults.summary.recommendations.push('🚀 Launch mode active - premium features available for all users during launch period');
     }
 
     console.log(`\n📊 Test Summary: ${testResults.summary.passed}/${testResults.summary.totalTests} passed`);

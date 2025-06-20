@@ -730,7 +730,7 @@ export const ensureUserProfile = async (
       throw new SupabaseApiError('Failed to create user profile', createError.code, createError);
     }
 
-    console.log('Created new user profile for Clerk user:', clerkUserId);
+    // User profile created successfully
     return newProfile;
 
   } catch (error) {

@@ -21,11 +21,7 @@ const SettingsPage: React.FC = () => {
   const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = useState(false);
 
   const handleBack = () => {
-    if (window.history.length > 1) {
-      router.back();
-    } else {
-      router.push('/dashboard');
-    }
+    router.push('/dashboard');
   };
 
   return (
@@ -76,7 +72,7 @@ const SettingsPage: React.FC = () => {
                 Subscription & Usage
               </CardTitle>
               <CardDescription>
-                Manage your StudySpark subscription, view usage statistics, and upgrade your plan
+                Manage your MemoSpark subscription, view usage statistics, and upgrade your plan
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -97,7 +93,7 @@ const SettingsPage: React.FC = () => {
             <CardHeader>
               <CardTitle>Appearance & Theme</CardTitle>
               <CardDescription>
-                Customize the look and feel of your StudySpark experience
+                Customize the look and feel of your MemoSpark experience
               </CardDescription>
             </CardHeader>
             <CardContent>

@@ -300,7 +300,7 @@ export default function SubscriptionPage() {
                   <div>
                     <h3 className="font-semibold">Request Refund</h3>
                     <p className="text-sm text-muted-foreground">
-                      Need a refund? We offer a 30-day money-back guarantee
+                      Need a refund? We offer a 7 day refund
                     </p>
                   </div>
                   <Dialog open={isRefundModalOpen} onOpenChange={setIsRefundModalOpen}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import Link from 'next/link';
 import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
 import DashboardSwipeTabs from './DashboardSwipeTabs';
@@ -12,17 +12,56 @@ import { InteractiveStu } from '@/components/stu/InteractiveStu';
 import { TutorialTrigger } from '@/components/tutorial';
 import { useTheme } from 'next-themes';
 import { DraggableWidget } from "@/components/widgets/DraggableWidget";
-// import { useLocalStorage } from "@/hooks/useLocalStorage"; // Widget temporarily commented out
-// import { User as UserIcon, Settings as SettingsIcon } from 'lucide-react'; // No longer needed here
+// Import achievement system
+import { AchievementNotificationSystem } from '@/components/achievements/AchievementNotificationSystem';
+import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
 
 export default function DashboardPage() {
   // Widget settings
   const [isWidgetEnabled] = useState(true); // Enable widget for better UX
+  const [achievementsInitialized, setAchievementsInitialized] = useState(false);
   const constraintsRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
   
   // Tier-aware dashboard features
   const { userTier, usage, isLoading, tierLimits } = useTieredAI();
+  
+  // Achievement system
+  const { triggerAchievement } = useAchievementTrigger();
+
+  // Initialize achievements on first load
+  useEffect(() => {
+    if (!achievementsInitialized) {
+      initializeAchievements();
+      setAchievementsInitialized(true);
+    }
+  }, [achievementsInitialized]);
+
+  // Function to populate achievements if they don't exist
+  const initializeAchievements = async () => {
+    try {
+      // First check if achievements exist
+      const checkResponse = await fetch('/api/achievements');
+      if (checkResponse.ok) {
+        const data = await checkResponse.json();
+        if (data.stats?.total === 0) {
+          // No achievements exist, populate them
+          console.log('Populating achievements...');
+          const populateResponse = await fetch('/api/admin/achievements/populate', {
+            method: 'POST'
+          });
+          if (populateResponse.ok) {
+            console.log('✅ Achievements populated successfully!');
+          }
+        }
+      }
+      
+      // Trigger tutorial/dashboard visit achievements
+      await triggerAchievement('tutorial_step', { action: 'dashboard_visited' });
+    } catch (error) {
+      console.error('Error initializing achievements:', error);
+    }
+  };
 
   // Determine if current theme is dark
   const isDarkTheme = theme === 'dark' || 
@@ -38,6 +77,13 @@ export default function DashboardPage() {
 
   return (
     <div ref={constraintsRef} className="app-container flex flex-col h-screen bg-background">
+      {/* Achievement Notification System */}
+      <AchievementNotificationSystem 
+        maxNotifications={3}
+        defaultDuration={6000}
+        position="top-right"
+      />
+      
       {/* ConditionalHeader is now disabled for /dashboard */}
       {/* Integrated header elements for dashboard: Logo, Tier Info, and UserButton */}
       <div className="flex items-center justify-between px-2 sm:px-3 lg:px-4 py-3 sm:py-6 border-b border-border bg-background flex-shrink-0 pt-safe-top">
@@ -68,14 +114,26 @@ export default function DashboardPage() {
           )}
           
           {/* Profile Button */}
-          <Button asChild variant="ghost" size="sm" className="h-8 w-8 p-0">
+          <Button 
+            asChild 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 w-8 p-0"
+            onClick={() => triggerAchievement('tutorial_step', { action: 'profile_opened' })}
+          >
             <Link href="/profile" aria-label="Profile">
               <UserIcon className="h-4 w-4" />
             </Link>
           </Button>
           
           {/* Settings Button */}
-          <Button asChild variant="ghost" size="sm" className="h-8 w-8 p-0">
+          <Button 
+            asChild 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 w-8 p-0"
+            onClick={() => triggerAchievement('tutorial_step', { action: 'settings_opened' })}
+          >
             <Link href="/settings" aria-label="Settings">
               <SettingsIcon className="h-4 w-4" />
             </Link>
@@ -204,38 +262,6 @@ export default function DashboardPage() {
         <DashboardSwipeTabs />
       </main>
 
-      {/* Floating Stu with Lottie Animation */}
-      <div className="fixed bottom-14 sm:bottom-4 right-3 sm:right-4 z-40">
-        <div className="scale-75 sm:scale-100 transition-transform duration-100">
-          <InteractiveStu
-            size="md"
-            enableTTS={true}
-            showSpeechBubble={true}
-            messages={[
-              "Hi! I'm Stu, your study buddy!",
-              "Ready to tackle some tasks together?",
-              "You're doing great! Keep it up!",
-              "Time for a quick study break?",
-              "Let's make learning fun today!",
-              "I'm here to help you stay motivated!",
-              "Click me anytime you need encouragement!"
-            ]}
-            className="drop-shadow-lg"
-          />
-        </div>
-      </div>
-
-      {/* Draggable Widget for Task Reminders */}
-      {isWidgetEnabled && (
-        <div role="region" aria-label="Draggable Task Widget">
-          <DraggableWidget
-            widgetId="dashboard-widget"
-            dragConstraintsRef={constraintsRef}
-            initialPosition={{ x: 20, y: 100 }}
-            className="lg:block hidden" // Only show on larger screens to avoid clutter
-          />
-        </div>
-      )}
       {/* ARIA live region for status messages */}
       <div aria-live="polite" className="sr-only" id="dashboard-status-message"></div>
     </div>

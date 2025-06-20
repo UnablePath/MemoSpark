@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Zap, Sparkles, AlertTriangle } from 'lucide-react';
+import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
 
 interface Bubble {
   id: number;
@@ -58,7 +59,11 @@ export function BubblePopGame() {
   const [gameOver, setGameOver] = useState(false);
   const [numSpikes, setNumSpikes] = useState(0);
   const [isPausedByVisibility, setIsPausedByVisibility] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false); // Track if game has been played
   const tabHiddenTime = useRef<number | null>(null);
+
+  // Achievement system
+  const { triggerBubbleGamePlayed } = useAchievementTrigger();
 
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const nextBubbleId = useRef(0);
@@ -132,7 +137,28 @@ export function BubblePopGame() {
   const popBubble = (id: number, x: number, y: number, size: number) => {
     if (!gameActive) return;
     setBubbles((prevBubbles) => prevBubbles.filter((bubble) => bubble.id !== id));
-    setScore((s) => s + 10);
+    setScore((s) => {
+      const newScore = s + 10;
+      
+      // Trigger achievement on first bubble pop of the game
+      if (s === 0 && !gameStarted) {
+        setGameStarted(true);
+        triggerBubbleGamePlayed();
+      }
+      
+      // Trigger score-based achievements
+      if (newScore >= 1000 && s < 1000) {
+        triggerBubbleGamePlayed(newScore);
+      }
+      if (newScore >= 2500 && s < 2500) {
+        triggerBubbleGamePlayed(newScore);
+      }
+      if (newScore >= 5000 && s < 5000) {
+        triggerBubbleGamePlayed(newScore);
+      }
+      
+      return newScore;
+    });
     const newPopEffectId = nextPopEffectId.current++;
     setPopEffects(prev => [...prev, { id: newPopEffectId, x: x + size / 2, y: y + size / 2}]);
     setTimeout(() => {
@@ -234,6 +260,7 @@ export function BubblePopGame() {
     setPopEffects([]);
     setScore(0);
     setGameOver(false);
+    setGameStarted(false); // Reset game started flag
     currentSpawnInterval.current = INITIAL_SPAWN_INTERVAL;
     currentBaseSpeed.current = INITIAL_BASE_SPEED;
     nextBubbleId.current = 0;
