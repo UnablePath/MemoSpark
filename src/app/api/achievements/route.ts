@@ -417,7 +417,7 @@ function mapActionToType(action: string): string {
     'social_action': 'social',
     'wellness_action': 'wellness',
     'bubble_game_played': 'wellness',
-    'bubble_game_score': 'wellness',
+    'bubble_score_reached': 'wellness',
     'settings_opened': 'tutorial',
     'profile_opened': 'tutorial',
     'dashboard_visited': 'tutorial',
@@ -486,7 +486,7 @@ function checkAchievementCriteria(
       if (criteria.action === 'bubble_game_played' && action === 'bubble_game_played') {
         return true;
       }
-      if (criteria.score && action === 'bubble_game_score' && value) {
+      if (criteria.score && action === 'bubble_score_reached' && value) {
         return value >= criteria.score;
       }
       if (criteria.action === 'first_crashout_post' && action === 'wellness_action' && metadata?.wellnessAction === 'first_crashout_post') {

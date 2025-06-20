@@ -63,7 +63,7 @@ export function BubblePopGame() {
   const tabHiddenTime = useRef<number | null>(null);
 
   // Achievement system
-  const { triggerBubbleGamePlayed } = useAchievementTrigger();
+  const { triggerBubbleGamePlayed, triggerBubbleScoreAchievement } = useAchievementTrigger();
 
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const nextBubbleId = useRef(0);
@@ -148,13 +148,13 @@ export function BubblePopGame() {
       
       // Trigger score-based achievements
       if (newScore >= 1000 && s < 1000) {
-        triggerBubbleGamePlayed(newScore);
+        triggerBubbleScoreAchievement(newScore);
       }
       if (newScore >= 2500 && s < 2500) {
-        triggerBubbleGamePlayed(newScore);
+        triggerBubbleScoreAchievement(newScore);
       }
       if (newScore >= 5000 && s < 5000) {
-        triggerBubbleGamePlayed(newScore);
+        triggerBubbleScoreAchievement(newScore);
       }
       
       return newScore;

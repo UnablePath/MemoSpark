@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useUser } from '@clerk/nextjs';
 import { TutorialManager, type TutorialProgress } from '@/lib/tutorial';
 import { TutorialActionDetector } from '@/lib/tutorial/TutorialActionDetector';
+import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
 import { TutorialOverlay } from './TutorialOverlay';
 
 interface TutorialContextValue {
@@ -32,6 +33,7 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
   const { user, isLoaded } = useUser();
   const tutorialManager = useMemo(() => TutorialManager.getInstance(), []);
   const actionDetector = useMemo(() => TutorialActionDetector.getInstance(), []);
+  const { triggerAchievement } = useAchievementTrigger();
   const [isActive, setIsActive] = useState(false);
   const [currentProgress, setCurrentProgress] = useState<TutorialProgress | null>(null);
   const [shouldShowTutorial, setShouldShowTutorial] = useState(false);
@@ -154,6 +156,32 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
     setIsActive(false);
   }, []);
 
+  const handleTutorialComplete = useCallback(async () => {
+    if (!user?.id) return;
+
+    hideTutorial();
+
+    // Trigger the achievement for completing the tutorial
+    try {
+      await triggerAchievement('TUTORIAL_COMPLETED');
+      console.log('TUTORIAL_COMPLETED achievement triggered successfully.');
+    } catch (error) {
+      console.error('Failed to trigger TUTORIAL_COMPLETED achievement:', error);
+    }
+    
+    // Update progress state locally
+    const updatedProgress = await tutorialManager.getTutorialProgress(user.id);
+    setCurrentProgress(updatedProgress);
+    setShouldShowTutorial(false);
+    
+    // Dispatch a global event for other components to listen to (e.g., for celebrations)
+    requestAnimationFrame(() => {
+      window.dispatchEvent(new CustomEvent('tutorialCompleted', {
+        detail: { userId: user?.id }
+      }));
+    });
+  }, [user?.id, hideTutorial, triggerAchievement, tutorialManager]);
+
   const completeTutorial = useCallback(async () => {
     setIsActive(false);
     setShouldShowTutorial(false);
@@ -193,7 +221,7 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
         <TutorialOverlay
           isVisible={isActive}
           onClose={hideTutorial}
-          onComplete={completeTutorial}
+          onComplete={handleTutorialComplete}
           onTabChange={onTabChange}
         />
       )}

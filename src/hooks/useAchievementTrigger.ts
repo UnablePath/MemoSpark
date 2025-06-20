@@ -91,9 +91,15 @@ export const useAchievementTrigger = () => {
     });
   }, [triggerAchievement]);
 
-  const triggerBubbleGamePlayed = useCallback((score?: number) => {
-    const action = score ? 'bubble_game_score' : 'bubble_game_played';
-    return triggerAchievement(action, {
+  const triggerBubbleGamePlayed = useCallback(() => {
+    return triggerAchievement('bubble_game_played', {
+      metadata: { gameType: 'bubble' },
+      showToast: true
+    });
+  }, [triggerAchievement]);
+
+  const triggerBubbleScoreAchievement = useCallback((score: number) => {
+    return triggerAchievement('bubble_score_reached', {
       value: score,
       metadata: { gameType: 'bubble' },
       showToast: true
@@ -127,6 +133,7 @@ export const useAchievementTrigger = () => {
     triggerTaskCompleted,
     triggerStreakIncreased,
     triggerBubbleGamePlayed,
+    triggerBubbleScoreAchievement,
     triggerSocialAction,
     triggerTutorialStep,
     triggerWellnessAction
