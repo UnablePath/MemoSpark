@@ -218,7 +218,7 @@ export const ReminderSettings: React.FC = () => {
               en: '🎉 Test notification successful! Your reminder system is working perfectly.' 
             },
             headings: { 
-              en: '🧪 StudySpark Test' 
+              en: '🧪 MemoSpark Test' 
             },
             data: {
               type: 'test_notification',

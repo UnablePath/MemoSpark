@@ -437,26 +437,26 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
   const renderAddButton = () => {
     if (currentView === 'timetable') {
       return (
-        <ShimmerButton
+        <Button
           onClick={() => openTimetableForm()}
           className="whitespace-nowrap h-8 text-xs sm:text-sm flex-shrink-0 px-1 xs:px-2 sm:px-3 md:px-4 min-w-[28px] xs:min-w-[32px] sm:min-w-auto"
           aria-label="Add new class (Ctrl+N)"
         >
           <GraduationCap className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
           <span className="hidden xs:inline ml-1 sm:ml-2">Add Class</span>
-        </ShimmerButton>
+        </Button>
       );
     }
 
     return (
-      <ShimmerButton
+      <Button
         onClick={() => openTaskForm()}
         className="whitespace-nowrap h-8 text-xs sm:text-sm flex-shrink-0 px-1 xs:px-2 sm:px-3 md:px-4 min-w-[28px] xs:min-w-[32px] sm:min-w-auto"
         aria-label="Create new task (Ctrl+N)"
       >
         <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
         <span className="hidden xs:inline ml-1 sm:ml-2">Add Task</span>
-      </ShimmerButton>
+      </Button>
     );
   };
 

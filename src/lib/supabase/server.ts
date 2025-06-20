@@ -162,7 +162,7 @@ export const supabaseServerHelpers = {
         return false;
       }
 
-      console.log('Created new user profile for existing Clerk user:', clerkUserId, fullName);
+      // User profile created successfully
       return true;
     } catch (error) {
       console.error('Error ensuring user exists:', error);

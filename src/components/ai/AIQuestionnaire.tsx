@@ -92,16 +92,25 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
           setCurrentResponse(existingResponse);
           setAnswers(existingResponse.responses);
           
-          // Find current question index based on responses
+          // Find current question index based on responses - but don't go backwards
           const answeredQuestions = Object.keys(existingResponse.responses);
           const nextQuestionIndex = nextTemplate.questions.findIndex(q => !answeredQuestions.includes(q.id));
-          setCurrentQuestionIndex(Math.max(0, nextQuestionIndex));
+          
+          // Only update question index if we're loading fresh or moving forward
+          if (currentQuestionIndex === 0 || nextQuestionIndex > currentQuestionIndex) {
+            setCurrentQuestionIndex(Math.max(0, nextQuestionIndex));
+          }
+          // If nextQuestionIndex is -1 (all questions answered), stay at current position
+          if (nextQuestionIndex === -1 && currentQuestionIndex < nextTemplate.questions.length - 1) {
+            // Keep current position, don't jump to end
+          }
         } else {
           // Start new questionnaire
           console.log('Starting new questionnaire...');
           const newResponse = await questionnaireManager.startQuestionnaire(user!.id, nextTemplate.id);
           console.log('New response created:', newResponse);
           setCurrentResponse(newResponse);
+          setCurrentQuestionIndex(0); // Always start at beginning for new questionnaire
         }
         
         // Set initial Stu message
@@ -181,7 +190,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
       setStuMessage(getRandomEncouragement());
 
       if (autoAdvance) {
-        // Auto-advance to next question after a short delay
+        // Auto-advance to next question after a shorter delay
         setTimeout(() => {
           if (currentQuestionIndex < currentTemplate.questions.length - 1) {
             setCurrentQuestionIndex(currentQuestionIndex + 1);
@@ -189,7 +198,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
           } else {
             handleQuestionnaireComplete();
           }
-        }, 1000);
+        }, 800); // Reduced from 1000ms to 800ms
       }
       
     } catch (err: any) {
@@ -227,7 +236,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
           setAnswers({});
           setCurrentResponse(null);
           setStuState('excited');
-        }, 3000);
+        }, 2000); // Reduced from 3000ms to 2000ms
       } else {
         // All questionnaires completed
         setCompleted(true);

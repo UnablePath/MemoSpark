@@ -2,6 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme optimization - Prevent flash of unstyled content */
+:root {
+  color-scheme: dark light;
+}
+
+html {
+  /* Ensure immediate theme application */
+  transition: none !important;
+}
+
+/* Optimize theme switching performance */
+html[data-theme-changing] * {
+  transition: none !important;
+  animation-duration: 0s !important;
+}
+
+/* Preload critical theme variables */
+html {
+  --transition-duration: 0ms;
+}
+
+/* Ensure color-scheme is always in sync */
+html.light {
+  color-scheme: light;
+}
+
+html.dark,
+html[class*="theme-"]:not([class*="-light"]) {
+  color-scheme: dark;
+}
+
 @font-face {
   font-family: 'Linea';
   src: url('/LINE.ttf') format('truetype');

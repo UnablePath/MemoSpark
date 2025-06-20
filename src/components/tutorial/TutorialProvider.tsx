@@ -36,6 +36,7 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
   const [currentProgress, setCurrentProgress] = useState<TutorialProgress | null>(null);
   const [shouldShowTutorial, setShouldShowTutorial] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDashboard, setIsDashboard] = useState(false);
 
   // Check if user needs to see tutorial - optimized with useCallback
   const checkTutorialStatus = useCallback(async () => {
@@ -57,6 +58,7 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
         if (autoStart && (!progress || progress.current_step === 'welcome')) {
           // Check if we're on the dashboard page
           const isDashboardPage = window.location.pathname === '/dashboard';
+          setIsDashboard(isDashboardPage);
           
           if (isDashboardPage) {
             // Use requestAnimationFrame for smooth performance
@@ -67,6 +69,8 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
               }, 1500); // Slightly longer delay to let dashboard load
             });
           }
+        } else {
+          setIsDashboard(window.location.pathname === '/dashboard');
         }
       }
     } catch (error) {
@@ -75,6 +79,51 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
       setIsLoading(false);
     }
   }, [user?.id, tutorialManager, autoStart]);
+
+  // Monitor route changes to pause tutorial when leaving dashboard
+  useEffect(() => {
+    const handleRouteChange = () => {
+      const isDashboardPage = window.location.pathname === '/dashboard';
+      setIsDashboard(isDashboardPage);
+      
+      // If tutorial is active and user leaves dashboard, pause it
+      if (isActive && !isDashboardPage) {
+        console.log('Tutorial paused: User left dashboard');
+        setIsActive(false);
+      }
+      
+      // If user returns to dashboard and tutorial was in progress, resume it
+      if (!isActive && isDashboardPage && shouldShowTutorial && currentProgress && !currentProgress.is_completed) {
+        console.log('Tutorial resumed: User returned to dashboard');
+        setIsActive(true);
+      }
+    };
+
+    // Listen for browser navigation events
+    window.addEventListener('popstate', handleRouteChange);
+    
+    // Listen for Next.js route changes (if using Next.js router)
+    if (typeof window !== 'undefined') {
+      const originalPushState = window.history.pushState;
+      const originalReplaceState = window.history.replaceState;
+
+      window.history.pushState = function(...args) {
+        originalPushState.apply(this, args);
+        setTimeout(handleRouteChange, 100);
+      };
+
+      window.history.replaceState = function(...args) {
+        originalReplaceState.apply(this, args);
+        setTimeout(handleRouteChange, 100);
+      };
+
+      return () => {
+        window.removeEventListener('popstate', handleRouteChange);
+        window.history.pushState = originalPushState;
+        window.history.replaceState = originalReplaceState;
+      };
+    }
+  }, [isActive, shouldShowTutorial, currentProgress]);
 
   // Effect for checking tutorial status
   useEffect(() => {
@@ -139,8 +188,8 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
     <TutorialContext.Provider value={contextValue}>
       {children}
       
-      {/* Render tutorial overlay when active - memoized */}
-      {isActive && (
+      {/* Render tutorial overlay when active and on dashboard - memoized */}
+      {isActive && isDashboard && (
         <TutorialOverlay
           isVisible={isActive}
           onClose={hideTutorial}

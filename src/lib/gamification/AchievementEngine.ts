@@ -86,25 +86,27 @@ export class AchievementEngine {
   ): Promise<AchievementUnlockResult | null> {
     const userStats = await fetchUserStats(data.userId, getToken);
     
-    // Check if user already has this achievement
-    if (!supabase) {
-      throw new Error('Supabase client not initialized');
-    }
-
-    const { data: existingAchievement } = await supabase
-      .from('user_achievements')
-      .select('id')
-      .eq('user_id', data.userId)
-      .eq('achievement_id', achievement.id)
-      .single();
-
-    if (existingAchievement) {
-      return {
-        success: false,
-        achievement,
-        isNew: false,
-        message: 'Achievement already unlocked'
-      };
+    // Check if user already has this achievement using API route
+    try {
+      const response = await fetch('/api/achievements');
+      if (response.ok) {
+        const result = await response.json();
+        const existingAchievement = result.achievements?.find(
+          (a: any) => a.id === achievement.id && a.unlocked
+        );
+        
+        if (existingAchievement) {
+          return {
+            success: false,
+            achievement,
+            isNew: false,
+            message: 'Achievement already unlocked'
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Error checking existing achievements:', error);
+      // Continue with achievement evaluation even if check fails
     }
 
     // Evaluate achievement criteria
@@ -318,29 +320,24 @@ export class AchievementEngine {
       await this.initialize();
     }
 
-    if (!supabase) return this.achievements;
-
+    // Use API route instead of direct Supabase access
     try {
-      const { data: userAchievements } = await supabase
-        .from('user_achievements')
-        .select('achievement_id, progress')
-        .eq('user_id', userId);
-
-      return this.achievements.map(achievement => {
-        const userAchievement = userAchievements?.find(
-          ua => ua.achievement_id === achievement.id
-        );
-
-        return {
-          ...achievement,
-          userProgress: userAchievement?.progress || 0,
-          unlocked: !!userAchievement
-        };
-      });
+      const response = await fetch('/api/achievements');
+      if (response.ok) {
+        const result = await response.json();
+        // API already returns achievements with user progress
+        return result.achievements || this.achievements;
+      }
     } catch (error) {
-      console.error('Failed to get achievements with progress:', error);
-      return this.achievements;
+      console.error('Failed to get achievements with progress via API:', error);
     }
+
+    // Fallback to basic achievements without progress
+    return this.achievements.map(achievement => ({
+      ...achievement,
+      userProgress: 0,
+      unlocked: false
+    }));
   }
 
   /**

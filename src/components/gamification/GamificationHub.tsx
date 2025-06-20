@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FaTrophy, FaShoppingCart, FaCoins, FaUsers, FaStar } from 'react-icons/fa';
-import { TrendingUp } from 'lucide-react';
+import { FaTrophy, FaShoppingCart, FaCoins, FaUsers, FaStar, FaCalendarAlt } from 'react-icons/fa';
+import { TrendingUp, RefreshCw } from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAchievements } from '@/hooks/useAchievements';
+import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
 import { useUser } from '@clerk/nextjs';
 import { AchievementCollection } from '@/components/achievements/AchievementBadge';
 import { AchievementNotificationSystem } from '@/components/achievements/AchievementNotificationSystem';
@@ -22,9 +23,39 @@ import type { LeaderboardUser, UserAchievement } from '@/types/achievements';
 
 const GamificationHub = () => {
   const { user } = useUser();
-  const { userStats, leaderboard, userAchievements, loading, reload } = useAchievements();
+  const { userStats, leaderboard, userAchievements, allAchievements, loading, reload } = useAchievements();
+  const { 
+    triggerAchievement, 
+    triggerTaskCompleted, 
+    triggerStreakIncreased, 
+    triggerBubbleGamePlayed,
+    triggerTutorialStep 
+  } = useAchievementTrigger();
   const [streakTracker] = useState(() => new StreakTracker());
   const [showRewardShop, setShowRewardShop] = useState(false);
+  const [coinBalance, setCoinBalance] = useState(0);
+  const [selectedAchievement, setSelectedAchievement] = useState<any>(null);
+
+  // Load real coin balance
+  useEffect(() => {
+    const loadCoinBalance = async () => {
+      try {
+        const response = await fetch('/api/gamification/balance');
+        if (response.ok) {
+          const data = await response.json();
+          setCoinBalance(data.balance || 0);
+        }
+      } catch (error) {
+        console.error('Error loading coin balance:', error);
+      }
+    };
+    
+    if (user?.id) {
+      loadCoinBalance();
+    }
+  }, [user?.id]);
+
+
 
   // Calculate reward tier progression
   const calculateTierInfo = (points: number) => {
@@ -57,21 +88,7 @@ const GamificationHub = () => {
   
   const tierInfo = calculateTierInfo(userStats?.total_points || 0);
 
-  // Demo celebration function
-  const triggerDemoCelebration = () => {
-    const demoAchievement = {
-      id: 'demo-achievement',
-      name: '🎉 Demo Achievement',
-      description: 'You tested the celebration system!',
-      type: 'other' as const,
-      points_reward: 100,
-      icon: '🎊',
-      criteria: {},
-      created_at: new Date().toISOString()
-    };
-    
-    stuCelebration.achievementUnlocked(demoAchievement);
-  };
+
 
   if (loading) {
     return <GamificationHubSkeleton />;
@@ -116,7 +133,9 @@ const GamificationHub = () => {
           </div>
         </header>
 
-        {/* User Stats & Coin Economy */}
+
+
+        {/* User Stats & Real Coin Balance */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
@@ -125,19 +144,42 @@ const GamificationHub = () => {
             <CardContent className="grid grid-cols-2 gap-4">
               <StatBox label="Total Points" value={userStats?.total_points || 0} />
               <StatBox label="Current Streak" value={`${userStats?.current_streak || 0} Days`} />
-              <StatBox label="Leaderboard Rank" value={`#${leaderboard.find(u => u.user_id === user?.id)?.rank || 'N/A'}`} className="col-span-2"/>
+              <StatBox label="Coin Balance" value={coinBalance} className="col-span-2"/>
             </CardContent>
           </Card>
 
-          <CoinWidget 
-            variant="detailed"
-            showDailyBonus={true}
-            showBonusEvents={true}
-            onCoinChange={(newBalance) => {
-              // Handle coin balance changes if needed
-              console.log('Coin balance updated:', newBalance);
-            }}
-          />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <FaCoins className="mr-2 h-5 w-5 text-yellow-500" /> 
+                Coin Wallet
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-yellow-600">{coinBalance}</div>
+                <div className="text-sm text-muted-foreground">MemoSpark Coins</div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="text-center p-2 bg-card border border-border/50 rounded-lg hover:bg-accent/50 transition-colors">
+                  <div className="font-bold text-foreground">Earned</div>
+                  <div className="text-muted-foreground">{coinBalance}</div>
+                </div>
+                <div className="text-center p-2 bg-card border border-border/50 rounded-lg hover:bg-accent/50 transition-colors">
+                  <div className="font-bold text-foreground">Spent</div>
+                  <div className="text-muted-foreground">0</div>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => setShowRewardShop(true)}
+              >
+                <FaShoppingCart className="mr-2 h-4 w-4" />
+                Visit Coin Shop
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Streak Tracking System */}
@@ -146,12 +188,10 @@ const GamificationHub = () => {
             variant="detailed"
             showActions={true}
             onViewDetails={() => {
-              // TODO: Navigate to detailed streak view
               console.log('Navigate to streak details');
             }}
           />
           
-          {/* Additional gamification features can be added here */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -164,7 +204,6 @@ const GamificationHub = () => {
                 variant="outline" 
                 className="w-full justify-start"
                 onClick={() => {
-                  // Scroll to achievements section
                   const achievementsSection = document.querySelector('[data-section="achievements"]');
                   if (achievementsSection) {
                     achievementsSection.scrollIntoView({ behavior: 'smooth' });
@@ -172,7 +211,7 @@ const GamificationHub = () => {
                 }}
               >
                 <FaTrophy className="mr-2 h-4 w-4" />
-                View All Achievements
+                View All Achievements ({userAchievements.length})
               </Button>
               <Button 
                 variant="outline" 
@@ -180,18 +219,7 @@ const GamificationHub = () => {
                 onClick={() => setShowRewardShop(true)}
               >
                 <FaShoppingCart className="mr-2 h-4 w-4" />
-                Visit Reward Shop
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => {
-                  // TODO: Implement study groups
-                  toast.info('Study Groups feature coming soon! 👥');
-                }}
-              >
-                <FaUsers className="mr-2 h-4 w-4" />
-                Join Study Groups
+                Visit Coin Shop
               </Button>
               <Button 
                 variant="default" 
@@ -202,7 +230,9 @@ const GamificationHub = () => {
                     const result = await streakTracker.markDailyCompletion(user.id, 1, 10);
                     if (result.success) {
                       toast.success(`Streak updated! 🔥 ${result.newStreak} days`);
-                      reload(); // Refresh all data
+                      // Trigger streak achievement
+                      await triggerStreakIncreased(result.newStreak);
+                      reload();
                     }
                   } catch (error) {
                     console.error('Error updating streak:', error);
@@ -213,36 +243,9 @@ const GamificationHub = () => {
                 <FaStar className="mr-2 h-4 w-4" />
                 🔥 Complete Today's Goal
               </Button>
-              <Button 
-                variant="default" 
-                className="w-full justify-start bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
-                onClick={triggerDemoCelebration}
-              >
-                <FaStar className="mr-2 h-4 w-4" />
-                🎉 Test Celebration
-              </Button>
             </CardContent>
           </Card>
         </div>
-
-        {/* Leaderboard System */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center"><FaUsers className="mr-2 h-5 w-5 text-blue-500" /> Leaderboard</CardTitle>
-            <CardDescription>See how you stack up against other MemoSpark users!</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-3">
-              {leaderboard.length > 0 ? (
-                leaderboard.slice(0, 5).map((leaderboardUser: LeaderboardUser) => (
-                  <LeaderboardItem key={leaderboardUser.user_id} user={leaderboardUser} isCurrentUser={leaderboardUser.user_id === user?.id} />
-                ))
-              ) : (
-                <p className="text-muted-foreground text-center py-4">No leaderboard data available yet.</p>
-              )}
-            </ul>
-          </CardContent>
-        </Card>
 
         {/* Achievement Tracking */}
         <Card data-section="achievements">
@@ -252,11 +255,19 @@ const GamificationHub = () => {
               <CardDescription>Unlock achievements by completing milestones.</CardDescription>
             </div>
             <div className="text-sm text-muted-foreground">
-              {userAchievements.length} / 50+ achievements
+              {userAchievements.length} / {allAchievements.length} achievements
             </div>
           </CardHeader>
           <CardContent>
-            {userAchievements.length > 0 ? (
+            {allAchievements.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <FaTrophy className="w-16 h-16 text-muted-foreground/50 mb-4" />
+                <h3 className="text-lg font-medium text-muted-foreground mb-2">No achievements available</h3>
+                <p className="text-sm text-muted-foreground max-w-sm mb-4">
+                  Achievements will appear here as they become available. Complete tasks and engage with the platform to unlock them!
+                </p>
+              </div>
+            ) : userAchievements.length > 0 ? (
               <AchievementCollection
                 achievements={userAchievements.map(ua => ({
                   ...ua.achievements!,
@@ -267,21 +278,59 @@ const GamificationHub = () => {
                 variant="grid"
                 showProgress={false}
                 onAchievementClick={(achievement) => {
-                  console.log('Achievement clicked:', achievement);
+                  setSelectedAchievement(achievement);
                 }}
               />
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <FaTrophy className="w-16 h-16 text-muted-foreground/50 mb-4" />
-                <h3 className="text-lg font-medium text-muted-foreground mb-2">No achievements yet</h3>
-                <p className="text-sm text-muted-foreground max-w-sm">
+                <h3 className="text-lg font-medium text-muted-foreground mb-2">No achievements unlocked yet</h3>
+                <p className="text-sm text-muted-foreground max-w-sm mb-4">
                   Complete tasks, maintain streaks, and engage with the community to unlock your first achievements!
                 </p>
+                <Button 
+                  onClick={() => {
+                    const tasksSection = document.querySelector('[data-section="tasks"]');
+                    if (tasksSection) {
+                      tasksSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                  variant="outline"
+                >
+                  <FaCalendarAlt className="w-4 h-4 mr-2" />
+                  Start Completing Tasks
+                </Button>
               </div>
             )}
           </CardContent>
         </Card>
         
+        {/* Leaderboard */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center"><FaTrophy className="mr-2 h-5 w-5 text-amber-500" /> Leaderboard</CardTitle>
+            <CardDescription>See how you rank against other students.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {leaderboard.length > 0 ? (
+              <ul className="space-y-2">
+                {leaderboard.map((user) => (
+                  <LeaderboardItem 
+                    key={user.user_id} 
+                    user={user} 
+                    isCurrentUser={user.user_id === userStats?.user_id}
+                  />
+                ))}
+              </ul>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <FaTrophy className="w-12 h-12 text-muted-foreground/50 mb-3" />
+                <p className="text-sm text-muted-foreground">No leaderboard data available</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Reward Tiers */}
         <Card>
           <CardHeader>
@@ -334,6 +383,54 @@ const GamificationHub = () => {
           variant="modal" 
           onClose={() => setShowRewardShop(false)} 
         />
+      )}
+
+      {/* Achievement Details Modal */}
+      {selectedAchievement && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setSelectedAchievement(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="p-3 rounded-lg bg-blue-500">
+                <FaTrophy className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  {selectedAchievement.name}
+                </h3>
+                <span className="text-sm bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full">
+                  Unlocked ✓
+                </span>
+              </div>
+            </div>
+            
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
+              {selectedAchievement.description}
+            </p>
+            
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Points Earned:</span>
+                <span className="font-semibold text-yellow-600">{selectedAchievement.points_reward}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Category:</span>
+                <span className="font-semibold capitalize">{selectedAchievement.type?.replace('_', ' ')}</span>
+              </div>
+              {selectedAchievement.earnedAt && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Earned Date:</span>
+                  <span className="font-semibold">{new Date(selectedAchievement.earnedAt).toLocaleDateString()}</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-6 flex justify-end">
+              <Button onClick={() => setSelectedAchievement(null)} variant="outline">
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

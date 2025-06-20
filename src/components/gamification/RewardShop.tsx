@@ -53,7 +53,7 @@ const SHOP_CATEGORIES: ShopCategory[] = [
     id: 'customization',
     name: 'Customization',
     icon: Palette,
-    description: 'Personalize your StudySpark experience',
+    description: 'Personalize your MemoSpark experience',
     color: 'text-purple-500'
   },
   {
@@ -254,7 +254,7 @@ export const RewardShop: React.FC<RewardShopProps> = ({
         <div>
           <h2 className="text-2xl font-bold flex items-center">
             <ShoppingCart className="w-6 h-6 mr-2 text-primary" />
-            Reward Shop
+            Coin Shop
           </h2>
           <p className="text-muted-foreground">Spend your coins on useful items and upgrades</p>
         </div>

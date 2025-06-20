@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
         huggingFaceApiKey: !!process.env.HUGGINGFACE_API_KEY,
         supabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabaseAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-        developmentMode: process.env.NODE_ENV === 'development'
+        launchMode: process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_ENABLE_LAUNCH_MODE === 'true'
       },
       recommendations: [] as string[]
     };
@@ -98,8 +98,8 @@ export async function GET(request: NextRequest) {
       healthStatus.recommendations.push('No AI services configured - add HuggingFace API key or configure Supabase edge functions');
     }
 
-    if (healthStatus.environment.developmentMode) {
-      healthStatus.recommendations.push('Development mode active - premium features unlocked for testing');
+    if (healthStatus.environment.launchMode) {
+      healthStatus.recommendations.push('Launch mode active - premium features available for all users during launch period');
     }
 
     const overallHealth = {

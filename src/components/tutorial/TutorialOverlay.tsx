@@ -285,19 +285,19 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
     }
   }, [user?.id, tutorialManager, onTabChange]);
 
-  // Calculate progress percentage - memoized for performance
-  const progressPercentage = useMemo(() => {
-    return currentProgress?.completed_steps.length 
-      ? (currentProgress.completed_steps.length / allSteps.length) * 100
-      : 0;
-  }, [currentProgress?.completed_steps.length, allSteps.length]);
-
   // Get current step index - memoized for performance
   const currentStepIndex = useMemo(() => {
     return currentStepConfig 
       ? allSteps.findIndex(step => step.id === currentStepConfig.id)
       : 0;
   }, [currentStepConfig, allSteps]);
+
+  // Calculate progress percentage - memoized for performance
+  const progressPercentage = useMemo(() => {
+    return currentStepIndex >= 0 
+      ? (currentStepIndex / allSteps.length) * 100
+      : 0;
+  }, [currentStepIndex, allSteps.length]);
 
   // Memoize animation variants for performance
   const cardVariants = useMemo(() => ({
@@ -346,7 +346,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
                 onClick={skipStep}
                 className="text-xs text-white/80 hover:text-white underline"
               >
-                Skip Step
+                Next Step
               </button>
             </div>
           </div>
@@ -418,7 +418,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
             <div className="mt-4">
               <Progress value={progressPercentage} className="h-2" />
               <p className="text-sm sm:text-base text-muted-foreground mt-2">
-                {currentProgress.completed_steps.length} of {allSteps.length} steps completed
+                {currentStepIndex} of {allSteps.length} steps completed
               </p>
             </div>
           </CardHeader>
@@ -478,7 +478,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
               <div className="flex gap-2 flex-wrap">
                 {currentStepConfig.skipAllowed && (
                   <Button variant="ghost" size="sm" onClick={skipStep} className="flex-1 sm:flex-initial text-foreground hover:bg-muted">
-                    Skip Step
+                    Next Step
                   </Button>
                 )}
                 <Button onClick={advanceStep} size="sm" className="flex-1 sm:flex-initial bg-primary text-primary-foreground hover:bg-primary/90">

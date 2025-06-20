@@ -387,6 +387,8 @@ export interface TierAwareAIResponse {
   success: boolean;
   data?: AISuggestion[] | PatternData | any;
   tier?: 'free' | 'premium' | 'enterprise';
+  subscriptionTier?: 'free' | 'premium' | 'enterprise'; // Actual subscription tier
+  launchMode?: boolean; // Whether launch mode is active
   usage?: {
     requestsUsed: number;
     requestsRemaining: number;

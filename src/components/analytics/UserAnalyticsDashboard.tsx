@@ -478,8 +478,8 @@ const OverviewCard: React.FC<{
     <CardContent className="p-3 sm:p-6">
       <div className="flex items-center justify-between">
         <div className="min-w-0 flex-1">
-          <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">{title}</p>
-          <p className="text-lg sm:text-2xl font-bold truncate">{value}</p>
+          <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{title}</p>
+          <p className="text-lg sm:text-2xl font-bold text-foreground truncate">{value}</p>
         </div>
         <div className="flex-shrink-0 ml-2">
           {icon}
@@ -487,14 +487,14 @@ const OverviewCard: React.FC<{
       </div>
       <div className="flex items-center mt-2 sm:mt-4">
         {change > 0 ? (
-          <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 mr-1" />
+          <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-foreground mr-1" />
         ) : (
-          <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 mr-1" />
+          <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-foreground mr-1" />
         )}
-        <span className={`text-xs sm:text-sm ${change > 0 ? 'text-green-500' : 'text-red-500'}`}>
+        <span className="text-xs sm:text-sm text-foreground">
           {change > 0 ? '+' : ''}{change}%
         </span>
-        <span className="text-xs sm:text-sm text-gray-500 ml-1 hidden sm:inline">vs last period</span>
+        <span className="text-xs sm:text-sm text-muted-foreground ml-1 hidden sm:inline">vs last period</span>
       </div>
     </CardContent>
   </Card>
@@ -747,15 +747,11 @@ const InsightsTab: React.FC<{ analytics: UserAnalytics }> = ({ analytics }) => (
       <CardContent>
         <div className="space-y-4">
           {analytics.insights.productivityInsights.map((insight, index) => (
-            <div key={index} className={`p-4 rounded-lg border ${
-              insight.type === 'positive' ? 'bg-green-50 border-green-200' :
-              insight.type === 'improvement' ? 'bg-orange-50 border-orange-200' :
-              'bg-blue-50 border-blue-200'
-            }`}>
-              <h4 className="font-medium mb-2">{insight.title}</h4>
-              <p className="text-sm text-gray-600 mb-2">{insight.description}</p>
+            <div key={index} className="p-4 rounded-lg border bg-card border-border/50 hover:bg-accent/50 transition-colors">
+              <h4 className="font-medium mb-2 text-foreground">{insight.title}</h4>
+              <p className="text-sm text-muted-foreground mb-2">{insight.description}</p>
               {insight.action && (
-                <p className="text-sm font-medium text-orange-600">{insight.action}</p>
+                <p className="text-sm font-medium text-foreground">{insight.action}</p>
               )}
             </div>
           ))}
@@ -793,31 +789,31 @@ const InsightsTab: React.FC<{ analytics: UserAnalytics }> = ({ analytics }) => (
         <CardContent>
           <div className="space-y-4">
             <div>
-              <h5 className="font-medium mb-2 text-green-600">Strengths</h5>
+              <h5 className="font-medium mb-2 text-foreground">Strengths</h5>
               {analytics.insights.patterns.strengths.map((strength, index) => (
                 <div key={index} className="flex justify-between items-center">
-                  <span className="text-sm">{strength.area}</span>
-                  <span className="text-sm font-medium text-green-600">{strength.score}%</span>
+                  <span className="text-sm text-muted-foreground">{strength.area}</span>
+                  <span className="text-sm font-medium text-foreground">{strength.score}%</span>
                 </div>
               ))}
             </div>
 
             <div>
-              <h5 className="font-medium mb-2 text-orange-600">Improvement Areas</h5>
+              <h5 className="font-medium mb-2 text-foreground">Improvement Areas</h5>
               {analytics.insights.patterns.weakSpots.map((weak, index) => (
                 <div key={index} className="flex justify-between items-center">
-                  <span className="text-sm">{weak.area}</span>
-                  <span className="text-sm font-medium text-orange-600">+{weak.improvement}%</span>
+                  <span className="text-sm text-muted-foreground">{weak.area}</span>
+                  <span className="text-sm font-medium text-foreground">+{weak.improvement}%</span>
                 </div>
               ))}
             </div>
 
             <div>
-              <h5 className="font-medium mb-2 text-blue-600">Best Study Times</h5>
+              <h5 className="font-medium mb-2 text-foreground">Best Study Times</h5>
               {analytics.insights.patterns.bestStudyTimes.map((time, index) => (
                 <div key={index} className="flex justify-between items-center">
-                  <span className="text-sm">{time.timeRange}</span>
-                  <span className="text-sm font-medium text-blue-600">{time.productivity}%</span>
+                  <span className="text-sm text-muted-foreground">{time.timeRange}</span>
+                  <span className="text-sm font-medium text-foreground">{time.productivity}%</span>
                 </div>
               ))}
             </div>

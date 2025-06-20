@@ -1,0 +1,243 @@
+"use client";
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useAuth, useUser } from '@clerk/nextjs';
+import { StudentDiscovery, UserSearchResult } from '@/lib/social/StudentDiscovery';
+import { MessagingService } from '@/lib/messaging/MessagingService';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Check, X, UserPlus, MessageSquare } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { ChatInterface } from '@/components/messaging/ChatInterface';
+
+interface ConnectionManagerProps {
+  searchTerm: string;
+}
+
+export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ searchTerm }) => {
+  const { getToken } = useAuth();
+  const { user } = useUser();
+  const studentDiscovery = useMemo(() => new StudentDiscovery(getToken), [getToken]);
+  const messagingService = useMemo(() => new MessagingService(getToken), [getToken]);
+
+  const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
+  const [connections, setConnections] = useState<any[]>([]);
+  const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
+  const [sentRequests, setSentRequests] = useState<string[]>([]);
+  const [loadingRequestId, setLoadingRequestId] = useState<string | null>(null);
+  const [chatUser, setChatUser] = useState<any>(null);
+  const [chatConversationId, setChatConversationId] = useState<string | null>(null);
+
+  const handleSearch = useCallback(async () => {
+    if (!user || !searchTerm.trim()) {
+      setSearchResults([]);
+      return;
+    };
+    const results = await studentDiscovery.searchUsers(searchTerm, user.id);
+    setSearchResults(results);
+  }, [studentDiscovery, searchTerm, user]);
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      handleSearch();
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, handleSearch]);
+
+  const handleSendRequest = async (receiverId: string) => {
+    if (!user || loadingRequestId === receiverId) return;
+    setLoadingRequestId(receiverId);
+    try {
+      await studentDiscovery.sendConnectionRequest(user.id, receiverId);
+      setSentRequests(prev => [...prev, receiverId]);
+    } catch (error) {
+      console.error("Failed to send connection request:", error);
+      // Optionally, show an error to the user
+    } finally {
+      setLoadingRequestId(null);
+    }
+  };
+
+  const handleAcceptRequest = async (requesterId: string) => {
+    if (!user) return;
+    await studentDiscovery.acceptConnectionRequest(requesterId, user.id);
+    loadAllData();
+  };
+
+  const handleRejectRequest = async (requesterId: string) => {
+    if (!user) return;
+    await studentDiscovery.rejectConnectionRequest(requesterId, user.id);
+    loadAllData();
+  };
+
+  const loadAllData = useCallback(async () => {
+    if (!user) return;
+    const [userConnections, requests] = await Promise.all([
+      studentDiscovery.getConnections(user.id),
+      studentDiscovery.getIncomingConnectionRequests(user.id),
+    ]);
+    setConnections(userConnections);
+    setIncomingRequests(requests);
+  }, [studentDiscovery, user]);
+
+  useEffect(() => {
+    if (user) {
+      loadAllData();
+    }
+  }, [user, loadAllData]);
+
+  const getConnectionProfile = (connection: any) => {
+    return connection.requester_id === user?.id ? connection.receiver : connection.requester;
+  }
+
+  const startChat = async (otherUser: any) => {
+    if (!user?.id) return;
+    
+    try {
+      const conversationId = await messagingService.getOrCreateDirectConversation(
+        user.id, 
+        otherUser.clerk_user_id
+      );
+      setChatConversationId(conversationId);
+      setChatUser(otherUser);
+    } catch (error) {
+      console.error('Error starting chat:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {searchResults.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Search Results</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {searchResults.map((result) => (
+                <div key={result.clerk_user_id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
+                  <div className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarImage src={result.avatar_url || ''} />
+                      <AvatarFallback>{result.full_name?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-semibold">{result.full_name}</p>
+                      <p className="text-xs text-muted-foreground">{result.email}</p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleSendRequest(result.clerk_user_id)}
+                    disabled={sentRequests.includes(result.clerk_user_id) || loadingRequestId === result.clerk_user_id}
+                  >
+                    {loadingRequestId === result.clerk_user_id 
+                      ? 'Sending...' 
+                      : sentRequests.includes(result.clerk_user_id) 
+                        ? 'Request Sent' 
+                        : <><UserPlus className="h-4 w-4 mr-2"/>Connect</>
+                    }
+                  </Button>
+                </div>
+              ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Connection Requests</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {incomingRequests.length > 0 ? (
+              incomingRequests.filter(req => req.requester).map((request) => (
+                <div key={request.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={request.requester.avatar_url || ''} />
+                      <AvatarFallback>{request.requester.full_name?.charAt(0) || '?'}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-semibold text-sm">{request.requester.full_name || 'Unknown User'}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => handleRejectRequest(request.requester_id)}>
+                      <X className="h-4 w-4"/>
+                    </Button>
+                    <Button size="icon" className="h-8 w-8" onClick={() => handleAcceptRequest(request.requester_id)}>
+                      <Check className="h-4 w-4"/>
+                    </Button>
+                  </div>
+                </div>
+              ))
+            ) : <p className="text-sm text-muted-foreground">No new requests.</p>}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Your Connections</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {connections.length > 0 ? (
+              connections.map((connection) => {
+                const profile = getConnectionProfile(connection);
+                if (!profile) return null;
+                return (
+                  <div key={connection.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage src={profile.avatar_url || ''} />
+                        <AvatarFallback>{profile.full_name?.charAt(0) || '?'}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-semibold text-sm">{profile.full_name || 'Unknown User'}</p>
+                      </div>
+                    </div>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => startChat(profile)}
+                        >
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Chat
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl h-[600px] flex flex-col">
+                        <DialogHeader>
+                          <DialogTitle>Chat with {profile.full_name}</DialogTitle>
+                          <DialogDescription>
+                            Start a conversation with your connection
+                          </DialogDescription>
+                        </DialogHeader>
+                        {chatConversationId && chatUser && (
+                          <div className="flex-1">
+                            <ChatInterface 
+                              initialConversationId={chatConversationId}
+                            />
+                          </div>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                )
+              })
+            ) : <p className="text-sm text-muted-foreground">You haven't made any connections yet.</p>}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+} 

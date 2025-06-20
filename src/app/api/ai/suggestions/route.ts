@@ -132,14 +132,15 @@ export async function POST(request: Request) {
       // Continue with free tier as fallback
     }
 
-    // DEVELOPMENT OVERRIDE: Force premium tier for testing
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    if (isDevelopment) {
-      userTier = 'premium'; // Override to premium for testing
-      console.log('AI Suggestions API: Development override - forcing premium tier for testing');
+    // LAUNCH MODE OVERRIDE: Grant premium access during launch period without changing subscription
+    const isLaunchMode = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_ENABLE_LAUNCH_MODE === 'true';
+    let effectiveTier = userTier; // Keep original tier for logging/tracking
+    if (isLaunchMode) {
+      effectiveTier = 'premium'; // Give premium access without modifying actual subscription
+      console.log('AI Suggestions API: Launch mode active - granting premium access for launch period');
     }
 
-    console.log('AI Suggestions API: User tier determined as:', userTier);
+    console.log('AI Suggestions API: User subscription tier:', userTier, '| Effective tier:', effectiveTier);
 
     // Check usage limits with better error handling
     const today = new Date().toISOString().split('T')[0];
@@ -163,33 +164,33 @@ export async function POST(request: Request) {
       // Continue with 0 requests as fallback
     }
 
-    // More generous limits for development mode
-    const dailyLimit = isDevelopment 
-      ? (userTier === 'free' ? 1000 : userTier === 'premium' ? 5000 : -1)  // Development limits
-      : (userTier === 'free' ? 10 : userTier === 'premium' ? 100 : -1);    // Production limits
+    // More generous limits during launch mode
+    const dailyLimit = isLaunchMode 
+      ? (effectiveTier === 'free' ? 1000 : effectiveTier === 'premium' ? 5000 : -1)  // Launch mode limits
+      : (effectiveTier === 'free' ? 10 : effectiveTier === 'premium' ? 100 : -1);    // Production limits
 
-    console.log('AI Suggestions API: Environment:', process.env.NODE_ENV, 'Daily limit:', dailyLimit);
+    console.log('AI Suggestions API: Environment:', process.env.NODE_ENV, 'Launch mode:', isLaunchMode, 'Daily limit:', dailyLimit);
 
-    // Check if user has exceeded limits (skip in development if desired)
-    if (!isDevelopment && dailyLimit > 0 && requestsToday >= dailyLimit) {
+    // Check if user has exceeded limits (skip in launch mode if desired)
+    if (!isLaunchMode && dailyLimit > 0 && requestsToday >= dailyLimit) {
       console.log('AI Suggestions API: Daily limit exceeded for user:', userId, 'requests:', requestsToday, 'limit:', dailyLimit);
       return NextResponse.json({
         success: false,
-        tier: userTier,
+        tier: effectiveTier,
         usage: {
           requestsUsed: requestsToday,
           requestsRemaining: 0,
           featureAvailable: false
         },
-        upgradeRequired: userTier === 'free',
+        upgradeRequired: userTier === 'free' && !isLaunchMode,
         message: 'Daily AI request limit reached',
         error: 'Request limit exceeded'
       }, { status: 403 });
     }
 
-    // Log when in development mode for easier debugging
-    if (isDevelopment) {
-      console.log('AI Suggestions API: Development mode - rate limiting relaxed. Requests today:', requestsToday);
+    // Log when in launch mode for easier debugging
+    if (isLaunchMode) {
+      console.log('AI Suggestions API: Launch mode - rate limiting relaxed. Requests today:', requestsToday);
     }
 
     // Check feature tier requirements
@@ -206,19 +207,19 @@ export async function POST(request: Request) {
 
     const requiredTier = featureRequirements[feature];
     const tierHierarchy: Record<SubscriptionTier, number> = { free: 0, premium: 1 };
-    const hasRequiredTier = tierHierarchy[userTier] >= tierHierarchy[requiredTier];
+    const hasRequiredTier = tierHierarchy[effectiveTier] >= tierHierarchy[requiredTier];
 
     if (!hasRequiredTier) {
-      console.log('AI Suggestions API: Feature not available for tier:', userTier, 'required:', requiredTier);
+      console.log('AI Suggestions API: Feature not available - subscription tier:', userTier, 'effective tier:', effectiveTier, 'required:', requiredTier);
       return NextResponse.json({
         success: false,
-        tier: userTier,
+        tier: effectiveTier,
         usage: {
           requestsUsed: requestsToday,
           requestsRemaining: Math.max(0, dailyLimit - requestsToday),
           featureAvailable: false
         },
-        upgradeRequired: true,
+        upgradeRequired: userTier === 'free' && !isLaunchMode,
         message: `${feature} requires ${requiredTier} tier or higher`,
         error: 'Feature not available in current tier'
       }, { status: 403 });
@@ -250,7 +251,9 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: aiResult.success,
       data: aiResult.data,
-      tier: userTier,
+      tier: effectiveTier,
+      subscriptionTier: userTier, // Include actual subscription tier for transparency
+      launchMode: isLaunchMode, // Let frontend know if launch mode is active
       usage: {
         requestsUsed: updatedRequestsToday,
         requestsRemaining: Math.max(0, dailyLimit - updatedRequestsToday),

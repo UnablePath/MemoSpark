@@ -137,7 +137,7 @@ export const CoinWidget: React.FC<CoinWidgetProps> = ({
             </div>
             
             {todayEarned > 0 && (
-              <div className="text-sm text-green-600">
+              <div className="text-sm text-foreground">
                 +{todayEarned} earned today
               </div>
             )}
@@ -193,14 +193,14 @@ export const CoinWidget: React.FC<CoinWidgetProps> = ({
             <div className="text-3xl font-bold text-yellow-600">
               {balance.toLocaleString()}
             </div>
-            <div className="text-sm text-muted-foreground">StudySpark Coins</div>
+            <div className="text-sm text-muted-foreground">MemoSpark Coins</div>
           </div>
 
           {/* Today's earnings */}
           {todayEarned > 0 && (
-            <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-center">
-              <div className="text-lg font-bold text-green-600">+{todayEarned}</div>
-              <div className="text-sm text-green-700 dark:text-green-300">
+            <div className="bg-card border border-border/50 p-3 rounded-lg text-center">
+              <div className="text-lg font-bold text-foreground">+{todayEarned}</div>
+              <div className="text-sm text-muted-foreground">
                 Earned today
               </div>
             </div>
@@ -239,13 +239,13 @@ export const CoinWidget: React.FC<CoinWidgetProps> = ({
 
           {/* Quick stats */}
           <div className="grid grid-cols-2 gap-2 text-center text-sm">
-            <div className="bg-muted/50 p-2 rounded">
+            <div className="bg-card border border-border/50 p-2 rounded">
               <div className="font-medium">Today</div>
-              <div className="text-green-600">+{todayEarned}</div>
+              <div className="text-foreground">+{todayEarned}</div>
             </div>
-            <div className="bg-muted/50 p-2 rounded">
+            <div className="bg-card border border-border/50 p-2 rounded">
               <div className="font-medium">Balance</div>
-              <div className="text-yellow-600">{balance}</div>
+              <div className="text-foreground">{balance}</div>
             </div>
           </div>
         </div>

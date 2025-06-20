@@ -2,7 +2,7 @@
 
 import { ClerkProvider } from '@clerk/nextjs';
 import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { memoSparkClerkAppearance, memoSparkClerkAppearanceDark } from '@/lib/clerk-appearance';
 import type { ReactNode } from 'react';
 
@@ -11,7 +11,7 @@ interface ThemeAwareClerkProviderProps {
 }
 
 export function ThemeAwareClerkProvider({ children }: ThemeAwareClerkProviderProps) {
-  const { theme } = useTheme();
+  const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   // Prevent hydration mismatch by only determining theme after component mounts
@@ -19,30 +19,27 @@ export function ThemeAwareClerkProvider({ children }: ThemeAwareClerkProviderPro
     setMounted(true);
   }, []);
 
-  // Determine which appearance to use based on the current theme
-  const getClerkAppearance = () => {
-    // During SSR or before mounting, use default light theme
-    if (!mounted) {
-      return memoSparkClerkAppearance;
-    }
-
+  // Memoized theme detection for better performance
+  const isDarkTheme = useMemo(() => {
+    if (!mounted) return true; // Default to dark during SSR
+    
+    const currentTheme = theme || resolvedTheme;
+    
     // Check if the current theme is dark or any dark variant
-    const isDarkTheme = theme === 'dark' || 
-                       theme?.includes('amoled') || 
-                       theme?.includes('sea-blue') ||
-                       theme?.includes('hello-kitty-pink') ||
-                       theme?.includes('hacker-green') ||
-                       theme?.includes('void-purple') ||
-                       theme?.includes('sunset-orange') ||
-                       theme?.includes('midnight-blue') ||
-                       theme?.includes('cherry-blossom') ||
-                       theme?.includes('carbon');
+    return currentTheme === 'dark' || 
+           (currentTheme?.includes('theme-') && !currentTheme?.includes('-light'));
+  }, [theme, resolvedTheme, mounted]);
 
+  // Memoized appearance selection to prevent unnecessary re-renders
+  const clerkAppearance = useMemo(() => {
     return isDarkTheme ? memoSparkClerkAppearanceDark : memoSparkClerkAppearance;
-  };
+  }, [isDarkTheme]);
 
   return (
-    <ClerkProvider appearance={getClerkAppearance()}>
+    <ClerkProvider 
+      appearance={clerkAppearance}
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+    >
       {children}
     </ClerkProvider>
   );

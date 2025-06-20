@@ -51,41 +51,50 @@ export const fetchUserAchievements = async (
 };
 
 /**
- * Unlock an achievement for a user
+ * Unlock an achievement for a user - Now using API route
  */
 export const unlockAchievement = async (
   achievementData: UserAchievementInsert,
   getToken?: () => Promise<string | null>
 ): Promise<UserAchievement> => {
-  const client = getAuthenticatedClient(getToken);
   try {
-    // Check if achievement is already unlocked
-    const { data: existing, error: checkError } = await client
-      .from('user_achievements')
-      .select('id')
-      .eq('user_id', achievementData.user_id)
-      .eq('achievement_id', achievementData.achievement_id)
-      .single();
+    // Use the API route instead of direct Supabase access
+    const response = await fetch('/api/achievements', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'direct_unlock', // Special action for direct achievement unlock
+        achievementId: achievementData.achievement_id,
+        progress: achievementData.progress || {}
+      }),
+    });
 
-    if (checkError && checkError.code !== 'PGRST116') {
-      handleSupabaseError(checkError, 'check existing achievement');
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new SupabaseApiError(errorData.error || 'Failed to unlock achievement', response.status.toString());
     }
 
-    if (existing) {
-      throw new SupabaseApiError('Achievement already unlocked', '23505');
-    }
+    const result = await response.json();
     
-    const { data, error } = await client
-      .from('user_achievements')
-      .insert(achievementData)
-      .select()
-      .single();
-      
-    if (error) handleSupabaseError(error, 'unlock achievement');
-    return data;
+    if (!result.success) {
+      throw new SupabaseApiError(result.error || 'Failed to unlock achievement', '500');
+    }
+
+    // Return the unlocked achievement in the expected format
+    return {
+      id: `temp-${Date.now()}`, // Temporary ID since API doesn't return full record
+      user_id: achievementData.user_id,
+      achievement_id: achievementData.achievement_id,
+      unlocked_at: new Date().toISOString(),
+      earned_at: new Date().toISOString(), // Alias for unlocked_at for compatibility
+      progress: achievementData.progress || {}
+    };
   } catch (error) {
     if (error instanceof SupabaseApiError) throw error;
-    return handleSupabaseError(error, 'unlock achievement');
+    console.error('Error unlocking achievement:', error);
+    throw new SupabaseApiError('Failed to unlock achievement', '500');
   }
 };
 

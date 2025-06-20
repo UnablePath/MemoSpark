@@ -71,7 +71,7 @@ export interface CoinSpendingResult {
 }
 
 /**
- * Comprehensive coin economy system for StudySpark
+ * Comprehensive coin economy system for MemoSpark
  * Handles coin earning, spending, transactions, and analytics
  */
 export class CoinEconomy {

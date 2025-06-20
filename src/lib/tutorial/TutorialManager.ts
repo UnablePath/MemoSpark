@@ -71,11 +71,11 @@ export class TutorialManager {
   private tutorialSteps: TutorialStepConfig[] = [
     {
       id: 'welcome',
-      title: 'Welcome to StudySpark!',
+      title: 'Welcome to MemoSpark!',
       description: 'Hi there! I\'m Stu, your friendly study companion. Let me show you around!',
-      stuMessage: 'Hey! Welcome to StudySpark! I\'m Stu, and I\'m here to help you become the best student you can be! Ready for a quick tour?',
+      stuMessage: 'Hey! Welcome to MemoSpark! I\'m Stu, and I\'m here to help you become the best student you can be! Ready for a quick tour?',
       stuAnimation: 'excited',
-      duration: 30,
+      duration: 60,
       targetTab: 0, // Stay on connections tab initially
       skipAllowed: true,
       autoAdvance: false,
@@ -87,10 +87,10 @@ export class TutorialManager {
     {
       id: 'navigation',
       title: 'Getting Around',
-      description: 'Try clicking on the different tabs to explore StudySpark!',
+      description: 'Try clicking on the different tabs to explore MemoSpark!',
       stuMessage: 'See these tabs at the bottom? Each one unlocks amazing features! Go ahead and tap on the Tasks tab (second one) to see where the magic happens!',
       stuAnimation: 'talking',
-      duration: 45,
+      duration: 90,
       targetTab: 0, // Stay on connections tab to show navigation
       targetElements: ['.tab-navigation', '[role="tablist"]'],
       interactiveMode: true,
@@ -109,7 +109,7 @@ export class TutorialManager {
       description: 'Now create your very first task! Try something like "Study math for 1 hour".',
       stuMessage: 'Perfect! You\'re now in the Tasks section. This is where productivity magic happens! Try creating your first task - maybe something like "Study math for 1 hour" or "Read chapter 5". Just type it and hit enter!',
       stuAnimation: 'encouraging',
-      duration: 90,
+      duration: 120,
       targetTab: 1, // Switch to tasks tab
       targetElements: ['[data-testid="task-input"]', '.task-creation-form', '.task-input'],
       interactiveMode: true,
@@ -129,7 +129,7 @@ export class TutorialManager {
       description: 'Great job creating a task! Now explore the AI features that can help optimize your study routine.',
       stuMessage: 'Awesome! You just created your first task! 🎉 Now here\'s where things get really cool - our AI can help you study smarter. Look around this Tasks tab and try interacting with any AI features you see!',
       stuAnimation: 'thinking',
-      duration: 60,
+      duration: 90,
       targetTab: 1, // Stay on tasks tab to show AI features
       targetElements: ['.ai-suggestions', '[data-testid="ai-suggestions"]', '.ai-features', '.smart-schedule'],
       interactiveMode: true,
@@ -148,7 +148,7 @@ export class TutorialManager {
       description: 'Now let\'s go back to the Connections tab to see how you can find study buddies!',
       stuMessage: 'Amazing work with the AI features! Now let\'s head back to the Connections tab (first one) to see how you can find study buddies and connect with other students. Studying together is always better!',
       stuAnimation: 'excited',
-      duration: 45,
+      duration: 90,
       targetTab: 0, // Switch back to connections tab
       targetElements: ['.social-features', '.student-connections'],
       interactiveMode: true,
@@ -167,7 +167,7 @@ export class TutorialManager {
       description: 'Now visit the Crashout Room - your safe space for when studying gets overwhelming!',
       stuMessage: 'Great! You\'ve seen the social features. Now let\'s check out something super important - the Crashout Room! Click on the fourth tab (the spa icon) to visit your stress relief zone. Everyone needs a mental break sometimes!',
       stuAnimation: 'encouraging',
-      duration: 30,
+      duration: 60,
       targetTab: 3, // Switch to crashout tab
       targetElements: ['.crashout-features', '[data-testid="crashout-room"]'],
       interactiveMode: true,
@@ -186,7 +186,7 @@ export class TutorialManager {
       description: 'Finally, check out the Gamification tab to see your achievements and progress!',
       stuMessage: 'Awesome! You\'ve explored the Crashout Room. Now for the fun part - let\'s see your achievements! Click on the last tab (the game controller) to see your progress, coins, and achievements. You might have already earned some just from this tutorial!',
       stuAnimation: 'celebrating',
-      duration: 30,
+      duration: 60,
       targetTab: 4, // Switch to gamification tab
       targetElements: ['.gamification-features', '.achievements-display'],
       interactiveMode: true,
@@ -202,10 +202,10 @@ export class TutorialManager {
     {
       id: 'completion',
       title: 'You\'re All Set!',
-      description: 'Congratulations! You\'re now ready to make the most of StudySpark.',
+      description: 'Congratulations! You\'re now ready to make the most of MemoSpark.',
       stuMessage: 'Awesome! You\'ve completed the tour and you\'re officially ready to rock your studies! I\'ll be here whenever you need encouragement or tips. You\'ve got this! 🎉',
       stuAnimation: 'celebrating',
-      duration: 30,
+      duration: 60,
       targetTab: 1, // End on tasks tab to encourage task creation
       skipAllowed: false,
       autoAdvance: true,

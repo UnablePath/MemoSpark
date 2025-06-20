@@ -238,7 +238,7 @@ export const TierComparison: React.FC<TierComparisonProps> = ({
                       {/* Refund guarantee for paid plans */}
                       {tier.price_monthly > 0 && (
                         <p className="text-xs text-center text-muted-foreground">
-                          30-day money-back guarantee
+                          7 day refund
                         </p>
                       )}
                     </>

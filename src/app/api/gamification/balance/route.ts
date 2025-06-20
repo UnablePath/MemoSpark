@@ -1,108 +1,60 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { supabaseServerAdmin } from '@/lib/supabase/server';
 
 // This would be your actual Supabase client
 // import { createClient } from '@supabase/supabase-js';
 // const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // In production, query Supabase:
-    // const { data: balance, error: balanceError } = await supabase
-    //   .from('coin_balances')
-    //   .select('balance, last_updated')
-    //   .eq('user_id', userId)
-    //   .single();
+    if (!supabaseServerAdmin) {
+      return NextResponse.json({ error: 'Database not available' }, { status: 500 });
+    }
 
-    // const { data: transactions, error: transactionsError } = await supabase
-    //   .from('coin_transactions')
-    //   .select('*')
-    //   .eq('user_id', userId)
-    //   .order('created_at', { ascending: false })
-    //   .limit(10);
+    // Calculate coin balance from transactions using clerk_user_id directly
+    const { data: earnedTransactions } = await supabaseServerAdmin
+      .from('coin_transactions')
+      .select('amount')
+      .eq('user_id', userId)
+      .eq('transaction_type', 'earned');
 
-    // if (balanceError) {
-    //   // Create initial balance if doesn't exist
-    //   const { data: newBalance, error: createError } = await supabase
-    //     .from('coin_balances')
-    //     .insert({ user_id: userId, balance: 0 })
-    //     .select()
-    //     .single();
-    //   
-    //   if (createError) throw createError;
-    //   balance = newBalance;
-    // }
+    const { data: spentTransactions } = await supabaseServerAdmin
+      .from('coin_transactions')
+      .select('amount')
+      .eq('user_id', userId)
+      .eq('transaction_type', 'spent');
 
-    // Mock data for development
-    const mockBalance = {
-      balance: 500,
-      last_updated: new Date().toISOString()
-    };
+    const totalEarned = earnedTransactions?.reduce((sum, t) => sum + t.amount, 0) || 0;
+    const totalSpent = spentTransactions?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
+    const balance = totalEarned - totalSpent;
 
-    const mockTransactions = [
-      {
-        id: '1',
-        user_id: userId,
-        amount: 50,
-        type: 'task_completion',
-        description: 'Completed Math Assignment',
-        created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-        metadata: { task_id: 'task_123' }
-      },
-      {
-        id: '2',
-        user_id: userId,
-        amount: 25,
-        type: 'daily_streak',
-        description: 'Daily streak bonus',
-        created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-        metadata: { streak_count: 7 }
-      },
-      {
-        id: '3',
-        user_id: userId,
-        amount: -100,
-        type: 'purchase',
-        description: 'Purchased Streak Freeze',
-        created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
-        metadata: { item_id: '1', item_name: 'Streak Freeze' }
-      },
-      {
-        id: '4',
-        user_id: userId,
-        amount: 75,
-        type: 'achievement',
-        description: 'Unlocked "Study Master" achievement',
-        created_at: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(), // 3 days ago
-        metadata: { achievement_id: 'study_master' }
-      },
-      {
-        id: '5',
-        user_id: userId,
-        amount: 30,
-        type: 'task_completion',
-        description: 'Completed Science Quiz',
-        created_at: new Date(Date.now() - 1000 * 60 * 60 * 96).toISOString(), // 4 days ago
-        metadata: { task_id: 'task_456' }
-      }
-    ];
+    // Also get recent transactions for context
+    const { data: recentTransactions } = await supabaseServerAdmin
+      .from('coin_transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10);
 
     return NextResponse.json({
-      balance: mockBalance.balance,
-      last_updated: mockBalance.last_updated,
-      recent_transactions: mockTransactions
+      success: true,
+      balance: Math.max(0, balance), // Ensure non-negative balance
+      totalEarned,
+      totalSpent,
+      recentTransactions: recentTransactions || []
     });
 
   } catch (error) {
-    console.error('Error fetching balance:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch balance' },
-      { status: 500 }
-    );
+    console.error('Error fetching coin balance:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 } 

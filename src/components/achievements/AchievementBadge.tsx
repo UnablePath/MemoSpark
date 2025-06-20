@@ -78,28 +78,28 @@ const achievementColors = {
 
 const sizeClasses = {
   sm: {
-    container: 'w-16 h-16',
+    container: 'w-16 h-20',
     icon: 'w-6 h-6',
     text: 'text-xs',
     title: 'text-sm'
   },
   md: {
-    container: 'w-20 h-20',
+    container: 'w-20 h-24',
     icon: 'w-8 h-8',
+    text: 'text-xs',
+    title: 'text-sm'
+  },
+  lg: {
+    container: 'w-24 h-28',
+    icon: 'w-10 h-10',
     text: 'text-sm',
     title: 'text-base'
   },
-  lg: {
-    container: 'w-24 h-24',
-    icon: 'w-10 h-10',
+  xl: {
+    container: 'w-32 h-36',
+    icon: 'w-12 h-12',
     text: 'text-base',
     title: 'text-lg'
-  },
-  xl: {
-    container: 'w-32 h-32',
-    icon: 'w-12 h-12',
-    text: 'text-lg',
-    title: 'text-xl'
   }
 };
 
@@ -108,7 +108,7 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
   size = 'md',
   variant = 'default',
   showProgress = false,
-  animated = true,
+  animated = false,
   onClick,
   className
 }) => {
@@ -127,7 +127,7 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
       colors.border,
       'shadow-lg',
       colors.glow,
-      animated && 'hover:scale-105 hover:shadow-xl'
+      animated && 'hover:shadow-md'
     ] : [
       'bg-gray-200 dark:bg-gray-700',
       'border-gray-300 dark:border-gray-600',
@@ -269,38 +269,29 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
       default:
         return (
           <div className={baseClasses}>
-            <IconComponent className={iconClasses} />
-            {variant === 'default' && (
-              <div className="mt-1 text-center">
+            <div className="flex-1 flex flex-col items-center justify-center p-1">
+              <IconComponent className={iconClasses} />
+              <div className="mt-1 text-center w-full">
                 <div className={cn(
-                  'font-semibold truncate max-w-full px-1',
+                  'font-semibold leading-tight line-clamp-2 px-1',
                   sizes.text,
                   isUnlocked ? 'text-white' : 'text-gray-500 dark:text-gray-400'
-                )}>
+                )} title={achievement.name}>
                   {achievement.name}
                 </div>
                 {showProgress && !isUnlocked && (
-                  <div className={cn('text-xs', sizes.text, 'text-gray-400 dark:text-gray-500')}>
+                  <div className={cn('text-xs mt-1', 'text-gray-400 dark:text-gray-500')}>
                     {Math.round(progress)}%
                   </div>
                 )}
               </div>
-            )}
+            </div>
             
-            {/* Unlock animation overlay */}
-            {isUnlocked && animated && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: [0, 1.2, 1] }}
-                transition={{ duration: 0.5 }}
-                className="absolute inset-0 flex items-center justify-center"
-              >
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="w-full h-full border-2 border-yellow-400 rounded-xl opacity-30"
-                />
-              </motion.div>
+            {/* Simple unlock indicator */}
+            {isUnlocked && (
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                <span className="text-xs text-white">✓</span>
+              </div>
             )}
           </div>
         );
@@ -308,13 +299,9 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
   };
 
   return (
-    <motion.div
-      whileHover={animated ? { scale: 1.05 } : undefined}
-      whileTap={animated ? { scale: 0.95 } : undefined}
-      onClick={onClick}
-    >
+    <div onClick={onClick}>
       {renderBadgeContent()}
-    </motion.div>
+    </div>
   );
 };
 
@@ -338,7 +325,7 @@ export const AchievementCollection: React.FC<AchievementCollectionProps> = ({
 }) => {
   const containerClasses = cn(
     {
-      'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4': variant === 'grid',
+      'grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3': variant === 'grid',
       'space-y-4': variant === 'list',
       'flex space-x-4 overflow-x-auto pb-4': variant === 'carousel'
     },

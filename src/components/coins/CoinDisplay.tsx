@@ -174,12 +174,12 @@ export const CoinDisplay: React.FC<CoinDisplayProps> = ({
             <div className="text-3xl font-bold text-yellow-600">{balance.toLocaleString()}</div>
             {analytics && (
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <div className="text-green-600 font-medium">+{analytics.total_earned}</div>
+                <div className="text-center p-2 bg-card border border-border/50 rounded">
+                  <div className="text-foreground font-medium">+{analytics.total_earned}</div>
                   <div className="text-muted-foreground">Earned</div>
                 </div>
-                <div>
-                  <div className="text-red-600 font-medium">-{analytics.total_spent}</div>
+                <div className="text-center p-2 bg-card border border-border/50 rounded">
+                  <div className="text-foreground font-medium">-{analytics.total_spent}</div>
                   <div className="text-muted-foreground">Spent</div>
                 </div>
               </div>
@@ -248,7 +248,7 @@ export const CoinDisplay: React.FC<CoinDisplayProps> = ({
             </div>
             <div className="text-right">
               <div className="text-3xl font-bold text-yellow-600">{balance.toLocaleString()}</div>
-              <div className="text-sm text-muted-foreground">StudySpark Coins</div>
+              <div className="text-sm text-muted-foreground">MemoSpark Coins</div>
             </div>
           </CardTitle>
           <CardDescription>
@@ -260,16 +260,16 @@ export const CoinDisplay: React.FC<CoinDisplayProps> = ({
             {/* Analytics */}
             {analytics && (
               <>
-                <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">+{analytics.total_earned}</div>
+                <div className="text-center p-4 bg-card border border-border/50 rounded-lg hover:bg-accent/50 transition-colors">
+                  <div className="text-2xl font-bold text-foreground">+{analytics.total_earned}</div>
                   <div className="text-sm text-muted-foreground">Total Earned</div>
                 </div>
-                <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                  <div className="text-2xl font-bold text-red-600">-{analytics.total_spent}</div>
+                <div className="text-center p-4 bg-card border border-border/50 rounded-lg hover:bg-accent/50 transition-colors">
+                  <div className="text-2xl font-bold text-foreground">-{analytics.total_spent}</div>
                   <div className="text-sm text-muted-foreground">Total Spent</div>
                 </div>
-                <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{analytics.transactions_count}</div>
+                <div className="text-center p-4 bg-card border border-border/50 rounded-lg hover:bg-accent/50 transition-colors">
+                  <div className="text-2xl font-bold text-foreground">{analytics.transactions_count}</div>
                   <div className="text-sm text-muted-foreground">Transactions</div>
                 </div>
               </>
@@ -345,13 +345,13 @@ export const CoinDisplay: React.FC<CoinDisplayProps> = ({
                       <div className="flex items-center space-x-3">
                         <div className={`p-2 rounded-full ${
                           transaction.transaction_type === 'earned' 
-                            ? 'bg-green-100 dark:bg-green-900/20' 
-                            : 'bg-red-100 dark:bg-red-900/20'
+                            ? 'bg-accent/50' 
+                            : 'bg-muted/50'
                         }`}>
                           {transaction.transaction_type === 'earned' ? (
-                            <ArrowUp className="w-4 h-4 text-green-600" />
+                            <ArrowUp className="w-4 h-4 text-foreground" />
                           ) : (
-                            <ArrowDown className="w-4 h-4 text-red-600" />
+                            <ArrowDown className="w-4 h-4 text-foreground" />
                           )}
                         </div>
                         <div>
@@ -362,9 +362,7 @@ export const CoinDisplay: React.FC<CoinDisplayProps> = ({
                           </div>
                         </div>
                       </div>
-                      <div className={`font-bold ${
-                        transaction.transaction_type === 'earned' ? 'text-green-600' : 'text-red-600'
-                      }`}>
+                      <div className="font-bold text-foreground">
                         {transaction.transaction_type === 'earned' ? '+' : '-'}{Math.abs(transaction.amount)}
                       </div>
                     </div>
