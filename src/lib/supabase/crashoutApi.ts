@@ -62,7 +62,7 @@ const getAuthenticatedClient = async () => {
 };
 
 interface GetPostsOptions {
-  filter: 'latest' | 'popular' | 'trending' | 'top';
+  filter: 'latest' | 'popular' | 'trending' | 'top' | 'mine';
   includePrivate?: boolean;
   page?: number;
   limit?: number;
@@ -102,6 +102,24 @@ export async function getCrashoutPosts(options: GetPostsOptions = { filter: 'lat
       updated_at
     `);
 
+  // Handle 'mine' filter separately for clarity
+  if (filter === 'mine') {
+    if (userId) {
+      query = query.eq('user_id', userId);
+    } else {
+      // If no user is logged in, the 'mine' filter should return nothing.
+      // RLS will enforce this, but an explicit check is safer.
+      return [];
+    }
+  } else {
+    // For all other filters, fetch public posts OR the user's own posts
+    if (userId) {
+      query = query.or(`is_private.eq.false,user_id.eq.${userId}`);
+    } else {
+      query = query.eq('is_private', false);
+    }
+  }
+
   // If this is the first load (no lastPostDate), get today's posts first
   if (!lastPostDate) {
     const today = new Date();
@@ -112,13 +130,6 @@ export async function getCrashoutPosts(options: GetPostsOptions = { filter: 'lat
   } else {
     // For subsequent loads, get posts older than the last post date
     query = query.lt('created_at', lastPostDate);
-  }
-
-  // Apply privacy filter
-  if (!includePrivate || !userId) {
-    query = query.eq('is_private', false);
-  } else {
-    query = query.or(`is_private.eq.false,user_id.eq.${userId}`);
   }
 
   // Apply sorting based on filter
@@ -158,7 +169,7 @@ export async function getCrashoutPosts(options: GetPostsOptions = { filter: 'lat
 }
 
 // New function to check if there are more posts available
-export async function hasMorePosts(lastPostDate: string, filter: 'latest' | 'popular' | 'trending' | 'top' = 'latest'): Promise<boolean> {
+export async function hasMorePosts(lastPostDate: string, filter: 'latest' | 'popular' | 'trending' | 'top' | 'mine' = 'latest'): Promise<boolean> {
   if (!supabase) {
     throw new Error('Supabase client not initialized');
   }

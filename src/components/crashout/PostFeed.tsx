@@ -6,7 +6,7 @@ import { PostCard } from './PostCard';
 import { Loader2 } from 'lucide-react';
 
 interface PostFeedProps {
-  filter: 'latest' | 'popular' | 'trending' | 'top';
+  filter: 'latest' | 'popular' | 'trending' | 'top' | 'mine';
   includePrivate?: boolean;
 }
 

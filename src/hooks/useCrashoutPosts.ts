@@ -5,7 +5,7 @@ import { getCrashoutPosts, createCrashoutPost, deletePost, CrashoutPost, Crashou
 import { useAuth } from '@clerk/nextjs';
 
 interface UseCrashoutPostsOptions {
-  filter: 'latest' | 'popular' | 'trending' | 'top';
+  filter: 'latest' | 'popular' | 'trending' | 'top' | 'mine';
   includePrivate?: boolean;
   initialLimit?: number;
 }

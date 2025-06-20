@@ -14,7 +14,7 @@ import { useAuth } from '@clerk/nextjs';
 
 export const CrashoutRoomTab: React.FC = () => {
   const { userId, getToken } = useAuth();
-  const [activeFilter, setActiveFilter] = useState<'latest' | 'popular' | 'trending' | 'top'>('latest');
+  const [activeFilter, setActiveFilter] = useState<'latest' | 'popular' | 'trending' | 'top' | 'mine'>('latest');
   const [isRelaxMode, setIsRelaxMode] = useState(false);
 
 
@@ -22,7 +22,8 @@ export const CrashoutRoomTab: React.FC = () => {
     { value: 'latest' as const, emoji: '🔥', label: 'Latest' },
     { value: 'popular' as const, emoji: '⭐', label: 'Popular' },
     { value: 'top' as const, emoji: '🏆', label: 'Top' },
-    { value: 'trending' as const, emoji: '📈', label: 'Trending' }
+    { value: 'trending' as const, emoji: '📈', label: 'Trending' },
+    { value: 'mine' as const, emoji: '😎', label: 'My Posts' }
   ];
 
   const handlePostCreated = async (post: CrashoutPostInput) => {
@@ -109,7 +110,7 @@ export const CrashoutRoomTab: React.FC = () => {
                 {/* Post Feed with infinite scroll */}
                 <PostFeed 
                   filter={activeFilter}
-                  includePrivate={false}
+                  includePrivate={activeFilter === 'mine'}
                 />
               </div>
             </div>
