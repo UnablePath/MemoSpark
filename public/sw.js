@@ -1,9 +1,9 @@
 // StudySpark PWA Service Worker
-// Version: 4.0.0
+// Version: 5.0.0 - Fixed activation and update issues
 
-const CACHE_NAME = 'studyspark-v4';
-const STATIC_CACHE_NAME = 'studyspark-static-v4';
-const DYNAMIC_CACHE_NAME = 'studyspark-dynamic-v4';
+const CACHE_NAME = 'studyspark-v5';
+const STATIC_CACHE_NAME = 'studyspark-static-v5';
+const DYNAMIC_CACHE_NAME = 'studyspark-dynamic-v5';
 
 // Assets to cache immediately
 const STATIC_ASSETS = [
@@ -13,22 +13,27 @@ const STATIC_ASSETS = [
   '/icon-512x512.png',
   '/apple-touch-icon.png',
   '/favicon.ico',
+  '/manifest.webmanifest'
 ];
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...');
+  console.log('[SW v5.0.0] Installing service worker...');
   
   event.waitUntil(
     caches.open(STATIC_CACHE_NAME)
       .then((cache) => {
         console.log('[SW] Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
+        return cache.addAll(STATIC_ASSETS).catch((error) => {
+          console.error('[SW] Failed to cache some assets:', error);
+          // Continue installation even if some assets fail to cache
+          return Promise.resolve();
+        });
       })
       .then(() => {
         console.log('[SW] Static assets cached successfully');
-        // Force the waiting service worker to become the active service worker
-        return self.skipWaiting();
+        // Don't skip waiting immediately - let it be controlled by user action
+        console.log('[SW] Service worker installed, waiting for activation signal');
       })
       .catch((error) => {
         console.error('[SW] Failed to cache static assets:', error);
@@ -38,15 +43,17 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker...');
+  console.log('[SW v5.0.0] Activating service worker...');
   
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
         const deletePromises = cacheNames
           .filter((name) => {
-            // Delete ALL old caches to start fresh
-            return name !== STATIC_CACHE_NAME && name !== DYNAMIC_CACHE_NAME;
+            // Delete old caches but keep current ones
+            return name.startsWith('studyspark-') && 
+                   name !== STATIC_CACHE_NAME && 
+                   name !== DYNAMIC_CACHE_NAME;
           })
           .map((name) => {
             console.log('[SW] Deleting old cache:', name);
@@ -63,6 +70,7 @@ self.addEventListener('activate', (event) => {
       .then(() => {
         // Initialize notification scheduler
         initializeNotificationScheduler();
+        console.log('[SW] Service worker fully activated');
       })
       .catch((error) => {
         console.error('[SW] Activation failed:', error);
@@ -87,16 +95,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip OneSignal SDK requests to avoid conflicts
+  if (url.pathname.includes('OneSignal') || url.pathname.includes('onesignal')) {
+    return;
+  }
+
   // Only intervene for navigation requests (pages) and static assets
   if (request.destination === 'document' || 
-      url.pathname.match(/\.(png|jpg|jpeg|svg|ico|css|js|woff2?)$/)) {
+      url.pathname.match(/\.(png|jpg|jpeg|svg|ico|css|js|woff2?|webmanifest)$/)) {
     
     event.respondWith(
       // Network first - only use cache when network fails
       fetch(request)
         .then((response) => {
           // Cache successful responses
-          if (response && response.status === 200) {
+          if (response && response.status === 200 && response.type === 'basic') {
             const responseClone = response.clone();
             caches.open(STATIC_CACHE_NAME)
               .then((cache) => {
@@ -117,7 +130,12 @@ self.addEventListener('fetch', (event) => {
               
               // For navigation requests, show offline page
               if (request.destination === 'document') {
-                return caches.match('/offline');
+                return caches.match('/offline').then(offlinePage => {
+                  return offlinePage || new Response('Offline', { 
+                    status: 503,
+                    headers: { 'Content-Type': 'text/html' }
+                  });
+                });
               }
               
               // For assets, return a basic error response
@@ -128,9 +146,23 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-// Push notification handling
+// Push notification handling - only handle non-OneSignal notifications
 self.addEventListener('push', (event) => {
   console.log('[SW] Push message received');
+  
+  // Check if this is from OneSignal - if so, let OneSignal handle it
+  if (event.data) {
+    try {
+      const data = event.data.json();
+      if (data.custom && data.custom.i) {
+        // This is likely a OneSignal notification, skip it
+        console.log('[SW] OneSignal notification detected, skipping custom handling');
+        return;
+      }
+    } catch (e) {
+      // Not JSON, continue with custom handling
+    }
+  }
   
   let notificationData = {};
   
@@ -139,17 +171,17 @@ self.addEventListener('push', (event) => {
       notificationData = event.data.json();
     } catch (e) {
       notificationData = {
-        title: 'MemoSpark Notification',
+        title: 'StudySpark Notification',
         body: event.data.text() || 'You have a new notification',
       };
     }
   }
 
   const options = {
-    body: notificationData.body || 'MemoSpark notification',
+    body: notificationData.body || 'StudySpark notification',
     icon: notificationData.icon || '/icon-192x192.png',
     badge: notificationData.badge || '/icon-192x192.png',
-    tag: notificationData.tag || 'memospark-notification',
+    tag: notificationData.tag || 'studyspark-notification',
     renotify: true,
     requireInteraction: false,
     vibrate: [200, 100, 200],
@@ -175,15 +207,15 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     Promise.all([
       // Show the notification
-    self.registration.showNotification(
-        notificationData.title || 'MemoSpark',
-      options
+      self.registration.showNotification(
+        notificationData.title || 'StudySpark',
+        options
       ),
       // Track delivery analytics
       trackNotificationEvent(
         notificationData.data?.notificationId,
         'delivered'
-    )
+      )
     ])
   );
 });
@@ -213,23 +245,23 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     Promise.all([
       trackingPromise,
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then((clientList) => {
           // If app is already open, focus it and navigate
-        for (const client of clientList) {
-          if (client.url.includes(self.location.origin)) {
+          for (const client of clientList) {
+            if (client.url.includes(self.location.origin)) {
               client.postMessage({
                 type: 'NOTIFICATION_CLICKED',
                 url: targetUrl,
                 data: notificationData
               });
-            return client.focus();
+              return client.focus();
+            }
           }
-        }
-        
+          
           // Otherwise, open new window with target URL
           return self.clients.openWindow(targetUrl);
-      })
+        })
     ])
   );
 });
@@ -245,13 +277,19 @@ self.addEventListener('sync', (event) => {
   }
 });
 
-// Message handling for offline notification scheduling
+// Message handling for offline notification scheduling and updates
 self.addEventListener('message', (event) => {
   const { data } = event;
   
   if (data && data.type === 'SKIP_WAITING') {
-    console.log('[SW] Skipping waiting...');
+    console.log('[SW] Received skip waiting message, activating...');
     self.skipWaiting();
+  } else if (data && data.type === 'GET_VERSION') {
+    // Send version info back to client
+    event.ports[0].postMessage({
+      version: '5.0.0',
+      cacheName: CACHE_NAME
+    });
   } else if (data && data.type === 'SCHEDULE_OFFLINE_NOTIFICATION') {
     console.log('[SW] Scheduling offline notification...');
     event.waitUntil(handleOfflineNotificationSchedule(data.payload));
@@ -511,23 +549,17 @@ async function deleteScheduledNotification(db, id) {
   });
 }
 
-// Function to track notification events
 async function trackNotificationEvent(notificationId, eventType) {
   if (!notificationId) return;
   
   try {
-    await fetch('/api/push/analytics', {
+    await fetch('/api/notifications/track', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         notificationId,
         eventType,
-        additionalData: {
-          userAgent: navigator.userAgent,
-          timestamp: Date.now()
-        }
+        timestamp: Date.now()
       })
     });
   } catch (error) {

@@ -14,6 +14,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { OneSignalProvider } from '@/components/providers/onesignal-provider';
 import { NotificationPrompt } from '@/components/notifications/NotificationPrompt';
 import { ProfileSyncProvider } from "@/components/providers/ProfileSyncProvider";
+import { ServiceWorkerUpdater } from "@/components/pwa/ServiceWorkerUpdater";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -148,6 +149,7 @@ export default function RootLayout({
                         <ClientBody>
                           {children}
                           <PwaInstaller />
+                          <ServiceWorkerUpdater />
                           <NotificationPrompt />
                           <Toaster />
                         </ClientBody>
