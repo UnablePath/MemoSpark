@@ -1,9 +1,9 @@
-// StudySpark PWA Service Worker
-// Version: 5.0.0 - Fixed activation and update issues
+// MemoSpark PWA Service Worker
+// Version: 5.1.0 - Fixed messaging and registration conflicts
 
-const CACHE_NAME = 'studyspark-v5';
-const STATIC_CACHE_NAME = 'studyspark-static-v5';
-const DYNAMIC_CACHE_NAME = 'studyspark-dynamic-v5';
+const CACHE_NAME = 'memospark-v5';
+const STATIC_CACHE_NAME = 'memospark-static-v5';
+const DYNAMIC_CACHE_NAME = 'memospark-dynamic-v5';
 
 // Assets to cache immediately
 const STATIC_ASSETS = [
@@ -12,13 +12,12 @@ const STATIC_ASSETS = [
   '/icon-192x192.png',
   '/icon-512x512.png',
   '/apple-touch-icon.png',
-  '/favicon.ico',
-  '/manifest.webmanifest'
+  '/favicon.ico'
 ];
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('[SW v5.0.0] Installing service worker...');
+  console.log('[SW v5.1.0] Installing MemoSpark service worker...');
   
   event.waitUntil(
     caches.open(STATIC_CACHE_NAME)
@@ -43,7 +42,7 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW v5.0.0] Activating service worker...');
+  console.log('[SW v5.1.0] Activating MemoSpark service worker...');
   
   event.waitUntil(
     caches.keys()
@@ -51,7 +50,7 @@ self.addEventListener('activate', (event) => {
         const deletePromises = cacheNames
           .filter((name) => {
             // Delete old caches but keep current ones
-            return name.startsWith('studyspark-') && 
+            return (name.startsWith('studyspark-') || name.startsWith('memospark-')) && 
                    name !== STATIC_CACHE_NAME && 
                    name !== DYNAMIC_CACHE_NAME;
           })
@@ -70,7 +69,19 @@ self.addEventListener('activate', (event) => {
       .then(() => {
         // Initialize notification scheduler
         initializeNotificationScheduler();
-        console.log('[SW] Service worker fully activated');
+        console.log('[SW] MemoSpark service worker fully activated');
+        
+        // Notify all clients that SW is ready
+        return self.clients.matchAll();
+      })
+      .then((clients) => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'SW_ACTIVATED',
+            version: '5.1.0',
+            cacheName: CACHE_NAME
+          });
+        });
       })
       .catch((error) => {
         console.error('[SW] Activation failed:', error);
@@ -171,17 +182,17 @@ self.addEventListener('push', (event) => {
       notificationData = event.data.json();
     } catch (e) {
       notificationData = {
-        title: 'StudySpark Notification',
+        title: 'MemoSpark Notification',
         body: event.data.text() || 'You have a new notification',
       };
     }
   }
 
   const options = {
-    body: notificationData.body || 'StudySpark notification',
+    body: notificationData.body || 'MemoSpark notification',
     icon: notificationData.icon || '/icon-192x192.png',
     badge: notificationData.badge || '/icon-192x192.png',
-    tag: notificationData.tag || 'studyspark-notification',
+    tag: notificationData.tag || 'memospark-notification',
     renotify: true,
     requireInteraction: false,
     vibrate: [200, 100, 200],
@@ -208,7 +219,7 @@ self.addEventListener('push', (event) => {
     Promise.all([
       // Show the notification
       self.registration.showNotification(
-        notificationData.title || 'StudySpark',
+        notificationData.title || 'MemoSpark',
         options
       ),
       // Track delivery analytics
@@ -270,9 +281,9 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('sync', (event) => {
   console.log('[SW] Background sync triggered:', event.tag);
   
-  if (event.tag === 'studyspark-sync') {
+  if (event.tag === 'memospark-sync') {
     event.waitUntil(syncOfflineNotifications());
-  } else if (event.tag === 'studyspark-notification-schedule') {
+  } else if (event.tag === 'memospark-notification-schedule') {
     event.waitUntil(syncPendingNotificationSchedules());
   }
 });
@@ -286,10 +297,13 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   } else if (data && data.type === 'GET_VERSION') {
     // Send version info back to client
-    event.ports[0].postMessage({
-      version: '5.0.0',
-      cacheName: CACHE_NAME
-    });
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({
+        version: '5.1.0',
+        cacheName: CACHE_NAME,
+        app: 'MemoSpark'
+      });
+    }
   } else if (data && data.type === 'SCHEDULE_OFFLINE_NOTIFICATION') {
     console.log('[SW] Scheduling offline notification...');
     event.waitUntil(handleOfflineNotificationSchedule(data.payload));
@@ -381,7 +395,7 @@ async function handleOfflineNotificationSchedule(payload) {
         
         // Register for background sync
         if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
-          await self.registration.sync.register('studyspark-notification-schedule');
+          await self.registration.sync.register('memospark-notification-schedule');
         }
       }
     } catch (error) {
@@ -465,7 +479,7 @@ async function syncPendingNotificationSchedules() {
 // IndexedDB functions for offline storage
 async function openNotificationDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('StudySparkNotifications', 1);
+    const request = indexedDB.open('MemoSparkNotifications', 1);
     
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);

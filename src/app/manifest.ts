@@ -2,16 +2,16 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'MemoSpark - AI-Powered Student Productivity',
+    name: 'MemoSpark - AI-Powered Study Companion',
     short_name: 'MemoSpark',
-    description: 'Transform your study routine with AI-powered task management, smart scheduling, and gamified progress tracking',
+    description: 'AI-powered study companion for students - Transform your learning with smart task management, scheduling, and gamified progress tracking',
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',
-    theme_color: '#fadbdb',
+    theme_color: '#3b82f6',
     orientation: 'portrait-primary',
     scope: '/',
-    lang: 'en',
+    lang: 'en-US',
     categories: ['education', 'productivity', 'lifestyle'],
     icons: [
       {
@@ -57,6 +57,14 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: 'any'
       }
     ],
+    screenshots: [
+      {
+        src: '/icon-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        form_factor: 'narrow'
+      }
+    ],
     shortcuts: [
       {
         name: 'Dashboard',
@@ -73,10 +81,10 @@ export default function manifest(): MetadataRoute.Manifest {
         icons: [{ src: '/icon-192x192.png', sizes: '192x192' }]
       },
       {
-        name: 'Stress Relief',
-        short_name: 'Crashout',
-        description: 'Access stress relief tools',
-        url: '/dashboard/crashout',
+        name: 'Profile',
+        short_name: 'Profile',
+        description: 'View your profile and settings',
+        url: '/profile',
         icons: [{ src: '/icon-192x192.png', sizes: '192x192' }]
       }
     ]

@@ -5,14 +5,18 @@ import { usePWA } from '@/hooks/usePWA'
 import { Button } from '@/components/ui/button'
 import { RefreshCw, X } from 'lucide-react'
 
+// Global flag to prevent multiple update banners
+let isUpdateBannerShowing = false;
+
 export function ServiceWorkerUpdater() {
   const { hasUpdate, update, isRegistered } = usePWA()
   const [showUpdateBanner, setShowUpdateBanner] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
 
   useEffect(() => {
-    if (hasUpdate && isRegistered && !showUpdateBanner) {
+    if (hasUpdate && isRegistered && !showUpdateBanner && !isUpdateBannerShowing) {
       setShowUpdateBanner(true)
+      isUpdateBannerShowing = true
     }
   }, [hasUpdate, isRegistered, showUpdateBanner])
 
@@ -25,12 +29,23 @@ export function ServiceWorkerUpdater() {
     } finally {
       setIsUpdating(false)
       setShowUpdateBanner(false)
+      isUpdateBannerShowing = false
     }
   }
 
   const handleDismiss = () => {
     setShowUpdateBanner(false)
+    isUpdateBannerShowing = false
   }
+
+  // Reset global flag when component unmounts
+  useEffect(() => {
+    return () => {
+      if (showUpdateBanner) {
+        isUpdateBannerShowing = false
+      }
+    }
+  }, [showUpdateBanner])
 
   if (!showUpdateBanner) {
     return null
@@ -44,7 +59,7 @@ export function ServiceWorkerUpdater() {
             <RefreshCw className={`h-5 w-5 ${isUpdating ? 'animate-spin' : ''}`} />
             <div>
               <p className="font-medium">Update Available</p>
-              <p className="text-sm text-blue-100">A new version of StudySpark is ready</p>
+              <p className="text-sm text-blue-100">A new version of MemoSpark is ready</p>
             </div>
           </div>
           <button
