@@ -13,6 +13,7 @@ import { FaUserFriends, FaCalendarAlt, FaBell, FaSpa, FaGamepad } from 'react-ic
 import { useLocalStorageState } from '@/hooks/useStudentConnection';
 import { useTieredAI } from '@/hooks/useTieredAI';
 import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
+import { usePremiumPopup } from '@/components/providers/premium-popup-provider';
 import { Crown } from 'lucide-react';
 
 // Toggle this to test - set to true to show debug component instead of actual connections tab
@@ -48,6 +49,9 @@ export function DashboardSwipeTabs() {
 
   // Achievement system
   const { triggerAchievement } = useAchievementTrigger();
+  
+  // Premium popup system
+  const { showFeatureGatePopup } = usePremiumPopup();
 
   useEffect(() => {
     tabRefs.current = tabRefs.current.slice(0, TABS_CONFIG.length);
@@ -70,8 +74,9 @@ export function DashboardSwipeTabs() {
     const hasAccess = isPremiumFeature ? (userTier !== 'free' || isLaunchMode) : true;
     
     if (isPremiumFeature && !hasAccess) {
-      // Maybe show an upgrade modal in the future
-      console.log("Upgrade required to access this feature.");
+      // Show premium upgrade popup for feature gate
+      const featureName = newActiveTabConfig.key === 'gamification' ? 'Gamification Hub' : 'Crashout Journal';
+      showFeatureGatePopup(featureName);
       return;
     }
     

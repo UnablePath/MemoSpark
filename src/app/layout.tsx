@@ -15,6 +15,7 @@ import { OneSignalProvider } from '@/components/providers/onesignal-provider';
 import { NotificationPrompt } from '@/components/notifications/NotificationPrompt';
 import { ProfileSyncProvider } from "@/components/providers/ProfileSyncProvider";
 import { ServiceWorkerUpdater } from "@/components/pwa/ServiceWorkerUpdater";
+import { PremiumPopupProvider } from "@/components/providers/premium-popup-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -146,13 +147,15 @@ export default function RootLayout({
                   <AIProvider>
                     <TutorialProvider>
                       <OneSignalProvider>
-                        <ClientBody>
-                          {children}
-                          <PwaInstaller />
-                          <ServiceWorkerUpdater />
-                          <NotificationPrompt />
-                          <Toaster />
-                        </ClientBody>
+                        <PremiumPopupProvider>
+                          <ClientBody>
+                            {children}
+                            <PwaInstaller />
+                            <ServiceWorkerUpdater />
+                            <NotificationPrompt />
+                            <Toaster />
+                          </ClientBody>
+                        </PremiumPopupProvider>
                       </OneSignalProvider>
                     </TutorialProvider>
                   </AIProvider>
