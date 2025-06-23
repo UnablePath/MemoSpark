@@ -1,93 +1,75 @@
-// MemoSpark PWA Service Worker
-// Version: 5.1.0 - Fixed messaging and registration conflicts
+// MemoSpark Service Worker v5.2.0
+const CACHE_NAME = 'memospark-v5-2'
+const APP_NAME = 'MemoSpark'
 
-const CACHE_NAME = 'memospark-v5';
-const STATIC_CACHE_NAME = 'memospark-static-v5';
-const DYNAMIC_CACHE_NAME = 'memospark-dynamic-v5';
-
-// Assets to cache immediately
+// Assets to cache
 const STATIC_ASSETS = [
+  '/',
   '/offline',
-  '/icon.svg',
-  '/icon-192x192.png',
-  '/icon-512x512.png',
-  '/apple-touch-icon.png',
-  '/favicon.ico'
-];
+  '/favicon.ico',
+  '/icon.svg'
+]
 
-// Install event - cache static assets
+// Install event - cache essential resources
 self.addEventListener('install', (event) => {
-  console.log('[SW v5.1.0] Installing MemoSpark service worker...');
+  console.log(`[SW] ${APP_NAME} v5.2.0 installing...`)
   
   event.waitUntil(
-    caches.open(STATIC_CACHE_NAME)
-      .then((cache) => {
-        console.log('[SW] Caching static assets');
-        return cache.addAll(STATIC_ASSETS).catch((error) => {
-          console.error('[SW] Failed to cache some assets:', error);
-          // Continue installation even if some assets fail to cache
-          return Promise.resolve();
-        });
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('[SW] Caching static assets')
+        return cache.addAll(STATIC_ASSETS)
       })
       .then(() => {
-        console.log('[SW] Static assets cached successfully');
-        // Don't skip waiting immediately - let it be controlled by user action
-        console.log('[SW] Service worker installed, waiting for activation signal');
+        console.log('[SW] Installation complete')
+        // Don't skip waiting here - let the user choose when to update
+        return Promise.resolve()
       })
-      .catch((error) => {
-        console.error('[SW] Failed to cache static assets:', error);
+      .catch(error => {
+        console.error('[SW] Installation failed:', error)
       })
-  );
-});
+  )
+})
 
-// Activate event - clean up old caches
+// Activate event - clean up old caches and take control
 self.addEventListener('activate', (event) => {
-  console.log('[SW v5.1.0] Activating MemoSpark service worker...');
+  console.log(`[SW] ${APP_NAME} v5.2.0 activating...`)
   
   event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        const deletePromises = cacheNames
-          .filter((name) => {
-            // Delete old caches but keep current ones
-            return (name.startsWith('studyspark-') || name.startsWith('memospark-')) && 
-                   name !== STATIC_CACHE_NAME && 
-                   name !== DYNAMIC_CACHE_NAME;
+    Promise.all([
+      // Clean up old caches
+      caches.keys().then(cacheNames => {
+        return Promise.all(
+          cacheNames.map(cacheName => {
+            if (cacheName.startsWith('memospark-') && cacheName !== CACHE_NAME) {
+              console.log('[SW] Deleting old cache:', cacheName)
+              return caches.delete(cacheName)
+            }
+            if (cacheName.startsWith('studyspark-')) {
+              console.log('[SW] Deleting old StudySpark cache:', cacheName)
+              return caches.delete(cacheName)
+            }
           })
-          .map((name) => {
-            console.log('[SW] Deleting old cache:', name);
-            return caches.delete(name);
-          });
-        
-        return Promise.all(deletePromises);
-      })
-      .then(() => {
-        console.log('[SW] Service worker activated and old caches cleared');
-        // Take control of all pages immediately
-        return self.clients.claim();
-      })
-      .then(() => {
-        // Initialize notification scheduler
-        initializeNotificationScheduler();
-        console.log('[SW] MemoSpark service worker fully activated');
-        
-        // Notify all clients that SW is ready
-        return self.clients.matchAll();
-      })
-      .then((clients) => {
+        )
+      }),
+      // Take control of all pages immediately
+      self.clients.claim()
+    ]).then(() => {
+      console.log('[SW] Activation complete - now controlling all pages')
+      
+      // Notify all clients that activation is complete
+      return self.clients.matchAll().then(clients => {
         clients.forEach(client => {
           client.postMessage({
             type: 'SW_ACTIVATED',
-            version: '5.1.0',
-            cacheName: CACHE_NAME
-          });
-        });
+            version: '5.2.0',
+            app: APP_NAME
+          })
+        })
       })
-      .catch((error) => {
-        console.error('[SW] Activation failed:', error);
-      })
-  );
-});
+    })
+  )
+})
 
 // Fetch event - minimal interference, only for offline support
 self.addEventListener('fetch', (event) => {
@@ -122,7 +104,7 @@ self.addEventListener('fetch', (event) => {
           // Cache successful responses
           if (response && response.status === 200 && response.type === 'basic') {
             const responseClone = response.clone();
-            caches.open(STATIC_CACHE_NAME)
+            caches.open(CACHE_NAME)
               .then((cache) => {
                 cache.put(request, responseClone);
               })
@@ -288,27 +270,35 @@ self.addEventListener('sync', (event) => {
   }
 });
 
-// Message handling for offline notification scheduling and updates
+// Handle messages from main thread
 self.addEventListener('message', (event) => {
-  const { data } = event;
+  const { data, ports } = event
   
-  if (data && data.type === 'SKIP_WAITING') {
-    console.log('[SW] Received skip waiting message, activating...');
-    self.skipWaiting();
-  } else if (data && data.type === 'GET_VERSION') {
-    // Send version info back to client
-    if (event.ports && event.ports[0]) {
-      event.ports[0].postMessage({
-        version: '5.1.0',
-        cacheName: CACHE_NAME,
-        app: 'MemoSpark'
-      });
+  if (data && data.type === 'GET_VERSION') {
+    // Respond with version info
+    const response = {
+      version: '5.2.0',
+      app: APP_NAME,
+      cache: CACHE_NAME
     }
-  } else if (data && data.type === 'SCHEDULE_OFFLINE_NOTIFICATION') {
-    console.log('[SW] Scheduling offline notification...');
-    event.waitUntil(handleOfflineNotificationSchedule(data.payload));
+    
+    if (ports && ports[0]) {
+      ports[0].postMessage(response)
+    } else {
+      event.source.postMessage(response)
+    }
+  } else if (data && data.type === 'SKIP_WAITING') {
+    console.log('[SW] Received SKIP_WAITING command')
+    self.skipWaiting()
+    
+    // Notify the client that we're now controlling
+    event.source.postMessage({
+      type: 'SW_UPDATED',
+      version: '5.2.0',
+      app: APP_NAME
+    })
   }
-});
+})
 
 // Initialize notification scheduler when service worker activates
 async function initializeNotificationScheduler() {

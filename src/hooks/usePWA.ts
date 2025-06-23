@@ -16,6 +16,7 @@ interface PWAState {
 interface PWAActions {
   install: () => Promise<void>
   update: () => Promise<void>
+  updateServiceWorker: () => Promise<void>
   registerServiceWorker: () => Promise<void>
   checkForUpdates: () => Promise<void>
   getOfflineCapabilities: () => Promise<string[]>
@@ -179,13 +180,21 @@ export function usePWA(): PWAState & PWAActions {
           continue
         }
         
-        // Unregister old or conflicting service workers
+        // Unregister old or conflicting service workers ONLY if they're different from current
         if (scriptURL.includes('sw.js') && scope !== `${window.location.origin}/`) {
           console.log('[PWA] Unregistering conflicting service worker:', scope)
-          await registration.unregister()
+          try {
+            await registration.unregister()
+          } catch (error) {
+            console.warn('[PWA] Failed to unregister service worker:', error)
+          }
         } else if (!scriptURL.includes('sw.js') && !scriptURL.includes('OneSignal')) {
           console.log('[PWA] Unregistering unknown service worker:', scope)
-          await registration.unregister()
+          try {
+            await registration.unregister()
+          } catch (error) {
+            console.warn('[PWA] Failed to unregister unknown service worker:', error)
+          }
         }
       }
       
@@ -199,28 +208,43 @@ export function usePWA(): PWAState & PWAActions {
   const registerServiceWorker = useCallback(async () => {
     if ('serviceWorker' in navigator && typeof window !== 'undefined') {
       try {
-        // First, clean up any conflicting registrations
+        // Check for existing main registration first
+        let registration = await navigator.serviceWorker.getRegistration('/')
+        
+        if (registration) {
+          console.log('[PWA] MemoSpark Service Worker already registered:', registration.scope)
+          setIsRegistered(true)
+          
+          // Check if there's a waiting worker
+          if (registration.waiting) {
+            console.log('[PWA] Service Worker waiting for activation')
+            setHasUpdate(true)
+          }
+          
+          // Try to update existing registration
+          try {
+            await registration.update()
+            console.log('[PWA] Service worker update check completed')
+          } catch (updateError) {
+            console.warn('[PWA] Service worker update failed:', updateError)
+          }
+          
+          return // Exit early if already registered
+        }
+
+        // Only clean up if no main service worker exists
         await cleanupServiceWorkers()
         
         // Wait a bit for cleanup to complete
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise(resolve => setTimeout(resolve, 200))
 
-        // Check for existing main registration
-        let registration = await navigator.serviceWorker.getRegistration('/')
-        
-        if (!registration) {
-          // Register the new service worker
-          console.log('[PWA] Registering new MemoSpark service worker...')
-          registration = await navigator.serviceWorker.register('/sw.js', {
-            scope: '/',
-            updateViaCache: 'none'
-          })
-          console.log('[PWA] MemoSpark Service Worker registered successfully:', registration.scope)
-        } else {
-          console.log('[PWA] MemoSpark Service Worker already registered:', registration.scope)
-          // Force check for updates
-          await registration.update()
-        }
+        // Register the new service worker
+        console.log('[PWA] Registering new MemoSpark service worker...')
+        registration = await navigator.serviceWorker.register('/sw.js', {
+          scope: '/',
+          updateViaCache: 'none'
+        })
+        console.log('[PWA] MemoSpark Service Worker registered successfully:', registration.scope)
 
         setIsRegistered(true)
 
@@ -277,24 +301,28 @@ export function usePWA(): PWAState & PWAActions {
           }
         }
 
-        // Handle controller changes (when SW takes control)
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          console.log('[PWA] Service Worker controller changed')
-          setHasUpdate(false)
-          // Don't auto-reload here - let the user decide
-        })
+        // Handle controller changes (when SW takes control) - only set up once
+        if (!window._pwaSWListenerAdded) {
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            console.log('[PWA] Service Worker controller changed')
+            setHasUpdate(false)
+            // Don't auto-reload here - let the user decide
+          })
 
-        // Listen for messages from service worker
-        navigator.serviceWorker.addEventListener('message', (event) => {
-          const { data } = event
-          if (data && data.type === 'SW_UPDATED') {
-            console.log('[PWA] Service worker reports it has been updated')
-            setHasUpdate(true)
-          } else if (data && data.type === 'SW_ACTIVATED') {
-            console.log('[PWA] Service worker activated:', data)
-            setIsRegistered(true)
-          }
-        })
+          // Listen for messages from service worker - only set up once
+          navigator.serviceWorker.addEventListener('message', (event) => {
+            const { data } = event
+            if (data && data.type === 'SW_UPDATED') {
+              console.log('[PWA] Service worker reports it has been updated')
+              setHasUpdate(true)
+            } else if (data && data.type === 'SW_ACTIVATED') {
+              console.log('[PWA] Service worker activated:', data)
+              setIsRegistered(true)
+            }
+          })
+          
+          window._pwaSWListenerAdded = true
+        }
 
       } catch (error) {
         console.error('[PWA] Service Worker registration failed:', error)
@@ -393,6 +421,7 @@ export function usePWA(): PWAState & PWAActions {
     update,
     registerServiceWorker,
     checkForUpdates,
-    getOfflineCapabilities
+    getOfflineCapabilities,
+    updateServiceWorker: update
   }
 } 

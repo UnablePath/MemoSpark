@@ -1,94 +1,84 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { usePWA } from '@/hooks/usePWA'
 import { Button } from '@/components/ui/button'
-import { RefreshCw, X } from 'lucide-react'
+import { X, Download } from 'lucide-react'
 
-// Global flag to prevent multiple update banners
-let isUpdateBannerShowing = false;
+// Global flag to prevent multiple instances
+let isServiceWorkerUpdaterActive = false
 
 export function ServiceWorkerUpdater() {
-  const { hasUpdate, update, isRegistered } = usePWA()
-  const [showUpdateBanner, setShowUpdateBanner] = useState(false)
-  const [isUpdating, setIsUpdating] = useState(false)
+  const { hasUpdate, updateServiceWorker } = usePWA()
+  const [showBanner, setShowBanner] = useState(false)
 
   useEffect(() => {
-    if (hasUpdate && isRegistered && !showUpdateBanner && !isUpdateBannerShowing) {
-      setShowUpdateBanner(true)
-      isUpdateBannerShowing = true
+    // Prevent multiple instances
+    if (isServiceWorkerUpdaterActive) {
+      return
     }
-  }, [hasUpdate, isRegistered, showUpdateBanner])
+
+    if (hasUpdate) {
+      setShowBanner(true)
+      isServiceWorkerUpdaterActive = true
+    }
+
+    return () => {
+      if (showBanner) {
+        isServiceWorkerUpdaterActive = false
+      }
+    }
+  }, [hasUpdate, showBanner])
 
   const handleUpdate = async () => {
-    setIsUpdating(true)
     try {
-      await update()
+      setShowBanner(false)
+      isServiceWorkerUpdaterActive = false
+      await updateServiceWorker()
     } catch (error) {
       console.error('Failed to update service worker:', error)
-    } finally {
-      setIsUpdating(false)
-      setShowUpdateBanner(false)
-      isUpdateBannerShowing = false
+      isServiceWorkerUpdaterActive = false
     }
   }
 
   const handleDismiss = () => {
-    setShowUpdateBanner(false)
-    isUpdateBannerShowing = false
+    setShowBanner(false)
+    isServiceWorkerUpdaterActive = false
   }
 
-  // Reset global flag when component unmounts
-  useEffect(() => {
-    return () => {
-      if (showUpdateBanner) {
-        isUpdateBannerShowing = false
-      }
-    }
-  }, [showUpdateBanner])
-
-  if (!showUpdateBanner) {
+  if (!showBanner) {
     return null
   }
 
   return (
-    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 max-w-md w-full mx-4">
-      <div className="bg-blue-600 text-white p-4 rounded-lg shadow-lg border border-blue-500">
+    <div className="fixed top-0 left-0 right-0 z-[9999] bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg border-b border-blue-500">
+      <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <RefreshCw className={`h-5 w-5 ${isUpdating ? 'animate-spin' : ''}`} />
+            <Download className="h-5 w-5" />
             <div>
               <p className="font-medium">Update Available</p>
               <p className="text-sm text-blue-100">A new version of MemoSpark is ready</p>
             </div>
           </div>
-          <button
-            onClick={handleDismiss}
-            className="text-blue-100 hover:text-white"
-            aria-label="Dismiss"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        
-        <div className="mt-3 flex space-x-2">
-          <Button
-            onClick={handleUpdate}
-            disabled={isUpdating}
-            size="sm"
-            variant="secondary"
-            className="bg-white text-blue-600 hover:bg-blue-50"
-          >
-            {isUpdating ? 'Updating...' : 'Update Now'}
-          </Button>
-          <Button
-            onClick={handleDismiss}
-            size="sm"
-            variant="ghost"
-            className="text-blue-100 hover:text-white hover:bg-blue-500"
-          >
-            Later
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Button
+              onClick={handleUpdate}
+              size="sm"
+              variant="secondary"
+              className="bg-white text-blue-600 hover:bg-blue-50"
+            >
+              Update Now
+            </Button>
+            <Button
+              onClick={handleDismiss}
+              size="sm"
+              variant="ghost"
+              className="text-blue-100 hover:text-white hover:bg-blue-800"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
