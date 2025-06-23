@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { getAuthenticatedClient } from '../supabase/client';
 import { Database } from '@/types/database';
+import { parseSearchTerm, generateUsername } from '../utils';
 
 export interface UserSearchResult {
   clerk_user_id: string;
@@ -24,12 +25,70 @@ export class StudentDiscovery {
   }
 
   async searchUsers(searchTerm: string, currentUserId: string): Promise<UserSearchResult[]> {
-    const { data, error } = await this.supabase.rpc('search_users', { search_term: searchTerm });
+    const { isUsernameSearch, cleanTerm } = parseSearchTerm(searchTerm);
+    
+    if (isUsernameSearch) {
+      // For username search, we need to search based on generated usernames
+      return this.searchByUsername(cleanTerm, currentUserId);
+    } else {
+      // Regular search using the existing RPC function
+      const { data, error } = await this.supabase.rpc('search_users', { search_term: searchTerm });
+      if (error) {
+        console.error('Error searching for users:', error);
+        return [];
+      }
+      return (data || []).filter(user => user.clerk_user_id !== currentUserId) as UserSearchResult[];
+    }
+  }
+
+  private async searchByUsername(usernameTerm: string, currentUserId: string): Promise<UserSearchResult[]> {
+    // Get all users and filter by generated username
+    const { data, error } = await this.supabase
+      .from('profiles')
+      .select('clerk_user_id, full_name, email, avatar_url, year_of_study, subjects, interests')
+      .neq('clerk_user_id', currentUserId)
+      .limit(50); // Limit for performance
+
     if (error) {
-      console.error('Error searching for users:', error);
+      console.error('Error searching users by username:', error);
       return [];
     }
-    return (data || []).filter(user => user.clerk_user_id !== currentUserId) as UserSearchResult[];
+
+    if (!data) return [];
+
+    // Filter by generated username match
+    return data
+      .filter(user => {
+        const generatedUsername = generateUsername(user.full_name, user.clerk_user_id);
+        return generatedUsername.toLowerCase().includes(usernameTerm.toLowerCase());
+      })
+      .slice(0, 10) // Limit results
+      .map(user => ({
+        ...user,
+        similarity_score: this.calculateUsernameMatchScore(
+          generateUsername(user.full_name, user.clerk_user_id),
+          usernameTerm
+        )
+      }))
+      .sort((a, b) => (b.similarity_score || 0) - (a.similarity_score || 0)); // Sort by relevance
+  }
+
+  private calculateUsernameMatchScore(username: string, searchTerm: string): number {
+    const lowerUsername = username.toLowerCase();
+    const lowerTerm = searchTerm.toLowerCase();
+    
+    // Exact match gets highest score
+    if (lowerUsername === lowerTerm) return 1.0;
+    
+    // Starts with gets high score
+    if (lowerUsername.startsWith(lowerTerm)) return 0.8;
+    
+    // Contains gets medium score
+    if (lowerUsername.includes(lowerTerm)) return 0.6;
+    
+    // Calculate similarity based on common characters
+    const commonChars = lowerTerm.split('').filter(char => lowerUsername.includes(char)).length;
+    return Math.min(0.5, commonChars / lowerTerm.length * 0.5);
   }
 
   async sendConnectionRequest(requesterId: string, receiverId: string): Promise<void> {

@@ -7,7 +7,7 @@ import { MessagingService } from '@/lib/messaging/MessagingService';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Check, X, UserPlus, MessageSquare } from 'lucide-react';
+import { Check, X, UserPlus, MessageSquare, AtSign } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ChatInterface } from '@/components/messaging/ChatInterface';
+import { maskEmail, generateUsername } from '@/lib/utils';
 
 interface ConnectionManagerProps {
   searchTerm: string;
@@ -122,22 +123,41 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ searchTerm
             <CardTitle>Search Results</CardTitle>
           </CardHeader>
           <CardContent>
-            {searchResults.map((result) => (
-                <div key={result.clerk_user_id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
+            {searchResults.map((result) => {
+              const username = generateUsername(result.full_name, result.clerk_user_id);
+              const maskedEmail = maskEmail(result.email);
+              
+              return (
+                <div key={result.clerk_user_id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Avatar className="h-10 w-10 ring-2 ring-background">
                       <AvatarImage src={result.avatar_url || ''} />
-                      <AvatarFallback>{result.full_name?.charAt(0)}</AvatarFallback>
+                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/40">
+                        {result.full_name?.charAt(0)?.toUpperCase()}
+                      </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <p className="font-semibold">{result.full_name}</p>
-                      <p className="text-xs text-muted-foreground">{result.email}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{result.full_name}</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <AtSign className="h-3 w-3" />
+                          <span className="font-mono">{username}</span>
+                        </div>
+                        <span>•</span>
+                        <span>{maskedEmail}</span>
+                      </div>
+                      {result.year_of_study && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {result.year_of_study}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <Button 
                     size="sm" 
                     onClick={() => handleSendRequest(result.clerk_user_id)}
                     disabled={sentRequests.includes(result.clerk_user_id) || loadingRequestId === result.clerk_user_id}
+                    className="ml-3 shrink-0"
                   >
                     {loadingRequestId === result.clerk_user_id 
                       ? 'Sending...' 
@@ -147,7 +167,8 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ searchTerm
                     }
                   </Button>
                 </div>
-              ))}
+              );
+            })}
           </CardContent>
         </Card>
       )}
@@ -160,7 +181,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ searchTerm
           <CardContent className="space-y-3">
             {incomingRequests.length > 0 ? (
               incomingRequests.filter(req => req.requester).map((request) => (
-                <div key={request.id} className="flex items-center justify-between">
+                <div key={request.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9">
                       <AvatarImage src={request.requester.avatar_url || ''} />
@@ -168,6 +189,9 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ searchTerm
                     </Avatar>
                     <div>
                       <p className="font-semibold text-sm">{request.requester.full_name || 'Unknown User'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        @{generateUsername(request.requester.full_name, request.requester.clerk_user_id)}
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -194,7 +218,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ searchTerm
                 const profile = getConnectionProfile(connection);
                 if (!profile) return null;
                 return (
-                  <div key={connection.id} className="flex items-center justify-between">
+                  <div key={connection.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-9 w-9">
                         <AvatarImage src={profile.avatar_url || ''} />
@@ -202,6 +226,9 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ searchTerm
                       </Avatar>
                       <div>
                         <p className="font-semibold text-sm">{profile.full_name || 'Unknown User'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          @{generateUsername(profile.full_name, profile.clerk_user_id)}
+                        </p>
                       </div>
                     </div>
                     <Dialog>
