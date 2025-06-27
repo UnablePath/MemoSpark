@@ -13,6 +13,7 @@ interface Task {
   is_completed?: boolean;
   subject?: string;
   difficulty?: number;
+  description?: string;
 }
 
 interface UserPattern {
@@ -140,43 +141,93 @@ export class ReminderEngine {
     try {
       console.log(`📝 Creating reminder entry for task: "${task.title}"`);
 
+      const dueDate = new Date(task.due_date);
+      
+      // Use API route instead of direct database access to avoid RLS issues
+      try {
+        const reminderData = {
+          title: task.title,
+          description: task.description || `Task reminder: ${task.title}`,
+          due_date: dueDate.toISOString(),
+          reminder_time: new Date(dueDate.getTime() - ((task.reminder_offset_minutes || 15) * 60 * 1000)).toISOString(),
+          priority: task.priority === 'urgent' ? 'high' : (task.priority || 'medium'),
+        };
+
+        const response = await fetch('/api/reminders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(reminderData),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          console.warn('⚠️ API reminder creation failed:', errorData.error || response.statusText);
+          
+          // Fallback to direct database approach
+          return await this.createTaskReminderDirect(task);
+        }
+
+        const data = await response.json();
+        if (data.success) {
+          console.log('✅ Task reminder created successfully via API');
+          return true;
+        } else {
+          console.warn('⚠️ API reminder creation failed:', data.error);
+          
+          // Fallback to direct database approach
+          return await this.createTaskReminderDirect(task);
+        }
+      } catch (apiError) {
+        console.warn('⚠️ API call failed, trying direct database approach:', apiError);
+        
+        // Fallback to direct database approach
+        return await this.createTaskReminderDirect(task);
+      }
+    } catch (error) {
+      console.warn('⚠️ Error creating task reminder entry, continuing with notifications-only approach:', error);
+      return true; // Don't fail the entire flow - notifications can still work
+    }
+  }
+
+  /**
+   * Fallback method for direct database access (may fail due to RLS)
+   */
+  private async createTaskReminderDirect(task: Task): Promise<boolean> {
+    try {
       const client = this.getClient();
       if (!client) {
-        console.warn('⚠️ No Supabase client available - using API-only approach');
+        console.warn('⚠️ No Supabase client available - using notifications-only approach');
         return true; // Don't fail the entire flow
       }
 
       const dueDate = new Date(task.due_date);
       
-      try {
-        // Try to create reminder in the reminders table so it shows up in RemindersTab
-        const { error } = await client
-          .from('reminders')
-          .insert([{
-            user_id: task.user_id,
-            task_id: task.id,
-            title: task.title,
-            description: `Task reminder: ${task.title}`,
-            due_date: dueDate.toISOString(),
-            priority: task.priority || 'medium',
-            completed: false,
-            points: this.calculatePoints(task.priority || 'medium')
-          }]);
+      // Try to create reminder in the reminders table so it shows up in RemindersTab
+      const { error } = await client
+        .from('reminders')
+        .insert([{
+          user_id: task.user_id,
+          task_id: task.id,
+          title: task.title,
+          description: `Task reminder: ${task.title}`,
+          due_date: dueDate.toISOString(),
+          priority: task.priority || 'medium',
+          completed: false,
+          points: this.calculatePoints(task.priority || 'medium')
+        }]);
 
-        if (error) {
-          console.warn('⚠️ Database reminder entry failed (RLS permissions), continuing with API-only approach:', error.message);
-          return true; // Don't fail - we'll use direct API approach for notifications
-        }
-
-        console.log('✅ Task reminder created successfully');
-        return true;
-      } catch (dbError) {
-        console.warn('⚠️ Database reminder entry failed (RLS permissions), continuing with API-only approach:', dbError);
-        return true; // Don't fail - we'll use direct API approach for notifications
+      if (error) {
+        console.warn('⚠️ Database reminder entry failed (RLS permissions), continuing with notifications-only approach:', error.message);
+        return true; // Don't fail - we'll use notifications-only approach
       }
-    } catch (error) {
-      console.warn('⚠️ Error creating task reminder entry, continuing with API-only approach:', error);
-      return true; // Don't fail the entire flow
+
+      console.log('✅ Task reminder created successfully via direct database access');
+      return true;
+    } catch (dbError) {
+      console.warn('⚠️ Database reminder entry failed (RLS permissions), continuing with notifications-only approach:', dbError);
+      return true; // Don't fail - we'll use notifications-only approach
     }
   }
 
@@ -413,60 +464,93 @@ export class ReminderEngine {
     const now = new Date();
     const timeUntilDue = (dueDate.getTime() - now.getTime()) / (1000 * 60); // minutes
     
-    console.log(`⏰ Time until due: ${timeUntilDue} minutes`);
+    console.log(`⏰ Time until due: ${timeUntilDue} minutes (${Math.round(timeUntilDue / 60 * 10) / 10} hours)`);
     
-    // Use smart base reminders that work for all timeframes
+    // Enhanced logic for same-day reminders with more granular timeframes
     let baseReminders: number[] = [];
     
     if (timeUntilDue > 2 * 24 * 60) { // More than 2 days
       baseReminders = [1440, 240, 30]; // 1 day, 4 hours, 30 minutes
     } else if (timeUntilDue > 24 * 60) { // More than 1 day
       baseReminders = [480, 120, 15]; // 8 hours, 2 hours, 15 minutes
-    } else if (timeUntilDue > 2 * 60) { // More than 2 hours
+    } else if (timeUntilDue > 4 * 60) { // More than 4 hours (same-day long)
+      baseReminders = [120, 30, 10]; // 2 hours, 30 minutes, 10 minutes
+    } else if (timeUntilDue > 2 * 60) { // More than 2 hours (same-day medium)
       baseReminders = [60, 15, 5]; // 1 hour, 15 minutes, 5 minutes
-    } else if (timeUntilDue > 30) { // More than 30 minutes
+    } else if (timeUntilDue > 30) { // More than 30 minutes (same-day short)
       baseReminders = [15, 5]; // 15 minutes, 5 minutes
-    } else { // Less than 30 minutes
-      baseReminders = [5]; // 5 minutes only
+    } else if (timeUntilDue > 10) { // More than 10 minutes (same-day urgent)
+      baseReminders = [5, 2]; // 5 minutes, 2 minutes
+    } else if (timeUntilDue > 3) { // More than 3 minutes (immediate)
+      baseReminders = [2]; // 2 minutes only
+    } else if (timeUntilDue > 1) { // Very urgent (1-3 minutes)
+      baseReminders = [1]; // 1 minute only
+    } else {
+      // Less than 1 minute - send immediate notification
+      console.log('⚡ Task due in less than 1 minute - triggering immediate notification');
+      reminders.push({
+        minutes: 0.1, // Immediate (6 seconds)
+        stuAnimation: 'urgent',
+        message: `🚨 URGENT: "${task.title}" is due RIGHT NOW!`
+      });
+      return reminders;
     }
 
-    // Apply minimal adjustments to avoid huge multipliers
+    // Apply priority adjustments for same-day reminders
     const priorityAdjustment = {
-      low: -5,     // 5 minutes earlier
+      low: -2,     // 2 minutes earlier for same-day
       medium: 0,   // No change
-      high: 5,     // 5 minutes later  
-      urgent: 10   // 10 minutes later
+      high: 2,     // 2 minutes later (more advance notice)
+      urgent: 5    // 5 minutes later (even more advance notice)
     }[task.priority || 'medium'];
 
     baseReminders.forEach((minutes, index) => {
-      // Apply small adjustments instead of multipliers
+      // Apply smaller adjustments for same-day reminders
       let adjustedMinutes = minutes + priorityAdjustment;
       
-      // Ensure reminder is in the future and not too far
-      adjustedMinutes = Math.max(1, Math.min(adjustedMinutes, timeUntilDue - 2));
+      // More flexible bounds for same-day reminders
+      adjustedMinutes = Math.max(0.5, Math.min(adjustedMinutes, timeUntilDue - 1));
 
       // Skip if reminder would be in the past or too close to due date
-      if (adjustedMinutes >= timeUntilDue || adjustedMinutes < 1) {
-        console.log(`⚠️ Skipping reminder ${adjustedMinutes} minutes (would be invalid)`);
+      if (adjustedMinutes >= timeUntilDue || adjustedMinutes < 0.5) {
+        console.log(`⚠️ Skipping reminder ${adjustedMinutes} minutes (would be invalid for ${timeUntilDue} minutes until due)`);
         return;
       }
 
-      // Determine Stu animation based on urgency
+      // Determine Stu animation and message based on urgency and timeframe
       let stuAnimation = 'idle';
       let message = '';
 
+      // Enhanced messaging for same-day reminders
+      const isUrgent = timeUntilDue < 60; // Less than 1 hour
+      const isVeryUrgent = timeUntilDue < 30; // Less than 30 minutes
+
       if (index === 0) { // First reminder (furthest out)
-        stuAnimation = 'gentle';
-        message = `📅 Heads up! "${task.title}" is due soon. You've got this!`;
+        stuAnimation = isUrgent ? 'encouraging' : 'gentle';
+        if (isVeryUrgent) {
+          message = `⏰ "${task.title}" is due in ${Math.round(timeUntilDue)} minutes! Time to get started!`;
+        } else if (isUrgent) {
+          message = `📅 "${task.title}" is due within the hour. Ready to tackle it?`;
+        } else {
+          message = `📅 Heads up! "${task.title}" is due later today. You've got this!`;
+        }
       } else if (index === 1) { // Second reminder
-        stuAnimation = 'encouraging';
-        message = `⏰ "${task.title}" is due soon. Time to focus!`;
+        stuAnimation = isVeryUrgent ? 'urgent' : 'encouraging';
+        if (isVeryUrgent) {
+          message = `🔔 Final notice! "${task.title}" is due in ${Math.round(timeUntilDue)} minutes!`;
+        } else {
+          message = `⏰ "${task.title}" is due soon. Time to focus!`;
+        }
       } else { // Final reminder
         stuAnimation = 'urgent';
-        message = `🚨 Last call! "${task.title}" is due very soon!`;
+        if (isVeryUrgent) {
+          message = `🚨 LAST CALL! "${task.title}" is due in just ${Math.round(timeUntilDue)} minutes!`;
+        } else {
+          message = `🚨 Last call! "${task.title}" is due very soon!`;
+        }
       }
 
-      console.log(`✅ Adding reminder: ${adjustedMinutes} minutes before due`);
+      console.log(`✅ Adding same-day reminder: ${adjustedMinutes} minutes before due (${Math.round(timeUntilDue - adjustedMinutes)} minutes from now)`);
       
       reminders.push({
         minutes: adjustedMinutes,
@@ -475,15 +559,32 @@ export class ReminderEngine {
       });
     });
 
-    // Ensure we have at least one valid reminder
-    if (reminders.length === 0 && timeUntilDue > 5) {
-      const fallbackMinutes = Math.max(2, Math.min(15, Math.floor(timeUntilDue / 2)));
-      console.log(`🔄 Adding fallback reminder: ${fallbackMinutes} minutes`);
+    // Enhanced fallback for same-day reminders
+    if (reminders.length === 0 && timeUntilDue > 1) {
+      let fallbackMinutes;
+      let fallbackMessage;
+      let fallbackAnimation;
+
+      if (timeUntilDue > 60) { // More than 1 hour
+        fallbackMinutes = Math.max(5, Math.min(30, Math.floor(timeUntilDue / 3)));
+        fallbackAnimation = 'encouraging';
+        fallbackMessage = `⏰ Don't forget: "${task.title}" is due today!`;
+      } else if (timeUntilDue > 15) { // 15-60 minutes
+        fallbackMinutes = Math.max(2, Math.min(10, Math.floor(timeUntilDue / 2)));
+        fallbackAnimation = 'encouraging';
+        fallbackMessage = `⏰ "${task.title}" is due in ${Math.round(timeUntilDue)} minutes!`;
+      } else { // Less than 15 minutes
+        fallbackMinutes = Math.max(1, Math.floor(timeUntilDue / 2));
+        fallbackAnimation = 'urgent';
+        fallbackMessage = `🚨 "${task.title}" is due in ${Math.round(timeUntilDue)} minutes!`;
+      }
+
+      console.log(`🔄 Adding fallback same-day reminder: ${fallbackMinutes} minutes before due`);
       
       reminders.push({
         minutes: fallbackMinutes,
-        stuAnimation: 'encouraging',
-        message: `⏰ Don't forget: "${task.title}" is due soon!`
+        stuAnimation: fallbackAnimation,
+        message: fallbackMessage
       });
     }
 

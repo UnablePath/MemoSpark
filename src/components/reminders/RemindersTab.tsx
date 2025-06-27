@@ -117,38 +117,102 @@ const RemindersTab = () => {
             return;
         }
 
+        // Enhanced validation for same-day reminders with past times
+        const now = new Date();
+        const selectedDate = new Date(reminderForm.due_date);
+        const isToday = selectedDate.toDateString() === now.toDateString();
+        
+        if (isToday) {
+            const [hours, minutes] = reminderForm.due_time.split(':');
+            const dueDateTime = new Date(selectedDate);
+            dueDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            
+            if (dueDateTime <= now) {
+                toast.error('Due time cannot be in the past. Please select a future time for today.');
+                return;
+            }
+
+            // Also validate reminder time if it's set for today
+            const [reminderHours, reminderMinutes] = reminderForm.reminder_time.split(':');
+            const reminderDateTime = new Date(selectedDate);
+            reminderDateTime.setHours(parseInt(reminderHours), parseInt(reminderMinutes), 0, 0);
+            
+            if (reminderDateTime <= now) {
+                toast.error('Reminder time cannot be in the past. Please select a future reminder time for today.');
+                return;
+            }
+        }
+
         setIsSubmittingReminder(true);
         try {
             if (reminderForm.useAI) {
                 // Use AI-powered ReminderEngine for smart reminders
-                const { ReminderEngine } = await import('@/lib/reminders/ReminderEngine');
-                const reminderEngine = ReminderEngine.getInstance();
+                // First create a basic reminder entry via API, then add AI scheduling
+                const [hours, minutes] = reminderForm.due_time.split(':');
+                const [reminderHours, reminderMinutes] = reminderForm.reminder_time.split(':');
                 
-                const taskForAI = {
-                    id: `custom-${Date.now()}`, // Temporary ID for custom reminders
+                // Create due date with time
+                const dueDateTime = new Date(reminderForm.due_date);
+                dueDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                
+                // Create reminder date with time (same day as due date)
+                const reminderDateTime = new Date(reminderForm.due_date);
+                reminderDateTime.setHours(parseInt(reminderHours), parseInt(reminderMinutes), 0, 0);
+                
+                // Create basic reminder first to ensure it appears in RemindersTab
+                const reminderData: ReminderCreateInput = {
                     title: reminderForm.title,
-                    due_date: reminderForm.due_date.toISOString(),
-                    user_id: userId,
-                    priority: reminderForm.priority,
-                    type: reminderForm.type,
-                    subject: reminderForm.subject || undefined,
-                    description: reminderForm.description || undefined,
-                    is_completed: false
+                    description: reminderForm.description,
+                    due_date: dueDateTime.toISOString(),
+                    reminder_time: reminderDateTime.toISOString(),
+                    priority: reminderForm.priority === 'urgent' ? 'high' : reminderForm.priority,
                 };
 
-                const aiReminderSuccess = await reminderEngine.scheduleSmartReminder(taskForAI);
+                const basicReminder = await addReminder(reminderData);
                 
-                if (aiReminderSuccess) {
-                    toast.success('AI-powered reminder created!', {
-                        description: 'Smart reminders will be optimized based on your patterns and preferences.'
+                // Now add AI-powered smart notifications on top of the basic reminder
+                try {
+                    const { ReminderEngine } = await import('@/lib/reminders/ReminderEngine');
+                    const reminderEngine = ReminderEngine.getInstance();
+                    
+                    const taskForAI = {
+                        id: basicReminder.id, // Use the actual reminder ID
+                        title: reminderForm.title,
+                        due_date: dueDateTime.toISOString(),
+                        user_id: userId,
+                        priority: reminderForm.priority,
+                        type: reminderForm.type,
+                        subject: reminderForm.subject || undefined,
+                        description: reminderForm.description || undefined,
+                        is_completed: false
+                    };
+
+                    // Only schedule smart notifications (don't try to create database entry again)
+                    const aiReminderSuccess = await reminderEngine.scheduleSmartReminder(taskForAI, undefined, userId);
+                    
+                    if (aiReminderSuccess) {
+                        const timeMessage = isToday ? 'today' : `on ${dueDateTime.toLocaleDateString()}`;
+                        toast.success('AI-powered reminder created!', {
+                            description: `Smart reminders scheduled for ${timeMessage}. You'll get optimized notifications based on your patterns.`
+                        });
+                        showStuMessage("Great choice! I'll help you stay on track with smart reminders!", "excited");
+                    } else {
+                        // AI failed but basic reminder still exists
+                        toast.warning('Reminder created!', {
+                            description: 'Basic reminder saved, but smart timing could not be optimized.'
+                        });
+                        showStuMessage("Nice! I'll remind you when it's time!", "talking");
+                    }
+                } catch (aiError) {
+                    console.error('AI reminder scheduling failed:', aiError);
+                    // AI failed but basic reminder still exists
+                    toast.warning('Reminder created!', {
+                        description: 'Basic reminder saved, but AI optimization failed.'
                     });
-                    showStuMessage("Great choice! I'll help you stay on track with smart reminders!", "excited");
-                } else {
-                    toast.error('Failed to create AI reminder. Please try basic reminder instead.');
-                    return;
+                    showStuMessage("Nice! I'll remind you when it's time!", "talking");
                 }
             } else {
-                // Use basic reminder system
+                // Use basic reminder system only
                 const [hours, minutes] = reminderForm.due_time.split(':');
                 const [reminderHours, reminderMinutes] = reminderForm.reminder_time.split(':');
                 
@@ -165,11 +229,12 @@ const RemindersTab = () => {
                     description: reminderForm.description,
                     due_date: dueDateTime.toISOString(),
                     reminder_time: reminderDateTime.toISOString(),
-                    priority: reminderForm.priority === 'urgent' ? 'high' : reminderForm.priority, // Map urgent to high
+                    priority: reminderForm.priority === 'urgent' ? 'high' : reminderForm.priority,
                 };
 
                 await addReminder(reminderData);
-                toast.success('Reminder created successfully!');
+                const timeMessage = isToday ? 'today' : `for ${dueDateTime.toLocaleDateString()}`;
+                toast.success(`Reminder created successfully ${timeMessage}!`);
                 showStuMessage("Nice! I'll remind you when it's time!", "talking");
             }
 
@@ -437,7 +502,7 @@ const RemindersTab = () => {
                                         mode="single"
                                         selected={reminderForm.due_date || undefined}
                                         onSelect={(date) => setReminderForm(prev => ({...prev, due_date: date || null}))}
-                                        disabled={(date) => date < new Date()}
+                                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                                         initialFocus
                                     />
                                 </PopoverContent>

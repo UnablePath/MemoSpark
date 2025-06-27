@@ -18,7 +18,8 @@ export const PushNotificationManager: React.FC = () => {
     playerId,
     error,
     subscribe,
-    unsubscribe
+    unsubscribe,
+    isOperating
   } = useOneSignal();
   
   const [isLoading, setIsLoading] = useState(false);
@@ -236,10 +237,10 @@ export const PushNotificationManager: React.FC = () => {
           {!isSubscribed ? (
             <Button 
               onClick={handleSubscribe} 
-              disabled={isLoading || !isInitialized}
+              disabled={isLoading || !isInitialized || isOperating}
               className="w-full"
             >
-              {isLoading ? (
+              {isLoading || isOperating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Subscribing...
@@ -254,11 +255,11 @@ export const PushNotificationManager: React.FC = () => {
           ) : (
             <Button 
               onClick={handleUnsubscribe} 
-              disabled={isLoading}
+              disabled={isLoading || isOperating}
               variant="outline"
               className="w-full"
             >
-              {isLoading ? (
+              {isLoading || isOperating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Unsubscribing...

@@ -19,11 +19,11 @@ export const CrashoutRoomTab: React.FC = () => {
 
 
   const filterOptions = [
-    { value: 'latest' as const, emoji: '🔥', label: 'Latest' },
+    { value: 'mine' as const, emoji: '😎', label: 'My Posts' },
+    { value: 'latest' as const, emoji: '🔥', label: 'Public' },
     { value: 'popular' as const, emoji: '⭐', label: 'Popular' },
     { value: 'top' as const, emoji: '🏆', label: 'Top' },
-    { value: 'trending' as const, emoji: '📈', label: 'Trending' },
-    { value: 'mine' as const, emoji: '😎', label: 'My Posts' }
+    { value: 'trending' as const, emoji: '📈', label: 'Trending' }
   ];
 
   const handlePostCreated = async (post: CrashoutPostInput) => {

@@ -7,9 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Calendar, Clock, AlertTriangle, RefreshCw, CheckCircle2, Settings, Save, TrendingUp } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Calendar, Clock, AlertTriangle, RefreshCw, CheckCircle2, Settings, Save, TrendingUp, Check, Plus, BookOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
+import { useUpdateTask, useCreateTask, useFetchTasks } from '@/hooks/useTaskQueries';
+import { useAuth } from '@clerk/nextjs';
 
 interface ScheduledTask {
   id: string;
@@ -20,6 +25,7 @@ interface ScheduledTask {
   confidence: number;
   difficultyLevel?: number;
   subject?: string;
+  taskId?: string; // Add taskId for task updates
 }
 
 interface ScheduleAdjustment {
@@ -47,9 +53,15 @@ export const SmartScheduleView: React.FC<SmartScheduleViewProps> = ({ className 
   const [schedule, setSchedule] = useState<ScheduledTask[]>([]);
   const [adjustments, setAdjustments] = useState<ScheduleAdjustment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isApplyingSchedule, setIsApplyingSchedule] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
+  const [showEmptyStateDialog, setShowEmptyStateDialog] = useState(false);
   const [metadata, setMetadata] = useState<any>(null);
   const { toast } = useToast();
+  const { getToken } = useAuth();
+  const updateTaskMutation = useUpdateTask(getToken);
+  const createTaskMutation = useCreateTask(getToken);
+  const { data: existingTasks, refetch: refetchTasks } = useFetchTasks(undefined, getToken);
 
   const [preferences, setPreferences] = useState<UserPreferences>({
     studyTimePreference: 'morning',
@@ -59,6 +71,16 @@ export const SmartScheduleView: React.FC<SmartScheduleViewProps> = ({ className 
     preferredSubjects: [],
     strugglingSubjects: [],
     availableStudyHours: [9, 10, 11, 14, 15, 16, 17, 18, 19, 20]
+  });
+
+  // Quick task creation form state
+  const [quickTaskForm, setQuickTaskForm] = useState({
+    title: '',
+    description: '',
+    dueDate: '',
+    priority: 'medium' as 'high' | 'medium' | 'low',
+    subject: '',
+    estimatedDuration: 60
   });
 
   // Load saved preferences on component mount
@@ -81,6 +103,15 @@ export const SmartScheduleView: React.FC<SmartScheduleViewProps> = ({ className 
   };
 
   const generateSchedule = async () => {
+    // Check if user has any tasks first
+    const currentTasks = existingTasks || [];
+    const incompleteTasks = currentTasks.filter(task => !task.completed);
+    
+    if (incompleteTasks.length === 0) {
+      setShowEmptyStateDialog(true);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch('/api/ai/schedule', {
@@ -101,11 +132,18 @@ export const SmartScheduleView: React.FC<SmartScheduleViewProps> = ({ className 
 
       const data = await response.json();
       
+      // Check if API returned empty schedule due to no tasks
+      if (!data.schedule || data.schedule.length === 0) {
+        setShowEmptyStateDialog(true);
+        return;
+      }
+      
       // Convert string dates back to Date objects
       const scheduleWithDates = data.schedule.map((task: any) => ({
         ...task,
         startTime: new Date(task.startTime),
-        endTime: new Date(task.endTime)
+        endTime: new Date(task.endTime),
+        taskId: task.taskId || task.id // Ensure we have task ID for updates
       }));
 
       setSchedule(scheduleWithDates);
@@ -157,6 +195,149 @@ export const SmartScheduleView: React.FC<SmartScheduleViewProps> = ({ className 
         variant: "destructive",
       });
     }
+  };
+
+  const applyScheduleToTasks = async () => {
+    if (schedule.length === 0) {
+      toast({
+        title: "No Schedule to Apply",
+        description: "Generate a schedule first before applying it.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to apply this schedule?\n\nThis will update the due dates and times for ${schedule.length} tasks. This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setIsApplyingSchedule(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    try {
+      // Apply schedule to each task
+      for (const scheduledTask of schedule) {
+        try {
+          if (scheduledTask.taskId) {
+            await updateTaskMutation.mutateAsync({
+              id: scheduledTask.taskId,
+              updates: {
+                due_date: scheduledTask.startTime.toISOString(),
+                // Optionally update reminder settings based on schedule
+                reminder_settings: {
+                  enabled: true,
+                  offset_minutes: 15 // Default 15 min before due time
+                }
+              }
+            });
+            successCount++;
+          }
+        } catch (error) {
+          console.error(`Failed to update task ${scheduledTask.taskId}:`, error);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast({
+          title: "Schedule Applied Successfully",
+          description: `Updated ${successCount} tasks. ${errorCount > 0 ? `${errorCount} tasks failed to update.` : 'All notifications have been rescheduled accordingly.'}`,
+        });
+
+        // Trigger notification rescheduling
+        try {
+          await fetch('/api/notifications/schedule', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'reschedule_all_tasks',
+              source: 'smart_schedule_application'
+            })
+          });
+        } catch (notifError) {
+          console.error('Failed to reschedule notifications:', notifError);
+        }
+      } else {
+        toast({
+          title: "Schedule Application Failed",
+          description: "No tasks were updated. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error applying schedule:', error);
+      toast({
+        title: "Error Applying Schedule",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsApplyingSchedule(false);
+    }
+  };
+
+  const createQuickTask = async () => {
+    if (!quickTaskForm.title.trim()) {
+      toast({
+        title: "Task Title Required",
+        description: "Please enter a task title to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await createTaskMutation.mutateAsync({
+        title: quickTaskForm.title,
+        description: quickTaskForm.description,
+        due_date: quickTaskForm.dueDate ? new Date(quickTaskForm.dueDate).toISOString() : undefined,
+        priority: quickTaskForm.priority,
+        subject: quickTaskForm.subject || undefined,
+        type: 'academic',
+        completed: false
+      });
+
+      // Reset form
+      setQuickTaskForm({
+        title: '',
+        description: '',
+        dueDate: '',
+        priority: 'medium',
+        subject: '',
+        estimatedDuration: 60
+      });
+
+      // Refresh tasks and close dialog
+      await refetchTasks();
+      setShowEmptyStateDialog(false);
+
+      toast({
+        title: "Task Created",
+        description: "Your task has been created! You can now generate a smart schedule.",
+      });
+    } catch (error) {
+      console.error('Error creating task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create task. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resetQuickTaskForm = () => {
+    setQuickTaskForm({
+      title: '',
+      description: '',
+      dueDate: '',
+      priority: 'medium',
+      subject: '',
+      estimatedDuration: 60
+    });
   };
 
   const getPriorityColor = (priority: string) => {
@@ -223,6 +404,26 @@ export const SmartScheduleView: React.FC<SmartScheduleViewProps> = ({ className 
                 </>
               )}
             </Button>
+            {schedule.length > 0 && (
+              <Button 
+                onClick={applyScheduleToTasks}
+                disabled={isApplyingSchedule || isLoading}
+                variant="default"
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isApplyingSchedule ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Applying...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Apply Schedule
+                  </>
+                )}
+              </Button>
+            )}
             <Button 
               variant="outline" 
               onClick={() => setShowPreferences(!showPreferences)}
@@ -457,6 +658,126 @@ export const SmartScheduleView: React.FC<SmartScheduleViewProps> = ({ className 
           </CardContent>
         </Card>
       )}
+      
+      {/* Empty State Dialog */}
+      <Dialog open={showEmptyStateDialog} onOpenChange={setShowEmptyStateDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              No Tasks to Schedule
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-center py-4">
+              <div className="text-4xl mb-2">📚</div>
+              <p className="text-gray-600 mb-4">
+                You need to create some tasks before using smart scheduling! 
+                Smart scheduling helps you organize and optimize your existing tasks.
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <h4 className="font-medium">Quick Task Creation</h4>
+              
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="quick-title">Task Title *</Label>
+                  <Input
+                    id="quick-title"
+                    placeholder="e.g., Study for Math exam"
+                    value={quickTaskForm.title}
+                    onChange={(e) => setQuickTaskForm(prev => ({ ...prev, title: e.target.value }))}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="quick-description">Description</Label>
+                  <Textarea
+                    id="quick-description"
+                    placeholder="Optional details about the task..."
+                    value={quickTaskForm.description}
+                    onChange={(e) => setQuickTaskForm(prev => ({ ...prev, description: e.target.value }))}
+                    rows={2}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="quick-subject">Subject</Label>
+                    <Input
+                      id="quick-subject"
+                      placeholder="e.g., Mathematics"
+                      value={quickTaskForm.subject}
+                      onChange={(e) => setQuickTaskForm(prev => ({ ...prev, subject: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="quick-priority">Priority</Label>
+                    <Select 
+                      value={quickTaskForm.priority} 
+                      onValueChange={(value: any) => setQuickTaskForm(prev => ({ ...prev, priority: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="quick-due">Due Date</Label>
+                    <Input
+                      id="quick-due"
+                      type="date"
+                      value={quickTaskForm.dueDate}
+                      onChange={(e) => setQuickTaskForm(prev => ({ ...prev, dueDate: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="quick-duration">Duration (min)</Label>
+                    <Input
+                      id="quick-duration"
+                      type="number"
+                      min="15"
+                      max="300"
+                      value={quickTaskForm.estimatedDuration}
+                      onChange={(e) => setQuickTaskForm(prev => ({ ...prev, estimatedDuration: parseInt(e.target.value) || 60 }))}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => {
+              setShowEmptyStateDialog(false);
+              resetQuickTaskForm();
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={createQuickTask} disabled={createTaskMutation.isPending}>
+              {createTaskMutation.isPending ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Task
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }; 

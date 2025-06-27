@@ -13,6 +13,7 @@ import { useUser } from '@clerk/nextjs';
 import { AchievementCollection } from '@/components/achievements/AchievementBadge';
 import { AchievementNotificationSystem } from '@/components/achievements/AchievementNotificationSystem';
 import { StreakWidget } from '@/components/streaks';
+import { StreakLeaderboard } from '@/components/streaks/StreakLeaderboard';
 import { CoinWidget } from '@/components/coins';
 import { CelebrationOverlay } from '@/components/stu';
 import { stuCelebration } from '@/lib/stu/StuCelebration';
@@ -329,6 +330,14 @@ const GamificationHub = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Streak Leaderboard */}
+        <StreakLeaderboard 
+          variant="card"
+          limit={10}
+          showPrivacyControls={true}
+          className="w-full"
+        />
 
         {/* Reward Tiers */}
         <Card>

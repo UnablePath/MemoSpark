@@ -106,6 +106,8 @@ export async function getCrashoutPosts(options: GetPostsOptions = { filter: 'lat
   if (filter === 'mine') {
     if (userId) {
       query = query.eq('user_id', userId);
+      // For 'mine' filter, include both private and public posts
+      // No additional filtering needed since user should see all their own posts
     } else {
       // If no user is logged in, the 'mine' filter should return nothing.
       // RLS will enforce this, but an explicit check is safer.

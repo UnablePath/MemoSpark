@@ -22,6 +22,15 @@ interface PWAActions {
   getOfflineCapabilities: () => Promise<string[]>
 }
 
+// Global state to prevent duplicate registrations
+declare global {
+  interface Window {
+    _pwaSWListenerAdded?: boolean
+    _pwaRegistrationInProgress?: boolean
+    _pwaRegistrationComplete?: boolean
+  }
+}
+
 const getOperatingSystem = (): OSType => {
   if (typeof window === 'undefined') return 'unknown'
   const userAgent = window.navigator.userAgent
@@ -138,29 +147,94 @@ export function usePWA(): PWAState & PWAActions {
         if (registration && registration.waiting) {
           console.log('[PWA] Updating service worker...')
           
-          // Listen for the controlling service worker to change
-          const handleControllerChange = () => {
-            console.log('[PWA] Service worker updated, reloading...')
-            window.location.reload()
+          // Track if we've already handled the update to prevent infinite loops
+          let controllerChangeHandled = false
+          let timeoutHandled = false
+          
+          // Function to handle the actual reload
+          const performReload = (reason: string) => {
+            if (controllerChangeHandled || timeoutHandled) return
+            
+            console.log(`[PWA] ${reason}, reloading...`)
+            controllerChangeHandled = true
+            timeoutHandled = true
+            
+            // Clear hasUpdate state before reload
+            setHasUpdate(false)
+            
+            // Small delay to ensure state is updated
+            setTimeout(() => {
+              window.location.reload()
+            }, 100)
           }
           
+          // Listen for the controlling service worker to change
+          const handleControllerChange = () => {
+            if (controllerChangeHandled) return
+            performReload('Service worker controller changed')
+          }
+          
+          // Add controller change listener with cleanup
           navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange, { once: true })
           
-          // Send a message to the waiting service worker to skip waiting
-          registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+          // Timeout fallback - if controllerchange doesn't fire within 5 seconds
+          const timeoutId = setTimeout(() => {
+            if (timeoutHandled || controllerChangeHandled) return
+            
+            console.warn('[PWA] Controller change timeout, forcing reload...')
+            timeoutHandled = true
+            
+            // Remove the controller change listener since we're handling manually
+            navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange)
+            
+            // Clear hasUpdate and reload
+            setHasUpdate(false)
+            setTimeout(() => {
+              window.location.reload()
+            }, 100)
+          }, 5000) // 5 second timeout as specified
           
-          // Set hasUpdate to false immediately
-          setHasUpdate(false)
+          // Send a message to the waiting service worker to skip waiting
+          try {
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+            console.log('[PWA] SKIP_WAITING message sent to service worker')
+          } catch (error) {
+            console.error('[PWA] Failed to send SKIP_WAITING message:', error)
+            // Clean up timeout and listener
+            clearTimeout(timeoutId)
+            navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange)
+            throw error
+          }
+          
+          // Clean up timeout if controller change happens first
+          const originalControllerChange = handleControllerChange
+          const wrappedControllerChange = () => {
+            clearTimeout(timeoutId)
+            originalControllerChange()
+          }
+          
+          // Replace the listener with the wrapped version
+          navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange)
+          navigator.serviceWorker.addEventListener('controllerchange', wrappedControllerChange, { once: true })
+          
         } else {
           console.log('[PWA] No waiting service worker found')
+          // Reset hasUpdate if there's no waiting worker
+          setHasUpdate(false)
         }
       } catch (error) {
         console.error('Error updating PWA:', error)
+        // Reset hasUpdate on error so user can try again
+        setHasUpdate(false)
+        throw error // Re-throw so ServiceWorkerUpdater can handle it
       }
+    } else {
+      console.log('[PWA] Service Worker not supported')
+      setHasUpdate(false)
     }
   }, [])
 
-  // Clean up conflicting service worker registrations
+  // Clean up conflicting service worker registrations - only when no active registration
   const cleanupServiceWorkers = useCallback(async () => {
     if (!('serviceWorker' in navigator)) return
 
@@ -180,7 +254,13 @@ export function usePWA(): PWAState & PWAActions {
           continue
         }
         
-        // Unregister old or conflicting service workers ONLY if they're different from current
+        // Keep our main service worker registration
+        if (scriptURL.includes('sw.js') && scope === `${window.location.origin}/`) {
+          console.log('[PWA] Keeping main MemoSpark service worker:', scope)
+          continue
+        }
+        
+        // Unregister conflicting service workers
         if (scriptURL.includes('sw.js') && scope !== `${window.location.origin}/`) {
           console.log('[PWA] Unregistering conflicting service worker:', scope)
           try {
@@ -204,132 +284,163 @@ export function usePWA(): PWAState & PWAActions {
     }
   }, [])
 
-  // Register service worker
+  // Register service worker with proper duplicate prevention
   const registerServiceWorker = useCallback(async () => {
-    if ('serviceWorker' in navigator && typeof window !== 'undefined') {
-      try {
-        // Check for existing main registration first
-        let registration = await navigator.serviceWorker.getRegistration('/')
-        
-        if (registration) {
-          console.log('[PWA] MemoSpark Service Worker already registered:', registration.scope)
-          setIsRegistered(true)
-          
-          // Check if there's a waiting worker
-          if (registration.waiting) {
-            console.log('[PWA] Service Worker waiting for activation')
-            setHasUpdate(true)
-          }
-          
-          // Try to update existing registration
-          try {
-            await registration.update()
-            console.log('[PWA] Service worker update check completed')
-          } catch (updateError) {
-            console.warn('[PWA] Service worker update failed:', updateError)
-          }
-          
-          return // Exit early if already registered
-        }
+    if (!('serviceWorker' in navigator) || typeof window === 'undefined') {
+      console.log('[PWA] Service Worker not supported')
+      return
+    }
 
-        // Only clean up if no main service worker exists
-        await cleanupServiceWorkers()
-        
-        // Wait a bit for cleanup to complete
-        await new Promise(resolve => setTimeout(resolve, 200))
+    // Prevent multiple simultaneous registrations
+    if (window._pwaRegistrationInProgress) {
+      console.log('[PWA] Registration already in progress, skipping...')
+      return
+    }
 
-        // Register the new service worker
-        console.log('[PWA] Registering new MemoSpark service worker...')
-        registration = await navigator.serviceWorker.register('/sw.js', {
-          scope: '/',
-          updateViaCache: 'none'
-        })
-        console.log('[PWA] MemoSpark Service Worker registered successfully:', registration.scope)
-
+    // Check if already registered and complete
+    if (window._pwaRegistrationComplete) {
+      console.log('[PWA] Service Worker already registered and complete')
+      const registration = await navigator.serviceWorker.getRegistration('/')
+      if (registration) {
         setIsRegistered(true)
+        return
+      } else {
+        // Reset flag if registration was somehow lost
+        window._pwaRegistrationComplete = false
+      }
+    }
 
-        // Handle service worker state changes
-        const handleServiceWorkerState = (worker: ServiceWorker) => {
-          worker.addEventListener('statechange', () => {
-            console.log('[PWA] Service Worker state changed:', worker.state)
-            if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('[PWA] New service worker installed, update available')
-              setHasUpdate(true)
-            }
-            if (worker.state === 'activated' && !navigator.serviceWorker.controller) {
-              console.log('[PWA] Service worker activated for the first time')
-            }
-          })
-        }
+    try {
+      window._pwaRegistrationInProgress = true
+      console.log('[PWA] Starting service worker registration...')
 
-        // Check for updates
-        registration.addEventListener('updatefound', () => {
-          console.log('[PWA] Service Worker update found')
-          const newWorker = registration.installing
-          if (newWorker) {
-            handleServiceWorkerState(newWorker)
-          }
-        })
-
-        // Handle initial installation
-        if (registration.installing) {
-          console.log('[PWA] Service worker installing...')
-          handleServiceWorkerState(registration.installing)
-        }
-
-        // Check if there's already a waiting worker
+      // Check for existing main registration first
+      let registration = await navigator.serviceWorker.getRegistration('/')
+      
+      if (registration && registration.active) {
+        console.log('[PWA] MemoSpark Service Worker already registered and active:', registration.scope)
+        setIsRegistered(true)
+        window._pwaRegistrationComplete = true
+        
+        // Check if there's a waiting worker
         if (registration.waiting) {
           console.log('[PWA] Service Worker waiting for activation')
           setHasUpdate(true)
         }
-
-        // Handle active service worker
-        if (registration.active) {
-          console.log('[PWA] Service worker is active')
-          
-          // Check version to see if we need to show update prompt
-          try {
-            const messageChannel = new MessageChannel()
-            messageChannel.port1.onmessage = (event) => {
-              const { version, app } = event.data
-              console.log('[PWA] Current service worker version:', version, 'for app:', app)
-            }
-            
-            registration.active.postMessage({ type: 'GET_VERSION' }, [messageChannel.port2])
-          } catch (error) {
-            console.log('[PWA] Could not check service worker version:', error)
-          }
+        
+        // Try to update existing registration
+        try {
+          await registration.update()
+          console.log('[PWA] Service worker update check completed')
+        } catch (updateError) {
+          console.warn('[PWA] Service worker update failed:', updateError)
         }
-
-        // Handle controller changes (when SW takes control) - only set up once
-        if (!window._pwaSWListenerAdded) {
-          navigator.serviceWorker.addEventListener('controllerchange', () => {
-            console.log('[PWA] Service Worker controller changed')
-            setHasUpdate(false)
-            // Don't auto-reload here - let the user decide
-          })
-
-          // Listen for messages from service worker - only set up once
-          navigator.serviceWorker.addEventListener('message', (event) => {
-            const { data } = event
-            if (data && data.type === 'SW_UPDATED') {
-              console.log('[PWA] Service worker reports it has been updated')
-              setHasUpdate(true)
-            } else if (data && data.type === 'SW_ACTIVATED') {
-              console.log('[PWA] Service worker activated:', data)
-              setIsRegistered(true)
-            }
-          })
-          
-          window._pwaSWListenerAdded = true
-        }
-
-      } catch (error) {
-        console.error('[PWA] Service Worker registration failed:', error)
-        setIsRegistered(false)
+        
+        return // Exit early if already registered
       }
-    } else {
-      console.log('[PWA] Service Worker not supported')
+
+      // Only cleanup if no active main service worker exists
+      if (!registration || !registration.active) {
+        await cleanupServiceWorkers()
+        
+        // Wait a bit for cleanup to complete
+        await new Promise(resolve => setTimeout(resolve, 300))
+      }
+
+      // Register the new service worker
+      console.log('[PWA] Registering new MemoSpark service worker...')
+      registration = await navigator.serviceWorker.register('/sw.js', {
+        scope: '/',
+        updateViaCache: 'none'
+      })
+      console.log('[PWA] MemoSpark Service Worker registered successfully:', registration.scope)
+
+      setIsRegistered(true)
+      window._pwaRegistrationComplete = true
+
+      // Handle service worker state changes
+      const handleServiceWorkerState = (worker: ServiceWorker) => {
+        worker.addEventListener('statechange', () => {
+          console.log('[PWA] Service Worker state changed:', worker.state)
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            console.log('[PWA] New service worker installed, update available')
+            setHasUpdate(true)
+          }
+          if (worker.state === 'activated' && !navigator.serviceWorker.controller) {
+            console.log('[PWA] Service worker activated for the first time')
+          }
+        })
+      }
+
+      // Check for updates
+      registration.addEventListener('updatefound', () => {
+        console.log('[PWA] Service Worker update found')
+        const newWorker = registration.installing
+        if (newWorker) {
+          handleServiceWorkerState(newWorker)
+        }
+      })
+
+      // Handle initial installation
+      if (registration.installing) {
+        console.log('[PWA] Service worker installing...')
+        handleServiceWorkerState(registration.installing)
+      }
+
+      // Check if there's already a waiting worker
+      if (registration.waiting) {
+        console.log('[PWA] Service Worker waiting for activation')
+        setHasUpdate(true)
+      }
+
+      // Handle active service worker
+      if (registration.active) {
+        console.log('[PWA] Service worker is active')
+        
+        // Check version to see if we need to show update prompt
+        try {
+          const messageChannel = new MessageChannel()
+          messageChannel.port1.onmessage = (event) => {
+            const { version, app } = event.data
+            console.log('[PWA] Current service worker version:', version, 'for app:', app)
+          }
+          
+          registration.active.postMessage({ type: 'GET_VERSION' }, [messageChannel.port2])
+        } catch (error) {
+          console.log('[PWA] Could not check service worker version:', error)
+        }
+      }
+
+      // Handle controller changes and messages - only set up once globally
+      if (!window._pwaSWListenerAdded) {
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          console.log('[PWA] Service Worker controller changed')
+          setHasUpdate(false)
+          // Don't auto-reload here - let the user decide
+        })
+
+        // Listen for messages from service worker - only set up once
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          const { data } = event
+          if (data && data.type === 'SW_UPDATED') {
+            console.log('[PWA] Service worker reports it has been updated')
+            setHasUpdate(true)
+          } else if (data && data.type === 'SW_ACTIVATED') {
+            console.log('[PWA] Service worker activated:', data)
+            setIsRegistered(true)
+          }
+        })
+        
+        window._pwaSWListenerAdded = true
+        console.log('[PWA] Global service worker event listeners set up')
+      }
+
+    } catch (error) {
+      console.error('[PWA] Service Worker registration failed:', error)
+      setIsRegistered(false)
+      window._pwaRegistrationComplete = false
+    } finally {
+      window._pwaRegistrationInProgress = false
     }
   }, [cleanupServiceWorkers])
 
@@ -395,17 +506,37 @@ export function usePWA(): PWAState & PWAActions {
     return capabilities
   }, [])
 
-  // Auto-register service worker on mount
+  // Auto-register service worker on mount - but only once
   useEffect(() => {
-    if (typeof window !== 'undefined' && !isRegistered) {
-      // Delay registration slightly to avoid blocking the main thread
+    if (typeof window !== 'undefined' && !window._pwaRegistrationInProgress && !window._pwaRegistrationComplete) {
+      // Small delay to ensure page is loaded and avoid blocking main thread
       const timer = setTimeout(() => {
         registerServiceWorker()
-      }, 500) // Increased delay to ensure page is loaded
+      }, 800)
       
       return () => clearTimeout(timer)
     }
-  }, [registerServiceWorker, isRegistered])
+  }, [registerServiceWorker])
+
+  // Update isRegistered state based on actual registration status
+  useEffect(() => {
+    const checkRegistrationStatus = async () => {
+      if ('serviceWorker' in navigator) {
+        try {
+          const registration = await navigator.serviceWorker.getRegistration('/')
+          setIsRegistered(!!registration?.active)
+        } catch (error) {
+          console.warn('[PWA] Could not check registration status:', error)
+          setIsRegistered(false)
+        }
+      }
+    }
+
+    // Check status on mount
+    if (typeof window !== 'undefined') {
+      checkRegistrationStatus()
+    }
+  }, [])
 
   return {
     // State

@@ -94,6 +94,23 @@ export async function POST(request: NextRequest) {
       url: notification.url,
       priority: notification.priority || 5,
       ttl: 259200, // 3 days in seconds
+      
+      // iOS-specific APNS configuration for better delivery
+      ios_sound: notification.ios_sound || 'default',
+      ios_category: notification.ios_category || 'MEMOSPARK_NOTIFICATION',
+      ios_badgeType: notification.ios_badgeType || 'Increase',
+      ios_badgeCount: notification.ios_badgeCount,
+      ios_interruption_level: notification.ios_interruption_level || 'active',
+      mutable_content: true, // Enable notification service extensions
+      content_available: notification.content_available || false,
+      
+      // Enhanced APNS alert configuration
+      apns_alert: {
+        title: notification.headings?.en || 'MemoSpark',
+        subtitle: notification.apns_alert?.subtitle,
+        body: notification.contents?.en || 'You have a new notification'
+      },
+      
       ...(notification.buttons && { buttons: notification.buttons })
     };
 

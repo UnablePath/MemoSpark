@@ -247,45 +247,47 @@ export class StreakTracker {
       return this.getDefaultStreakAnalytics();
     }
 
-    // Calculate current streak - check for consecutive dates working backwards from today
-    let currentStreak = 0;
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    
     // Sort by date descending to ensure we start from the most recent
     const sortedStreaks = [...dailyStreaks].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
-    // Start checking from today or the most recent completed day
-    const checkDate = new Date(today);
+    // Calculate current streak - check for consecutive completed days working backwards from today
+    let currentStreak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time for accurate date comparison
     
-    for (let i = 0; i < sortedStreaks.length; i++) {
-      const streak = sortedStreaks[i];
-      const streakDate = new Date(streak.date);
+    // Start from today and work backwards
+    let checkDate = new Date(today);
+    let foundToday = false;
+    
+    for (let dayOffset = 0; dayOffset <= sortedStreaks.length + 1; dayOffset++) {
       const checkDateStr = checkDate.toISOString().split('T')[0];
       
-      // If this streak record matches our check date and is completed
-      if (streak.date === checkDateStr && streak.completed) {
-        currentStreak++;
-        // Move to previous day
-        checkDate.setDate(checkDate.getDate() - 1);
-      } else if (streak.date === checkDateStr && !streak.completed) {
-        // Found an incomplete day, streak is broken
-        break;
-      } else if (streak.date < checkDateStr) {
-        // We've moved past this date without finding a match
-        // Check if there's a gap in dates
-        const daysDiff = Math.floor((checkDate.getTime() - streakDate.getTime()) / (1000 * 60 * 60 * 24));
-        if (daysDiff > 1) {
-          // There's a gap, streak is broken
+      // Find streak record for this date
+      const dayStreak = sortedStreaks.find(s => s.date === checkDateStr);
+      
+      if (dayStreak) {
+        if (dayStreak.completed) {
+          currentStreak++;
+          foundToday = true;
+        } else {
+          // Found incomplete day - streak is broken
           break;
         }
-        // Continue checking
-        i--; // Recheck this record with the new date
-        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        // No record for this date
+        if (foundToday) {
+          // We've started counting and hit a gap - streak is broken
+          break;
+        }
+        // If we haven't found today yet, this might be because user hasn't completed today
+        // Continue checking previous days
       }
       
+      // Move to previous day
+      checkDate.setDate(checkDate.getDate() - 1);
+      
       // Safety check to prevent infinite loops
-      if (i > 365) break;
+      if (dayOffset > 365) break;
     }
 
     // Calculate longest streak by checking all consecutive sequences
@@ -298,6 +300,7 @@ export class StreakTracker {
     
     for (const streak of ascendingStreaks) {
       const currentDate = new Date(streak.date);
+      currentDate.setHours(0, 0, 0, 0);
       
       if (streak.completed) {
         if (previousDate === null) {
@@ -310,13 +313,14 @@ export class StreakTracker {
           if (daysDiff === 1) {
             // Consecutive day
             currentSequenceLength++;
-          } else {
+          } else if (daysDiff > 1) {
             // Gap found, end current sequence and start new one
             longestStreak = Math.max(longestStreak, currentSequenceLength);
             currentSequenceLength = 1;
           }
+          // If daysDiff < 1, it means duplicate dates - skip this record
         }
-        previousDate = currentDate;
+        previousDate = new Date(currentDate);
         longestStreak = Math.max(longestStreak, currentSequenceLength);
       } else {
         // Incomplete day breaks the sequence
@@ -341,6 +345,7 @@ export class StreakTracker {
     
     for (const streak of ascendingStreaks) {
       const currentDate = new Date(streak.date);
+      currentDate.setHours(0, 0, 0, 0);
       
       if (streak.completed) {
         if (prevDate === null) {
@@ -349,18 +354,19 @@ export class StreakTracker {
           const daysDiff = Math.floor((currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
           if (daysDiff === 1) {
             tempSequence++;
-          } else {
-            // End of sequence
+          } else if (daysDiff > 1) {
+            // End of sequence due to gap
             if (tempSequence > 0) {
               totalStreakDays += tempSequence;
               streakCount++;
             }
             tempSequence = 1;
           }
+          // Skip duplicate dates (daysDiff < 1)
         }
-        prevDate = currentDate;
+        prevDate = new Date(currentDate);
       } else {
-        // End of sequence
+        // End of sequence due to incomplete day
         if (tempSequence > 0) {
           totalStreakDays += tempSequence;
           streakCount++;
@@ -686,6 +692,223 @@ export class StreakTracker {
     } catch (error) {
       console.error('Error in predictStreakCompletion:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get streak leaderboard with privacy controls
+   */
+  async getStreakLeaderboard(
+    limit: number = 10,
+    includeCurrentUser: boolean = true,
+    currentUserId?: string,
+    getToken?: () => Promise<string | null>
+  ): Promise<Array<{
+    user_id: string;
+    username: string;
+    current_streak: number;
+    longest_streak: number;
+    total_points: number;
+    rank: number;
+    is_current_user: boolean;
+    profile_visible: boolean;
+  }>> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
+    try {
+      // Query for leaderboard data with privacy controls
+      const { data, error } = await supabase.rpc('get_streak_leaderboard', {
+        limit_count: limit,
+        requesting_user_id: currentUserId || null
+      });
+
+      if (error) {
+        console.error('Error fetching streak leaderboard:', error);
+        // If RPC doesn't exist, fall back to basic query
+        return this.getBasicStreakLeaderboard(limit, currentUserId, includeCurrentUser);
+      }
+
+      // Add ranking and current user flag
+      const leaderboard = (data || []).map((entry: any, index: number) => ({
+        ...entry,
+        rank: index + 1,
+        is_current_user: currentUserId ? entry.user_id === currentUserId : false
+      }));
+
+      return leaderboard;
+    } catch (error) {
+      console.error('Error in getStreakLeaderboard:', error);
+      // Fallback to basic implementation
+      return this.getBasicStreakLeaderboard(limit, currentUserId, includeCurrentUser);
+    }
+  }
+
+  /**
+   * Basic streak leaderboard fallback
+   */
+  private async getBasicStreakLeaderboard(
+    limit: number = 10,
+    currentUserId?: string,
+    includeCurrentUser: boolean = true
+  ): Promise<Array<{
+    user_id: string;
+    username: string;
+    current_streak: number;
+    longest_streak: number;
+    total_points: number;
+    rank: number;
+    is_current_user: boolean;
+    profile_visible: boolean;
+  }>> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
+    try {
+      // Get user stats with basic privacy (only visible profiles)
+      const { data: userStats, error } = await supabase
+        .from('user_stats')
+        .select(`
+          user_id,
+          current_streak,
+          longest_streak,
+          total_points,
+          profiles!inner(
+            username,
+            streak_visibility
+          )
+        `)
+        .eq('profiles.streak_visibility', true)
+        .order('current_streak', { ascending: false })
+        .order('longest_streak', { ascending: false })
+        .order('total_points', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('Error in basicStreakLeaderboard:', error);
+        return [];
+      }
+
+      // Transform data and add rankings
+      const leaderboard = (userStats || []).map((stat: any, index: number) => ({
+        user_id: stat.user_id,
+        username: stat.profiles?.username || 'Anonymous',
+        current_streak: stat.current_streak || 0,
+        longest_streak: stat.longest_streak || 0,
+        total_points: stat.total_points || 0,
+        rank: index + 1,
+        is_current_user: currentUserId ? stat.user_id === currentUserId : false,
+        profile_visible: true
+      }));
+
+      // If current user is not in top results but should be included
+      if (includeCurrentUser && currentUserId && !leaderboard.some(u => u.user_id === currentUserId)) {
+                 const { data: currentUserStats } = await supabase
+           .from('user_stats')
+           .select(`
+             user_id,
+             current_streak,
+             longest_streak,
+             total_points,
+             profiles(username)
+           `)
+           .eq('user_id', currentUserId)
+           .single();
+
+        if (currentUserStats) {
+          // Calculate current user's rank
+          const { count } = await supabase
+            .from('user_stats')
+            .select('*', { count: 'exact', head: true })
+            .gt('current_streak', currentUserStats.current_streak);
+
+                     leaderboard.push({
+             user_id: currentUserStats.user_id,
+             username: (currentUserStats.profiles as any)?.username || 'You',
+             current_streak: currentUserStats.current_streak || 0,
+             longest_streak: currentUserStats.longest_streak || 0,
+             total_points: currentUserStats.total_points || 0,
+             rank: (count || 0) + 1,
+             is_current_user: true,
+             profile_visible: true
+           });
+        }
+      }
+
+      return leaderboard;
+    } catch (error) {
+      console.error('Error in getBasicStreakLeaderboard:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Update user's streak visibility preference
+   */
+  async updateStreakVisibility(
+    userId: string,
+    isVisible: boolean,
+    getToken?: () => Promise<string | null>
+  ): Promise<{ success: boolean; message: string }> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ streak_visibility: isVisible })
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('Error updating streak visibility:', error);
+        throw error;
+      }
+
+      return {
+        success: true,
+        message: isVisible 
+          ? 'Your streaks are now visible on the leaderboard'
+          : 'Your streaks are now hidden from the leaderboard'
+      };
+    } catch (error) {
+      console.error('Error in updateStreakVisibility:', error);
+      return {
+        success: false,
+        message: 'Failed to update privacy settings'
+      };
+    }
+  }
+
+  /**
+   * Get user's current streak visibility setting
+   */
+  async getStreakVisibility(
+    userId: string,
+    getToken?: () => Promise<string | null>
+  ): Promise<boolean> {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('streak_visibility')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error getting streak visibility:', error);
+        return false; // Default to private
+      }
+
+      return data?.streak_visibility ?? false;
+    } catch (error) {
+      console.error('Error in getStreakVisibility:', error);
+      return false;
     }
   }
 } 

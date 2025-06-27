@@ -136,14 +136,61 @@ export class StudentDiscovery {
       .from('connections')
       .select(`
         *,
-        requester:profiles!connections_requester_id_fkey(clerk_user_id, full_name, avatar_url),
-        receiver:profiles!connections_receiver_id_fkey(clerk_user_id, full_name, avatar_url)
+        requester:profiles!connections_requester_id_fkey(
+          clerk_user_id, 
+          full_name, 
+          avatar_url,
+          streak_visibility
+        ),
+        receiver:profiles!connections_receiver_id_fkey(
+          clerk_user_id, 
+          full_name, 
+          avatar_url,
+          streak_visibility
+        )
       `)
       .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`)
       .eq('status', 'accepted');
       
     if (error) throw error;
-    return data || [];
+    
+    // Add streak data to connections with privacy controls
+    const connectionsWithStreaks = await Promise.all(
+      (data || []).map(async (connection) => {
+        const isUserRequester = connection.requester_id === userId;
+        const otherUser = isUserRequester ? connection.receiver : connection.requester;
+                 const otherUserId = (otherUser as any)?.clerk_user_id;
+        
+                 // Only fetch streak data if the other user has made it visible
+         let streakData = null;
+         if (otherUser && otherUserId && (otherUser as any).streak_visibility === true) {
+          try {
+            const { data: statsData } = await this.supabase
+              .from('user_stats')
+              .select('current_streak, longest_streak, total_points')
+              .eq('user_id', otherUserId)
+              .single();
+              
+            if (statsData) {
+              streakData = {
+                current_streak: statsData.current_streak || 0,
+                longest_streak: statsData.longest_streak || 0,
+                total_points: statsData.total_points || 0
+              };
+            }
+          } catch (error) {
+            console.error('Error fetching streak data for connection:', error);
+          }
+        }
+        
+        return {
+          ...connection,
+          streak_data: streakData
+        };
+      })
+    );
+    
+    return connectionsWithStreaks;
   }
 
   async getIncomingConnectionRequests(userId: string): Promise<any[]> {

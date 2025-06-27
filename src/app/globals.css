@@ -43,23 +43,23 @@ html[class*="theme-"]:not([class*="-light"]) {
 @layer base {
   :root {
     --background: 0 0% 100%; /* Pure white for maximum contrast */
-    --foreground: 0 0% 9%; /* Near black for excellent readability - 4.5:1 contrast */
+    --foreground: 0 0% 6%; /* Darker text for better readability - improved contrast */
     --card: 0 0% 100%; /* Keep card white for contrast */
-    --card-foreground: 0 0% 9%; /* Match foreground */
+    --card-foreground: 0 0% 6%; /* Match foreground */
     --popover: 0 0% 100%; /* Keep popover white */
-    --popover-foreground: 0 0% 9%; /* Improved contrast for dialog text */
+    --popover-foreground: 0 0% 6%; /* Improved contrast for dialog text */
     --primary: 142 76% 36%; /* Enhanced green with better contrast */
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 92%; /* Light blue-gray for better contrast */
-    --secondary-foreground: 0 0% 9%;
-    --muted: 210 40% 94%; /* Light blue-gray muted background */
-    --muted-foreground: 0 0% 39%; /* Darker muted text for 4.5:1 contrast */
-    --accent: 210 40% 92%;
-    --accent-foreground: 0 0% 9%;
+    --secondary: 210 40% 88%; /* Darker secondary background for better contrast */
+    --secondary-foreground: 0 0% 6%;
+    --muted: 210 40% 92%; /* Slightly darker muted background */
+    --muted-foreground: 0 0% 30%; /* Much darker muted text for better contrast */
+    --accent: 210 40% 88%;
+    --accent-foreground: 0 0% 6%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 214 32% 91%; /* More visible light gray border */
-    --input: 214 32% 91%; /* More visible input border */
+    --border: 214 32% 86%; /* Darker border for better visibility */
+    --input: 214 32% 88%; /* Darker input border for better visibility */
     --ring: 142 76% 36%; /* Match enhanced primary */
     --radius: 1rem; /* Rounded corners for MemoSpark style */
     --chart-1: 142 60% 45%;
@@ -501,28 +501,28 @@ html[class*="theme-"]:not([class*="-light"]) {
 
 /* Default Light Theme */
 .light {
-  --background: 0 0% 98%;
-  --foreground: 0 0% 15%;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 6%;
   --card: 0 0% 100%;
-  --card-foreground: 0 0% 15%;
+  --card-foreground: 0 0% 6%;
   --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 15%;
+  --popover-foreground: 0 0% 6%;
   --primary: 142 50% 40%;
   --primary-foreground: 0 0% 98%;
-  --secondary: 0 0% 92%;
-  --secondary-foreground: 0 0% 15%;
-  --muted: 0 0% 95%;
-  --muted-foreground: 0 0% 40%;
-  --accent: 0 0% 92%;
-  --accent-foreground: 0 0% 15%;
+  --secondary: 210 40% 88%;
+  --secondary-foreground: 0 0% 6%;
+  --muted: 210 40% 92%;
+  --muted-foreground: 0 0% 30%;
+  --accent: 210 40% 88%;
+  --accent-foreground: 0 0% 6%;
   --destructive: 0 70% 55%;
   --destructive-foreground: 0 0% 98%;
-  --border: 0 0% 85%;
-  --input: 0 0% 96%;
+  --border: 214 32% 86%;
+  --input: 214 32% 88%;
   --ring: 142 50% 40%;
   --chart-1: 142 50% 40%;
   --chart-2: 200 40% 50%;
-  --chart-3: 0 0% 15%;
+  --chart-3: 0 0% 6%;
   --chart-4: 0 0% 100%;
   --chart-5: 142 40% 30%;
 }
@@ -530,23 +530,23 @@ html[class*="theme-"]:not([class*="-light"]) {
 /* AMOLED Light Theme */
 .theme-amoled-light {
   --background: 0 0% 100%;
-  --foreground: 0 0% 15%;
+  --foreground: 0 0% 6%;
   --card: 0 0% 98%;
-  --card-foreground: 0 0% 20%;
+  --card-foreground: 0 0% 8%;
   --popover: 0 0% 98%;
-  --popover-foreground: 0 0% 20%;
+  --popover-foreground: 0 0% 8%;
   --primary: 142 60% 40%;
   --primary-foreground: 0 0% 98%;
-  --secondary: 0 0% 92%;
-  --secondary-foreground: 0 0% 15%;
-  --muted: 0 0% 95%;
-  --muted-foreground: 0 0% 45%;
-  --accent: 0 0% 92%;
-  --accent-foreground: 0 0% 15%;
+  --secondary: 0 0% 88%;
+  --secondary-foreground: 0 0% 6%;
+  --muted: 0 0% 92%;
+  --muted-foreground: 0 0% 28%;
+  --accent: 0 0% 88%;
+  --accent-foreground: 0 0% 6%;
   --destructive: 0 85% 60%;
   --destructive-foreground: 0 0% 98%;
-  --border: 0 0% 85%;
-  --input: 0 0% 96%;
+  --border: 0 0% 82%;
+  --input: 0 0% 94%;
   --ring: 142 60% 40%;
   --chart-1: 142 60% 40%;
   --chart-2: 200 60% 50%;

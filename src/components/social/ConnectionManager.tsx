@@ -7,7 +7,7 @@ import { MessagingService } from '@/lib/messaging/MessagingService';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Check, X, UserPlus, MessageSquare, AtSign } from 'lucide-react';
+import { Check, X, UserPlus, MessageSquare, AtSign, Flame, Trophy, Star } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -16,8 +16,39 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { ChatInterface } from '@/components/messaging/ChatInterface';
 import { maskEmail, generateUsername } from '@/lib/utils';
+
+// Streak Badge Component
+const StreakBadge: React.FC<{ streakData: any }> = ({ streakData }) => {
+  if (!streakData) return null;
+  
+  const { current_streak, longest_streak, total_points } = streakData;
+  
+  return (
+    <div className="flex items-center gap-1 mt-1">
+      {current_streak > 0 && (
+        <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700 hover:bg-orange-200">
+          <Flame className="h-3 w-3 mr-1" />
+          {current_streak}d
+        </Badge>
+      )}
+      {longest_streak > 7 && (
+        <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 hover:bg-purple-200">
+          <Trophy className="h-3 w-3 mr-1" />
+          {longest_streak}
+        </Badge>
+      )}
+      {total_points > 500 && (
+        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-200">
+          <Star className="h-3 w-3 mr-1" />
+          {Math.floor(total_points / 100)}k
+        </Badge>
+      )}
+    </div>
+  );
+};
 
 interface ConnectionManagerProps {
   searchTerm: string;
@@ -224,11 +255,14 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ searchTerm
                         <AvatarImage src={profile.avatar_url || ''} />
                         <AvatarFallback>{profile.full_name?.charAt(0) || '?'}</AvatarFallback>
                       </Avatar>
-                      <div>
+                      <div className="flex-1">
                         <p className="font-semibold text-sm">{profile.full_name || 'Unknown User'}</p>
                         <p className="text-xs text-muted-foreground">
                           @{generateUsername(profile.full_name, profile.clerk_user_id)}
                         </p>
+                        {connection.streak_data && (
+                          <StreakBadge streakData={connection.streak_data} />
+                        )}
                       </div>
                     </div>
                     <Dialog>

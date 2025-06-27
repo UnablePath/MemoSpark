@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { Calendar, LayoutList, Plus, Grid3X3, GraduationCap, Brain, ChevronRight, ChevronLeft, Sparkles, Crown } from 'lucide-react';
+import { Calendar, LayoutList, Plus, Grid3X3, GraduationCap, Brain, ChevronRight, ChevronLeft, Sparkles, Crown, BrainCircuit } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ import type { AISuggestion } from '@/types/ai';
 import type { Task } from '@/types/taskTypes';
 
 import { useUser } from '@clerk/nextjs';
+import { SmartScheduleView } from '@/components/scheduling/SmartScheduleView';
 
 // Dynamic AI suggestions based on user context and time of day
 const getTaskCreationSuggestions = (userName?: string): AISuggestion[] => {
@@ -145,7 +146,7 @@ const actionButtonVariants = cva(
   },
 );
 
-type ViewType = 'list' | 'calendar' | 'timetable';
+type ViewType = 'list' | 'calendar' | 'timetable' | 'smart-schedule';
 
 interface ViewOption {
   id: ViewType;
@@ -213,6 +214,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
     { id: 'list', label: 'List View', icon: LayoutList, description: 'View tasks in a sequential, organized list.' },
     { id: 'calendar', label: 'Calendar', icon: Calendar, description: 'View and manage tasks in a calendar format.' },
     { id: 'timetable', label: 'Timetable', icon: Grid3X3, description: 'View and manage your class schedule.' },
+    { id: 'smart-schedule', label: 'Smart Schedule', icon: BrainCircuit, description: 'AI-powered intelligent task scheduling.' },
   ], []);
 
   // Tier-aware AI suggestions generation
@@ -424,6 +426,10 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
         event.preventDefault();
         setCurrentView('timetable');
       }
+      if (event.ctrlKey && event.key === '4') {
+        event.preventDefault();
+        setCurrentView('smart-schedule');
+      }
       // AI Suggestions shortcut
       if (event.ctrlKey && event.key === 'i') {
         event.preventDefault();
@@ -542,8 +548,8 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
             </span>
           </div>
 
-          {/* Mobile view switcher - compact buttons, no scrolling */}
-          <div className="flex md:hidden items-center gap-0.5 rounded-md bg-muted p-0.5 flex-shrink-0">
+          {/* Mobile view switcher - ultra compact for small screens */}
+          <div className="flex md:hidden items-center gap-[1px] xs:gap-0.5 rounded-md bg-muted p-[1px] xs:p-0.5 flex-shrink-0">
             {viewOptions.map((option) => (
               <InteractiveHoverButton
                 key={option.id}
@@ -554,12 +560,12 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                     viewTabVariants({
                       state: currentView === option.id ? "active" : "inactive",
                     }),
-                    // Very compact for screens < 440px, gradually bigger for larger screens
-                    "px-0.5 py-0.5 xs:px-1 xs:py-1 sm:px-1.5 sm:py-1.5 min-w-[24px] xs:min-w-[28px] sm:min-w-[32px] flex items-center justify-center"
+                    // Ultra compact for very small screens, gradually bigger
+                    "px-[2px] py-[2px] xs:px-0.5 xs:py-0.5 sm:px-1 sm:py-1 min-w-[20px] xs:min-w-[24px] sm:min-w-[28px] flex items-center justify-center"
                   )}
                   title={option.label}
                 >
-                  <option.icon className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                  <option.icon className="h-2.5 w-2.5 xs:h-3 xs:w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
                 </div>
               </InteractiveHoverButton>
             ))}
@@ -615,6 +621,9 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                 onEditEntry={openTimetableForm}
                 onAddEntry={() => openTimetableForm()}
               />
+            )}
+            {currentView === 'smart-schedule' && (
+              <SmartScheduleView />
             )}
           </motion.div>
         </AnimatePresence>

@@ -4,13 +4,22 @@ import React, { useState, useEffect } from 'react'
 import { usePWA } from '@/hooks/usePWA'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowDownToLine, Share, X } from 'lucide-react'
+import { ArrowDownToLine, Share, X, Smartphone, Zap, Bell, Wifi } from 'lucide-react'
 
-// iOS Share Sheet icon (approximated)
-const IosShareIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 4L12 16M12 4L8 8M12 4L16 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M5 12V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+// More accurate iOS Safari Share icon
+const IOSSafariShareIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="3" y="11" width="18" height="10" rx="2" ry="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+    <circle cx="12" cy="11" r="1" fill="currentColor"/>
+    <path d="M12 5L12 11M12 5L9 8M12 5L15 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+)
+
+// Add to Home Screen icon
+const AddToHomeIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+    <path d="M12 8L12 16M8 12L16 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 )
 
@@ -33,7 +42,7 @@ export const InstallPrompt: React.FC = () => {
         if (!hasSeenHint) {
           setShowIOSHint(true)
         }
-      }, 5000) // Show after 5 seconds
+      }, 3000) // Show after 3 seconds (reduced from 5)
       return () => clearTimeout(timer)
     }
   }, [canInstall, os])
@@ -50,20 +59,123 @@ export const InstallPrompt: React.FC = () => {
 
   if (showIOSHint) {
     return (
-      <div className="fixed bottom-4 right-4 z-50">
-        <Card className="max-w-sm bg-background/90 backdrop-blur-sm border-border shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <span className="mr-2">Install MemoSpark</span>
-              <X className="ml-auto h-5 w-5 cursor-pointer" onClick={handleCloseIOSHint} />
-            </CardTitle>
-            <CardDescription>
-              For the best experience, add the app to your home screen.
-            </CardDescription>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <Card className="w-full max-w-md bg-white shadow-2xl border-0">
+          <CardHeader className="text-center pb-4">
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
+                  <Smartphone className="w-8 h-8 text-white" />
+                </div>
+                <CardTitle className="text-xl font-bold text-gray-900">
+                  Install MemoSpark App
+                </CardTitle>
+                <CardDescription className="text-gray-600 mt-2">
+                  Get the full app experience on your iPhone!
+                </CardDescription>
+              </div>
+              <Button variant="ghost" size="icon" onClick={handleCloseIOSHint} className="text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent className="text-sm">
-            <p>1. Tap the <IosShareIcon /> icon in the Safari menu bar.</p>
-            <p className="mt-2">2. Scroll down and tap 'Add to Home Screen'.</p>
+          
+          <CardContent className="space-y-6">
+            {/* Benefits Section */}
+            <div className="bg-blue-50 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-900 mb-3">Why install the app?</h4>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="flex items-center space-x-2 text-blue-800">
+                  <Zap className="w-4 h-4" />
+                  <span>Faster loading</span>
+                </div>
+                <div className="flex items-center space-x-2 text-blue-800">
+                  <Bell className="w-4 h-4" />
+                  <span>Push notifications</span>
+                </div>
+                <div className="flex items-center space-x-2 text-blue-800">
+                  <Wifi className="w-4 h-4" />
+                  <span>Works offline</span>
+                </div>
+                <div className="flex items-center space-x-2 text-blue-800">
+                  <Smartphone className="w-4 h-4" />
+                  <span>Home screen access</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Step-by-step instructions */}
+            <div className="space-y-4">
+              <h4 className="font-semibold text-gray-900 text-center">Easy Installation in 2 Steps:</h4>
+              
+              {/* Step 1 */}
+              <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                    1
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-green-900 mb-2">
+                      Tap the Share button
+                    </p>
+                    <div className="flex items-center space-x-2 text-green-800">
+                      <span className="text-sm">Look for this icon at the bottom of Safari:</span>
+                      <div className="bg-white p-2 rounded-lg border border-green-300">
+                        <IOSSafariShareIcon />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-purple-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                    2
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-purple-900 mb-2">
+                      Select "Add to Home Screen"
+                    </p>
+                    <div className="flex items-center space-x-2 text-purple-800">
+                      <span className="text-sm">Scroll down and look for:</span>
+                      <div className="bg-white p-2 rounded-lg border border-purple-300 flex items-center space-x-2">
+                        <AddToHomeIcon />
+                        <span className="text-sm font-medium">Add to Home Screen</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional tip */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <div className="flex items-center space-x-2 text-amber-800">
+                <div className="w-5 h-5 text-amber-500">💡</div>
+                <p className="text-sm font-medium">
+                  Tip: The share button is usually in the bottom toolbar of Safari
+                </p>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex space-x-3 pt-2">
+              <Button 
+                variant="outline" 
+                onClick={handleCloseIOSHint}
+                className="flex-1"
+              >
+                Maybe Later
+              </Button>
+              <Button 
+                onClick={handleCloseIOSHint}
+                className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+              >
+                Got It!
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

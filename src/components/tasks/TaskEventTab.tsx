@@ -7,6 +7,7 @@ import { QuickTaskInput } from "@/components/tasks/QuickTaskInput";
 import { StuTaskGuidance } from "@/components/tasks/StuTaskGuidance";
 import { TaskForm } from "@/components/tasks/TaskForm";
 import { TimetableGrid } from "@/components/tasks/TimetableGrid";
+import { TimetableEntryForm } from "@/components/tasks/TimetableEntryForm";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern";
 import { Badge } from "@/components/ui/badge";
@@ -130,6 +131,11 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import "react-calendar/dist/Calendar.css";
 
+// Import authentication and database hooks
+import { useAuth } from '@clerk/nextjs';
+import { useFetchTimetableEntries, useDeleteTimetableEntry } from '@/hooks/useTimetableQueries';
+import { useToast } from '@/components/ui/use-toast';
+
 // Timetable Types
 // Exporting these types and constants for use in TimetableGrid.tsx
 export const ALL_DAYS_OF_WEEK: DayOfWeek[] = [
@@ -170,7 +176,7 @@ export interface ClassTimetableEntry {
 
 // CVA variants following shrimp-rules.md brand colors
 const viewModeButtonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+  "inline-flex items-center justify-center gap-1 xs:gap-1.5 sm:gap-2 rounded-md px-1 xs:px-2 sm:px-3 py-1 xs:py-1.5 sm:py-2 text-[10px] xs:text-xs sm:text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
   {
     variants: {
       state: {
@@ -684,6 +690,19 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
   onTasksChange,
   onError,
 }) => {
+  // Authentication and database hooks
+  const { getToken } = useAuth();
+  const { toast } = useToast();
+  
+  // Create token provider function for Supabase integration
+  const getTokenForSupabase = useCallback(() => 
+    getToken({ template: 'supabase-integration' }), [getToken]
+  );
+
+  // Database hooks for timetable
+  const { data: timetableEntries = [], isLoading: isLoadingTimetable, refetch: refetchTimetable } = useFetchTimetableEntries(undefined, getTokenForSupabase);
+  const deleteTimetableEntryMutation = useDeleteTimetableEntry(getTokenForSupabase);
+
   // Enhanced state management with error handling
   const [state, setState] = useState<TaskEventTabState>({
     tasks: initialTasks,
@@ -702,17 +721,23 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
   const [inputMode, setInputMode] = useState<"quick" | "progressive">("quick");
   const [showProgressiveCapture, setShowProgressiveCapture] = useState(false);
 
-  const [classTimetable, setClassTimetable] = useState<ClassTimetableEntry[]>(
-    initialTimetableEntries,
-  );
-  // State for Add/Edit Timetable Entry Dialog
-  const [showAddEditTimetableEntryDialog, setShowAddEditTimetableEntryDialog] =
-    useState(false);
-  const [editingTimetableEntry, setEditingTimetableEntry] =
-    useState<ClassTimetableEntry | null>(null);
-  const [currentTimetableForm, setCurrentTimetableForm] = useState<
-    Partial<ClassTimetableEntry>
-  >({});
+  // Replace local classTimetable state with database state
+  // const [classTimetable, setClassTimetable] = useState<ClassTimetableEntry[]>(
+  //   initialTimetableEntries,
+  // );
+  
+  // State for Timetable Entry Dialog using TimetableEntryForm
+  const [showTimetableEntryDialog, setShowTimetableEntryDialog] = useState(false);
+  const [selectedTimetableEntry, setSelectedTimetableEntry] = useState<TimetableEntry | null>(null);
+
+  // Remove old timetable form state
+  // const [showAddEditTimetableEntryDialog, setShowAddEditTimetableEntryDialog] =
+  //   useState(false);
+  // const [editingTimetableEntry, setEditingTimetableEntry] =
+  //   useState<ClassTimetableEntry | null>(null);
+  // const [currentTimetableForm, setCurrentTimetableForm] = useState<
+  //   Partial<ClassTimetableEntry>
+  // >({});
 
   const initialNewTaskState: Omit<LocalTask, "id" | "completed"> = {
     title: "",
@@ -999,119 +1024,52 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
     }));
   };
 
-  const handleTimetableFormChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
-  ) => {
-    const { name, value } = e.target;
-    setCurrentTimetableForm((prev) => ({ ...prev, [name]: value }));
-  };
+  // Old timetable form handlers removed - now using TimetableEntryForm component
 
-  const handleTimetableDaysChange = (day: DayOfWeek) => {
-    setCurrentTimetableForm((prev) => {
-      const currentDays = prev.daysOfWeek || [];
-      const newDays = currentDays.includes(day)
-        ? currentDays.filter((d) => d !== day)
-        : [...currentDays, day];
-      return { ...prev, daysOfWeek: newDays };
-    });
-  };
-
-  const handleSaveTimetableEntry = useCallback(() => {
-    try {
-      // Enhanced validation
-      if (
-        !currentTimetableForm.courseName ||
-        !currentTimetableForm.courseCode ||
-        !currentTimetableForm.startTime ||
-        !currentTimetableForm.endTime ||
-        !currentTimetableForm.daysOfWeek ||
-        currentTimetableForm.daysOfWeek.length === 0 ||
-        !currentTimetableForm.semesterStartDate ||
-        !currentTimetableForm.semesterEndDate
-      ) {
-        const errorMsg =
-          "Please fill in all required timetable fields: Course Name, Code, Start/End Time, Days, Semester Start/End Dates.";
-        setState((prev) => ({ ...prev, error: errorMsg }));
-        onError?.(errorMsg);
-        return;
-      }
-
-      let updatedTimetable: ClassTimetableEntry[];
-
-      if (editingTimetableEntry) {
-        // Update existing entry
-        const updatedEntry: ClassTimetableEntry = {
-          ...editingTimetableEntry,
-          ...currentTimetableForm,
-        } as ClassTimetableEntry;
-        updatedTimetable = classTimetable.map((entry) =>
-          entry.id === updatedEntry.id ? updatedEntry : entry,
-        );
-      } else {
-        // Add new entry
-        const newEntry: ClassTimetableEntry = {
-          id: `tt-${Date.now().toString()}`,
-          ...currentTimetableForm,
-        } as ClassTimetableEntry;
-        updatedTimetable = [...classTimetable, newEntry];
-      }
-
-      setClassTimetable(updatedTimetable);
-      setShowAddEditTimetableEntryDialog(false);
-      setEditingTimetableEntry(null);
-      setCurrentTimetableForm({});
-      setState((prev) => ({ ...prev, error: null }));
-
-      // Announce success for screen readers
-      const action = editingTimetableEntry ? "updated" : "added";
-      const liveRegion = document.querySelector('[aria-live="polite"]');
-      if (liveRegion) {
-        liveRegion.textContent = `Class "${currentTimetableForm.courseName}" ${action} successfully`;
-      }
-    } catch (error) {
-      const errorMsg = "Failed to save timetable entry. Please try again.";
-      setState((prev) => ({ ...prev, error: errorMsg }));
-      onError?.(errorMsg);
-      console.error("Error saving timetable entry:", error);
-    }
-  }, [currentTimetableForm, editingTimetableEntry, classTimetable, onError]);
+  // Old handleSaveTimetableEntry removed - now handled by TimetableEntryForm component
 
   const openAddTimetableEntryDialog = () => {
-    setEditingTimetableEntry(null);
-    setCurrentTimetableForm({
-      daysOfWeek: [], // Initialize daysOfWeek for new entry
-      // Set a random predefined Tailwind class as default color
-      color:
-        PREDEFINED_TIMETABLE_COLORS[
-          Math.floor(Math.random() * PREDEFINED_TIMETABLE_COLORS.length)
-        ],
-    });
-    setShowAddEditTimetableEntryDialog(true);
+    setSelectedTimetableEntry(null);
+    setShowTimetableEntryDialog(true);
   };
 
-  const openEditTimetableEntryDialog = (entry: ClassTimetableEntry) => {
-    setEditingTimetableEntry(entry);
-    setCurrentTimetableForm(entry);
-    setShowAddEditTimetableEntryDialog(true);
+  const openEditTimetableEntryDialog = (entry: TimetableEntry) => {
+    setSelectedTimetableEntry(entry);
+    setShowTimetableEntryDialog(true);
   };
 
-  const handleDeleteTimetableEntry = (entryToDelete: ClassTimetableEntry) => {
+  const handleDeleteTimetableEntry = async (entryToDelete: TimetableEntry) => {
     if (
       window.confirm(
-        `Are you sure you want to delete "${entryToDelete.courseName}"?`,
+        `Are you sure you want to delete "${entryToDelete.course_name}"?`,
       )
     ) {
-      setClassTimetable((prev) =>
-        prev.filter((entry) => entry.id !== entryToDelete.id),
-      );
+      try {
+        await deleteTimetableEntryMutation.mutateAsync(entryToDelete.id);
+        toast({ title: 'Class deleted successfully' });
+      } catch (error) {
+        toast({ title: 'Failed to delete class', variant: 'destructive' });
+      }
     }
+  };
+
+  const handleTimetableFormSuccess = () => {
+    setShowTimetableEntryDialog(false);
+    setSelectedTimetableEntry(null);
+    refetchTimetable();
+    toast({ 
+      title: selectedTimetableEntry ? 'Class updated successfully' : 'Class added successfully' 
+    });
+  };
+
+  const closeTimetableForm = () => {
+    setShowTimetableEntryDialog(false);
+    setSelectedTimetableEntry(null);
   };
 
   const handleExportICal = useCallback(() => {
     try {
-      if (classTimetable.length === 0) {
+      if (timetableEntries.length === 0) {
         const errorMsg = "No timetable entries to export.";
         setState((prev) => ({ ...prev, error: errorMsg }));
         onError?.(errorMsg);
@@ -1120,7 +1078,25 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
 
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-      const icalData = exportTimetableToICal(classTimetable);
+      // Convert TimetableEntry to ClassTimetableEntry for export
+      const convertForExport = (entry: TimetableEntry): ClassTimetableEntry => ({
+        id: entry.id,
+        courseName: entry.course_name,
+        courseCode: entry.course_code || "",
+        instructor: entry.instructor,
+        location: entry.location,
+        startTime: entry.start_time || "09:00",
+        endTime: entry.end_time || "10:00",
+        daysOfWeek: entry.days_of_week.map(
+          (day: string) => day.charAt(0).toUpperCase() + day.slice(1),
+        ) as DayOfWeek[],
+        semesterStartDate: entry.semester_start_date || "",
+        semesterEndDate: entry.semester_end_date || "",
+        color: entry.color,
+        detailedDescription: "",
+      });
+
+      const icalData = exportTimetableToICal(timetableEntries.map(convertForExport));
       const blob = new Blob([icalData], {
         type: "text/calendar;charset=utf-8;",
       });
@@ -1145,49 +1121,7 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
       onError?.(errorMsg);
       console.error("Error exporting timetable:", error);
     }
-  }, [classTimetable, onError]);
-
-  // Helper function to convert ClassTimetableEntry to TimetableEntry for TimetableGrid
-  const convertClassTimetableToTimetableEntry = (
-    entry: ClassTimetableEntry,
-  ): TimetableEntry => ({
-    id: entry.id,
-    user_id: "", // This would be filled from current user context
-    course_name: entry.courseName,
-    course_code: entry.courseCode,
-    instructor: entry.instructor,
-    location: entry.location,
-    start_time: entry.startTime,
-    end_time: entry.endTime,
-    days_of_week: entry.daysOfWeek.map((day: string) =>
-      day.toLowerCase(),
-    ) as DayOfWeek[],
-    semester_start_date: entry.semesterStartDate,
-    semester_end_date: entry.semesterEndDate,
-    color: entry.color,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  });
-
-  // Convert TimetableEntry back to ClassTimetableEntry
-  const convertTimetableToClassEntry = (
-    entry: TimetableEntry,
-  ): ClassTimetableEntry => ({
-    id: entry.id,
-    courseName: entry.course_name,
-    courseCode: entry.course_code || "",
-    instructor: entry.instructor,
-    location: entry.location,
-    startTime: entry.start_time || "09:00",
-    endTime: entry.end_time || "10:00",
-    daysOfWeek: entry.days_of_week.map(
-      (day: string) => day.charAt(0).toUpperCase() + day.slice(1),
-    ) as DayOfWeek[],
-    semesterStartDate: entry.semester_start_date || "",
-    semesterEndDate: entry.semester_end_date || "",
-    color: entry.color,
-    detailedDescription: "",
-  });
+  }, [timetableEntries, onError]);
 
   return (
     <BlurFade delay={0.1} className={cn("h-full", className)}>
@@ -1271,7 +1205,7 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
             onTaskCreate={handleEnhancedTaskCreate}
           />
 
-          <div className="flex gap-1 p-1 bg-muted/50 rounded-lg border border-border mb-6 scale-[0.94] sm:scale-100">
+          <div className="flex gap-[1px] xs:gap-0.5 sm:gap-1 p-[1px] xs:p-0.5 sm:p-1 bg-muted/50 rounded-lg border border-border mb-6 scale-[0.88] xs:scale-[0.94] sm:scale-100">
             <button
               onClick={() =>
                 setState((prev) => ({ ...prev, viewMode: "list", error: null }))
@@ -1286,9 +1220,8 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                   : "Switch to list view"
               }
             >
-              <FaTasks className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
-              <span className="hidden sm:inline text-xs sm:text-sm">List View</span>
-              <span className="sm:hidden text-xs">List</span>
+              <FaTasks className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
+              <span className="hidden xs:inline text-[10px] xs:text-xs sm:text-sm">List</span>
             </button>
             <button
               onClick={() =>
@@ -1308,9 +1241,8 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                   : "Switch to calendar view"
               }
             >
-              <FaCalendarAlt className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
-              <span className="hidden sm:inline text-xs sm:text-sm">Calendar</span>
-              <span className="sm:hidden text-xs">Cal</span>
+              <FaCalendarAlt className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
+              <span className="hidden xs:inline text-[10px] xs:text-xs sm:text-sm">Cal</span>
             </button>
             <button
               onClick={() =>
@@ -1330,9 +1262,8 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                   : "Switch to timetable view"
               }
             >
-              <FaTable className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
-              <span className="hidden sm:inline text-xs sm:text-sm">Timetable</span>
-              <span className="sm:hidden text-xs">Table</span>
+              <FaTable className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
+              <span className="hidden xs:inline text-[10px] xs:text-xs sm:text-sm">Table</span>
             </button>
           </div>
         </div>
@@ -1510,19 +1441,9 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
               </h3>
 
               <TimetableGrid
-                entries={classTimetable.map(
-                  convertClassTimetableToTimetableEntry,
-                )}
-                onEditEntry={(entry) =>
-                  openEditTimetableEntryDialog(
-                    convertTimetableToClassEntry(entry),
-                  )
-                }
-                onDeleteEntry={(entry) =>
-                  handleDeleteTimetableEntry(
-                    convertTimetableToClassEntry(entry),
-                  )
-                }
+                entries={timetableEntries}
+                onEditEntry={openEditTimetableEntryDialog}
+                onDeleteEntry={handleDeleteTimetableEntry}
               />
 
               <div className="mt-4 flex justify-center gap-4">
@@ -1720,213 +1641,29 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
           )}
         </div>
 
-        {/* Dialog for Adding/Editing Timetable Entry */}
-        <Dialog
-          open={showAddEditTimetableEntryDialog}
-          onOpenChange={setShowAddEditTimetableEntryDialog}
-        >
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>
-                {editingTimetableEntry
-                  ? "Edit Class Schedule"
-                  : "Add New Class Schedule"}
-              </DialogTitle>
-              <DialogDescription>
-                {editingTimetableEntry
-                  ? "Update the details of this class."
-                  : "Fill in the details for the new class schedule."}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="courseName" className="text-right">
-                  Course Name
-                </Label>
-                <Input
-                  id="courseName"
-                  name="courseName"
-                  value={currentTimetableForm.courseName || ""}
-                  onChange={handleTimetableFormChange}
-                  className="col-span-3"
-                  placeholder="e.g., Introduction to AI"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="courseCode" className="text-right">
-                  Course Code
-                </Label>
-                <Input
-                  id="courseCode"
-                  name="courseCode"
-                  value={currentTimetableForm.courseCode || ""}
-                  onChange={handleTimetableFormChange}
-                  className="col-span-3"
-                  placeholder="e.g., CS101"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="instructor" className="text-right">
-                  Instructor
-                </Label>
-                <Input
-                  id="instructor"
-                  name="instructor"
-                  value={currentTimetableForm.instructor || ""}
-                  onChange={handleTimetableFormChange}
-                  className="col-span-3"
-                  placeholder="e.g., Dr. Ada Lovelace"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="location" className="text-right">
-                  Location
-                </Label>
-                <Input
-                  id="location"
-                  name="location"
-                  value={currentTimetableForm.location || ""}
-                  onChange={handleTimetableFormChange}
-                  className="col-span-3"
-                  placeholder="e.g., Turing Hall, Room 101"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="startTime" className="text-right">
-                  Start Time
-                </Label>
-                <Input
-                  id="startTime"
-                  name="startTime"
-                  type="time"
-                  value={currentTimetableForm.startTime || ""}
-                  onChange={handleTimetableFormChange}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="endTime" className="text-right">
-                  End Time
-                </Label>
-                <Input
-                  id="endTime"
-                  name="endTime"
-                  type="time"
-                  value={currentTimetableForm.endTime || ""}
-                  onChange={handleTimetableFormChange}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Days</Label>
-                <div className="col-span-3 flex flex-wrap gap-2">
-                  {ALL_DAYS_OF_WEEK.map((day) => (
-                    <Button
-                      key={day}
-                      variant={
-                        currentTimetableForm.daysOfWeek?.includes(day)
-                          ? "default"
-                          : "outline"
-                      }
-                      size="sm"
-                      onClick={() => handleTimetableDaysChange(day)}
-                      className="text-xs"
-                    >
-                      {day.substring(0, 3)}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="semesterStartDate" className="text-right">
-                  Start Date
-                </Label>
-                <Input
-                  id="semesterStartDate"
-                  name="semesterStartDate"
-                  type="date"
-                  value={currentTimetableForm.semesterStartDate || ""}
-                  onChange={handleTimetableFormChange}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="semesterEndDate" className="text-right">
-                  End Date
-                </Label>
-                <Input
-                  id="semesterEndDate"
-                  name="semesterEndDate"
-                  type="date"
-                  value={currentTimetableForm.semesterEndDate || ""}
-                  onChange={handleTimetableFormChange}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="color" className="text-right">
-                  Color
-                </Label>
-                <Select
-                  name="color"
-                  value={currentTimetableForm.color || ""}
-                  onValueChange={(value) =>
-                    setCurrentTimetableForm((prev) => ({
-                      ...prev,
-                      color: value,
-                    }))
+        {/* Timetable Entry Form Dialog */}
+        {showTimetableEntryDialog && (
+          <Dialog open={showTimetableEntryDialog} onOpenChange={setShowTimetableEntryDialog}>
+            <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {selectedTimetableEntry ? "Edit Class" : "Add New Class"}
+                </DialogTitle>
+                <DialogDescription>
+                  {selectedTimetableEntry 
+                    ? "Update the details of this class." 
+                    : "Fill in the details for your new class schedule."
                   }
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select a color" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PREDEFINED_TIMETABLE_COLORS.map((colorClass) => (
-                      <SelectItem key={colorClass} value={colorClass}>
-                        <div className="flex items-center">
-                          <div
-                            className={cn(
-                              "w-4 h-4 rounded-full mr-2",
-                              colorClass,
-                            )}
-                          />
-                          {colorClass
-                            .replace("bg-", "")
-                            .replace("-500", "")
-                            .replace("-600", "")}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="detailedDescription" className="text-right">
-                  Description
-                </Label>
-                <Textarea
-                  id="detailedDescription"
-                  name="detailedDescription"
-                  value={currentTimetableForm.detailedDescription || ""}
-                  onChange={handleTimetableFormChange}
-                  className="col-span-3"
-                  placeholder="Add any extra details about the class, like topics, exam dates, etc."
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setShowAddEditTimetableEntryDialog(false)}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleSaveTimetableEntry}>
-                {editingTimetableEntry ? "Save Changes" : "Add Class"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+                </DialogDescription>
+              </DialogHeader>
+              <TimetableEntryForm
+                entryId={selectedTimetableEntry?.id}
+                onSuccess={handleTimetableFormSuccess}
+                onCancel={closeTimetableForm}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
 
         {/* Additional custom styles for calendar */}
         <style jsx global>{`
