@@ -232,7 +232,7 @@ export default function SubscriptionPage() {
               <span className="hidden sm:inline">Billing</span>
               <span className="sm:hidden">Billing</span>
             </TabsTrigger>
-          </TabsList>
+        </TabsList>
         </div>
 
         {/* Overview Tab */}

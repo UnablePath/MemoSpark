@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { CalendarIcon, Clock, MapPin, User, BookOpen } from "lucide-react";
+import { useAuth } from "@clerk/nextjs";
 import {
   useCreateTimetableEntry,
   useUpdateTimetableEntry,
@@ -122,11 +123,13 @@ export const TimetableEntryForm: React.FC<TimetableEntryFormProps> = ({
   onSuccess,
   onCancel,
 }) => {
+  const { getToken } = useAuth();
+  
   // Hooks for timetable entry operations
-  const createTimetableEntryMutation = useCreateTimetableEntry();
-  const updateTimetableEntryMutation = useUpdateTimetableEntry();
+  const createTimetableEntryMutation = useCreateTimetableEntry(getToken);
+  const updateTimetableEntryMutation = useUpdateTimetableEntry(getToken);
   const { data: existingEntry, isLoading: isLoadingEntry } =
-    useGetTimetableEntry(entryId || "", Boolean(entryId));
+    useGetTimetableEntry(entryId || "", Boolean(entryId), getToken);
 
   // Form setup
   const form = useForm<TimetableEntryFormValues>({

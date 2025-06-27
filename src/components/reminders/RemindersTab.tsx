@@ -450,14 +450,14 @@ const RemindersTab = () => {
 
             {/* Add Reminder Dialog */}
             <Dialog open={showAddReminder} onOpenChange={setShowAddReminder}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="w-full max-w-[95vw] sm:max-w-md md:max-w-lg lg:max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center">
+                        <DialogTitle className="flex items-center text-lg sm:text-xl">
                             <FaPlus className="mr-2 text-green-500" />
                             Create Smart Reminder
                         </DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-6">
+                    <div className="space-y-4 sm:space-y-6">
                         {/* Title Field */}
                         <div className="space-y-2">
                             <Label htmlFor="title">Title *</Label>
@@ -466,6 +466,7 @@ const RemindersTab = () => {
                                 placeholder="What would you like to be reminded about?"
                                 value={reminderForm.title}
                                 onChange={(e) => setReminderForm(prev => ({...prev, title: e.target.value}))}
+                                className="text-base" // Prevent zoom on iOS
                             />
                         </div>
 
@@ -478,39 +479,28 @@ const RemindersTab = () => {
                                 value={reminderForm.description}
                                 onChange={(e) => setReminderForm(prev => ({...prev, description: e.target.value}))}
                                 rows={3}
+                                className="text-base resize-none" // Prevent zoom on iOS and disable resize
                             />
                         </div>
 
-                        {/* Due Date Field */}
+                        {/* Due Date Field - Native date input for iOS compatibility */}
                         <div className="space-y-2">
-                            <Label>Due Date *</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !reminderForm.due_date && "text-muted-foreground"
-                                        )}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {reminderForm.due_date ? format(reminderForm.due_date, "PPP") : "Pick a date"}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                        mode="single"
-                                        selected={reminderForm.due_date || undefined}
-                                        onSelect={(date) => setReminderForm(prev => ({...prev, due_date: date || null}))}
-                                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                                        initialFocus
-                                    />
-                                </PopoverContent>
-                            </Popover>
+                            <Label htmlFor="due_date">Due Date *</Label>
+                            <Input
+                                id="due_date"
+                                type="date"
+                                value={reminderForm.due_date ? format(reminderForm.due_date, "yyyy-MM-dd") : ""}
+                                onChange={(e) => {
+                                    const selectedDate = e.target.value ? new Date(e.target.value) : null;
+                                    setReminderForm(prev => ({...prev, due_date: selectedDate}));
+                                }}
+                                min={format(new Date(), "yyyy-MM-dd")} // Prevent past dates
+                                className="text-base" // Prevent zoom on iOS
+                            />
                         </div>
 
                         {/* Time Fields */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="due_time">Due Time</Label>
                                 <Input
@@ -518,6 +508,7 @@ const RemindersTab = () => {
                                     type="time"
                                     value={reminderForm.due_time}
                                     onChange={(e) => setReminderForm(prev => ({...prev, due_time: e.target.value}))}
+                                    className="text-base" // Prevent zoom on iOS
                                 />
                             </div>
                             <div className="space-y-2">
@@ -527,6 +518,7 @@ const RemindersTab = () => {
                                     type="time"
                                     value={reminderForm.reminder_time}
                                     onChange={(e) => setReminderForm(prev => ({...prev, reminder_time: e.target.value}))}
+                                    className="text-base" // Prevent zoom on iOS
                                 />
                                 <p className="text-xs text-muted-foreground">
                                     When you want to be reminded (before due time)
@@ -535,7 +527,7 @@ const RemindersTab = () => {
                         </div>
 
                         {/* Priority and Type Row */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Priority</Label>
                                 <Select 
@@ -544,7 +536,7 @@ const RemindersTab = () => {
                                         setReminderForm(prev => ({...prev, priority: value}))
                                     }
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="text-base">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -564,7 +556,7 @@ const RemindersTab = () => {
                                         setReminderForm(prev => ({...prev, type: value}))
                                     }
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="text-base">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -585,12 +577,13 @@ const RemindersTab = () => {
                                     placeholder="e.g., Mathematics, Computer Science..."
                                     value={reminderForm.subject}
                                     onChange={(e) => setReminderForm(prev => ({...prev, subject: e.target.value}))}
+                                    className="text-base" // Prevent zoom on iOS
                                 />
                             </div>
                         )}
 
                         {/* AI Toggle */}
-                        <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-lg">
+                        <div className="flex items-center space-x-3 p-3 sm:p-4 bg-muted/30 rounded-lg">
                             <div className="flex items-center space-x-2">
                                 <input
                                     id="useAI"
@@ -599,7 +592,7 @@ const RemindersTab = () => {
                                     onChange={(e) => setReminderForm(prev => ({...prev, useAI: e.target.checked}))}
                                     className="w-4 h-4"
                                 />
-                                <Label htmlFor="useAI" className="flex items-center cursor-pointer">
+                                <Label htmlFor="useAI" className="flex items-center cursor-pointer text-sm sm:text-base">
                                     <FaBrain className="mr-2 text-purple-500" />
                                     Enable AI-Powered Smart Reminders
                                 </Label>
@@ -607,20 +600,21 @@ const RemindersTab = () => {
                         </div>
                         
                         {reminderForm.useAI && (
-                            <div className="text-sm text-muted-foreground bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div className="text-xs sm:text-sm text-muted-foreground bg-blue-50 border border-blue-200 rounded-lg p-3">
                                 <FaInfoCircle className="inline mr-2 text-blue-500" />
                                 AI will optimize reminder timing based on your patterns, task priority, and preferences. 
                                 You'll receive multiple adaptive reminders at the most effective times.
                             </div>
                         )}
                     </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowAddReminder(false)}>
+                    <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+                        <Button variant="outline" onClick={() => setShowAddReminder(false)} className="w-full sm:w-auto">
                             Cancel
                         </Button>
                         <Button 
                             onClick={handleAddReminder}
                             disabled={isSubmittingReminder || !reminderForm.title || !reminderForm.due_date}
+                            className="w-full sm:w-auto"
                         >
                             {isSubmittingReminder ? (
                                 <FaClock className="mr-2 animate-spin" />

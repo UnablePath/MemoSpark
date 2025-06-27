@@ -549,7 +549,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
           </div>
 
           {/* Mobile view switcher - ultra compact for small screens */}
-          <div className="flex md:hidden items-center gap-[1px] xs:gap-0.5 rounded-md bg-muted p-[1px] xs:p-0.5 flex-shrink-0">
+          <div className="flex md:hidden items-center gap-[1px] xs:gap-0.5 rounded-md bg-muted p-[1px] xs:p-0.5 flex-shrink-0 overflow-x-auto max-w-full">
             {viewOptions.map((option) => (
               <InteractiveHoverButton
                 key={option.id}
@@ -561,11 +561,18 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                       state: currentView === option.id ? "active" : "inactive",
                     }),
                     // Ultra compact for very small screens, gradually bigger
-                    "px-[2px] py-[2px] xs:px-0.5 xs:py-0.5 sm:px-1 sm:py-1 min-w-[20px] xs:min-w-[24px] sm:min-w-[28px] flex items-center justify-center"
+                    "px-1 py-1 xs:px-1.5 xs:py-1.5 sm:px-2 sm:py-2 min-w-[32px] xs:min-w-[36px] sm:min-w-[40px] flex items-center justify-center flex-shrink-0"
                   )}
                   title={option.label}
                 >
-                  <option.icon className="h-2.5 w-2.5 xs:h-3 xs:w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                  <option.icon className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                  {/* Only show text on larger mobile screens and use abbreviated text for smart schedule */}
+                  <span className="hidden xs:inline ml-1 text-[10px] xs:text-xs sm:text-sm truncate">
+                    {option.id === 'smart-schedule' ? 'Smart' : 
+                     option.id === 'timetable' ? 'Time' : 
+                     option.id === 'calendar' ? 'Cal' : 
+                     option.label}
+                  </span>
                 </div>
               </InteractiveHoverButton>
             ))}

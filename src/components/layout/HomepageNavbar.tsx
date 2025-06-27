@@ -62,16 +62,16 @@ export function HomepageNavbar() {
           <div className="flex items-center space-x-2">
             <SignedOut>
               <SignInButton mode="modal">
-                <Button variant="ghost" size="sm" className="text-xs lg:text-sm font-medium hover:bg-primary/5">Sign In</Button>
+                <Button variant="ghost" size="sm" className="text-xs lg:text-sm font-medium hover:bg-primary/10 text-foreground hover:text-primary">Sign In</Button>
               </SignInButton>
               <SignUpButton mode="modal">
-                <Button size="sm" className="text-xs lg:text-sm font-medium">Sign Up Free</Button>
+                <Button size="sm" className="text-xs lg:text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90">Sign Up Free</Button>
               </SignUpButton>
             </SignedOut>
             <SignedIn>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full hover:bg-primary/10">
                     <User className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -99,8 +99,8 @@ export function HomepageNavbar() {
           <SignedIn>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full">
-                  <User className="h-4 w-4" />
+                <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full hover:bg-primary/10 bg-muted/50">
+                  <User className="h-4 w-4 text-foreground" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
@@ -125,7 +125,7 @@ export function HomepageNavbar() {
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
             aria-expanded={isMobileMenuOpen}
-            className="h-8 w-8 hover:bg-primary/5"
+            className="h-8 w-8 hover:bg-primary/10 bg-muted/50 text-foreground"
           >
             {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </Button>
@@ -142,7 +142,7 @@ export function HomepageNavbar() {
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={cn(
-                  "block px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+                  "block px-3 py-2 rounded-md text-sm font-medium text-foreground hover:text-primary hover:bg-primary/10 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background",
                   pathname === link.href && "text-primary bg-primary/10"
                 )}
               >
@@ -152,7 +152,7 @@ export function HomepageNavbar() {
             <Link
               href="/coming-soon"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+              className="block px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background"
               aria-label="Learn more about PromptU, the creators of MemoSpark (Coming Soon)"
             >
               by PromptU
@@ -161,15 +161,15 @@ export function HomepageNavbar() {
           <div className="px-2 pb-3 pt-2 border-t border-border/40">
             <SignedOut>
               <SignInButton mode="modal">
-                <Button variant="outline" size="sm" className="w-full mb-2 font-medium">Sign In</Button>
+                <Button variant="outline" size="sm" className="w-full mb-2 font-medium bg-background text-foreground border-border hover:bg-muted/50 hover:text-primary">Sign In</Button>
               </SignInButton>
               <SignUpButton mode="modal">
-                <Button size="sm" className="w-full font-medium">Sign Up Free</Button>
+                <Button size="sm" className="w-full font-medium bg-primary text-primary-foreground hover:bg-primary/90">Sign Up Free</Button>
               </SignUpButton>
             </SignedOut>
             <SignedIn>
               <Link href="/dashboard" passHref legacyBehavior>
-                 <Button variant="outline" size="sm" className="w-full mb-2 font-medium" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Button>
+                 <Button variant="outline" size="sm" className="w-full mb-2 font-medium bg-background text-foreground border-border hover:bg-muted/50 hover:text-primary" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Button>
               </Link>
             </SignedIn>
           </div>
