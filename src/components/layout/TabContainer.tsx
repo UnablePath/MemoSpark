@@ -77,19 +77,8 @@ export function TabContainer({
   const isSwipingRef = useRef(false);
   const swipeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Half-swipe preview state
-  const [previewState, setPreviewState] = useState<{
-    isPreview: boolean;
-    previewIndex: number;
-    swipeDirection: number;
-    swipeProgress: number;
-  }>({
-    isPreview: false,
-    previewIndex: -1,
-    swipeDirection: 0,
-    swipeProgress: 0
-  });
-  const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Simplified swipe state - remove complex preview logic that was causing issues
+  const swipeThresholdRef = useRef<number>(0);
 
   const currentIndex = controlledIndex !== undefined ? controlledIndex : internalIndex;
 
@@ -154,33 +143,7 @@ export function TabContainer({
     }
   }, [currentIndex, tabs.length, controlledIndex, onTabChange, internalIndex]);
 
-  // Calculate preview progress and determine next tab index
-  const calculatePreviewProgress = useCallback((deltaX: number, screenWidth: number) => {
-    const swipeDirection = deltaX > 0 ? -1 : 1; // Right swipe = previous tab (-1), Left swipe = next tab (1)
-    const absProgress = Math.abs(deltaX) / (screenWidth * 0.3); // 30% of screen width for full preview
-    const progress = Math.min(absProgress, 1);
-    
-    const previewIndex = swipeDirection === 1 
-      ? (currentIndex + 1) % tabs.length 
-      : (currentIndex - 1 + tabs.length) % tabs.length;
-    
-    return { swipeDirection, progress, previewIndex };
-  }, [currentIndex, tabs.length]);
-
-  // Clear preview state
-  const clearPreview = useCallback(() => {
-    setPreviewState({
-      isPreview: false,
-      previewIndex: -1,
-      swipeDirection: 0,
-      swipeProgress: 0
-    });
-    
-    if (previewTimeoutRef.current) {
-      clearTimeout(previewTimeoutRef.current);
-      previewTimeoutRef.current = null;
-    }
-  }, []);
+  // Simplified swipe logic - removed complex preview calculations
 
   const handlers = useSwipeable({
     onSwipeStart: (eventData: SwipeEventData) => {
@@ -199,51 +162,12 @@ export function TabContainer({
     onSwipedLeft: (eventData: SwipeEventData) => {
       if (!swipingEnabled) return;
       
-      const event = eventData.event as TouchEvent | MouseEvent;
       const isBrowser = isBrowserEnvironment();
       const isDesktop = isDesktopBrowser();
       
-      // Prevent browser navigation for desktop users
-      if (isBrowser || isDesktop) {
-        event.preventDefault?.();
-        event.stopPropagation?.();
-        
-        // For browsers, use more restrictive swipe detection
-        if (eventData.velocity < 0.3) {
-          // Reset swiping state
-          isSwipingRef.current = false;
-          return;
-        }
-      }
-      
-      let startX: number;
-      
-      if ('touches' in event && event.touches.length > 0) {
-        startX = event.touches[0].clientX;
-      } else if ('clientX' in event) {
-        startX = event.clientX;
-      } else {
-        if (!isBrowser) changeTab(1);
-        // Reset swiping state
-        isSwipingRef.current = false;
-        return;
-      }
-      
-      const screenWidth = window.innerWidth;
-      
-      // Adjusted edge detection for different environments
-      if (isBrowser || isDesktop) {
-        // More restrictive for browsers - require larger screen area engagement
-        const isInSwipeZone = startX >= 100 && startX <= screenWidth - 100;
-        if (isInSwipeZone && eventData.velocity > 0.5) {
-          changeTab(1);
-        }
-      } else {
-        // Original mobile logic - outer edge detection
-        const isInOuterEdge = startX <= 70 || startX >= screenWidth - 70;
-        if (isInOuterEdge) {
-          changeTab(1);
-        }
+      // Simplified swipe detection with consistent behavior across platforms
+      if (eventData.velocity > 0.3 && Math.abs(eventData.deltaX) > 50) {
+        changeTab(1); // Go to next tab
       }
       
       // Reset swiping state after a short delay
@@ -254,51 +178,12 @@ export function TabContainer({
     onSwipedRight: (eventData: SwipeEventData) => {
       if (!swipingEnabled) return;
       
-      const event = eventData.event as TouchEvent | MouseEvent;
       const isBrowser = isBrowserEnvironment();
       const isDesktop = isDesktopBrowser();
       
-      // Prevent browser navigation for desktop users
-      if (isBrowser || isDesktop) {
-        event.preventDefault?.();
-        event.stopPropagation?.();
-        
-        // For browsers, use more restrictive swipe detection
-        if (eventData.velocity < 0.3) {
-          // Reset swiping state
-          isSwipingRef.current = false;
-          return;
-        }
-      }
-      
-      let startX: number;
-      
-      if ('touches' in event && event.touches.length > 0) {
-        startX = event.touches[0].clientX;
-      } else if ('clientX' in event) {
-        startX = event.clientX;
-      } else {
-        if (!isBrowser) changeTab(-1);
-        // Reset swiping state
-        isSwipingRef.current = false;
-        return;
-      }
-      
-      const screenWidth = window.innerWidth;
-      
-      // Adjusted edge detection for different environments
-      if (isBrowser || isDesktop) {
-        // More restrictive for browsers - require larger screen area engagement
-        const isInSwipeZone = startX >= 100 && startX <= screenWidth - 100;
-        if (isInSwipeZone && eventData.velocity > 0.5) {
-          changeTab(-1);
-        }
-      } else {
-        // Original mobile logic - outer edge detection
-        const isInOuterEdge = startX <= 70 || startX >= screenWidth - 70;
-        if (isInOuterEdge) {
-          changeTab(-1);
-        }
+      // Simplified swipe detection with consistent behavior across platforms
+      if (eventData.velocity > 0.3 && Math.abs(eventData.deltaX) > 50) {
+        changeTab(-1); // Go to previous tab
       }
       
       // Reset swiping state after a short delay
@@ -320,50 +205,17 @@ export function TabContainer({
         isSwipingRef.current = true;
       }
       
-      // Half-swipe preview functionality
-      if (swipingEnabled && tabs.length > 1) {
-        const { deltaX } = eventData;
-        const screenWidth = window.innerWidth;
-        const minSwipeDistance = 20; // Minimum distance to start preview
-        
-        if (Math.abs(deltaX) > minSwipeDistance) {
-          const { swipeDirection, progress, previewIndex } = calculatePreviewProgress(deltaX, screenWidth);
-          
-          setPreviewState({
-            isPreview: true,
-            previewIndex,
-            swipeDirection,
-            swipeProgress: progress
-          });
-          
-          // Clear any existing preview timeout
-          if (previewTimeoutRef.current) {
-            clearTimeout(previewTimeoutRef.current);
-            previewTimeoutRef.current = null;
-          }
-        }
-      }
+      // Store the current swipe progress for threshold detection
+      swipeThresholdRef.current = Math.abs(eventData.deltaX);
     },
     onTouchEndOrOnMouseUp: () => {
-      const screenWidth = window.innerWidth;
-      const commitThreshold = screenWidth * 0.25; // 25% of screen width to commit to tab switch
-      
-      // Check if we should commit to the tab switch based on preview progress
-      if (previewState.isPreview && previewState.swipeProgress > 0.25) { // Use progress threshold instead
-        // Commit to tab change
-        changeTab(previewState.swipeDirection);
-        clearPreview();
-      } else {
-        // Snap back to current tab with smooth transition
-        previewTimeoutRef.current = setTimeout(() => {
-          clearPreview();
-        }, 150);
-      }
-      
       // Reset swiping state when touch/mouse ends
       swipeTimeoutRef.current = setTimeout(() => {
         isSwipingRef.current = false;
       }, 200);
+      
+      // Reset swipe threshold
+      swipeThresholdRef.current = 0;
     },
     delta: isBrowserEnvironment() || isDesktopBrowser() ? 120 : 80,
     preventScrollOnSwipe: false,
@@ -381,31 +233,14 @@ export function TabContainer({
       if (swipeTimeoutRef.current) {
         clearTimeout(swipeTimeoutRef.current);
       }
-      if (previewTimeoutRef.current) {
-        clearTimeout(previewTimeoutRef.current);
-      }
     };
   }, []);
 
-  // Preview animation variants
-  const previewVariants = {
-    hidden: { x: '100%', opacity: 0 },
-    preview: (progress: number) => ({
-      x: `${100 - (progress * 40)}%`, // Slide in up to 40% of screen width
-      opacity: 0.3 + (progress * 0.7), // Fade in as it slides
-    }),
-    visible: { x: 0, opacity: 1 }
-  };
-
   const activeTabContent = tabs[currentIndex];
-  const previewTabContent = previewState.isPreview && previewState.previewIndex >= 0 
-    ? tabs[previewState.previewIndex] 
-    : null;
 
   return (
     <div {...handlers} className="relative overflow-hidden w-full h-full flex-grow safe-scroll-area">
-      <AnimatePresence initial={false} custom={direction} mode="popLayout">
-        {/* Active Tab Content */}
+      <AnimatePresence initial={false} custom={direction} mode="wait">
         <motion.div
           key={currentIndex}
           role="tabpanel"
@@ -421,48 +256,11 @@ export function TabContainer({
             opacity: { duration: 0.2 },
           }}
           className="absolute w-full h-full overflow-y-auto overflow-x-hidden safe-scroll-area"
-          style={{
-            transform: previewState.isPreview 
-              ? `translateX(${previewState.swipeDirection === 1 ? -previewState.swipeProgress * 20 : previewState.swipeProgress * 20}%)` 
-              : undefined,
-            opacity: previewState.isPreview ? 1 - (previewState.swipeProgress * 0.3) : 1
-          }}
         >
           <div className="h-full w-full max-w-full">
             {activeTabContent}
           </div>
         </motion.div>
-
-        {/* Preview Tab Content */}
-        {previewState.isPreview && previewTabContent && (
-          <motion.div
-            key={`preview-${previewState.previewIndex}`}
-            role="tabpanel"
-            custom={previewState.swipeProgress}
-            variants={previewVariants}
-            initial="hidden"
-            animate="preview"
-            exit="hidden"
-            transition={{
-              type: 'spring',
-              stiffness: 400,
-              damping: 40,
-              duration: 0.1
-            }}
-            className="absolute w-full h-full overflow-y-auto overflow-x-hidden safe-scroll-area"
-            style={{
-              zIndex: previewState.swipeDirection === 1 ? 2 : 0, // Next tab on top, previous tab behind
-              transform: previewState.swipeDirection === 1 
-                ? `translateX(${100 - (previewState.swipeProgress * 100)}%)` 
-                : `translateX(${-100 + (previewState.swipeProgress * 100)}%)`,
-              opacity: 0.3 + (previewState.swipeProgress * 0.7)
-            }}
-          >
-            <div className="h-full w-full max-w-full">
-              {previewTabContent}
-            </div>
-          </motion.div>
-        )}
       </AnimatePresence>
     </div>
   );

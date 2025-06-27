@@ -435,13 +435,8 @@ export const createTimetableEntry = async (
   const client = getAuthenticatedClient(getToken);
 
   try {
-    // Ensure user profile exists in Supabase (creates if missing)
-    const profile = await getUserProfileWithAutoCreation(getToken);
-    const userProfileId = profile.id;
-
     const insertData = {
       ...entryData,
-      user_id: userProfileId, // Include the user ID from profiles table (for foreign key)
       // Convert Date objects to ISO strings if present
       semester_start_date: entryData.semester_start_date && typeof entryData.semester_start_date === 'object' && 'toISOString' in entryData.semester_start_date
         ? (entryData.semester_start_date as Date).toISOString().split('T')[0] 
@@ -449,7 +444,9 @@ export const createTimetableEntry = async (
       semester_end_date: entryData.semester_end_date && typeof entryData.semester_end_date === 'object' && 'toISOString' in entryData.semester_end_date
         ? (entryData.semester_end_date as Date).toISOString().split('T')[0] 
         : entryData.semester_end_date,
-    } as TimetableEntryInsert;
+    };
+
+    // user_id will be automatically set by the database trigger from the Clerk JWT
 
     const { data, error } = await client
       .from('user_timetables')
