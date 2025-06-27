@@ -36,6 +36,50 @@ export async function GET(request: NextRequest) {
       periodEnd.setMonth(periodEnd.getMonth() + 1);
     }
 
+    // Store authorization for recurring billing if available
+    if (transaction.authorization && transaction.authorization.reusable) {
+      const authData = {
+        clerk_user_id,
+        email: transaction.customer.email,
+        authorization_code: transaction.authorization.authorization_code,
+        bin: transaction.authorization.bin,
+        last4: transaction.authorization.last4,
+        exp_month: transaction.authorization.exp_month,
+        exp_year: transaction.authorization.exp_year,
+        card_type: transaction.authorization.card_type,
+        bank: transaction.authorization.bank,
+        channel: transaction.authorization.channel,
+        signature: transaction.authorization.signature,
+        reusable: transaction.authorization.reusable,
+        country_code: transaction.authorization.country_code,
+        account_name: transaction.authorization.account_name,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Store or update authorization
+      const { data: existingAuth } = await supabase
+        .from('payment_authorizations')
+        .select('*')
+        .eq('clerk_user_id', clerk_user_id)
+        .eq('signature', transaction.authorization.signature)
+        .single();
+
+      if (existingAuth) {
+        await supabase
+          .from('payment_authorizations')
+          .update({
+            ...authData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingAuth.id);
+      } else {
+        await supabase
+          .from('payment_authorizations')
+          .insert(authData);
+      }
+    }
+
     // Handle subscription update/creation
     const { data: existingSubscription } = await supabase
       .from('user_subscriptions')
@@ -64,6 +108,16 @@ export async function GET(request: NextRequest) {
           current_period_end: periodEnd.toISOString()
         });
     }
+
+    // Update payment transaction with success status
+    await supabase
+      .from('payment_transactions')
+      .update({
+        status: 'completed',
+        paid_at: transaction.paid_at,
+        gateway_response: transaction.gateway_response
+      })
+      .eq('reference', reference);
 
     return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings/subscription?success=payment_completed`);
 

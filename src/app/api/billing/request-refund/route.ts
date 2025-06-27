@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabase } from '@/lib/supabase/client';
+import { PaystackService } from '@/lib/payments/PaystackService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,23 +15,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { userEmail, reason, subscriptionId } = await request.json();
+    const { userEmail, reason, subscriptionId, transactionReferenceOrId } = await request.json();
 
-    if (!userEmail || !reason) {
+    if (!userEmail || !reason || !transactionReferenceOrId) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields (userEmail, reason, transactionReferenceOrId)' },
         { status: 400 }
       );
     }
 
     let requestId = 'temp-' + Date.now();
 
-    // Check if Supabase client is available
-    if (!supabase) {
-      console.error('Supabase client not available');
-      // Continue without logging to database
-    } else {
-      // Log the refund request to the database
+    // Log the refund request to the database (optional, for audit)
+    if (supabase) {
       const { data, error } = await supabase
         .from('refund_requests')
         .insert({
@@ -40,48 +37,30 @@ export async function POST(request: NextRequest) {
           reason: reason,
           status: 'pending',
           requested_at: new Date().toISOString(),
+          transaction_reference: transactionReferenceOrId,
         })
         .select()
         .single();
-
-      if (error) {
-        console.error('Error logging refund request:', error);
-        // Continue even if logging fails
-      } else if (data?.id) {
+      if (!error && data?.id) {
         requestId = data.id;
       }
     }
 
-    // Here you would typically integrate with your payment processor
-    // For Paystack, you might use their refund API
-    // For now, we'll simulate a successful request submission
-
-    // Send notification email to admin (simulate)
-    const adminNotification = {
-      to: 'support@memospark.com',
-      subject: `New Refund Request from ${userEmail}`,
-      body: `
-        User: ${userEmail}
-        Subscription ID: ${subscriptionId || 'N/A'}
-        Reason: ${reason}
-        Requested At: ${new Date().toISOString()}
-        
-        Please review and process this refund request.
-      `
-    };
-
-    console.log('Refund request submitted:', adminNotification);
+    // Call Paystack refund API
+    const paystack = new PaystackService();
+    const refundResult = await paystack.refundTransaction(transactionReferenceOrId);
 
     return NextResponse.json({
       success: true,
-      message: 'Refund request submitted successfully',
-      requestId: requestId,
+      message: 'Refund request submitted to Paystack',
+      requestId,
+      paystack: refundResult,
     });
 
   } catch (error) {
     console.error('Error processing refund request:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : error },
       { status: 500 }
     );
   }

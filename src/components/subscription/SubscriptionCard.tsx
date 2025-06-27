@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Crown, Calendar, CreditCard } from 'lucide-react';
 import type { UserSubscriptionData } from '@/types/subscription';
+import { useRouter } from 'next/navigation';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface SubscriptionCardProps {
   subscriptionData: UserSubscriptionData | null;
@@ -28,6 +30,8 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   onUpgrade,
   isLoading = false
 }) => {
+  const router = useRouter();
+
   if (isLoading) {
     return (
       <Card>
@@ -57,7 +61,23 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {isPremium && <Crown className="h-6 w-6 text-yellow-500" />}
+            {isPremium && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="Go to Billing"
+                      onClick={() => router.push('/settings/subscription?tab=billing')}
+                      className="focus:outline-none"
+                    >
+                      <Crown className="h-6 w-6 text-yellow-500 hover:scale-110 transition-transform" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Go to Billing</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
             <div>
               <CardTitle className="text-xl font-bold">
                 {tier?.display_name || 'Free Plan'}

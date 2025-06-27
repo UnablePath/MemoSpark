@@ -396,4 +396,62 @@ export class PaystackService {
   getPublicKey(): string {
     return this.config.publicKey;
   }
+
+  /**
+   * Refund a transaction
+   */
+  async refundTransaction(transaction: string | number): Promise<any> {
+    try {
+      const response = await fetch(`${this.config.baseUrl}/refund`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.config.secretKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ transaction }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to refund transaction');
+      }
+      return data;
+    } catch (error) {
+      console.error('Paystack refund error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Charge a saved authorization for recurring billing
+   */
+  async chargeAuthorization(params: {
+    authorization_code: string;
+    email: string;
+    amount: number; // In kobo (smallest currency unit)
+    metadata?: any;
+  }): Promise<any> {
+    try {
+      const response = await fetch(`${this.config.baseUrl}/transaction/charge_authorization`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.config.secretKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          authorization_code: params.authorization_code,
+          email: params.email,
+          amount: params.amount,
+          metadata: params.metadata || {},
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to charge authorization');
+      }
+      return data;
+    } catch (error) {
+      console.error('Paystack charge authorization error:', error);
+      throw error;
+    }
+  }
 } 

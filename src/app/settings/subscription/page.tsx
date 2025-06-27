@@ -27,6 +27,9 @@ export default function SubscriptionPage() {
   const [refundReason, setRefundReason] = useState('');
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
   const [isRequestingRefund, setIsRequestingRefund] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<any>(null);
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+  const [isLoadingPayments, setIsLoadingPayments] = useState(false);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -106,15 +109,38 @@ export default function SubscriptionPage() {
     setActiveTab('billing');
   };
 
+  // Fetch payment history for refund selection
+  const loadPaymentHistoryForRefund = async () => {
+    setIsLoadingPayments(true);
+    try {
+      const res = await fetch('/api/billing/payment-history');
+      if (res.ok) {
+        const data = await res.json();
+        setPaymentHistory(data.filter((p: any) => {
+          // Only allow refund for completed payments within 7 days
+          const paidAt = new Date(p.paid_at);
+          const now = new Date();
+          const diffDays = (now.getTime() - paidAt.getTime()) / (1000 * 60 * 60 * 24);
+          return p.status === 'completed' && diffDays <= 7;
+        }));
+      }
+    } finally {
+      setIsLoadingPayments(false);
+    }
+  };
+
+  const handleOpenRefundModal = () => {
+    setIsRefundModalOpen(true);
+    loadPaymentHistoryForRefund();
+  };
+
   const handleRefundRequest = async () => {
-    if (!refundReason.trim()) {
-      toast.error('Please provide a reason for the refund request');
+    if (!refundReason.trim() || !selectedPayment) {
+      toast.error('Please provide a reason and select a payment to refund');
       return;
     }
-
     try {
       setIsRequestingRefund(true);
-      
       const response = await fetch('/api/billing/request-refund', {
         method: 'POST',
         headers: {
@@ -124,15 +150,17 @@ export default function SubscriptionPage() {
           userEmail: user?.emailAddresses?.[0]?.emailAddress,
           reason: refundReason,
           subscriptionId: subscriptionData?.subscription?.id,
+          transactionReferenceOrId: selectedPayment.reference || selectedPayment.id,
         }),
       });
-
       if (response.ok) {
         toast.success('Refund request submitted successfully. Our team will review and respond within 24 hours.');
         setIsRefundModalOpen(false);
         setRefundReason('');
+        setSelectedPayment(null);
       } else {
-        throw new Error('Failed to submit refund request');
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to submit refund request');
       }
     } catch (error) {
       console.error('Refund request error:', error);
@@ -186,12 +214,26 @@ export default function SubscriptionPage() {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="usage">Usage & Limits</TabsTrigger>
-          <TabsTrigger value="plans">Compare Plans</TabsTrigger>
-          <TabsTrigger value="billing">Billing</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="flex w-max min-w-full h-auto p-1">
+            <TabsTrigger value="overview" className="flex-1 min-w-0 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+              <span className="hidden sm:inline">Overview</span>
+              <span className="sm:hidden">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="usage" className="flex-1 min-w-0 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+              <span className="hidden sm:inline">Usage & Limits</span>
+              <span className="sm:hidden">Usage</span>
+            </TabsTrigger>
+            <TabsTrigger value="plans" className="flex-1 min-w-0 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+              <span className="hidden sm:inline">Compare Plans</span>
+              <span className="sm:hidden">Plans</span>
+            </TabsTrigger>
+            <TabsTrigger value="billing" className="flex-1 min-w-0 px-3 py-2 text-xs sm:text-sm whitespace-nowrap">
+              <span className="hidden sm:inline">Billing</span>
+              <span className="sm:hidden">Billing</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
@@ -305,7 +347,7 @@ export default function SubscriptionPage() {
                   </div>
                   <Dialog open={isRefundModalOpen} onOpenChange={setIsRefundModalOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="outline">
+                      <Button variant="outline" onClick={handleOpenRefundModal}>
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Request Refund
                       </Button>
@@ -314,10 +356,34 @@ export default function SubscriptionPage() {
                       <DialogHeader>
                         <DialogTitle>Request Refund</DialogTitle>
                         <DialogDescription>
-                          Tell us why you'd like a refund and we'll process your request within 24 hours.
+                          Select a payment to refund and tell us why. Only completed payments within 7 days are eligible.
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Select Payment</label>
+                          {isLoadingPayments ? (
+                            <div className="text-muted-foreground text-sm">Loading payments...</div>
+                          ) : paymentHistory.length === 0 ? (
+                            <div className="text-muted-foreground text-sm">No eligible payments found for refund.</div>
+                          ) : (
+                            <select
+                              className="w-full border rounded p-2"
+                              value={selectedPayment?.reference || ''}
+                              onChange={e => {
+                                const ref = e.target.value;
+                                setSelectedPayment(paymentHistory.find(p => p.reference === ref));
+                              }}
+                            >
+                              <option value="">Select a payment</option>
+                              {paymentHistory.map(payment => (
+                                <option key={payment.reference} value={payment.reference}>
+                                  {payment.tier_name} - {payment.amount} {payment.currency} on {new Date(payment.paid_at).toLocaleDateString()} ({payment.reference})
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Reason for refund</label>
                           <Textarea
@@ -337,7 +403,7 @@ export default function SubscriptionPage() {
                           </Button>
                           <Button
                             onClick={handleRefundRequest}
-                            disabled={isRequestingRefund || !refundReason.trim()}
+                            disabled={isRequestingRefund || !refundReason.trim() || !selectedPayment}
                           >
                             {isRequestingRefund ? (
                               <Loader2 className="h-4 w-4 animate-spin mr-2" />

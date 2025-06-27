@@ -211,21 +211,22 @@ export const BillingPortal: React.FC<BillingPortalProps> = ({ className }) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
+            <div className="grid gap-4 space-y-0 sm:grid-cols-1 md:grid-cols-2">
               {availableTiers.filter(tier => tier.id !== 'free' && tier.id !== 'enterprise').map((tier) => (  
-                <div key={tier.id} className="border rounded-lg p-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
-                    <h3 className="text-lg font-semibold">{tier.display_name}</h3>
-                    {tier.id === 'premium' && (
-                      <Badge variant="outline" className="text-xs w-fit">
-                        7-day free trial
-                      </Badge>
-                    )}
+                <div key={tier.id} className="border rounded-lg p-4 min-h-[260px] flex flex-col justify-between space-y-4">
+                  <div>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
+                      <h3 className="text-lg font-semibold break-words">{tier.display_name}</h3>
+                      {tier.id === 'premium' && (
+                        <Badge variant="outline" className="text-xs w-fit">
+                          7-day free trial
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4 break-words">
+                      {tier.description}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {tier.description}
-                  </p>
-                  
                   <div className="space-y-2 mb-4">
                     <div className="flex justify-between">
                       <span>Monthly:</span>
@@ -240,7 +241,6 @@ export const BillingPortal: React.FC<BillingPortalProps> = ({ className }) => {
                       </span>
                     </div>
                   </div>
-
                   <div className="space-y-2">
                     <Button
                       onClick={() => handleUpgrade(tier.id, 'monthly')}
@@ -263,7 +263,6 @@ export const BillingPortal: React.FC<BillingPortalProps> = ({ className }) => {
                       ) : null}
                       Upgrade Yearly (Save 20%)
                     </Button>
-                    
                     {/* Money-back guarantee */}
                     <div className="flex items-center gap-1 text-xs text-muted-foreground justify-center">
                       <AlertCircle className="h-3 w-3" />
@@ -272,17 +271,17 @@ export const BillingPortal: React.FC<BillingPortalProps> = ({ className }) => {
                   </div>
                 </div>
               ))}
-              
               {/* Coming Soon Enterprise Tier */}
-              <div className="border rounded-lg p-4 opacity-75 bg-muted/20">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-semibold">Enterprise</h3>
-                  <Badge variant="secondary">Coming Soon</Badge>
+              <div className="border rounded-lg p-4 min-h-[260px] flex flex-col justify-between space-y-4 opacity-75 bg-muted/20">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg font-semibold break-words">Enterprise</h3>
+                    <Badge variant="secondary">Coming Soon</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4 break-words">
+                    Unlimited AI with advanced analytics and priority support
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Unlimited AI with advanced analytics and priority support
-                </p>
-                
                 <div className="space-y-2 mb-4 text-muted-foreground">
                   <div className="flex justify-between">
                     <span>Monthly:</span>
@@ -297,7 +296,6 @@ export const BillingPortal: React.FC<BillingPortalProps> = ({ className }) => {
                     <span>✓</span>
                   </div>
                 </div>
-
                 <Button
                   disabled
                   className="w-full"
