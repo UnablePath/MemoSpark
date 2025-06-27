@@ -22,7 +22,7 @@ export function ConditionalHeader() {
     >
       <div className="flex items-center gap-3">
         <Link href={pathname === '/dashboard' ? "/dashboard" : "/"} aria-label="MemoSpark Home" className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md">
-          <MemoSparkLogoSvg height={28} /> {/* Slightly reduced logo height to fit new header height */}
+          <MemoSparkLogoSvg height={27} /> {/* Slightly reduced logo height to fit new header height */}
         </Link>
         {/* "Tasks & Events" title removed as per new request */}
       </div>

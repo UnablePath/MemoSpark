@@ -88,7 +88,7 @@ export default function DashboardPage() {
       {/* Integrated header elements for dashboard: Logo, Tier Info, and UserButton */}
       <div className="flex items-center justify-between px-2 sm:px-3 lg:px-4 py-3 sm:py-6 border-b border-border bg-background flex-shrink-0 pt-safe-top">
         <Link href="/" aria-label="MemoSpark Homepage" className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md">
-          <MemoSparkLogoSvg height={38} className="sm:h-12 md:h-14" /> 
+          <MemoSparkLogoSvg height={36} className="sm:h-11 md:h-12" /> 
         </Link>
         
         {/* Right side navigation */}

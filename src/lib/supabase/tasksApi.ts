@@ -426,7 +426,7 @@ export const getTimetableEntryById = async (
 
 /**
  * Create a new timetable entry
- * Now uses Clerk-Supabase integration - RLS policies handle user authentication automatically
+ * Now uses Clerk-Supabase integration - gets user profile UUID and inserts directly
  */
 export const createTimetableEntry = async (
   entryData: Omit<TimetableEntryInsert, 'user_id'>,
@@ -435,8 +435,15 @@ export const createTimetableEntry = async (
   const client = getAuthenticatedClient(getToken);
 
   try {
+    // First, get the user's profile to get the UUID
+    const profile = await getUserProfileWithAutoCreation(getToken);
+    if (!profile?.id) {
+      throw new SupabaseApiError('Unable to get user profile - please try logging in again');
+    }
+
     const insertData = {
       ...entryData,
+      user_id: profile.id, // Use the profile UUID, not the Clerk user ID
       // Convert Date objects to ISO strings if present
       semester_start_date: entryData.semester_start_date && typeof entryData.semester_start_date === 'object' && 'toISOString' in entryData.semester_start_date
         ? (entryData.semester_start_date as Date).toISOString().split('T')[0] 
@@ -445,8 +452,6 @@ export const createTimetableEntry = async (
         ? (entryData.semester_end_date as Date).toISOString().split('T')[0] 
         : entryData.semester_end_date,
     };
-
-    // user_id will be automatically set by the database trigger from the Clerk JWT
 
     const { data, error } = await client
       .from('user_timetables')
@@ -457,7 +462,6 @@ export const createTimetableEntry = async (
     if (error) {
       handleSupabaseError(error, 'create timetable entry');
     }
-
     return data;
   } catch (error) {
     if (error instanceof SupabaseApiError) throw error;

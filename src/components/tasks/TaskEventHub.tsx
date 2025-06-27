@@ -517,7 +517,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
           </Button>
 
           {/* Desktop view switcher */}
-          <div className="hidden md:flex items-center gap-1 rounded-md bg-muted p-1 group scale-[0.94] lg:scale-100">
+          <div className="hidden md:flex items-center gap-1 rounded-md bg-muted p-1 group">
             {viewOptions.map((option) => (
               <button
                 key={option.id}
@@ -526,11 +526,12 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                   viewTabVariants({
                     state: currentView === option.id ? "active" : "inactive",
                   }),
-                  "px-2 py-1.5 lg:px-3 lg:py-2"
+                  // More reasonable sizing - slightly larger but not overly scaled
+                  "px-3 py-2.5 md:px-4 md:py-3 lg:px-5 lg:py-3.5 xl:px-6 xl:py-4"
                 )}
               >
-                <option.icon className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                <span className="hidden lg:inline text-xs lg:text-sm ml-1">{option.label}</span>
+                <option.icon className="h-4 w-4 md:h-5 md:w-5 lg:h-5 lg:w-5" />
+                <span className="hidden lg:inline text-sm md:text-base lg:text-base ml-1.5 md:ml-2">{option.label}</span>
               </button>
             ))}
             <span className="text-sm text-muted-foreground pl-2 pr-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -545,8 +546,8 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
             </span>
           </div>
 
-          {/* Mobile view switcher - ultra compact for small screens */}
-          <div className="flex md:hidden items-center gap-[1px] xs:gap-0.5 rounded-md bg-muted p-[1px] xs:p-0.5 flex-shrink-0 overflow-x-auto max-w-full">
+          {/* Mobile view switcher - optimized for better balance */}
+          <div className="flex md:hidden items-center gap-1 rounded-md bg-muted p-1 flex-shrink-0 overflow-x-auto max-w-full">
             {viewOptions.map((option) => (
               <button
                 key={option.id}
@@ -555,14 +556,14 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                   viewTabVariants({
                     state: currentView === option.id ? "active" : "inactive",
                   }),
-                  // Ultra compact for very small screens, gradually bigger
-                  "px-1 py-1 xs:px-1.5 xs:py-1.5 sm:px-2 sm:py-2 min-w-[32px] xs:min-w-[36px] sm:min-w-[40px] flex items-center justify-center flex-shrink-0"
+                  // More balanced sizing for mobile screens
+                  "px-2 py-2 xs:px-3 xs:py-2.5 sm:px-4 sm:py-3 min-w-[40px] xs:min-w-[44px] sm:min-w-[48px] flex items-center justify-center flex-shrink-0"
                 )}
                 title={option.label}
               >
-                <option.icon className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                <option.icon className="h-4 w-4 xs:h-4 xs:w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                 {/* Only show text on larger mobile screens and use abbreviated text for smart schedule */}
-                <span className="hidden xs:inline ml-1 text-[10px] xs:text-xs sm:text-sm truncate">
+                <span className="hidden xs:inline ml-1.5 text-xs xs:text-xs sm:text-sm truncate">
                   {option.id === 'smart-schedule' ? 'Smart' : 
                    option.id === 'timetable' ? 'Time' : 
                    option.id === 'calendar' ? 'Cal' : 

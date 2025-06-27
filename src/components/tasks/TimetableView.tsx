@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   AlertTriangle,
@@ -13,6 +13,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from '@clerk/nextjs';
 import {
   useFetchTimetableEntries,
   useDeleteTimetableEntry,
@@ -89,8 +90,14 @@ export const TimetableView: React.FC<TimetableViewProps> = ({
   endHour = DEFAULT_END_HOUR,
   daysToDisplay = DEFAULT_DAYS,
 }) => {
+  const { getToken } = useAuth();
   const [selectedEntry, setSelectedEntry] = useState<TimetableEntry | null>(
     null,
+  );
+
+  // Create token provider function for Supabase integration
+  const getTokenForSupabase = useCallback(() => 
+    getToken({ template: 'supabase-integration' }), [getToken]
   );
 
   // Fetch timetable data
@@ -99,10 +106,10 @@ export const TimetableView: React.FC<TimetableViewProps> = ({
     isLoading,
     error,
     refetch,
-  } = useFetchTimetableEntries();
+  } = useFetchTimetableEntries(undefined, getTokenForSupabase);
 
   // Delete mutation
-  const deleteEntryMutation = useDeleteTimetableEntry();
+  const deleteEntryMutation = useDeleteTimetableEntry(getTokenForSupabase);
 
   // Calculate time slots
   const timeSlots = useMemo(() => {
@@ -540,10 +547,8 @@ export const TimetableView: React.FC<TimetableViewProps> = ({
       role="main"
       aria-label="Timetable view"
     >
-      <AnimatePresence mode="wait">
-        {renderDesktopGrid()}
-        {renderMobileList()}
-      </AnimatePresence>
+      {renderDesktopGrid()}
+      {renderMobileList()}
     </main>
   );
 };
