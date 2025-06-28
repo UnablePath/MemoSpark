@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon, Clock, AlertCircle, Repeat, Info, Target, Brain, Sparkles, Crown, X } from 'lucide-react';
+import { CalendarIcon, Clock, AlertCircle, Repeat, Info, Target, Brain, Sparkles, Crown, X, Bell } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 import { useCreateTask, useUpdateTask, useGetTask } from '@/hooks/useTaskQueries';
 import { cn } from '@/lib/utils';
@@ -804,29 +804,129 @@ export const TaskForm: React.FC<TaskFormProps> = ({
             <section>
               <h3 className="text-lg font-semibold mb-4">Reminders</h3>
               
-              <FormField
-                control={form.control}
-                name="reminder_settings.enabled"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none flex-1">
-                      <FormLabel className="text-sm font-medium cursor-pointer">
-                        Enable Reminders
-                      </FormLabel>
-                      <FormDescription className="text-xs text-muted-foreground">
-                        Get notified before the task is due to help you stay on track.
-                      </FormDescription>
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="reminder_settings.enabled"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none flex-1">
+                        <FormLabel className="text-sm font-medium cursor-pointer">
+                          Enable Reminders
+                        </FormLabel>
+                        <FormDescription className="text-xs text-muted-foreground">
+                          Get AI-powered smart reminders before the task is due to help you stay on track.
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Enhanced reminder settings when enabled */}
+                {form.watch('reminder_settings.enabled') && (
+                  <div className="space-y-4 pl-6 border-l-2 border-blue-200 dark:border-blue-800">
+                    <FormField
+                      control={form.control}
+                      name="reminder_settings.offset_minutes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium">
+                            Remind me before the task is due
+                          </FormLabel>
+                          <Select 
+                            value={field.value?.toString() || "15"} 
+                            onValueChange={(value) => field.onChange(parseInt(value))}
+                            disabled={isLoading}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="h-11">
+                                <SelectValue placeholder="Select reminder time" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="5">5 minutes before</SelectItem>
+                              <SelectItem value="10">10 minutes before</SelectItem>
+                              <SelectItem value="15">15 minutes before</SelectItem>
+                              <SelectItem value="30">30 minutes before</SelectItem>
+                              <SelectItem value="60">1 hour before</SelectItem>
+                              <SelectItem value="120">2 hours before</SelectItem>
+                              <SelectItem value="1440">1 day before</SelectItem>
+                              <SelectItem value="2880">2 days before</SelectItem>
+                              <SelectItem value="10080">1 week before</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormDescription className="text-xs text-muted-foreground">
+                            Choose when you want to be reminded before the deadline.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="reminder_settings.type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium">
+                            How would you like to be reminded?
+                          </FormLabel>
+                          <Select 
+                            value={field.value || "notification"} 
+                            onValueChange={field.onChange}
+                            disabled={isLoading}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="h-11">
+                                <SelectValue placeholder="Select reminder type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="notification">📱 Push notification</SelectItem>
+                              <SelectItem value="email">📧 Email</SelectItem>
+                              <SelectItem value="both">📱📧 Both notification & email</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormDescription className="text-xs text-muted-foreground">
+                            Choose how you want to receive your reminders.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Notification Setup Notice */}
+                    <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                      <div className="flex items-start space-x-2">
+                        <div className="flex-shrink-0">
+                          <Bell className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-blue-800 dark:text-blue-200">
+                            📱 Push Notifications Setup Required
+                          </p>
+                          <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                            Current reminder: {form.watch('reminder_settings.offset_minutes') || 15} minutes before via {form.watch('reminder_settings.type') || 'notification'}
+                          </p>
+                          <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                            To receive reminder notifications, enable push notifications in your browser when prompted after creating this task.
+                          </p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                            ✨ Your reminders will be scheduled with AI-powered smart timing even if notifications aren't enabled yet!
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </FormItem>
+                  </div>
                 )}
-              />
+              </div>
             </section>
 
             {/* Repeat Settings */}

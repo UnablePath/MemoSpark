@@ -3,6 +3,9 @@ import { auth } from '@clerk/nextjs/server';
 import { supabaseServerAdmin } from '@/lib/supabase/server';
 import { coinEconomy } from '@/lib/gamification/CoinEconomy';
 
+// Enable Next.js edge caching for GET requests (5 minutes for themes - rarely change)
+export const revalidate = 300;
+
 // Theme definitions matching our database schema
 const AVAILABLE_THEMES = [
   {

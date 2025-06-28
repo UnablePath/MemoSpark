@@ -11,19 +11,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format, isPast, isToday, addDays } from "date-fns";
-import { FaCalendarAlt, FaCheckCircle, FaStar, FaInfoCircle, FaPlus, FaCog, FaClock, FaBrain, FaCoins } from "react-icons/fa";
+import { format, isPast, isToday, addDays, isWithinInterval, subDays } from "date-fns";
+import { FaCalendarAlt, FaCheckCircle, FaStar, FaInfoCircle, FaPlus, FaCog, FaClock, FaBrain, FaCoins, FaFilter, FaEye, FaEyeSlash } from "react-icons/fa";
 import { CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { KoalaMascot } from "@/components/ui/koala-mascot";
 import { cn } from "@/lib/utils";
 import { useReminders } from "@/hooks/useReminders";
-import { useAchievements } from "@/hooks/useAchievements";
+import { useFetchAchievements } from "@/hooks/useAchievementQueries";
 import { checkAchievementProgress } from "@/lib/supabase/client";
 import { RemindersSkeleton } from "./RemindersSkeleton";
 import { ReminderSettings } from "./ReminderSettings";
 import type { Reminder, ReminderCreateInput } from "@/types/reminders";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { CelebrationOverlay } from "@/components/stu";
 import { StuLottieAnimation } from "@/components/stu/StuLottieAnimation";
 import { RewardShop } from "@/components/gamification/RewardShop";
@@ -40,8 +40,35 @@ const stuMessages = {
 
 const RemindersTab = () => {
     const { userId, getToken } = useAuth();
+    const { user } = useUser();
     const { reminders, loading, error, editReminder, addReminder } = useReminders();
-    const { userStats, userAchievements, reload: reloadAchievements } = useAchievements();
+    const { data: achievementsData } = useFetchAchievements();
+  
+  // Extract data from consolidated response
+  const achievements = achievementsData?.achievements || [];
+  const userAchievements = achievements.filter(a => a.unlocked).map(achievement => ({
+    id: achievement.id,
+    user_id: user?.id || '',
+    achievement_id: achievement.id,
+    unlocked_at: achievement.unlockedAt || new Date().toISOString(),
+    progress: achievement.userProgress || {},
+    achievements: achievement
+  }));
+  
+  // Mock userStats for compatibility
+  const userStats = {
+    user_id: user?.id || '',
+    total_points: achievements.reduce((sum, a) => sum + (a.unlocked ? a.points_reward : 0), 0),
+    level: 1,
+    current_streak: 0,
+    tasks_completed: 0
+  };
+  
+  // Mock reload function (achievements auto-refresh with React Query)
+  const reloadAchievements = () => {
+    // React Query will automatically refresh when data becomes stale
+    console.log('Achievement data will refresh automatically via React Query');
+  };
 
     const [stuMessage, setStuMessage] = useState("");
     const [stuAnimation, setStuAnimation] = useState<"idle" | "talking" | "excited">("idle");
@@ -51,6 +78,10 @@ const RemindersTab = () => {
     const [showAddReminder, setShowAddReminder] = useState(false);
     const [showCoinShop, setShowCoinShop] = useState(false);
     const [coinBalance, setCoinBalance] = useState(0);
+    
+    // Filter and view states
+    const [reminderFilter, setReminderFilter] = useState<'active' | 'completed' | 'all'>('active');
+    const [showCompletedFromLast7Days, setShowCompletedFromLast7Days] = useState(true);
     
     // Add Reminder Form State
     const [reminderForm, setReminderForm] = useState({
@@ -279,6 +310,38 @@ const RemindersTab = () => {
         }
     };
     
+    // Filter and organize reminders
+    const now = new Date();
+    const sevenDaysAgo = subDays(now, 7);
+    
+    const filteredReminders = reminders.filter(reminder => {
+        const isCompleted = reminder.completed;
+        const completedRecently = isCompleted && isWithinInterval(new Date(reminder.updated_at || reminder.created_at), {
+            start: sevenDaysAgo,
+            end: now
+        });
+        
+        switch (reminderFilter) {
+            case 'active':
+                // Show uncompleted + recently completed (last 7 days) if toggle is on
+                return !isCompleted || (showCompletedFromLast7Days && completedRecently);
+            case 'completed':
+                return isCompleted;
+            case 'all':
+                return true;
+            default:
+                return true;
+        }
+    });
+
+    // Organize reminders by status and date
+    const organizedReminders = {
+        overdue: filteredReminders.filter(r => !r.completed && isPast(new Date(r.due_date)) && !isToday(new Date(r.due_date))),
+        today: filteredReminders.filter(r => !r.completed && isToday(new Date(r.due_date))),
+        upcoming: filteredReminders.filter(r => !r.completed && !isPast(new Date(r.due_date)) && !isToday(new Date(r.due_date))),
+        completed: filteredReminders.filter(r => r.completed)
+    };
+
     if (loading) return <RemindersSkeleton />;
     if (error) return <div className="flex items-center justify-center h-full text-red-500"><FaInfoCircle className="mr-4"/>Error: {error.message}</div>;
 
@@ -295,26 +358,160 @@ const RemindersTab = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 p-4 sm:p-6 min-h-full overflow-hidden">
                 {/* Mobile: Reminders First, Desktop: Stu and Stats */}
                 <div className="lg:col-span-2 lg:order-2 flex flex-col">
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-3 sm:gap-0">
-                        <h1 className="text-2xl font-bold">Your Reminders</h1>
-                        <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:gap-2">
-                            <Button variant="outline" onClick={() => setShowReminderSettings(true)} size="sm" className="w-full sm:w-auto">
-                                <FaCog className="mr-2"/> Settings
-                            </Button>
-                            <Button onClick={() => setShowAddReminder(true)} size="sm" className="w-full sm:w-auto">
-                                <FaPlus className="mr-2"/> Add Reminder
-                            </Button>
+                    <div className="flex flex-col gap-4 mb-4">
+                        {/* Header Row */}
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
+                            <h1 className="text-2xl font-bold">Your Reminders</h1>
+                            <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:gap-2">
+                                <Button variant="outline" onClick={() => setShowReminderSettings(true)} size="sm" className="w-full sm:w-auto">
+                                    <FaCog className="mr-2"/> Settings
+                                </Button>
+                                <Button onClick={() => setShowAddReminder(true)} size="sm" className="w-full sm:w-auto">
+                                    <FaPlus className="mr-2"/> Add Reminder
+                                </Button>
+                            </div>
+                        </div>
+                        
+                        {/* Filter Controls */}
+                        <div className="flex flex-col sm:flex-row gap-3 p-3 bg-muted/20 rounded-lg border">
+                            <div className="flex items-center gap-2">
+                                <FaFilter className="text-muted-foreground" />
+                                <span className="text-sm font-medium">View:</span>
+                                <Select value={reminderFilter} onValueChange={(value: 'active' | 'completed' | 'all') => setReminderFilter(value)}>
+                                    <SelectTrigger className="w-32 h-8">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="active">Active</SelectItem>
+                                        <SelectItem value="completed">Completed</SelectItem>
+                                        <SelectItem value="all">All</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            
+                            {reminderFilter === 'active' && (
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setShowCompletedFromLast7Days(!showCompletedFromLast7Days)}
+                                        className="h-8 text-xs"
+                                    >
+                                        {showCompletedFromLast7Days ? <FaEye className="mr-1" /> : <FaEyeSlash className="mr-1" />}
+                                        {showCompletedFromLast7Days ? 'Hide' : 'Show'} recent completed
+                                    </Button>
+                                </div>
+                            )}
+                            
+                            <div className="text-xs text-muted-foreground flex items-center gap-1 ml-auto">
+                                <span>Total: {filteredReminders.length}</span>
+                                {reminderFilter === 'active' && (
+                                    <span>| Active: {organizedReminders.overdue.length + organizedReminders.today.length + organizedReminders.upcoming.length}</span>
+                                )}
+                            </div>
                         </div>
                     </div>
-                    <div className="space-y-3 flex-1 overflow-hidden">
-                        {reminders.length === 0 ? (
+                    <div className="space-y-4 flex-1 overflow-hidden">
+                        {filteredReminders.length === 0 ? (
                             <div className="text-center py-16">
-                                <p className="text-muted-foreground">You're all clear! Add a new reminder.</p>
+                                <p className="text-muted-foreground">
+                                    {reminderFilter === 'active' ? "You're all clear! Add a new reminder." :
+                                     reminderFilter === 'completed' ? "No completed reminders to show." :
+                                     "No reminders yet. Add your first reminder!"}
+                                </p>
                             </div>
                         ) : (
-                            <AnimatePresence>
-                                {reminders.map(r => <ReminderCard key={r.id} reminder={r} onComplete={handleCompleteReminder} />)}
-                            </AnimatePresence>
+                            <div className="space-y-6">
+                                {/* Overdue Section */}
+                                {organizedReminders.overdue.length > 0 && (
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-red-600 mb-3 flex items-center gap-2">
+                                            <FaClock className="text-red-500" />
+                                            Overdue ({organizedReminders.overdue.length})
+                                        </h3>
+                                        <div className="space-y-3">
+                                            <AnimatePresence>
+                                                {organizedReminders.overdue.map(r => 
+                                                    <ReminderCard key={r.id} reminder={r} onComplete={handleCompleteReminder} />
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Today Section */}
+                                {organizedReminders.today.length > 0 && (
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-blue-600 mb-3 flex items-center gap-2">
+                                            <FaCalendarAlt className="text-blue-500" />
+                                            Due Today ({organizedReminders.today.length})
+                                        </h3>
+                                        <div className="space-y-3">
+                                            <AnimatePresence>
+                                                {organizedReminders.today.map(r => 
+                                                    <ReminderCard key={r.id} reminder={r} onComplete={handleCompleteReminder} />
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Upcoming Section */}
+                                {organizedReminders.upcoming.length > 0 && (
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-green-600 mb-3 flex items-center gap-2">
+                                            <FaCalendarAlt className="text-green-500" />
+                                            Upcoming ({organizedReminders.upcoming.length})
+                                        </h3>
+                                        <div className="space-y-3">
+                                            <AnimatePresence>
+                                                {organizedReminders.upcoming.map(r => 
+                                                    <ReminderCard key={r.id} reminder={r} onComplete={handleCompleteReminder} />
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Completed Section */}
+                                {organizedReminders.completed.length > 0 && reminderFilter !== 'active' && (
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-gray-600 mb-3 flex items-center gap-2">
+                                            <FaCheckCircle className="text-green-500" />
+                                            Completed ({organizedReminders.completed.length})
+                                        </h3>
+                                        <div className="space-y-3">
+                                            <AnimatePresence>
+                                                {organizedReminders.completed
+                                                    .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
+                                                    .map(r => 
+                                                        <ReminderCard key={r.id} reminder={r} onComplete={handleCompleteReminder} />
+                                                    )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* Recent Completed (in Active view) */}
+                                {organizedReminders.completed.length > 0 && reminderFilter === 'active' && showCompletedFromLast7Days && (
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-gray-500 mb-3 flex items-center gap-2">
+                                            <FaCheckCircle className="text-green-400" />
+                                            Recently Completed ({organizedReminders.completed.length})
+                                            <span className="text-xs text-muted-foreground font-normal">(last 7 days)</span>
+                                        </h3>
+                                        <div className="space-y-3">
+                                            <AnimatePresence>
+                                                {organizedReminders.completed
+                                                    .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
+                                                    .map(r => 
+                                                        <ReminderCard key={r.id} reminder={r} onComplete={handleCompleteReminder} />
+                                                    )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>

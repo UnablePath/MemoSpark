@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseServerAdmin } from '@/lib/supabase/server';
+import { coinEconomy } from '@/lib/gamification/CoinEconomy';
+
+// Enable Next.js edge caching for GET requests (30 seconds for achievements)
+export const revalidate = 30;
 
 // GET /api/achievements - Fetch user's achievements
 export async function GET(request: NextRequest) {
@@ -37,6 +41,50 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    // Fetch coin balance data (with error handling for partial success)
+    let balanceData = null;
+    try {
+      const balance = await coinEconomy.getCoinBalance(userId);
+      const analytics = await coinEconomy.getCoinAnalytics(userId);
+      
+      balanceData = {
+        success: true,
+        balance: Math.max(0, balance),
+        totalEarned: analytics.total_earned,
+        totalSpent: analytics.total_spent
+      };
+    } catch (balanceError) {
+      console.warn('Error fetching balance data for consolidated response:', balanceError);
+      // Continue without balance data - partial success
+      balanceData = {
+        success: false,
+        balance: 0,
+        error: 'Failed to fetch balance'
+      };
+    }
+
+    // Fetch user's purchased themes data (with error handling for partial success)
+    let themesData = null;
+    try {
+      const { data: purchasedThemes } = await supabaseServerAdmin
+        .from('user_purchased_themes')
+        .select('theme_id, purchased_at, price_paid, metadata')
+        .eq('user_id', userId);
+
+      themesData = {
+        success: true,
+        purchasedThemes: purchasedThemes || []
+      };
+    } catch (themesError) {
+      console.warn('Error fetching themes data for consolidated response:', themesError);
+      // Continue without themes data - partial success
+      themesData = {
+        success: false,
+        purchasedThemes: [],
+        error: 'Failed to fetch themes'
+      };
+    }
+
     return NextResponse.json({
       success: true,
       achievements: achievementsWithProgress,
@@ -44,7 +92,10 @@ export async function GET(request: NextRequest) {
         total: allAchievements?.length || 0,
         unlocked: userAchievements?.length || 0,
         remaining: (allAchievements?.length || 0) - (userAchievements?.length || 0)
-      }
+      },
+      // Consolidated data (new fields for unified response)
+      balance: balanceData,
+      themes: themesData
     });
 
   } catch (error) {

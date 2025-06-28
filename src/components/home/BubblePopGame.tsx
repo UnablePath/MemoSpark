@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Zap, Sparkles, AlertTriangle } from 'lucide-react';
-import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
+import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 
 interface Bubble {
   id: number;
@@ -62,8 +62,8 @@ export function BubblePopGame() {
   const [gameStarted, setGameStarted] = useState(false); // Track if game has been played
   const tabHiddenTime = useRef<number | null>(null);
 
-  // Achievement system
-  const { triggerBubbleGamePlayed, triggerBubbleScoreAchievement } = useAchievementTrigger();
+  // Achievement system (now debounced to prevent spam)
+  const { triggerBubbleGamePlayed, triggerBubbleScoreAchievement } = useDebouncedAchievementTrigger();
 
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const nextBubbleId = useRef(0);

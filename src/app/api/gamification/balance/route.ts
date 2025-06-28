@@ -3,6 +3,9 @@ import { auth } from '@clerk/nextjs/server';
 import { supabaseServerAdmin } from '@/lib/supabase/server';
 import { coinEconomy } from '@/lib/gamification/CoinEconomy';
 
+// Enable Next.js edge caching for GET requests (1 minute for balance - changes often)
+export const revalidate = 60;
+
 // This would be your actual Supabase client
 // import { createClient } from '@supabase/supabase-js';
 // const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);

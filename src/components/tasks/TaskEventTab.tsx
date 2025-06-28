@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { BlurFade } from "@/components/ui/blur-fade";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -135,6 +136,8 @@ import "react-calendar/dist/Calendar.css";
 import { useAuth } from '@clerk/nextjs';
 import { useFetchTimetableEntries, useDeleteTimetableEntry } from '@/hooks/useTimetableQueries';
 import { useToast } from '@/components/ui/use-toast';
+import { NotificationPrompt } from '@/components/notifications/NotificationPrompt';
+import { Bell } from 'lucide-react';
 
 // Timetable Types
 // Exporting these types and constants for use in TimetableGrid.tsx
@@ -278,6 +281,8 @@ interface LocalTask {
   subject?: string;
   completed: boolean;
   reminder: boolean;
+  reminderMinutes?: number; // How many minutes before the due date to remind
+  reminderType?: 'notification' | 'email' | 'both'; // How to deliver the reminder
   description?: string;
   // Recurrence fields
   recurrenceRule?: RecurrenceRule;
@@ -285,6 +290,12 @@ interface LocalTask {
   recurrenceEndDate?: string; // ISO date string (only date part relevant for end condition)
   originalDueDate?: string; // For instances, to know their original start time from master
   completedOverrides?: Record<string, boolean>; // Key: YYYY-MM-DD of original instance date, Value: completed status
+  // For compatibility with database schema
+  reminder_settings?: {
+    enabled: boolean;
+    offset_minutes: number;
+    type: 'notification' | 'email' | 'both';
+  };
 }
 
 // Sample Timetable Data (can be replaced with actual data fetching/management)
@@ -682,6 +693,7 @@ interface TaskEventTabState {
   viewMode: "list" | "calendar" | "timetable";
   isLoading: boolean;
   error: string | null;
+  showNotificationPrompt: boolean;
 }
 
 const TaskEventTab: React.FC<TaskEventTabProps> = ({
@@ -711,10 +723,11 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
     viewMode: initialViewMode,
     isLoading: false,
     error: null,
+    showNotificationPrompt: false,
   });
 
   // Destructure state for easier access
-  const { tasks, selectedDate, showAddTaskDialog, viewMode, isLoading, error } =
+  const { tasks, selectedDate, showAddTaskDialog, viewMode, isLoading, error, showNotificationPrompt } =
     state;
 
   // Enhanced task creation state
@@ -747,6 +760,8 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
     subject: "",
     description: "",
     reminder: true,
+    reminderMinutes: 15, // Default to 15 minutes before
+    reminderType: "notification", // Default to push notification
     recurrenceRule: "none",
     recurrenceInterval: 1,
     recurrenceEndDate: "",
@@ -779,6 +794,16 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
           isValid(parseISO(newTask.recurrenceEndDate))
             ? newTask.recurrenceEndDate
             : undefined,
+        // Format reminder settings for database compatibility
+        reminder_settings: newTask.reminder ? {
+          enabled: true,
+          offset_minutes: newTask.reminderMinutes || 15,
+          type: newTask.reminderType || 'notification',
+        } : {
+          enabled: false,
+          offset_minutes: 15,
+          type: 'notification',
+        },
       };
 
       const updatedTasks = [...tasks, taskToAdd];
@@ -787,6 +812,8 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
         tasks: updatedTasks,
         showAddTaskDialog: false,
         error: null,
+        // Show notification prompt if task has reminders enabled
+        showNotificationPrompt: taskToAdd.reminder,
       }));
       onTasksChange?.(updatedTasks);
       setNewTask(initialNewTaskState); // Reset form
@@ -1172,6 +1199,15 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                 className="transition-all duration-200"
               >
                 Detailed Add
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setState(prev => ({ ...prev, showAddTaskDialog: true }))}
+                className="transition-all duration-200"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Task
               </Button>
             </div>
             {/* Conditionally render StuTaskGuidance to prevent overlap with modals */}
@@ -1641,6 +1677,297 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
           )}
         </div>
 
+        {/* Add Task Dialog */}
+        {showAddTaskDialog && (
+          <Dialog open={showAddTaskDialog} onOpenChange={(open) => setState(prev => ({ ...prev, showAddTaskDialog: open }))}>
+            <DialogContent className="sm:max-w-lg max-w-[95vw] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create New Task</DialogTitle>
+                <DialogDescription>
+                  Fill in the details to create a new task.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                {/* Task Title */}
+                <div className="space-y-2">
+                  <Label htmlFor="task-title" className="text-sm font-medium">
+                    Task Title <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="task-title"
+                    type="text"
+                    placeholder="Enter task title..."
+                    value={newTask.title}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="task-description" className="text-sm font-medium">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="task-description"
+                    placeholder="Add details about this task..."
+                    value={newTask.description || ''}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
+                    className="min-h-[80px] resize-none"
+                  />
+                </div>
+
+                {/* Due Date and Time */}
+                <div className="space-y-2">
+                  <Label htmlFor="task-due-date" className="text-sm font-medium">
+                    When does this task need to be completed?
+                  </Label>
+                  <div className="space-y-3">
+                    <Input
+                      id="task-due-date"
+                      type="date"
+                      value={newTask.dueDate ? format(parseISO(newTask.dueDate), 'yyyy-MM-dd') : ''}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          const currentTime = newTask.dueDate ? format(parseISO(newTask.dueDate), 'HH:mm') : '09:00';
+                          setNewTask(prev => ({ 
+                            ...prev, 
+                            dueDate: `${e.target.value}T${currentTime}:00`
+                          }));
+                        } else {
+                          setNewTask(prev => ({ ...prev, dueDate: '' }));
+                        }
+                      }}
+                      className="w-full"
+                    />
+                    
+                    {newTask.dueDate && (
+                      <div className="space-y-2">
+                        <Label htmlFor="task-due-time" className="text-sm font-medium">
+                          Set specific time
+                        </Label>
+                        <Input
+                          id="task-due-time"
+                          type="time"
+                          value={newTask.dueDate ? format(parseISO(newTask.dueDate), 'HH:mm') : ''}
+                          onChange={(e) => {
+                            if (e.target.value && newTask.dueDate) {
+                              const currentDate = format(parseISO(newTask.dueDate), 'yyyy-MM-dd');
+                              setNewTask(prev => ({ 
+                                ...prev, 
+                                dueDate: `${currentDate}T${e.target.value}:00`
+                              }));
+                            }
+                          }}
+                          className="w-full"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Task Properties */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Priority */}
+                  <div className="space-y-2">
+                    <Label htmlFor="task-priority" className="text-sm font-medium">
+                      Priority
+                    </Label>
+                    <Select 
+                      value={newTask.priority} 
+                      onValueChange={(value) => setNewTask(prev => ({ ...prev, priority: value as Priority }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Type */}
+                  <div className="space-y-2">
+                    <Label htmlFor="task-type" className="text-sm font-medium">
+                      Type
+                    </Label>
+                    <Select 
+                      value={newTask.type} 
+                      onValueChange={(value) => setNewTask(prev => ({ ...prev, type: value as TaskType }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="academic">Academic</SelectItem>
+                        <SelectItem value="personal">Personal</SelectItem>
+                        <SelectItem value="event">Event</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Subject */}
+                <div className="space-y-2">
+                  <Label htmlFor="task-subject" className="text-sm font-medium">
+                    Subject/Course
+                  </Label>
+                  <Input
+                    id="task-subject"
+                    type="text"
+                    placeholder="e.g., Mathematics, Computer Science..."
+                    value={newTask.subject || ''}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, subject: e.target.value }))}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Reminders */}
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="task-reminder"
+                      checked={newTask.reminder}
+                      onCheckedChange={(checked) => setNewTask(prev => ({ ...prev, reminder: checked === true }))}
+                    />
+                    <Label htmlFor="task-reminder" className="text-sm font-medium cursor-pointer">
+                      Enable Reminders
+                    </Label>
+                  </div>
+                  
+                  {newTask.reminder && (
+                    <div className="space-y-3 pl-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="reminder-time" className="text-sm font-medium">
+                          Remind me before the task is due
+                        </Label>
+                        <Select 
+                          value={newTask.reminderMinutes?.toString() || "15"}
+                          onValueChange={(value) => setNewTask(prev => ({ 
+                            ...prev, 
+                            reminderMinutes: parseInt(value) 
+                          }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select reminder time" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="5">5 minutes before</SelectItem>
+                            <SelectItem value="10">10 minutes before</SelectItem>
+                            <SelectItem value="15">15 minutes before</SelectItem>
+                            <SelectItem value="30">30 minutes before</SelectItem>
+                            <SelectItem value="60">1 hour before</SelectItem>
+                            <SelectItem value="120">2 hours before</SelectItem>
+                            <SelectItem value="1440">1 day before</SelectItem>
+                            <SelectItem value="2880">2 days before</SelectItem>
+                            <SelectItem value="10080">1 week before</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="reminder-type" className="text-sm font-medium">
+                          How would you like to be reminded?
+                        </Label>
+                        <Select 
+                          value={newTask.reminderType || "notification"}
+                          onValueChange={(value) => setNewTask(prev => ({ 
+                            ...prev, 
+                            reminderType: value as 'notification' | 'email' | 'both'
+                          }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select reminder type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="notification">📱 Push notification</SelectItem>
+                            <SelectItem value="email">📧 Email</SelectItem>
+                            <SelectItem value="both">📱📧 Both notification & email</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* Notification Setup Notice */}
+                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                        <div className="flex items-start space-x-2">
+                          <div className="flex-shrink-0">
+                            <Bell className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-blue-800 dark:text-blue-200">
+                              📱 Push Notifications Setup Required
+                            </p>
+                            <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                              Current reminder: {newTask.reminderMinutes || 15} minutes before via {newTask.reminderType || 'notification'}
+                            </p>
+                            <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                              To receive reminder notifications, enable push notifications in your browser when prompted after creating this task.
+                            </p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                              ✨ Your reminders will be scheduled with AI-powered smart timing even if notifications aren't enabled yet!
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <p className="text-xs text-muted-foreground">
+                    Get AI-powered smart reminders before the task is due to help you stay on track.
+                  </p>
+                </div>
+
+                {/* Repeat Settings */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Repeat Pattern</Label>
+                  <Select 
+                    value={newTask.recurrenceRule || 'none'} 
+                    onValueChange={(value) => setNewTask(prev => ({ ...prev, recurrenceRule: value as RecurrenceRule }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select recurrence pattern" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Does not repeat</SelectItem>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="yearly">Yearly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Choose how often this task should repeat. Select "Does not repeat" for one-time tasks.
+                  </p>
+                </div>
+              </div>
+
+              <DialogFooter className="flex gap-2 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setState(prev => ({ ...prev, showAddTaskDialog: false }))}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleAddTask}
+                  disabled={!newTask.title || !newTask.dueDate}
+                  className="flex-1"
+                >
+                  Create Task
+                </Button>
+              </DialogFooter>
+              
+              <p className="text-center text-xs text-muted-foreground mt-2">
+                Click Create Task to add this task to your list.
+              </p>
+            </DialogContent>
+          </Dialog>
+        )}
+
         {/* Timetable Entry Form Dialog */}
         {showTimetableEntryDialog && (
           <Dialog open={showTimetableEntryDialog} onOpenChange={setShowTimetableEntryDialog}>
@@ -1782,6 +2109,62 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
             box-sizing: border-box;
         }
       `}</style>
+      
+        {/* Notification Prompt - appears after task creation with reminders */}
+        {showNotificationPrompt && (
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full border border-gray-200 dark:border-gray-700">
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                      <Bell className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      ✅ Task Created Successfully!
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Your reminder has been scheduled with AI-powered smart timing.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+                  <div className="flex items-start gap-2">
+                    <Bell className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                        📱 Enable Push Notifications
+                      </p>
+                      <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                        To receive your smart reminders, please enable push notifications in your browser when prompted.
+                      </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                        💡 Your reminders are already scheduled and will work even if you enable notifications later!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={() => setState(prev => ({ ...prev, showNotificationPrompt: false }))}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Got it
+                  </Button>
+                  <NotificationPrompt 
+                    autoShow={false}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </BlurFade>
   );

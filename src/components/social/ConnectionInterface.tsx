@@ -26,7 +26,7 @@ import { SwipeInterface } from './SwipeInterface';
 import { StudyGroupHub } from './StudyGroupHub';
 import { ActivityFeed } from './ActivityFeed';
 import { ConnectionManager } from './ConnectionManager';
-import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
+import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 
 interface ConnectionInterfaceProps {
   onSwipeModeChange?: (isSwipeMode: boolean) => void;
@@ -35,7 +35,7 @@ interface ConnectionInterfaceProps {
 export const ConnectionInterface: React.FC<ConnectionInterfaceProps> = ({ onSwipeModeChange }) => {
   const { getToken } = useAuth();
   const { user } = useUser();
-  const { triggerAchievement } = useAchievementTrigger();
+  const { triggerAchievement } = useDebouncedAchievementTrigger();
 
   const studentDiscovery = useMemo(() => new StudentDiscovery(getToken), [getToken]);
   const studyGroupManager = useMemo(() => new StudyGroupManager(getToken), [getToken]);

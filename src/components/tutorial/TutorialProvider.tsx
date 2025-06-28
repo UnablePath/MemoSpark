@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useUser } from '@clerk/nextjs';
 import { TutorialManager, type TutorialProgress } from '@/lib/tutorial';
 import { TutorialActionDetector } from '@/lib/tutorial/TutorialActionDetector';
-import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
+import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 import { TutorialOverlay } from './TutorialOverlay';
 
 interface TutorialContextValue {
@@ -33,7 +33,7 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
   const { user, isLoaded } = useUser();
   const tutorialManager = useMemo(() => TutorialManager.getInstance(), []);
   const actionDetector = useMemo(() => TutorialActionDetector.getInstance(), []);
-  const { triggerAchievement } = useAchievementTrigger();
+  const { triggerAchievement } = useDebouncedAchievementTrigger();
   const [isActive, setIsActive] = useState(false);
   const [currentProgress, setCurrentProgress] = useState<TutorialProgress | null>(null);
   const [shouldShowTutorial, setShouldShowTutorial] = useState(false);

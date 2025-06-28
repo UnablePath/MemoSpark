@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
+import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 import { Gamepad2, Wind, Music, Palette } from 'lucide-react';
 
 const breathingCycle = [
@@ -17,7 +17,7 @@ interface RelaxationCornerProps {
 type RelaxationMode = 'breathing' | 'ragdoll' | 'music' | 'drawing';
 
 export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) => {
-  const { triggerWellnessAction } = useAchievementTrigger();
+  const { triggerWellnessAction } = useDebouncedAchievementTrigger();
   const [currentMode, setCurrentMode] = useState<RelaxationMode>('breathing');
   const [cycleIndex, setCycleIndex] = useState(0);
   const [isBreathingActive, setIsBreathingActive] = useState(false);

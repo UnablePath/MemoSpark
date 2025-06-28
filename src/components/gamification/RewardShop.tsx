@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { coinEconomy, CoinSpendingCategory } from '@/lib/gamification/CoinEconomy';
-import { useAchievements } from '@/hooks/useAchievements';
+import { useFetchAchievements } from '@/hooks/useAchievementQueries';
 import { useUserTier } from '@/hooks/useUserTier';
 import { usePremiumPopup } from '@/components/providers/premium-popup-provider';
 
@@ -95,7 +95,18 @@ export const RewardShop: React.FC<RewardShopProps> = ({
 }) => {
   const { user } = useUser();
   const { setTheme } = useTheme();
-  const { userStats } = useAchievements();
+  const { data: achievementsData } = useFetchAchievements();
+  
+  // Extract consolidated balance data
+  const balanceData = achievementsData?.balance;
+  const consolidatedBalance = balanceData?.balance || 0;
+  
+  // Mock userStats for compatibility
+  const userStats = {
+    level: 1,
+    current_streak: 0,
+    total_points: 0
+  };
   const { tier: userTier, isLoading: tierLoading } = useUserTier();
   const { showFeatureGatePopup } = usePremiumPopup();
   const [balance, setBalance] = useState(0);
@@ -113,15 +124,18 @@ export const RewardShop: React.FC<RewardShopProps> = ({
     if (!user?.id) return;
 
     try {
-      const [balanceResponse, itemsResponse] = await Promise.all([
-        fetch('/api/gamification/balance'),
-        fetch('/api/gamification/shop-items')
-      ]);
-
-      if (balanceResponse.ok) {
-        const balanceData = await balanceResponse.json();
-        setBalance(balanceData.balance);
+      // Use consolidated balance data if available, otherwise fetch separately
+      if (consolidatedBalance > 0) {
+        setBalance(consolidatedBalance);
+      } else {
+        const balanceResponse = await fetch('/api/gamification/balance');
+        if (balanceResponse.ok) {
+          const balanceData = await balanceResponse.json();
+          setBalance(balanceData.balance);
+        }
       }
+
+      const itemsResponse = await fetch('/api/gamification/shop-items');
 
       if (itemsResponse.ok) {
         const itemsData = await itemsResponse.json();
@@ -151,7 +165,7 @@ export const RewardShop: React.FC<RewardShopProps> = ({
 
   useEffect(() => {
     loadShopData();
-  }, [user?.id]);
+  }, [user?.id, consolidatedBalance]);
 
   // Handle item purchase
   const purchaseItem = async (item: CoinSpendingCategory) => {

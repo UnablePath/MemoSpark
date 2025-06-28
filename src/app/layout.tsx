@@ -139,8 +139,8 @@ export default function RootLayout({
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
       <body className={`${inter.className} max-w-full overflow-x-hidden`}>
-        <ThemeProvider>
-          <ThemeAwareClerkProvider>
+        <ThemeAwareClerkProvider>
+          <ThemeProvider>
             <ProfileSyncProvider>
               <QueryProvider>
                 <UserProvider>
@@ -162,8 +162,8 @@ export default function RootLayout({
                 </UserProvider>
               </QueryProvider>
             </ProfileSyncProvider>
-          </ThemeAwareClerkProvider>
-        </ThemeProvider>
+          </ThemeProvider>
+        </ThemeAwareClerkProvider>
       </body>
     </html>
   );

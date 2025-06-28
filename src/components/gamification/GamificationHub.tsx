@@ -7,8 +7,8 @@ import { FaTrophy, FaShoppingCart, FaCoins, FaUsers, FaStar, FaCalendarAlt } fro
 import { TrendingUp, RefreshCw } from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAchievements } from '@/hooks/useAchievements';
-import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
+import { useFetchAchievements, useInvalidateAchievementQueries } from '@/hooks/useAchievementQueries';
+import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 import { useUser } from '@clerk/nextjs';
 import { AchievementCollection } from '@/components/achievements/AchievementBadge';
 import { AchievementNotificationSystem } from '@/components/achievements/AchievementNotificationSystem';
@@ -24,17 +24,58 @@ import type { LeaderboardUser, UserAchievement } from '@/types/achievements';
 
 const GamificationHub = () => {
   const { user } = useUser();
-  const { userStats, leaderboard, userAchievements, allAchievements, loading, reload } = useAchievements();
+  const { data: achievementsData, isLoading: loading, error } = useFetchAchievements();
+  const { invalidateAll: reloadAchievements } = useInvalidateAchievementQueries();
   const { 
     triggerAchievement, 
     triggerTaskCompleted, 
     triggerStreakIncreased, 
     triggerBubbleGamePlayed,
     triggerTutorialStep 
-  } = useAchievementTrigger();
+  } = useDebouncedAchievementTrigger();
+
+  // Extract data from the consolidated response
+  const achievements = achievementsData?.achievements || [];
+  const stats = achievementsData?.stats || { total: 0, unlocked: 0, remaining: 0 };
+  const balanceData = achievementsData?.balance;
+  const coinBalance = balanceData?.balance || 0;
+  
+  // Process achievements into the format expected by existing code
+  const userAchievements = achievements.filter(a => a.unlocked).map(achievement => ({
+    id: achievement.id,
+    user_id: user?.id || '',
+    achievement_id: achievement.id,
+    unlocked_at: achievement.unlockedAt || new Date().toISOString(),
+    progress: achievement.userProgress || {},
+    achievements: achievement
+  }));
+  const allAchievements = achievements;
+  
+  // Mock userStats for compatibility (can be improved with additional API data)
+  const userStats = {
+    user_id: user?.id || '',
+    total_points: achievements.reduce((sum, a) => sum + (a.unlocked ? a.points_reward : 0), 0),
+    level: 1,
+    current_streak: 0,
+    longest_streak: 0,
+    tasks_completed: 0,
+    achievements_earned: userAchievements.length,
+    coin_balance: coinBalance,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  
+  // Mock leaderboard for now (can be enhanced later)
+  const leaderboard: any[] = [];
+  
+  // Create reload function that invalidates queries
+  const reload = () => {
+    reloadAchievements();
+    // Also reload coin balance separately if needed
+    loadCoinBalance();
+  };
   const [streakTracker] = useState(() => new StreakTracker());
   const [showRewardShop, setShowRewardShop] = useState(false);
-  const [coinBalance, setCoinBalance] = useState(0);
   const [selectedAchievement, setSelectedAchievement] = useState<any>(null);
 
   // Trigger achievement on mount
@@ -42,24 +83,19 @@ const GamificationHub = () => {
     triggerAchievement('gamification_opened');
   }, [triggerAchievement]);
 
-  // Load real coin balance
-  useEffect(() => {
-    const loadCoinBalance = async () => {
-      try {
-        const response = await fetch('/api/gamification/balance');
-        if (response.ok) {
-          const data = await response.json();
-          setCoinBalance(data.balance || 0);
-        }
-      } catch (error) {
-        console.error('Error loading coin balance:', error);
+  // Fallback coin balance loading (for backward compatibility)
+  const loadCoinBalance = async () => {
+    try {
+      const response = await fetch('/api/gamification/balance');
+      if (response.ok) {
+        const data = await response.json();
+        // This is now handled by the consolidated API, but keeping for manual refresh
+        console.log('Manual balance refresh:', data.balance);
       }
-    };
-    
-    if (user?.id) {
-      loadCoinBalance();
+    } catch (error) {
+      console.error('Error loading coin balance:', error);
     }
-  }, [user?.id]);
+  };
 
   // Calculate reward tier progression
   const calculateTierInfo = (points: number) => {
@@ -271,6 +307,7 @@ const GamificationHub = () => {
               <AchievementCollection
                 achievements={userAchievements.map(ua => ({
                   ...ua.achievements!,
+                  type: ua.achievements!.type as any, // Cast to avoid TypeScript strict checking
                   unlocked: true,
                   earnedAt: ua.unlocked_at
                 }))}
