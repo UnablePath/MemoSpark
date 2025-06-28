@@ -225,7 +225,7 @@ export function DashboardSwipeTabs() {
         role="tablist"
         aria-orientation="horizontal"
         aria-label="Dashboard Navigation"
-        className="tab-navigation flex justify-around items-center p-2 border-t bg-background flex-shrink-0 pb-safe-bottom safe-scroll-area"
+        className="tab-navigation flex justify-around items-center px-1 py-1 sm:px-2 sm:py-1 lg:px-3 lg:py-2 border-t bg-background flex-shrink-0 pb-safe-bottom safe-scroll-area max-w-full overflow-hidden"
         onKeyDown={handleKeyDown}
       >
         {TABS_CONFIG.map((tab, index) => {
@@ -246,24 +246,25 @@ export function DashboardSwipeTabs() {
               aria-controls={`dashboard-panel-${tab.key}-${index}`}
               tabIndex={isActive ? 0 : -1}
               onClick={() => handleTabChange(index)}
-              className={`relative touch-target p-2 rounded-md transition-colors duration-200 ${
+              className={`relative touch-target p-1 sm:p-1.5 lg:p-2 rounded-md transition-colors duration-200 flex-shrink-0 min-w-0 ${
                 isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'
               } ${!hasAccess ? 'opacity-50 cursor-not-allowed' : ''}`}
               aria-label={`Go to ${tab.key} tab${!hasAccess ? ' (Premium required)' : ''}`}
               disabled={!hasAccess && isPremiumFeature}
             >
-              <Icon className="h-6 w-6" aria-hidden="true" />
+              <Icon className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 mx-auto" aria-hidden="true" />
               
               {/* New tab indicator */}
               {!isVisited && hasAccess && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse" title="New!" />
+                <div className="absolute -top-0.5 -right-0.5 lg:-top-1 lg:-right-1 w-2 h-2 sm:w-2.5 sm:h-2.5 lg:w-3 lg:h-3 bg-green-500 rounded-full animate-pulse" title="New!" />
               )}
               
+              {/* Premium indicator */}
               {isPremiumFeature && !hasAccess && (
-                <Crown className="absolute -top-1 -right-1 h-3 w-3 text-yellow-500" />
+                <Crown className="absolute -top-0.5 -right-0.5 lg:-top-1 lg:-right-1 h-2 w-2 sm:h-2.5 sm:w-2.5 lg:h-3 lg:w-3 text-yellow-500" />
               )}
               {isLaunchMode && isPremiumFeature && (
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full" title="Launch Mode Active" />
+                <div className="absolute -top-0.5 -right-0.5 lg:-top-1 lg:-right-1 w-1.5 h-1.5 lg:w-2 lg:h-2 bg-green-400 rounded-full" title="Launch Mode Active" />
               )}
             </button>
           );

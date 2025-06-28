@@ -1,12 +1,15 @@
 'use client';
 
 import type React from 'react';
+import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { useThemeContext } from '@/components/providers/theme-provider';
 import { useOptimizedTheme } from '@/hooks/useOptimizedTheme';
-import { Check, Palette, Sun, Moon } from 'lucide-react';
+import { Check, Palette, Sun, Moon, Coins, ShoppingBag } from 'lucide-react';
+import { RewardShop } from '@/components/gamification/RewardShop';
 
 // Define theme pairs with both light and dark variants
 const themePairs = [
@@ -96,6 +99,7 @@ export const ThemeSettings: React.FC = () => {
   const { theme, setTheme, isDark, isLight, isChanging } = useOptimizedTheme();
   const { accessibilityOptions, setAccessibilityOption } = useThemeContext();
   const { highContrast } = accessibilityOptions;
+  const [showCoinThemeShop, setShowCoinThemeShop] = useState(false);
 
   const handleHighContrastChange = (checked: boolean) => {
     setAccessibilityOption('highContrast', checked);
@@ -154,12 +158,24 @@ export const ThemeSettings: React.FC = () => {
 
       {/* Theme Pairs Selector */}
       <div className="space-y-4 pt-6 border-t">
-        <div className="flex items-center gap-2 mb-4">
-          <Palette className="h-5 w-5 text-primary" />
-          <h3 className="text-base font-medium">Theme Style</h3>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Palette className="h-5 w-5 text-primary" />
+            <h3 className="text-base font-medium">Theme Style</h3>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowCoinThemeShop(true)}
+            className="gap-2"
+          >
+            <Coins className="h-4 w-4 text-yellow-500" />
+            Coin Shop
+          </Button>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
-          Choose your vibe from our curated collection. Each theme adapts to light/dark mode.
+          Choose your vibe from our curated collection. Each theme adapts to light/dark mode. 
+          <span className="text-yellow-600 font-medium"> Earn coins by completing tasks to unlock more themes!</span>
         </p>
         
         <div className="space-y-3">
@@ -297,6 +313,14 @@ export const ThemeSettings: React.FC = () => {
           aria-label="Toggle high contrast mode"
         />
       </div>
+
+      {/* Coin Shop Modal */}
+      {showCoinThemeShop && (
+        <RewardShop
+          variant="modal"
+          onClose={() => setShowCoinThemeShop(false)}
+        />
+      )}
     </div>
   );
 };

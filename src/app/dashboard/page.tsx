@@ -76,7 +76,7 @@ export default function DashboardPage() {
                      theme?.includes('carbon');
 
   return (
-    <div ref={constraintsRef} className="app-container flex flex-col h-screen bg-background">
+    <div ref={constraintsRef} className="dashboard-container bg-background">
       {/* Achievement Notification System */}
       <AchievementNotificationSystem 
         maxNotifications={3}
@@ -86,29 +86,29 @@ export default function DashboardPage() {
       
       {/* ConditionalHeader is now disabled for /dashboard */}
       {/* Integrated header elements for dashboard: Logo, Tier Info, and UserButton */}
-      <div className="flex items-center justify-between px-2 sm:px-3 lg:px-4 py-3 sm:py-6 border-b border-border bg-background flex-shrink-0 pt-safe-top">
+      <div className="flex items-center justify-between px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 md:py-3 lg:py-4 xl:py-6 border-b border-border bg-background flex-shrink-0 pt-safe-top">
         <Link href="/" aria-label="MemoSpark Homepage" className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md">
-          <MemoSparkLogoSvg height={36} className="sm:h-11 md:h-12" /> 
+          <MemoSparkLogoSvg height={28} className="sm:h-8 md:h-9 lg:h-10 xl:h-11" /> 
         </Link>
         
         {/* Right side navigation */}
-        <div className="flex items-center gap-1 xs:gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-0.5 xs:gap-1 sm:gap-1.5 md:gap-2">
           {!isLoading && (
             <>
               {/* Tier Badge - Icon only on very small screens */}
-              <div className={`flex items-center gap-0.5 sm:gap-1 px-1.5 xs:px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
+              <div className={`flex items-center gap-0.5 sm:gap-1 px-1 xs:px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium ${
                 userTier === 'free' ? 'bg-gray-100 text-gray-700' :
                 userTier === 'premium' ? 'bg-amber-100 text-amber-700' :
                 'bg-purple-100 text-purple-700'
               }`} title={`${userTier} tier`}>
-                {userTier !== 'free' && <Crown className="h-3 w-3" />}
-                <span className="hidden sm:inline">{userTier}</span>
+                {userTier !== 'free' && <Crown className="h-2.5 w-2.5 sm:h-3 sm:w-3" />}
+                <span className="hidden sm:inline text-xs">{userTier}</span>
               </div>
               
               {/* Usage Indicator - Compact */}
-              <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground px-1">
-                <Sparkles className="h-3 w-3" />
-                <span>{usage.requestsRemaining}</span>
+              <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground px-1">
+                <Sparkles className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                <span className="text-xs">{usage.requestsRemaining}</span>
               </div>
             </>
           )}
@@ -118,11 +118,11 @@ export default function DashboardPage() {
             asChild 
             variant="ghost" 
             size="sm" 
-            className="h-8 w-8 p-0"
+            className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 p-0"
             onClick={() => triggerAchievement('tutorial_step', { action: 'profile_opened' })}
           >
             <Link href="/profile" aria-label="Profile">
-              <UserIcon className="h-4 w-4" />
+              <UserIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 lg:h-4 lg:w-4" />
             </Link>
           </Button>
           
@@ -131,11 +131,11 @@ export default function DashboardPage() {
             asChild 
             variant="ghost" 
             size="sm" 
-            className="h-8 w-8 p-0"
+            className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 p-0"
             onClick={() => triggerAchievement('tutorial_step', { action: 'settings_opened' })}
           >
             <Link href="/settings" aria-label="Settings">
-              <SettingsIcon className="h-4 w-4" />
+              <SettingsIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 lg:h-4 lg:w-4" />
             </Link>
           </Button>
           
@@ -144,7 +144,7 @@ export default function DashboardPage() {
           
           {/* Clerk User Button - simple black/white theme */}
           <SignedIn>
-            <div className="h-8 w-8 flex items-center justify-center">
+            <div className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 flex items-center justify-center">
               <UserButton 
                 afterSignOutUrl="/"
                 appearance={{
@@ -165,8 +165,16 @@ export default function DashboardPage() {
                       WebkitBackdropFilter: 'none !important',
                       boxShadow: 'none !important',
                       border: 'none !important',
-                      width: '28px !important',
-                      height: '28px !important',
+                      width: '20px !important',
+                      height: '20px !important',
+                      '@media (min-width: 640px)': {
+                        width: '24px !important',
+                        height: '24px !important',
+                      },
+                      '@media (min-width: 1024px)': {
+                        width: '28px !important',
+                        height: '28px !important',
+                      },
                       padding: '0 !important',
                       '&:hover': {
                         backgroundColor: 'transparent !important',
@@ -198,8 +206,16 @@ export default function DashboardPage() {
                       WebkitBackdropFilter: 'none !important',
                       boxShadow: 'none !important',
                       border: 'none !important',
-                      width: '28px !important',
-                      height: '28px !important',
+                      width: '20px !important',
+                      height: '20px !important',
+                      '@media (min-width: 640px)': {
+                        width: '24px !important',
+                        height: '24px !important',
+                      },
+                      '@media (min-width: 1024px)': {
+                        width: '28px !important',
+                        height: '28px !important',
+                      },
                     },
                     avatarBox: {
                       backgroundColor: 'transparent !important',

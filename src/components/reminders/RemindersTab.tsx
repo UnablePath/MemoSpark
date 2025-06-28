@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, isPast, isToday, addDays } from "date-fns";
-import { FaCalendarAlt, FaCheckCircle, FaStar, FaInfoCircle, FaPlus, FaCog, FaClock, FaBrain } from "react-icons/fa";
+import { FaCalendarAlt, FaCheckCircle, FaStar, FaInfoCircle, FaPlus, FaCog, FaClock, FaBrain, FaCoins } from "react-icons/fa";
 import { CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { KoalaMascot } from "@/components/ui/koala-mascot";
@@ -26,6 +26,7 @@ import type { Reminder, ReminderCreateInput } from "@/types/reminders";
 import { useAuth } from "@clerk/nextjs";
 import { CelebrationOverlay } from "@/components/stu";
 import { StuLottieAnimation } from "@/components/stu/StuLottieAnimation";
+import { RewardShop } from "@/components/gamification/RewardShop";
 
 // Stu's messages (can be externalized)
 const stuMessages = {
@@ -48,6 +49,8 @@ const RemindersTab = () => {
     const [showAchievementsDialog, setShowAchievementsDialog] = useState(false);
     const [showReminderSettings, setShowReminderSettings] = useState(false);
     const [showAddReminder, setShowAddReminder] = useState(false);
+    const [showCoinShop, setShowCoinShop] = useState(false);
+    const [coinBalance, setCoinBalance] = useState(0);
     
     // Add Reminder Form State
     const [reminderForm, setReminderForm] = useState({
@@ -95,6 +98,22 @@ const RemindersTab = () => {
             }
         }
     }, [loading, reminders]);
+
+    // Load coin balance separately
+    useEffect(() => {
+        const loadCoinBalance = async () => {
+            if (userId) {
+                try {
+                    const { coinEconomy } = await import('@/lib/gamification/CoinEconomy');
+                    const balance = await coinEconomy.getCoinBalance(userId);
+                    setCoinBalance(balance);
+                } catch (error) {
+                    console.error('Error loading coin balance:', error);
+                }
+            }
+        };
+        loadCoinBalance();
+    }, [userId]);
     
     const handleCompleteReminder = async (reminder: Reminder) => {
         if (!userId) return;
@@ -343,7 +362,11 @@ const RemindersTab = () => {
                             <div className="flex justify-between"><span>Total Points:</span> <span className="font-bold text-primary">{userStats?.total_points || 0}</span></div>
                             <div className="flex justify-between"><span>Current Streak:</span> <span className="font-bold text-green-600">{userStats?.current_streak || 0} Days</span></div>
                             <div className="flex justify-between"><span>Level:</span> <span className="font-bold text-purple-600">{userStats?.level || 1}</span></div>
-                            <Button className="w-full" onClick={() => setShowAchievementsDialog(true)}><FaStar className="mr-2"/>View Achievements</Button>
+                            <div className="flex justify-between"><span>Coins:</span> <span className="font-bold text-yellow-600 flex items-center gap-1"><FaCoins className="text-yellow-500"/>{coinBalance}</span></div>
+                            <div className="space-y-2">
+                                <Button className="w-full" onClick={() => setShowAchievementsDialog(true)}><FaStar className="mr-2"/>View Achievements</Button>
+                                <Button className="w-full" variant="outline" onClick={() => setShowCoinShop(true)}><FaCoins className="mr-2 text-yellow-500"/>View Coin Shop</Button>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
@@ -626,6 +649,14 @@ const RemindersTab = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Coin Shop Modal */}
+            {showCoinShop && (
+                <RewardShop
+                    variant="modal"
+                    onClose={() => setShowCoinShop(false)}
+                />
+            )}
         </div>
     );
 };

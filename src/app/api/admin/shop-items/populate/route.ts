@@ -15,42 +15,88 @@ export async function POST() {
 
     // Basic shop items for launch
     const shopItems = [
-      // COSMETIC ITEMS (Low cost, personalization)
+      // THEME ITEMS (Customization category - coin-based themes)
       {
-        name: "Dark Theme",
-        description: "Switch to a sleek dark theme",
+        name: "Forest Dream Theme",
+        description: "Serene greens for focused studying and deep concentration",
         price: 50,
-        category: "cosmetic",
+        category: "customization",
         type: "theme",
-        icon: "🌙",
-        metadata: { theme: "dark" }
+        icon: "🌿",
+        metadata: { 
+          theme_id: "forest-dream",
+          rarity: "common",
+          colors: { primary: "#10B981", secondary: "#047857", accent: "#34D399" }
+        }
       },
       {
-        name: "Light Theme",
-        description: "Classic light theme",
-        price: 50,
-        category: "cosmetic",
+        name: "Sunset Blaze Theme",
+        description: "Warm energy for productive sessions and motivation",
+        price: 75,
+        category: "customization",
         type: "theme",
-        icon: "☀️",
-        metadata: { theme: "light" }
+        icon: "🌅",
+        metadata: { 
+          theme_id: "sunset-blaze",
+          rarity: "common",
+          colors: { primary: "#F59E0B", secondary: "#D97706", accent: "#FBBF24" }
+        }
       },
       {
-        name: "Purple Theme",
-        description: "Royal purple theme",
-        price: 100,
-        category: "cosmetic",
+        name: "Ocean Depths Theme",
+        description: "Deep blues that inspire focus and tranquility",
+        price: 120,
+        category: "customization",
         type: "theme",
-        icon: "💜",
-        metadata: { theme: "purple" }
+        icon: "🌊",
+        requirements: { tasks_completed: 10 },
+        metadata: { 
+          theme_id: "ocean-depths",
+          rarity: "rare",
+          colors: { primary: "#0EA5E9", secondary: "#0284C7", accent: "#38BDF8" }
+        }
       },
       {
-        name: "Green Theme",
-        description: "Nature-inspired green theme",
-        price: 100,
-        category: "cosmetic",
+        name: "Purple Haze Theme",
+        description: "Mystical purples for creativity and inspiration",
+        price: 150,
+        category: "customization",
         type: "theme",
-        icon: "💚",
-        metadata: { theme: "green" }
+        icon: "🔮",
+        requirements: { tasks_completed: 15 },
+        metadata: { 
+          theme_id: "purple-haze",
+          rarity: "rare",
+          colors: { primary: "#8B5CF6", secondary: "#7C3AED", accent: "#A78BFA" }
+        }
+      },
+      {
+        name: "Golden Hour Theme",
+        description: "Luxurious golds for dedicated students who've earned their stripes",
+        price: 300,
+        category: "customization",
+        type: "theme",
+        icon: "✨",
+        requirements: { tasks_completed: 25, current_streak: 5 },
+        metadata: { 
+          theme_id: "golden-hour",
+          rarity: "legendary",
+          colors: { primary: "#F59E0B", secondary: "#D97706", accent: "#FCD34D" }
+        }
+      },
+      {
+        name: "Cherry Blossom Theme",
+        description: "Soft pinks that bring zen to your studies",
+        price: 200,
+        category: "customization",
+        type: "theme",
+        icon: "🌸",
+        requirements: { tasks_completed: 20, current_streak: 3 },
+        metadata: { 
+          theme_id: "cherry-blossom",
+          rarity: "epic",
+          colors: { primary: "#EC4899", secondary: "#DB2777", accent: "#F472B6" }
+        }
       },
 
       // PROFILE CUSTOMIZATION
@@ -226,7 +272,7 @@ export async function POST() {
       existingCount: existingNames.length,
       totalCount: existingNames.length + newItems.length,
       categories: {
-        cosmetic: shopItems.filter(item => item.category === 'cosmetic').length,
+        customization: shopItems.filter(item => item.category === 'customization').length,
         badge: shopItems.filter(item => item.category === 'badge').length,
         productivity: shopItems.filter(item => item.category === 'productivity').length,
         celebration: shopItems.filter(item => item.category === 'celebration').length,

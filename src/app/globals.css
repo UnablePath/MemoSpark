@@ -457,6 +457,9 @@ html[class*="theme-"]:not([class*="-light"]) {
   /* Global container constraints */
   .app-container {
     @apply max-w-full overflow-x-hidden min-h-screen;
+    /* Ensure proper tablet handling */
+    max-width: 100vw;
+    max-height: 100vh;
   }
   
   /* Mobile-first responsive container */
@@ -467,6 +470,9 @@ html[class*="theme-"]:not([class*="-light"]) {
   /* Page container that accounts for navigation */
   .page-container {
     @apply min-h-screen pb-safe-bottom;
+    /* Tablet-specific optimizations */
+    max-width: 100vw;
+    overflow-x: hidden;
   }
   
   /* Content area that accounts for bottom navigation */
@@ -477,6 +483,11 @@ html[class*="theme-"]:not([class*="-light"]) {
   /* Mobile-optimized touch targets */
   .touch-target {
     @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+    /* Tablet responsiveness */
+    @media (min-width: 768px) and (max-width: 1024px) {
+      min-height: 40px;
+      min-width: 40px;
+    }
   }
   
   /* Prevent text from breaking layout */
@@ -489,11 +500,34 @@ html[class*="theme-"]:not([class*="-light"]) {
     @apply overflow-y-auto overscroll-contain;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
+    /* Ensure proper tablet viewport handling */
+    max-width: 100vw;
+    overflow-x: hidden;
   }
   
   /* Mobile-first grid layout */
   .responsive-grid {
     @apply grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 place-items-center;
+  }
+  
+  /* Tab navigation specific optimizations */
+  .tab-navigation {
+    /* Ensure proper spacing on tablets */
+    @media (min-width: 768px) and (max-width: 1024px) {
+      padding: 0.25rem 0.5rem;
+      gap: 0.25rem;
+    }
+  }
+  
+  /* Dashboard-specific layout constraints */
+  .dashboard-container {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 }
 
