@@ -30,6 +30,7 @@ export interface CoinSpendingCategory {
   is_available: boolean;
   requirements: Record<string, any>;
   metadata: Record<string, any>;
+  isPremiumOnly?: boolean;
 }
 
 export interface CoinBonusEvent {
@@ -89,7 +90,7 @@ export class CoinEconomy {
     }
 
     try {
-      // First try to get from coin_balances table directly
+      // Get balance from coin_balances table (primary source of truth)
       const { data: balanceData, error: balanceError } = await supabase
         .from('coin_balances')
         .select('current_balance')
@@ -100,28 +101,18 @@ export class CoinEconomy {
         return balanceData.current_balance || 0;
       }
 
-      // If no record exists, create one and return 0
+      // If no record exists, fallback to RPC function which calculates from transactions
       if (balanceError?.code === 'PGRST116') {
-        const { error: insertError } = await supabase
-          .from('coin_balances')
-          .insert({
-            user_id: userId,
-            current_balance: 0,
-            lifetime_earned: 0,
-            lifetime_spent: 0,
-            last_updated: new Date().toISOString()
-          });
+        const { data, error } = await supabase.rpc('get_user_coin_balance', {
+          p_user_id: userId
+        });
 
-        if (insertError) {
-          console.error('Error creating coin balance record:', insertError);
-          // If RLS error, just return 0 balance
-          if (insertError.code === '42501' || insertError.code === '401') {
-            console.warn('RLS policy preventing coin balance creation, returning 0');
-            return 0;
-          }
+        if (error) {
+          console.error('Error getting coin balance via RPC:', error);
+          return 0;
         }
-        
-        return 0;
+
+        return (typeof data === 'number') ? data : 0;
       }
 
       // Handle RLS and authentication errors
@@ -130,7 +121,7 @@ export class CoinEconomy {
         return 0;
       }
 
-      // Fallback to RPC function
+      // Final fallback to RPC function
       const { data, error } = await supabase.rpc('get_user_coin_balance', {
         p_user_id: userId
       });
@@ -190,7 +181,8 @@ export class CoinEconomy {
       'task_completion': 10,
       'daily_login': 5,
       'achievement_unlock': 25,
-      'streak_milestone': 15,
+      'daily_streak': 5,        // +5 coins per day for streaks 7+
+      'streak_milestone': 25,   // +25 coins for milestones (7,14,30,60 days)
       'study_session': 8,
       'quiz_completion': 12,
       'goal_achievement': 20,
@@ -289,13 +281,13 @@ export class CoinEconomy {
       const currentBalance = await this.getCoinBalance(userId);
       const newBalance = currentBalance + amount;
 
-      // Update coin_balances table
+      // Update coin_balances table (primary source of truth)
       const { error: balanceError } = await supabase!
         .from('coin_balances')
         .upsert({
           user_id: userId,
           current_balance: newBalance,
-          lifetime_earned: currentBalance + amount, // This is simplified, should be proper calculation
+          lifetime_earned: currentBalance + amount,
           last_updated: new Date().toISOString()
         });
 
@@ -820,20 +812,147 @@ export class CoinEconomy {
   }
 
   /**
-   * Award streak bonus coins
+   * Award streak bonus coins (enhanced with milestone system)
    */
   async awardStreakBonus(
     userId: string,
     streakLength: number,
     getToken?: () => Promise<string | null>
   ): Promise<CoinEarningResult> {
-    return await this.awardCoins(
-      userId,
-      'daily_streak',
-      `${streakLength} day streak bonus`,
-      { streak_length: streakLength },
-      getToken
-    );
+    // Calculate daily bonus: +5 coins per day for streaks 7+
+    let bonusAmount = 0;
+    let description = `Daily check-in`;
+    
+    if (streakLength >= 7) {
+      bonusAmount = 5;
+      description = `${streakLength} day streak bonus (+5 coins)`;
+    }
+
+    if (bonusAmount > 0) {
+      return await this.awardCoins(
+        userId,
+        'daily_streak',
+        description,
+        { streak_length: streakLength, bonus_type: 'daily' },
+        getToken
+      );
+    }
+
+    // No bonus for streaks under 7 days
+    return {
+      success: true,
+      amount: 0,
+      newBalance: await this.getCoinBalance(userId, getToken),
+      transactionId: `${userId}-${Date.now()}`
+    };
+  }
+
+  /**
+   * Award milestone bonus coins for reaching specific streak milestones
+   */
+  async awardStreakMilestoneBonus(
+    userId: string,
+    streakLength: number,
+    getToken?: () => Promise<string | null>
+  ): Promise<CoinEarningResult> {
+    // Milestone bonuses: +25 coins at specific milestones
+    const milestones = [7, 14, 30, 60, 100, 200, 365];
+    const milestoneBonus = 25;
+
+    if (milestones.includes(streakLength)) {
+      const description = `🎉 ${streakLength}-day streak milestone bonus!`;
+      
+      return await this.awardCoins(
+        userId,
+        'streak_milestone',
+        description,
+        { 
+          streak_length: streakLength, 
+          milestone: true,
+          bonus_type: 'milestone',
+          amount: milestoneBonus
+        },
+        getToken
+      );
+    }
+
+    // No milestone bonus for this streak length
+    return {
+      success: true,
+      amount: 0,
+      newBalance: await this.getCoinBalance(userId, getToken),
+      transactionId: `${userId}-${Date.now()}`
+    };
+  }
+
+  /**
+   * Penalize user for losing a streak (moderate fixed penalty for 14+ day streaks)
+   */
+  async penalizeStreakLoss(
+    userId: string,
+    lostStreakLength: number,
+    getToken?: () => Promise<string | null>
+  ): Promise<CoinSpendingResult> {
+    // Only penalize if streak was 14+ days
+    if (lostStreakLength < 14) {
+      return {
+        success: true,
+        amount: 0,
+        newBalance: await this.getCoinBalance(userId, getToken),
+        transactionId: `${userId}-${Date.now()}`
+      };
+    }
+
+    try {
+      const currentBalance = await this.getCoinBalance(userId, getToken);
+      
+      // More reasonable fixed penalty based on streak length
+      let penaltyAmount = 0;
+      if (lostStreakLength >= 30) {
+        penaltyAmount = 50; // 50 coins for 30+ day streaks
+      } else if (lostStreakLength >= 21) {
+        penaltyAmount = 35; // 35 coins for 21+ day streaks  
+      } else if (lostStreakLength >= 14) {
+        penaltyAmount = 25; // 25 coins for 14+ day streaks
+      }
+      
+      // Don't take more than 25% of current balance
+      const maxPenalty = Math.floor(currentBalance * 0.25);
+      penaltyAmount = Math.min(penaltyAmount, maxPenalty);
+      
+      // Don't penalize if user has less than 20 coins
+      if (currentBalance < 20 || penaltyAmount <= 0) {
+        return {
+          success: true,
+          amount: 0,
+          newBalance: currentBalance,
+          transactionId: `${userId}-${Date.now()}`
+        };
+      }
+
+      const description = `💔 Lost ${lostStreakLength}-day streak penalty (-${penaltyAmount} coins)`;
+      
+      return await this.spendCoins(
+        userId,
+        penaltyAmount,
+        'streak_penalty',
+        description,
+        { 
+          lost_streak_length: lostStreakLength,
+          penalty_type: 'streak_loss',
+          penalty_amount: penaltyAmount
+        },
+        getToken
+      );
+    } catch (error) {
+      console.error('Error in penalizeStreakLoss:', error);
+      return {
+        success: false,
+        amount: 0,
+        newBalance: 0,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
 
   /**
@@ -893,6 +1012,27 @@ export class CoinEconomy {
         activeBonuses: []
       };
     }
+  }
+
+  /**
+   * Compensate user for unfair penalty (bug fix compensation)
+   */
+  async compensateUnfairPenalty(
+    userId: string,
+    compensationAmount: number = 200,
+    getToken?: () => Promise<string | null>
+  ): Promise<CoinEarningResult> {
+    return await this.awardCoins(
+      userId,
+      'bug_compensation',
+      `🎁 Compensation for unfair streak penalty bug (sorry!)`,
+      { 
+        compensation_type: 'penalty_bug_fix',
+        original_penalty_system: '50_percent_balance',
+        new_penalty_system: 'fixed_amount'
+      },
+      getToken
+    );
   }
 }
 

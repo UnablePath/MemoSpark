@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Crown, Sparkles, Star, Zap, Gift, X } from 'lucide-react';
+import { Crown, Sparkles, Star, Zap, Gift } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -180,15 +180,7 @@ export const PremiumUpgradePopup: React.FC<PremiumUpgradePopupProps> = ({
                   className={`absolute inset-0 bg-gradient-to-br ${currentMessage.gradient} opacity-10`}
                 />
                 
-                {/* Close button */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 h-8 w-8 z-10"
-                  onClick={handleClose}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                {/* DialogContent already provides a close button, no need for manual one */}
 
                 <div className="relative p-6">
                   <DialogHeader className="text-center space-y-4">

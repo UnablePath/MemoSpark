@@ -241,7 +241,7 @@ const GamificationHub = () => {
                 }}
               >
                 <FaStar className="mr-2 h-4 w-4" />
-                🔥 Complete Today's Goal
+                🔥 Check in
               </Button>
             </CardContent>
           </Card>

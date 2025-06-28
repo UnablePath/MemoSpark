@@ -255,7 +255,7 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
                 ) : (
                   <>
                     <Flame className="w-4 h-4 mr-2" />
-                    Complete Today
+                    Check in
                   </>
                 )}
               </Button>
@@ -362,7 +362,7 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
               ) : (
                 <>
                   <Flame className="w-4 h-4 mr-2" />
-                  Complete Today's Goal
+                  Check in
                 </>
               )}
             </Button>

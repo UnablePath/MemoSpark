@@ -661,87 +661,93 @@ export const SmartScheduleView: React.FC<SmartScheduleViewProps> = ({ className 
       
       {/* Empty State Dialog */}
       <Dialog open={showEmptyStateDialog} onOpenChange={setShowEmptyStateDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-w-[90vw] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
               <BookOpen className="h-5 w-5" />
               No Tasks to Schedule
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="text-center py-4">
-              <div className="text-4xl mb-2">📚</div>
-              <p className="text-gray-600 mb-4">
+            <div className="text-center py-2 sm:py-4">
+              <div className="text-3xl sm:text-4xl mb-2">📚</div>
+              <p className="text-gray-600 mb-4 text-sm sm:text-base">
                 You need to create some tasks before using smart scheduling! 
                 Smart scheduling helps you organize and optimize your existing tasks.
               </p>
             </div>
             
-            <div className="space-y-4">
-              <h4 className="font-medium">Quick Task Creation</h4>
+            <div className="space-y-3 sm:space-y-4">
+              <h4 className="font-medium text-sm sm:text-base">Quick Task Creation</h4>
               
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 <div>
-                  <Label htmlFor="quick-title">Task Title *</Label>
+                  <Label htmlFor="quick-title" className="text-sm">Task Title *</Label>
                   <Input
                     id="quick-title"
                     placeholder="e.g., Study for Math exam"
                     value={quickTaskForm.title}
                     onChange={(e) => setQuickTaskForm(prev => ({ ...prev, title: e.target.value }))}
+                    className="h-10 sm:h-11"
                   />
                 </div>
                 
                 <div>
-                  <Label htmlFor="quick-description">Description</Label>
+                  <Label htmlFor="quick-description" className="text-sm">Description</Label>
                   <Textarea
                     id="quick-description"
                     placeholder="Optional details about the task..."
                     value={quickTaskForm.description}
                     onChange={(e) => setQuickTaskForm(prev => ({ ...prev, description: e.target.value }))}
                     rows={2}
+                    className="text-sm"
                   />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label htmlFor="quick-subject">Subject</Label>
-                    <Input
-                      id="quick-subject"
-                      placeholder="e.g., Mathematics"
-                      value={quickTaskForm.subject}
-                      onChange={(e) => setQuickTaskForm(prev => ({ ...prev, subject: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="quick-priority">Priority</Label>
+                    <Label htmlFor="quick-priority" className="text-sm">Priority</Label>
                     <Select 
                       value={quickTaskForm.priority} 
-                      onValueChange={(value: any) => setQuickTaskForm(prev => ({ ...prev, priority: value }))}
+                      onValueChange={(value: 'low' | 'medium' | 'high') => 
+                        setQuickTaskForm(prev => ({ ...prev, priority: value }))
+                      }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="h-10 sm:h-11">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
                         <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="quick-subject" className="text-sm">Subject</Label>
+                    <Input
+                      id="quick-subject"
+                      placeholder="e.g., Math"
+                      value={quickTaskForm.subject}
+                      onChange={(e) => setQuickTaskForm(prev => ({ ...prev, subject: e.target.value }))}
+                      className="h-10 sm:h-11"
+                    />
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label htmlFor="quick-due">Due Date</Label>
+                    <Label htmlFor="quick-due" className="text-sm">Due Date</Label>
                     <Input
                       id="quick-due"
                       type="date"
                       value={quickTaskForm.dueDate}
                       onChange={(e) => setQuickTaskForm(prev => ({ ...prev, dueDate: e.target.value }))}
+                      className="h-10 sm:h-11"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="quick-duration">Duration (min)</Label>
+                    <Label htmlFor="quick-duration" className="text-sm">Duration (min)</Label>
                     <Input
                       id="quick-duration"
                       type="number"
@@ -749,20 +755,21 @@ export const SmartScheduleView: React.FC<SmartScheduleViewProps> = ({ className 
                       max="300"
                       value={quickTaskForm.estimatedDuration}
                       onChange={(e) => setQuickTaskForm(prev => ({ ...prev, estimatedDuration: parseInt(e.target.value) || 60 }))}
+                      className="h-10 sm:h-11"
                     />
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          <DialogFooter className="flex gap-2">
+          <DialogFooter className="flex gap-2 pt-4">
             <Button variant="outline" onClick={() => {
               setShowEmptyStateDialog(false);
               resetQuickTaskForm();
-            }}>
+            }} className="flex-1 sm:flex-none h-10 sm:h-11 text-sm">
               Cancel
             </Button>
-            <Button onClick={createQuickTask} disabled={createTaskMutation.isPending}>
+            <Button onClick={createQuickTask} disabled={createTaskMutation.isPending} className="flex-1 sm:flex-none h-10 sm:h-11 text-sm">
               {createTaskMutation.isPending ? (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />

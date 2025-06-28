@@ -740,11 +740,17 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
 
       {/* Task Form Dialog */}
       {isTaskFormOpen && (
-                  <TaskForm
-            taskId={selectedTask?.id}
-            onSuccess={handleTaskFormSuccess}
-            onCancel={closeTaskForm}
-          />
+        <TaskForm
+          open={isTaskFormOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              closeTaskForm();
+            }
+          }}
+          taskId={selectedTask?.id}
+          onSuccess={handleTaskFormSuccess}
+          onCancel={closeTaskForm}
+        />
       )}
 
       {/* Timetable Entry Form Dialog */}

@@ -108,8 +108,8 @@ export const CoinWidget: React.FC<CoinWidgetProps> = ({
   if (variant === 'minimal') {
     return (
       <div className="flex items-center space-x-2">
-        <Coins className="w-5 h-5 text-yellow-500" />
-        <span className="font-bold text-yellow-600">{balance.toLocaleString()}</span>
+        <Coins className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+        <span className="font-bold text-yellow-700 dark:text-yellow-200">{balance.toLocaleString()}</span>
         {bonusEvents.length > 0 && showBonusEvents && (
           <Badge variant="outline" className="text-xs">
             <Sparkles className="w-3 h-3 mr-1" />
@@ -126,13 +126,13 @@ export const CoinWidget: React.FC<CoinWidgetProps> = ({
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center text-sm">
-            <Coins className="w-4 h-4 mr-2 text-yellow-500" />
+            <Coins className="w-4 h-4 mr-2 text-yellow-600 dark:text-yellow-400" />
             Coins
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
           <div className="space-y-3">
-            <div className="text-2xl font-bold text-yellow-600">
+            <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-200">
               {balance.toLocaleString()}
             </div>
             
@@ -173,7 +173,7 @@ export const CoinWidget: React.FC<CoinWidgetProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center">
-            <Coins className="w-5 h-5 mr-2 text-yellow-500" />
+            <Coins className="w-5 h-5 mr-2 text-yellow-600 dark:text-yellow-400" />
             Coin Wallet
           </div>
           <Button 
@@ -190,7 +190,7 @@ export const CoinWidget: React.FC<CoinWidgetProps> = ({
         <div className="space-y-4">
           {/* Balance display */}
           <div className="text-center">
-            <div className="text-3xl font-bold text-yellow-600">
+            <div className="text-3xl font-bold text-yellow-700 dark:text-yellow-200">
               {balance.toLocaleString()}
             </div>
             <div className="text-sm text-muted-foreground">MemoSpark Coins</div>

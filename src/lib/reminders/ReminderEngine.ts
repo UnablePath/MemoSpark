@@ -450,6 +450,259 @@ export class ReminderEngine {
   }
 
   /**
+   * Schedule daily streak reminder notifications at 8PM
+   * Sends personalized reminders with current streak count and Stu animations
+   */
+  async scheduleDailyStreakReminder(
+    userId: string,
+    currentStreak: number = 0,
+    timeOfDay: string = '20:00', // 8PM default
+    timezone?: string
+  ): Promise<boolean> {
+    try {
+      console.log(`🔥 Scheduling daily streak reminder for user: ${userId}, current streak: ${currentStreak}`);
+
+      // Check user notification preferences first
+      const userPattern = await this.getUserPattern(userId);
+      
+      // Skip if user disabled streak reminders or is in quiet hours
+      if (this.isInQuietHours(new Date(), {
+        enabled: true,
+        defaultOffsetMinutes: 30,
+        quietHoursStart: userPattern.quietHours.start,
+        quietHoursEnd: userPattern.quietHours.end,
+        weekendsEnabled: true
+      })) {
+        console.log(`🔇 Skipping streak reminder - user is in quiet hours`);
+        return false;
+      }
+
+      // Calculate reminder time for today at specified hour
+      const now = new Date();
+      const reminderTime = new Date();
+      const [hour, minute] = timeOfDay.split(':').map(Number);
+      
+      reminderTime.setHours(hour, minute, 0, 0);
+      
+      // If reminder time already passed today, schedule for tomorrow
+      if (reminderTime <= now) {
+        reminderTime.setDate(reminderTime.getDate() + 1);
+      }
+
+      // Create personalized streak message based on current streak
+      let message: string;
+      let stuAnimation: 'gentle' | 'encouraging' | 'urgent';
+      let title: string;
+
+      if (currentStreak === 0) {
+        message = `🌟 Start your streak! Check in to StudySpark and begin building momentum.`;
+        stuAnimation = 'encouraging';
+        title = '🔥 Start Your Streak!';
+      } else if (currentStreak < 3) {
+        message = `Keep your ${currentStreak}-day streak alive! 🔥 Check in to StudySpark now.`;
+        stuAnimation = 'encouraging';
+        title = `🔥 Day ${currentStreak + 1} Streak`;
+      } else if (currentStreak < 7) {
+        message = `Amazing ${currentStreak}-day streak! 🚀 Don't break the chain - check in now!`;
+        stuAnimation = 'encouraging';
+        title = `🚀 ${currentStreak}-Day Streak!`;
+      } else if (currentStreak < 30) {
+        message = `Incredible ${currentStreak}-day streak! 🏆 You're on fire - keep it going!`;
+        stuAnimation = 'encouraging';
+        title = `🏆 ${currentStreak} Days Strong!`;
+      } else {
+        message = `LEGENDARY ${currentStreak}-day streak! 👑 You're a StudySpark champion!`;
+        stuAnimation = 'encouraging';
+        title = `👑 ${currentStreak} Days Epic!`;
+      }
+
+      // Schedule the streak reminder using existing notification infrastructure
+      const success = await this.scheduleStreakReminderWithStu(
+        userId,
+        message,
+        title,
+        stuAnimation,
+        reminderTime,
+        currentStreak
+      );
+
+      if (success) {
+        console.log(`✅ Daily streak reminder scheduled successfully for ${reminderTime.toISOString()}`);
+        
+        // Store daily reminder preference in user patterns (for analytics)
+        if (this.supabaseService) {
+          try {
+            await this.supabaseService
+              .from('user_analytics')
+              .upsert({
+                user_id: userId,
+                last_streak_reminder_scheduled: reminderTime.toISOString(),
+                streak_reminder_preferences: {
+                  enabled: true,
+                  time_of_day: timeOfDay,
+                  current_streak: currentStreak
+                }
+              }, { 
+                onConflict: 'user_id' 
+              });
+          } catch (analyticsError) {
+            console.warn('⚠️ Failed to store streak reminder analytics:', analyticsError);
+          }
+        }
+      }
+
+      return success;
+    } catch (error) {
+      console.error('❌ Error scheduling daily streak reminder:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Cancel daily streak reminders for a user
+   */
+  async cancelDailyStreakReminder(userId: string): Promise<boolean> {
+    try {
+      console.log(`🗑️ Cancelling daily streak reminders for user: ${userId}`);
+
+      // OneSignal doesn't support cancelling scheduled notifications via API
+      // But we can mark them as disabled in user preferences
+      if (this.supabaseService) {
+        try {
+          await this.supabaseService
+            .from('user_analytics')
+            .upsert({
+              user_id: userId,
+              streak_reminder_preferences: {
+                enabled: false,
+                cancelled_at: new Date().toISOString()
+              }
+            }, { 
+              onConflict: 'user_id' 
+            });
+        } catch (analyticsError) {
+          console.warn('⚠️ Failed to store streak reminder cancellation:', analyticsError);
+        }
+      }
+
+      console.log(`✅ Daily streak reminders cancelled for user: ${userId}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Error cancelling daily streak reminders:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Schedule streak reminder with Stu mascot integration
+   */
+  private async scheduleStreakReminderWithStu(
+    userId: string,
+    message: string,
+    title: string,
+    stuAnimation: 'gentle' | 'encouraging' | 'urgent',
+    reminderTime: Date,
+    currentStreak: number
+  ): Promise<boolean> {
+    try {
+      console.log(`🎭 Scheduling streak reminder with Stu animation: ${stuAnimation}`);
+
+      // Use existing notification API infrastructure
+      const response = await fetch('/api/notifications/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userId,
+          notification: {
+            contents: { en: message },
+            headings: { en: title },
+            data: {
+              type: 'daily_streak_reminder',
+              stuAnimation: stuAnimation,
+              currentStreak: currentStreak,
+              url: '/dashboard',
+              actionButtons: [
+                {
+                  id: 'check_in',
+                  text: '🔥 Check In Now',
+                  url: '/dashboard?action=check_in'
+                },
+                {
+                  id: 'snooze',
+                  text: '⏰ Remind in 1hr',
+                  url: '/dashboard?action=snooze_streak'
+                }
+              ]
+            },
+            url: '/dashboard?tab=streaks',
+            priority: currentStreak > 7 ? 7 : 5, // Higher priority for longer streaks
+            
+            // iOS-specific configuration for better delivery
+            ios_sound: currentStreak > 14 ? 'tri-tone.caf' : 'default',
+            ios_category: 'STREAK_REMINDER',
+            ios_badgeType: 'Increase',
+            ios_interruption_level: currentStreak > 30 ? 'time-sensitive' : 'active',
+            
+            // Action buttons for iOS
+            buttons: [
+              {
+                id: 'check_in',
+                text: '🔥 Check In',
+                url: '/dashboard?action=check_in'
+              },
+              {
+                id: 'settings', 
+                text: '⚙️ Settings',
+                url: '/settings?tab=notifications'
+              }
+            ]
+          },
+          deliveryTime: reminderTime.toISOString()
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        console.log(`✅ Streak reminder scheduled with OneSignal ID: ${result.oneSignalId}`);
+        return true;
+      } else {
+        console.error('❌ Failed to schedule streak reminder:', result.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error in scheduleStreakReminderWithStu:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if time is within quiet hours (enhanced for streak reminders)
+   */
+  private isInQuietHours(time: Date, settings: { quietHoursStart?: string; quietHoursEnd?: string; enabled: boolean; defaultOffsetMinutes: number; weekendsEnabled: boolean }): boolean {
+    if (!settings.quietHoursStart || !settings.quietHoursEnd) {
+      return false;
+    }
+
+    const hour = time.getHours();
+    const minute = time.getMinutes();
+    const timeMinutes = hour * 60 + minute;
+
+    const [startHour, startMin] = settings.quietHoursStart.split(':').map(Number);
+    const [endHour, endMin] = settings.quietHoursEnd.split(':').map(Number);
+    
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
+
+    // Handle overnight quiet hours (e.g., 22:00 to 08:00)
+    if (startMinutes > endMinutes) {
+      return timeMinutes >= startMinutes || timeMinutes <= endMinutes;
+    } else {
+      return timeMinutes >= startMinutes && timeMinutes <= endMinutes;
+    }
+  }
+
+  /**
    * Generate adaptive reminder sequence based on AI analysis
    */
   private generateAdaptiveReminderSequence(

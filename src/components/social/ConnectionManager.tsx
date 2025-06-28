@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ChatInterface } from '@/components/messaging/ChatInterface';
-import { maskEmail, generateUsername } from '@/lib/utils';
+// Removed maskEmail and generateUsername imports - using real display names now
 
 // Streak Badge Component
 const StreakBadge: React.FC<{ streakData: any }> = ({ streakData }) => {
@@ -155,9 +155,6 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ searchTerm
           </CardHeader>
           <CardContent>
             {searchResults.map((result) => {
-              const username = generateUsername(result.full_name, result.clerk_user_id);
-              const maskedEmail = maskEmail(result.email);
-              
               return (
                 <div key={result.clerk_user_id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -169,14 +166,6 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ searchTerm
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm truncate">{result.full_name}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <AtSign className="h-3 w-3" />
-                          <span className="font-mono">{username}</span>
-                        </div>
-                        <span>•</span>
-                        <span>{maskedEmail}</span>
-                      </div>
                       {result.year_of_study && (
                         <p className="text-xs text-muted-foreground mt-1">
                           {result.year_of_study}
@@ -220,9 +209,11 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ searchTerm
                     </Avatar>
                     <div>
                       <p className="font-semibold text-sm">{request.requester.full_name || 'Unknown User'}</p>
-                      <p className="text-xs text-muted-foreground">
-                        @{generateUsername(request.requester.full_name, request.requester.clerk_user_id)}
-                      </p>
+                      {request.requester.year_of_study && (
+                        <p className="text-xs text-muted-foreground">
+                          {request.requester.year_of_study}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -257,9 +248,11 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ searchTerm
                       </Avatar>
                       <div className="flex-1">
                         <p className="font-semibold text-sm">{profile.full_name || 'Unknown User'}</p>
-                        <p className="text-xs text-muted-foreground">
-                          @{generateUsername(profile.full_name, profile.clerk_user_id)}
-                        </p>
+                        {profile.year_of_study && (
+                          <p className="text-xs text-muted-foreground">
+                            {profile.year_of_study}
+                          </p>
+                        )}
                         {connection.streak_data && (
                           <StreakBadge streakData={connection.streak_data} />
                         )}

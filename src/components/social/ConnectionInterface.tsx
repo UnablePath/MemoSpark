@@ -120,7 +120,7 @@ export const ConnectionInterface: React.FC<ConnectionInterfaceProps> = ({ onSwip
         <div className="flex items-center gap-4">
           <div className="relative w-full sm:w-64">
             <Input 
-              placeholder="Search students or @username..."
+              placeholder="Search students by name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pr-10"
@@ -150,7 +150,7 @@ export const ConnectionInterface: React.FC<ConnectionInterfaceProps> = ({ onSwip
             {searchTerm.trim() !== '' && (
               <div className="bg-muted/50 border border-muted rounded-lg p-3">
                 <p className="text-sm text-muted-foreground">
-                  💡 <strong>Search tip:</strong> Use <code className="bg-background px-1 rounded">@username</code> to search by username, or search by name/email normally.
+                  💡 <strong>Search tip:</strong> Use <code className="bg-background px-1 rounded">@name</code> to search by display name, or search by name/subjects normally.
                 </p>
               </div>
             )}

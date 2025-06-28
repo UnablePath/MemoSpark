@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { getAuthenticatedClient } from '../supabase/client';
 import { Database } from '@/types/database';
-import { parseSearchTerm, generateUsername } from '../utils';
+import { parseSearchTerm } from '../utils';
 
 export interface UserSearchResult {
   clerk_user_id: string;
@@ -28,8 +28,8 @@ export class StudentDiscovery {
     const { isUsernameSearch, cleanTerm } = parseSearchTerm(searchTerm);
     
     if (isUsernameSearch) {
-      // For username search, we need to search based on generated usernames
-      return this.searchByUsername(cleanTerm, currentUserId);
+      // For @username search, search by display name (since we don't use fake usernames anymore)
+      return this.searchByDisplayName(cleanTerm, currentUserId);
     } else {
       // Regular search using the existing RPC function
       const { data, error } = await this.supabase.rpc('search_users', { search_term: searchTerm });
@@ -41,53 +41,57 @@ export class StudentDiscovery {
     }
   }
 
-  private async searchByUsername(usernameTerm: string, currentUserId: string): Promise<UserSearchResult[]> {
-    // Get all users and filter by generated username
+  private async searchByDisplayName(searchTerm: string, currentUserId: string): Promise<UserSearchResult[]> {
+    // Search by display name (full_name) instead of generated usernames
     const { data, error } = await this.supabase
       .from('profiles')
       .select('clerk_user_id, full_name, email, avatar_url, year_of_study, subjects, interests')
       .neq('clerk_user_id', currentUserId)
-      .limit(50); // Limit for performance
+      .ilike('full_name', `%${searchTerm}%`)
+      .limit(10); // Limit results
 
     if (error) {
-      console.error('Error searching users by username:', error);
+      console.error('Error searching users by display name:', error);
       return [];
     }
 
     if (!data) return [];
 
-    // Filter by generated username match
+    // Sort by relevance
     return data
-      .filter(user => {
-        const generatedUsername = generateUsername(user.full_name, user.clerk_user_id);
-        return generatedUsername.toLowerCase().includes(usernameTerm.toLowerCase());
-      })
-      .slice(0, 10) // Limit results
       .map(user => ({
         ...user,
-        similarity_score: this.calculateUsernameMatchScore(
-          generateUsername(user.full_name, user.clerk_user_id),
-          usernameTerm
-        )
+        similarity_score: this.calculateDisplayNameMatchScore(user.full_name, searchTerm)
       }))
-      .sort((a, b) => (b.similarity_score || 0) - (a.similarity_score || 0)); // Sort by relevance
+      .sort((a, b) => (b.similarity_score || 0) - (a.similarity_score || 0));
   }
 
-  private calculateUsernameMatchScore(username: string, searchTerm: string): number {
-    const lowerUsername = username.toLowerCase();
+  private async searchByUsername(usernameTerm: string, currentUserId: string): Promise<UserSearchResult[]> {
+    // This method is deprecated - redirect to display name search
+    return this.searchByDisplayName(usernameTerm, currentUserId);
+  }
+
+  private calculateDisplayNameMatchScore(displayName: string | null, searchTerm: string): number {
+    if (!displayName) return 0;
+    
+    const lowerDisplayName = displayName.toLowerCase();
     const lowerTerm = searchTerm.toLowerCase();
     
     // Exact match gets highest score
-    if (lowerUsername === lowerTerm) return 1.0;
+    if (lowerDisplayName === lowerTerm) return 1.0;
     
     // Starts with gets high score
-    if (lowerUsername.startsWith(lowerTerm)) return 0.8;
+    if (lowerDisplayName.startsWith(lowerTerm)) return 0.8;
+    
+    // Word boundary match gets good score
+    const words = lowerDisplayName.split(' ');
+    if (words.some(word => word.startsWith(lowerTerm))) return 0.7;
     
     // Contains gets medium score
-    if (lowerUsername.includes(lowerTerm)) return 0.6;
+    if (lowerDisplayName.includes(lowerTerm)) return 0.6;
     
     // Calculate similarity based on common characters
-    const commonChars = lowerTerm.split('').filter(char => lowerUsername.includes(char)).length;
+    const commonChars = lowerTerm.split('').filter(char => lowerDisplayName.includes(char)).length;
     return Math.min(0.5, commonChars / lowerTerm.length * 0.5);
   }
 
@@ -140,12 +144,14 @@ export class StudentDiscovery {
           clerk_user_id, 
           full_name, 
           avatar_url,
+          year_of_study,
           streak_visibility
         ),
         receiver:profiles!connections_receiver_id_fkey(
           clerk_user_id, 
           full_name, 
           avatar_url,
+          year_of_study,
           streak_visibility
         )
       `)
@@ -198,7 +204,7 @@ export class StudentDiscovery {
       .from('connections')
       .select(`
         *,
-        requester:profiles!connections_requester_id_fkey(clerk_user_id, full_name, avatar_url)
+        requester:profiles!connections_requester_id_fkey(clerk_user_id, full_name, avatar_url, year_of_study)
       `)
       .eq('receiver_id', userId)
       .eq('status', 'pending');

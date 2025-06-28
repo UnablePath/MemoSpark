@@ -165,13 +165,13 @@ export const CoinDisplay: React.FC<CoinDisplayProps> = ({
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center text-lg">
-            <Coins className="w-5 h-5 mr-2 text-yellow-500" />
+            <Coins className="w-5 h-5 mr-2 text-yellow-600 dark:text-yellow-400" />
             Coins
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="text-3xl font-bold text-yellow-600">{balance.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-yellow-700 dark:text-yellow-200">{balance.toLocaleString()}</div>
             {analytics && (
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="text-center p-2 bg-card border border-border/50 rounded">
@@ -200,7 +200,7 @@ export const CoinDisplay: React.FC<CoinDisplayProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center">
-              <Coins className="w-5 h-5 mr-2 text-yellow-500" />
+              <Coins className="w-5 h-5 mr-2 text-yellow-600 dark:text-yellow-400" />
               Coin Wallet
             </div>
             <Badge variant="secondary" className="text-lg font-bold">
@@ -243,11 +243,11 @@ export const CoinDisplay: React.FC<CoinDisplayProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center">
-              <Coins className="w-6 h-6 mr-3 text-yellow-500" />
+              <Coins className="w-6 h-6 mr-3 text-yellow-600 dark:text-yellow-400" />
               Coin Wallet
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-yellow-600">{balance.toLocaleString()}</div>
+              <div className="text-3xl font-bold text-yellow-700 dark:text-yellow-200">{balance.toLocaleString()}</div>
               <div className="text-sm text-muted-foreground">MemoSpark Coins</div>
             </div>
           </CardTitle>
@@ -416,7 +416,7 @@ export const CoinDisplay: React.FC<CoinDisplayProps> = ({
                         )}
 
                         <div className="flex items-center justify-between">
-                          <div className="text-lg font-bold text-yellow-600">
+                          <div className="text-lg font-bold text-yellow-700 dark:text-yellow-200">
                             {item.cost} coins
                           </div>
                           <Button

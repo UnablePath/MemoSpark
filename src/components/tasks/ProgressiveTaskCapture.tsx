@@ -90,19 +90,19 @@ const QuickCaptureStep: React.FC<{
       onSubmit={handleSubmit}
       className="space-y-4"
     >
-      <div className="text-center mb-6">
+      <div className={cn("text-center mb-6", isMobile && "mb-4")}>
         <div className="flex items-center justify-center mb-2">
-          <div className="p-3 bg-primary/10 rounded-full" aria-hidden="true">
-            <Tag className="h-6 w-6 text-primary" />
+          <div className={cn("p-3 bg-primary/10 rounded-full", isMobile && "p-2")} aria-hidden="true">
+            <Tag className={cn("h-6 w-6 text-primary", isMobile && "h-5 w-5")} />
           </div>
         </div>
-        <h3 className="text-lg font-semibold text-foreground">Quick Task Capture</h3>
-        <p className="text-sm text-muted-foreground">Start with the essentials</p>
+        <h3 className={cn("text-lg font-semibold text-foreground", isMobile && "text-base")}>Quick Task Capture</h3>
+        <p className={cn("text-sm text-muted-foreground", isMobile && "text-xs")}>Start with the essentials</p>
       </div>
 
-      <div className={cn("space-y-4", isMobile && "space-y-6")}>
+      <div className={cn("space-y-4", isMobile && "space-y-3")}>
         <div>
-          <Label htmlFor="quick-title" className={cn("text-sm font-medium text-foreground", isMobile && "text-base")}>
+          <Label htmlFor="quick-title" className={cn("text-sm font-medium text-foreground", isMobile && "text-sm")}>
             What needs to be done? *
           </Label>
           <Input
@@ -113,7 +113,7 @@ const QuickCaptureStep: React.FC<{
             className={cn(
               "mt-1.5 h-11 transition-all duration-200",
               "border-border bg-background text-foreground placeholder:text-muted-foreground",
-              isMobile && "h-14 text-base px-4 rounded-lg touch-manipulation",
+              isMobile && "h-12 text-base px-3 rounded-lg touch-manipulation mt-1",
               "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background"
             )}
             autoFocus={!isMobile} // Avoid auto-focus on mobile to prevent unwanted keyboard
@@ -133,13 +133,13 @@ const QuickCaptureStep: React.FC<{
         </div>
 
         <div>
-          <Label htmlFor="quick-due-date" className={cn("text-sm font-medium text-foreground", isMobile && "text-base")}>
+          <Label htmlFor="quick-due-date" className={cn("text-sm font-medium text-foreground", isMobile && "text-sm")}>
             When is it due? *
           </Label>
-          <div className="relative mt-1.5">
+          <div className={cn("relative mt-1.5", isMobile && "mt-1")}>
             <Calendar className={cn(
               "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none",
-              isMobile && "left-4 h-5 w-5"
+              isMobile && "left-3 h-4 w-4"
             )} aria-hidden="true" />
             <Input
               id="quick-due-date"
@@ -149,7 +149,7 @@ const QuickCaptureStep: React.FC<{
               className={cn(
                 "pl-10 h-11 transition-all duration-200",
                 "border-border bg-background text-foreground",
-                isMobile && "pl-12 h-14 text-base rounded-lg touch-manipulation",
+                isMobile && "pl-10 h-12 text-base rounded-lg touch-manipulation",
                 "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background"
               )}
               required
@@ -164,9 +164,9 @@ const QuickCaptureStep: React.FC<{
           </div>
         </div>
 
-        <div className={cn("grid grid-cols-2 gap-3", isMobile && "gap-4")}>
+        <div className={cn("grid grid-cols-2 gap-3", isMobile && "gap-2")}>
           <div>
-            <Label htmlFor="quick-priority" className={cn("text-sm font-medium text-foreground", isMobile && "text-base")}>
+            <Label htmlFor="quick-priority" className={cn("text-sm font-medium text-foreground", isMobile && "text-sm")}>
               Priority
             </Label>
             <Select value={data.priority} onValueChange={(value: Priority) => onChange({ priority: value })}>
@@ -174,26 +174,26 @@ const QuickCaptureStep: React.FC<{
                 "mt-1.5 h-11 transition-all duration-200",
                 "border-border bg-background text-foreground",
                 "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
-                isMobile && "h-14 text-base rounded-lg touch-manipulation"
+                isMobile && "h-12 text-base rounded-lg touch-manipulation mt-1"
               )}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-background border-border shadow-lg">
                 <SelectItem value="low" className={cn(
                   "text-foreground hover:bg-accent hover:text-accent-foreground",
-                  isMobile && "py-3 text-base"
+                  isMobile && "py-2 text-base"
                 )}>
                   Low
                 </SelectItem>
                 <SelectItem value="medium" className={cn(
                   "text-foreground hover:bg-accent hover:text-accent-foreground",
-                  isMobile && "py-3 text-base"
+                  isMobile && "py-2 text-base"
                 )}>
                   Medium
                 </SelectItem>
                 <SelectItem value="high" className={cn(
                   "text-foreground hover:bg-accent hover:text-accent-foreground",
-                  isMobile && "py-3 text-base"
+                  isMobile && "py-2 text-base"
                 )}>
                   High
                 </SelectItem>
@@ -202,7 +202,7 @@ const QuickCaptureStep: React.FC<{
           </div>
 
           <div>
-            <Label htmlFor="quick-type" className={cn("text-sm font-medium text-foreground", isMobile && "text-base")}>
+            <Label htmlFor="quick-type" className={cn("text-sm font-medium text-foreground", isMobile && "text-sm")}>
               Type
             </Label>
             <Select value={data.type} onValueChange={(value: TaskType) => onChange({ type: value })}>
@@ -210,20 +210,20 @@ const QuickCaptureStep: React.FC<{
                 "mt-1.5 h-11 transition-all duration-200",
                 "border-border bg-background text-foreground",
                 "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
-                isMobile && "h-14 text-base rounded-lg touch-manipulation"
+                isMobile && "h-12 text-base rounded-lg touch-manipulation mt-1"
               )}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-background border-border shadow-lg">
                 <SelectItem value="academic" className={cn(
                   "text-foreground hover:bg-accent hover:text-accent-foreground",
-                  isMobile && "py-3 text-base"
+                  isMobile && "py-2 text-base"
                 )}>
                   Academic
                 </SelectItem>
                 <SelectItem value="personal" className={cn(
                   "text-foreground hover:bg-accent hover:text-accent-foreground",
-                  isMobile && "py-3 text-base"
+                  isMobile && "py-2 text-base"
                 )}>
                   Personal
                 </SelectItem>
@@ -682,19 +682,19 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
         className={cn(
           "p-0 overflow-hidden flex flex-col bg-card text-card-foreground shadow-2xl rounded-lg",
           "sm:max-w-lg", // Default for larger screens
-          isMobile ? "w-[90vw] max-h-[90vh] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" : "max-h-[80vh]",
+          isMobile ? "w-[95vw] max-w-sm max-h-[85vh] fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" : "max-h-[80vh]",
           isMobile && "pb-[env(safe-area-inset-bottom)]" // Add padding for home bar on iOS
         )}
         onOpenAutoFocus={(e) => e.preventDefault()} // Prevent auto-focus on first input unless intended
       >
-        <DialogHeader className={cn("p-6 pb-4 text-center", isMobile && "p-4 pb-3")}>
-          <DialogTitle className={cn("text-xl font-semibold", isMobile && "text-lg")}>
+        <DialogHeader className={cn("p-6 pb-4 text-center", isMobile && "p-3 pb-2")}>
+          <DialogTitle className={cn("text-xl font-semibold", isMobile && "text-base")}>
             {taskCompleted ? "Task Created!" : stepTitles[step - 1] || "Add New Task"}
           </DialogTitle>
         </DialogHeader>
 
         <div 
-          className={cn("flex-grow overflow-y-auto px-6 pb-4", isMobile && "px-4 pb-3")}
+          className={cn("flex-grow overflow-y-auto px-6 pb-4", isMobile && "px-3 pb-2")}
           ref={contentRef}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
@@ -734,17 +734,17 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
           <DialogFooter className={cn(
             "p-6 pt-4 border-t border-border bg-muted/30", 
             "flex flex-row justify-between items-center",
-            isMobile && "p-4 pt-3 grid grid-cols-2 gap-3"
+            isMobile && "p-3 pt-2 grid grid-cols-2 gap-2"
           )}>
             {step > 1 && !taskCompleted ? (
               <Button
                 variant="outline"
                 onClick={handlePrev}
-                size={isMobile ? "lg" : "default"}
+                size={isMobile ? "default" : "default"}
                 className={cn(
                   "flex items-center gap-2 touch-manipulation transition-colors",
                   "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
-                  isMobile && "min-h-[48px] px-4"
+                  isMobile && "min-h-[44px] px-3 text-sm"
                 )}
                 aria-label="Go to previous step"
               >
@@ -765,18 +765,18 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
                 />
             </div>
             
-            <div className={cn("flex gap-2", isMobile && "order-1 gap-3 col-span-2 flex-grow")}>
+            <div className={cn("flex gap-2", isMobile && "order-1 gap-2 col-span-2 flex-grow")}>
               {!taskCompleted && (
                 <Button
                   type="button"
                   variant="ghost"
                   onClick={() => onOpenChange(false)}
-                  size={isMobile ? "lg" : "default"}
+                  size={isMobile ? "default" : "default"}
                   className={cn(
                     "touch-manipulation transition-colors",
                     "hover:bg-accent hover:text-accent-foreground",
                     "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
-                    isMobile && "min-h-[48px] px-4"
+                    isMobile && "min-h-[44px] px-3 text-sm"
                   )}
                   aria-label="Cancel task creation"
                 >
@@ -788,12 +788,12 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
                 <Button
                   onClick={handleNext}
                   disabled={!taskData.title || !taskData.dueDate}
-                  size={isMobile ? "lg" : "default"}
+                  size={isMobile ? "default" : "default"}
                   className={cn(
                     "flex items-center gap-2 touch-manipulation transition-colors",
                     "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
-                    isMobile && "min-h-[48px] px-6 flex-1"
+                    isMobile && "min-h-[44px] px-4 flex-1 text-sm"
                   )}
                   aria-label={`Continue to ${stepTitles[step] || 'next step'}`}
                 >
@@ -804,13 +804,13 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
                 <Button
                   onClick={handleSubmit}
                   disabled={!taskData.title || !taskData.dueDate}
-                  size={isMobile ? "lg" : "default"}
+                  size={isMobile ? "default" : "default"}
                   className={cn(
                     "flex items-center gap-2 touch-manipulation transition-colors",
                     "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
                     "bg-primary text-primary-foreground hover:bg-primary/90",
-                    isMobile && "min-h-[48px] px-6 flex-1"
+                    isMobile && "min-h-[44px] px-4 flex-1 text-sm"
                   )}
                   aria-label="Create new task with entered details"
                 >
@@ -823,7 +823,7 @@ export const ProgressiveTaskCapture: React.FC<ProgressiveTaskCaptureProps> = ({
                   animate={{ scale: 1, opacity: 1 }}
                   className={cn(
                     "text-sm text-primary font-medium",
-                    isMobile && "text-base py-3 text-center"
+                    isMobile && "text-sm py-2 text-center"
                   )}
                   role="status"
                   aria-live="polite"

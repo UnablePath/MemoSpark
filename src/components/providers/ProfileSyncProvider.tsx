@@ -2,12 +2,16 @@
 
 import { useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
+import { useAutoStreak } from '@/hooks/useAutoStreak';
 
 // This component ensures that a user's profile is synced with the backend
 // whenever they are authenticated. It should be placed in a layout component
 // that wraps all authenticated routes.
 export function ProfileSyncProvider({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useUser();
+  
+  // Enable automatic daily streak check-ins for all authenticated users
+  useAutoStreak(isSignedIn && isLoaded);
 
   useEffect(() => {
     // Flag to prevent multiple syncs

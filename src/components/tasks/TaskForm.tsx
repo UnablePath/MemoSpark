@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon, Clock, AlertCircle, Repeat, Info, Target, Brain, Sparkles, Crown } from 'lucide-react';
+import { CalendarIcon, Clock, AlertCircle, Repeat, Info, Target, Brain, Sparkles, Crown, X } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 import { useCreateTask, useUpdateTask, useGetTask } from '@/hooks/useTaskQueries';
 import { cn } from '@/lib/utils';
@@ -30,6 +30,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import {
   Popover,
   PopoverContent,
@@ -85,6 +92,8 @@ const taskFormSchema = z.object({
 type TaskFormValues = z.infer<typeof taskFormSchema>;
 
 interface TaskFormProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   taskId?: string | null;
   onSuccess?: () => void;
   onCancel?: () => void;
@@ -92,6 +101,8 @@ interface TaskFormProps {
 }
 
 export const TaskForm: React.FC<TaskFormProps> = ({
+  open,
+  onOpenChange,
   taskId,
   onSuccess,
   onCancel,
@@ -511,11 +522,23 @@ export const TaskForm: React.FC<TaskFormProps> = ({
         });
       }
 
-      onSuccess?.();
+      handleSuccess();
     } catch (error) {
       console.error('Error saving task:', error);
       // Error handling is done by the mutation hooks with toast notifications
     }
+  };
+
+  // Handle close with optional callback
+  const handleClose = () => {
+    onCancel?.();
+    onOpenChange(false);
+  };
+
+  // Handle successful form submission
+  const handleSuccess = () => {
+    onSuccess?.();
+    onOpenChange(false);
   };
 
   // Calculate loading state
@@ -525,222 +548,182 @@ export const TaskForm: React.FC<TaskFormProps> = ({
     isLoadingTask;
 
   return (
-    <div className={cn("w-full max-w-4xl mx-auto", className)}>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Form */}
-        <div className="lg:col-span-2">
-          <Form {...form}>
-            <form 
-              onSubmit={form.handleSubmit(onSubmit)} 
-              className="space-y-6"
-              role="form"
-              aria-label={taskId ? "Edit task form" : "Create new task form"}
-            >
-              {/* Form Header */}
-              <div className="text-center space-y-2">
-                <div className="flex items-center justify-center gap-2">
-                  <h2 className="text-xl sm:text-2xl font-semibold">
-                    {taskId ? 'Edit Task' : 'Create New Task'}
-                  </h2>
-                  {!taskId && aiSuggestions.length > 0 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={toggleAISuggestions}
-                      className={cn(
-                        "ml-2 transition-colors h-8 px-2 sm:px-3",
-                        showAISuggestions ? "text-primary" : "text-muted-foreground"
-                      )}
-                    >
-                      <Brain className="h-4 w-4 sm:mr-1" />
-                      <span className="hidden sm:inline ml-1">
-                        {showAISuggestions ? 'Hide' : 'Show'} AI Tips
-                      </span>
-                    </Button>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl max-w-[95vw] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold">
+            {taskId ? 'Edit Task' : 'Create New Task'}
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            {taskId ? 'Update your task details below' : 'Fill in the details to create a new task'}
+          </p>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form 
+            onSubmit={form.handleSubmit(onSubmit)} 
+            className="space-y-6"
+            role="form"
+            aria-label={taskId ? "Edit task form" : "Create new task form"}
+          >
+            {/* Basic Task Information */}
+            <section>
+              <h3 className="text-lg font-semibold mb-4">Basic Task Information</h3>
+              
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">
+                        Task Title <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter a clear, descriptive title..."
+                          {...field}
+                          disabled={isLoading}
+                          className="h-11"
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs text-muted-foreground">
+                        A concise title that clearly describes what needs to be done.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {taskId ? 'Update your task details below' : 'Fill in the details to create a new task'}
-                  {!taskId && aiSuggestions.length > 0 && (
-                    <span className="block mt-1 text-primary font-medium">
-                      💡 AI suggestions available as you type
-                    </span>
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Add any additional details, notes, or requirements..."
+                          className="min-h-[80px] resize-none"
+                          {...field}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs text-muted-foreground">
+                        Optional: Provide more context, requirements, or notes about the task.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </p>
-                <Separator className="mt-4" />
+                />
+              </div>
+            </section>
+
+            {/* Task Properties */}
+            <section>
+              <h3 className="text-lg font-semibold mb-4">Task Properties</h3>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="priority"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">Priority Level</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                        <FormControl>
+                          <SelectTrigger className="h-11">
+                            <SelectValue placeholder="Select priority" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {PRIORITY_OPTIONS.map((priority) => (
+                            <SelectItem key={priority} value={priority}>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={cn(
+                                    'w-2 h-2 rounded-full',
+                                    priority === 'high' && 'bg-red-500',
+                                    priority === 'medium' && 'bg-yellow-500',
+                                    priority === 'low' && 'bg-green-500'
+                                  )}
+                                />
+                                {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription className="text-xs text-muted-foreground">
+                        How urgent or important is this task?
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">Task Category</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                        <FormControl>
+                          <SelectTrigger className="h-11">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {TASK_TYPE_OPTIONS.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type.charAt(0).toUpperCase() + type.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription className="text-xs text-muted-foreground">
+                        What type of task is this?
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
-          {/* Basic Information Section */}
-          <section aria-labelledby="basic-info-heading">
-            <h3 id="basic-info-heading" className="sr-only">Basic Task Information</h3>
-            
-            {/* Title Field */}
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-base font-medium">
-                    Task Title <span className="text-red-500" aria-label="required">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter a clear, descriptive title..."
-                      {...field}
-                      disabled={isLoading}
-                      aria-describedby="title-description"
-                      className="text-base h-11"
-                    />
-                  </FormControl>
-                  <FormDescription id="title-description">
-                    A concise title that clearly describes what needs to be done.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Description Field */}
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem className="mt-4">
-                  <FormLabel className="text-base font-medium">Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Add any additional details, notes, or requirements..."
-                      className="min-h-[100px] text-base resize-none"
-                      {...field}
-                      disabled={isLoading}
-                      aria-describedby="description-help"
-                    />
-                  </FormControl>
-                  <FormDescription id="description-help">
-                    Optional: Provide more context, requirements, or notes about the task.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </section>
-
-          {/* Task Properties Section */}
-          <section aria-labelledby="properties-heading">
-            <h3 id="properties-heading" className="text-lg font-medium mb-4 flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Task Properties
-            </h3>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="priority"
+                name="subject"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium">Priority Level</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                      <FormControl>
-                        <SelectTrigger aria-describedby="priority-help">
-                          <SelectValue placeholder="Select priority" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {PRIORITY_OPTIONS.map((priority) => (
-                          <SelectItem key={priority} value={priority}>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className={cn(
-                                  'w-2 h-2 rounded-full',
-                                  priority === 'high' && 'bg-red-500',
-                                  priority === 'medium' && 'bg-yellow-500',
-                                  priority === 'low' && 'bg-green-500'
-                                )}
-                                aria-hidden="true"
-                              />
-                              {priority.charAt(0).toUpperCase() + priority.slice(1)}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription id="priority-help">
-                      How urgent or important is this task?
+                  <FormItem className="mt-4">
+                    <FormLabel className="text-sm font-medium">Subject/Course</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g., Mathematics, Computer Science, Personal Development..."
+                        {...field}
+                        disabled={isLoading}
+                        className="h-11"
+                      />
+                    </FormControl>
+                    <FormDescription className="text-xs text-muted-foreground">
+                      For academic tasks, specify the course or subject area. For personal tasks, you can categorize by area of focus.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+            </section>
 
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium">Task Category</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                      <FormControl>
-                        <SelectTrigger aria-describedby="type-help">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {TASK_TYPE_OPTIONS.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type.charAt(0).toUpperCase() + type.slice(1)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription id="type-help">
-                      What type of task is this?
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Subject Field */}
-            <FormField
-              control={form.control}
-              name="subject"
-              render={({ field }) => (
-                <FormItem className="mt-4">
-                  <FormLabel className="text-sm font-medium">Subject/Course</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="e.g., Mathematics, Computer Science, Personal Development..."
-                      {...field}
-                      disabled={isLoading}
-                      aria-describedby="subject-help"
-                    />
-                  </FormControl>
-                  <FormDescription id="subject-help">
-                    For academic tasks, specify the course or subject area. For personal tasks, you can categorize by area of focus.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </section>
-
-          {/* Scheduling Section */}
-          <section aria-labelledby="scheduling-heading">
-            <h3 id="scheduling-heading" className="text-lg font-medium mb-4 flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Scheduling
-            </h3>
-            
-            <Card>
-              <CardContent className="p-4 space-y-4">
-                {/* Due Date Field */}
+            {/* Scheduling */}
+            <section>
+              <h3 className="text-lg font-semibold mb-4">Scheduling</h3>
+              
+              <div className="space-y-4">
                 <FormField
                   control={form.control}
                   name="due_date"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem>
                       <FormLabel className="text-sm font-medium">Due Date</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
@@ -748,11 +731,10 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                             <Button
                               variant="outline"
                               className={cn(
-                                'w-full pl-3 text-left font-normal justify-start',
+                                'w-full h-11 pl-3 text-left font-normal justify-start',
                                 !field.value && 'text-muted-foreground'
                               )}
                               disabled={isLoading}
-                              aria-describedby="due-date-help"
                             >
                               {field.value ? (
                                 <>
@@ -778,7 +760,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                           />
                         </PopoverContent>
                       </Popover>
-                      <FormDescription id="due-date-help">
+                      <FormDescription className="text-xs text-muted-foreground">
                         When does this task need to be completed?
                       </FormDescription>
                       <FormMessage />
@@ -786,513 +768,138 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                   )}
                 />
 
-                {/* Time Picker (conditional) */}
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="show-time"
                       checked={showTimePicker}
                       onCheckedChange={(checked: boolean | "indeterminate") => setShowTimePicker(checked === true)}
                       disabled={isLoading}
-                      aria-describedby="time-picker-help"
                     />
-                    <Label htmlFor="show-time" className="text-sm font-normal cursor-pointer">
+                    <Label htmlFor="show-time" className="text-sm font-medium cursor-pointer">
                       Set specific time
                     </Label>
                   </div>
-                  <FormDescription id="time-picker-help" className="text-xs">
+                  <FormDescription className="text-xs text-muted-foreground">
                     Enable to set a specific deadline time, otherwise the task will be due by end of day.
                   </FormDescription>
 
                   {showTimePicker && (
                     <div className="flex items-center space-x-2 pl-6">
                       <Clock className="h-4 w-4 text-muted-foreground" />
-                      <Label htmlFor="time-input" className="sr-only">Time</Label>
                       <Input
-                        id="time-input"
                         type="time"
                         value={timeValue}
                         onChange={(e) => setTimeValue(e.target.value)}
-                        className="w-32"
+                        className="w-32 h-9"
                         disabled={isLoading}
-                        aria-describedby="time-input-help"
                       />
-                      <FormDescription id="time-input-help" className="text-xs">
-                        Select the specific time when this task is due.
-                      </FormDescription>
                     </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-
-          {/* Reminder Settings Section */}
-          <section aria-labelledby="reminders-heading">
-            <h3 id="reminders-heading" className="text-lg font-medium mb-4 flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              Reminders
-            </h3>
-            
-            <Card>
-              <CardContent className="p-4 space-y-4">
-                <FormField
-                  control={form.control}
-                  name="reminder_settings.enabled"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={isLoading}
-                          aria-describedby="reminder-help"
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none flex-1">
-                        <div className="flex items-center gap-2">
-                        <FormLabel className="text-sm font-medium cursor-pointer">
-                          Enable Reminders
-                        </FormLabel>
-                          {field.value && (
-                            <div className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
-                              <Brain className="h-3 w-3" />
-                              AI-Powered
-                            </div>
-                          )}
-                        </div>
-                        <FormDescription id="reminder-help">
-                          {field.value 
-                            ? "AI will create smart reminders optimized for your patterns and task importance."
-                            : "Get notified before the task is due to help you stay on track."
-                          }
-                        </FormDescription>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                {/* Reminder Details (conditional) */}
-                {form.watch('reminder_settings.enabled') && (
-                  <div className="ml-6 space-y-4 border-l-2 border-muted pl-4" role="group" aria-labelledby="reminder-details">
-                    <h4 id="reminder-details" className="sr-only">Reminder Configuration</h4>
-                    
-                    <FormField
-                      control={form.control}
-                      name="reminder_settings.offset_minutes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium">Remind me</FormLabel>
-                          <Select
-                            onValueChange={(value) => field.onChange(Number(value))}
-                            defaultValue={field.value?.toString()}
-                            disabled={isLoading}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select reminder time" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="0">Immediate reminder</SelectItem>
-                              <SelectItem value="1">1 minute before</SelectItem>
-                              <SelectItem value="5">5 minutes before</SelectItem>
-                              <SelectItem value="15">15 minutes before</SelectItem>
-                              <SelectItem value="30">30 minutes before</SelectItem>
-                              <SelectItem value="60">1 hour before</SelectItem>
-                              <SelectItem value="120">2 hours before</SelectItem>
-                              <SelectItem value="1440">1 day before</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="reminder_settings.type"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium">Reminder Method</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select reminder type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="notification">Push notification</SelectItem>
-                              <SelectItem value="email" disabled>Email notification (Coming Soon)</SelectItem>
-                              <SelectItem value="both" disabled>Both notification types (Coming Soon)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </section>
-
-          {/* Recurrence Settings Section */}
-          <section aria-labelledby="recurrence-heading">
-            <h3 id="recurrence-heading" className="text-lg font-medium mb-4 flex items-center gap-2">
-              <Repeat className="h-5 w-5" />
-              Repeat Settings
-            </h3>
-            
-            <Card>
-              <CardContent className="p-4 space-y-4">
-                <FormField
-                  control={form.control}
-                  name="recurrence_settings.frequency"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium">Repeat Pattern</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                        <FormControl>
-                          <SelectTrigger aria-describedby="frequency-help">
-                            <SelectValue placeholder="Select recurrence pattern" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {RECURRENCE_FREQUENCIES.map((freq) => (
-                            <SelectItem key={freq.value} value={freq.value}>
-                              {freq.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription id="frequency-help">
-                        Choose how often this task should repeat. Select "None" for one-time tasks.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Recurrence Details (conditional) */}
-                {form.watch('recurrence_settings.frequency') !== 'none' && (
-                  <div className="ml-6 space-y-4 border-l-2 border-muted pl-4" role="group" aria-labelledby="recurrence-details">
-                    <h4 id="recurrence-details" className="sr-only">Recurrence Configuration</h4>
-                    
-                    {/* Interval */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm text-muted-foreground">Every</span>
-                      <FormField
-                        control={form.control}
-                        name="recurrence_settings.interval"
-                        render={({ field }) => (
-                          <FormItem className="flex-1 min-w-0">
-                            <FormControl>
-                              <Input
-                                type="number"
-                                min="1"
-                                max="999"
-                                className="w-20"
-                                {...field}
-                                onChange={(e) => field.onChange(Number(e.target.value))}
-                                disabled={isLoading}
-                                aria-label="Recurrence interval"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <span className="text-sm text-muted-foreground">
-                        {form.watch('recurrence_settings.frequency') === 'daily' && 'day(s)'}
-                        {form.watch('recurrence_settings.frequency') === 'weekly' && 'week(s)'}
-                        {form.watch('recurrence_settings.frequency') === 'monthly' && 'month(s)'}
-                        {form.watch('recurrence_settings.frequency') === 'yearly' && 'year(s)'}
-                      </span>
-                    </div>
-
-                    {/* Days of week (for weekly recurrence) */}
-                    {form.watch('recurrence_settings.frequency') === 'weekly' && (
-                      <FormField
-                        control={form.control}
-                        name="recurrence_settings.daysOfWeek"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-medium">Repeat on these days</FormLabel>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" role="group" aria-labelledby="days-of-week">
-                              {DAYS_OF_WEEK.map((day) => (
-                                <div key={day.value} className="flex items-center space-x-2">
-                                  <Checkbox
-                                    id={`day-${day.value}`}
-                                    checked={field.value?.includes(day.value) || false}
-                                    onCheckedChange={(checked) => {
-                                      const currentDays = field.value || [];
-                                      if (checked) {
-                                        field.onChange([...currentDays, day.value]);
-                                      } else {
-                                        field.onChange(currentDays.filter(d => d !== day.value));
-                                      }
-                                    }}
-                                    disabled={isLoading}
-                                  />
-                                  <Label 
-                                    htmlFor={`day-${day.value}`} 
-                                    className="text-xs font-normal cursor-pointer select-none"
-                                  >
-                                    {day.short}
-                                  </Label>
-                                </div>
-                              ))}
-                            </div>
-                            <FormDescription>
-                              Select which days of the week this task should repeat.
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    {/* End condition */}
-                    <FormField
-                      control={form.control}
-                      name="recurrence_settings.endType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium">Stop repeating</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select end condition" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {RECURRENCE_END_TYPES.map((endType) => (
-                                <SelectItem key={endType.value} value={endType.value}>
-                                  {endType.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Count field (conditional) */}
-                    {form.watch('recurrence_settings.endType') === 'count' && (
-                      <FormField
-                        control={form.control}
-                        name="recurrence_settings.count"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-medium">Number of occurrences</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                min="1"
-                                placeholder="e.g., 10"
-                                {...field}
-                                onChange={(e) => field.onChange(Number(e.target.value))}
-                                disabled={isLoading}
-                                aria-describedby="count-help"
-                              />
-                            </FormControl>
-                            <FormDescription id="count-help">
-                              How many times should this task repeat in total?
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    {/* Until date field (conditional) */}
-                    {form.watch('recurrence_settings.endType') === 'until' && (
-                      <FormField
-                        control={form.control}
-                        name="recurrence_settings.until"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel className="text-sm font-medium">End date</FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant="outline"
-                                    className={cn(
-                                      'w-full pl-3 text-left font-normal justify-start',
-                                      !field.value && 'text-muted-foreground'
-                                    )}
-                                    disabled={isLoading}
-                                  >
-                                    {field.value ? (
-                                      <>
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {format(field.value, 'PPP')}
-                                      </>
-                                    ) : (
-                                      <>
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        <span>Pick end date</span>
-                                      </>
-                                    )}
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={field.onChange}
-                                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            <FormDescription>
-                              The last date this task should repeat.
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </section>
-
-          {/* Form Actions */}
-          <section aria-labelledby="form-actions">
-            <h3 id="form-actions" className="sr-only">Form Actions</h3>
-            <Separator className="mb-6" />
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="flex-1 h-11"
-                aria-describedby="submit-help"
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true" />
-                    <span>{taskId ? 'Updating task...' : 'Creating task...'}</span>
-                  </div>
-                ) : (
-                  <span>{taskId ? 'Update Task' : 'Create Task'}</span>
-                )}
-              </Button>
-              
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onCancel}
-                disabled={isLoading}
-                className="flex-1 h-11"
-              >
-                Cancel
-              </Button>
-            </div>
-            <FormDescription id="submit-help" className="text-center mt-2">
-              {taskId ? 'Save your changes to update this task.' : 'Click Create Task to add this task to your list.'}
-            </FormDescription>
-          </section>
-        </form>
-      </Form>
-    </div>
-
-    {/* AI Suggestions Sidebar */}
-    {!taskId && (
-      <div className="lg:col-span-1">
-        <div className={cn(
-          "sticky top-6 transition-all duration-300 z-10",
-          showAISuggestions && aiSuggestions.length > 0 ? "opacity-100" : "opacity-0 pointer-events-none lg:pointer-events-auto lg:opacity-30"
-        )}>
-                                <Card className={cn(
-            "border-primary/20 bg-gradient-to-b from-primary/5 to-background shadow-sm",
-            userTier === 'premium' && "border-amber-200"
-          )}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-sm font-semibold text-primary">
-                      AI Suggestions
-                    </CardTitle>
-                    {userTier !== 'free' && (
-                      <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
-                        <Crown className="h-3 w-3" />
-                        {userTier}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between mt-0.5">
-                    <p className="text-xs text-muted-foreground">
-                      {isGeneratingSuggestions ? 'Generating...' : 'Smart tips for your task'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {usage.requestsRemaining}/{tierLimits[userTier].dailyRequests}
-                    </p>
-                  </div>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-3 max-h-96 overflow-y-auto">
-              {!isFeatureAvailable('basic_suggestions') && usage.requestsRemaining === 0 ? (
-                <div className="text-center py-6">
-                  <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
-                    <Crown className="h-8 w-8 mx-auto mb-2 text-amber-500" />
-                    <p className="text-sm font-medium text-amber-700 mb-2">
-                      Daily AI limit reached
-                    </p>
-                    <p className="text-xs text-amber-600 mb-3">
-                      Upgrade to get unlimited AI suggestions and advanced features
-                    </p>
-                    <Button size="sm" className="bg-amber-500 hover:bg-amber-600">
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      Upgrade Now
-                    </Button>
-                  </div>
-                </div>
-              ) : aiSuggestions.length > 0 ? (
-                <>
-                  {aiSuggestions.map((suggestion) => (
-                    <div key={suggestion.id} className="group">
-                      <SuggestionCard
-                        suggestion={suggestion}
-                        onAccept={handleAcceptSuggestion}
-                        onReject={handleRejectSuggestion}
-                        showReasoning={false}
-                        compact={true}
+            </section>
+
+            {/* Reminders */}
+            <section>
+              <h3 className="text-lg font-semibold mb-4">Reminders</h3>
+              
+              <FormField
+                control={form.control}
+                name="reminder_settings.enabled"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={isLoading}
                       />
+                    </FormControl>
+                    <div className="space-y-1 leading-none flex-1">
+                      <FormLabel className="text-sm font-medium cursor-pointer">
+                        Enable Reminders
+                      </FormLabel>
+                      <FormDescription className="text-xs text-muted-foreground">
+                        Get notified before the task is due to help you stay on track.
+                      </FormDescription>
                     </div>
-                  ))}
-                  <div className="text-xs text-muted-foreground text-center pt-2 border-t">
-                    <span className="flex items-center justify-center gap-1">
-                      <Brain className="h-3 w-3" />
-                      {isGeneratingSuggestions ? 'Loading...' : 'Suggestions update as you type'}
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-6 text-muted-foreground">
-                  <Brain className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">
-                    {isGeneratingSuggestions ? 'Generating suggestions...' : 'Start typing to see AI suggestions'}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )}
-  </div>
-</div>
+                  </FormItem>
+                )}
+              />
+            </section>
+
+            {/* Repeat Settings */}
+            <section>
+              <h3 className="text-lg font-semibold mb-4">Repeat Settings</h3>
+              
+              <FormField
+                control={form.control}
+                name="recurrence_settings.frequency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium">Repeat Pattern</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                      <FormControl>
+                        <SelectTrigger className="h-11">
+                          <SelectValue placeholder="Select recurrence pattern" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {RECURRENCE_FREQUENCIES.map((freq) => (
+                          <SelectItem key={freq.value} value={freq.value}>
+                            {freq.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription className="text-xs text-muted-foreground">
+                      Choose how often this task should repeat. Select "None" for one-time tasks.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </section>
+
+            {/* Form Actions */}
+            <section>
+              <h3 className="text-lg font-semibold mb-4">Form Actions</h3>
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex-1 h-11"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      <span>{taskId ? 'Updating task...' : 'Creating task...'}</span>
+                    </div>
+                  ) : (
+                    <span>{taskId ? 'Update Task' : 'Create Task'}</span>
+                  )}
+                </Button>
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleClose}
+                  disabled={isLoading}
+                  className="flex-1 h-11"
+                >
+                  Cancel
+                </Button>
+              </div>
+              
+              <FormDescription className="text-center text-xs text-muted-foreground mt-2">
+                {taskId ? 'Save your changes to update this task.' : 'Click Create Task to add this task to your list.'}
+              </FormDescription>
+            </section>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 }; 

@@ -1,106 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { supabaseServerAdmin } from '@/lib/supabase/server';
 
 // This would be your actual Supabase client
 // import { createClient } from '@supabase/supabase-js';
 // const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // In production, query Supabase:
-    // const { data, error } = await supabase
-    //   .from('reward_shop_items')
-    //   .select('*')
-    //   .order('created_at', { ascending: false });
+    if (!supabaseServerAdmin) {
+      return NextResponse.json({ error: 'Database not available' }, { status: 500 });
+    }
 
-    // if (error) throw error;
+    // Get query parameters
+    const { searchParams } = new URL(request.url);
+    const categoryFilter = searchParams.get('category');
 
-    // Mock data for development
-    const shopItems = [
-      {
-        id: '1',
-        name: 'Streak Freeze',
-        description: 'Protects your streak for one missed day',
-        category: 'streak_recovery',
-        price: 100,
-        icon: 'shield',
-        effect: { type: 'streak_protection', duration: 1 },
-        requirements: { min_level: 1 },
-        availability: { enabled: true, stock: null },
-        metadata: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: '2',
-        name: 'Double XP Boost',
-        description: 'Doubles XP earned for 24 hours',
-        category: 'boosts',
-        price: 200,
-        icon: 'zap',
-        effect: { type: 'xp_multiplier', multiplier: 2, duration: 24 },
-        requirements: { min_level: 3 },
-        availability: { enabled: true, stock: null },
-        metadata: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: '3',
-        name: 'Time Extension',
-        description: 'Adds 2 hours to task deadlines',
-        category: 'productivity',
-        price: 150,
-        icon: 'clock',
-        effect: { type: 'deadline_extension', hours: 2 },
-        requirements: { min_level: 2 },
-        availability: { enabled: true, stock: null },
-        metadata: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: '4',
-        name: 'Custom Theme',
-        description: 'Unlock premium app themes',
-        category: 'customization',
-        price: 300,
-        icon: 'palette',
-        effect: { type: 'theme_unlock', themes: ['dark_pro', 'sunset', 'ocean'] },
-        requirements: { min_level: 5 },
-        availability: { enabled: true, stock: null },
-        metadata: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: '5',
-        name: 'Priority Boost',
-        description: 'Skip to front of AI assistance queue',
-        category: 'productivity',
-        price: 75,
-        icon: 'crown',
-        effect: { type: 'priority_access', duration: 7 },
-        requirements: { min_level: 1 },
-        availability: { enabled: true, stock: null },
-        metadata: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ];
+    // Build query to fetch from coin_spending_categories table
+    let query = supabaseServerAdmin
+      .from('coin_spending_categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('base_cost', { ascending: true });
 
-    return NextResponse.json(shopItems);
+    // Apply category filter if provided (filter by metadata->category)
+    if (categoryFilter && categoryFilter !== 'all') {
+      query = query.eq('metadata->>category', categoryFilter);
+    }
+
+    const { data: shopItems, error } = await query;
+
+    if (error) {
+      console.error('Error fetching shop items:', error);
+      return NextResponse.json({ 
+        error: 'Failed to fetch shop items',
+        details: error.message 
+      }, { status: 500 });
+    }
+
+    // Convert database format to expected format for RewardShop.tsx
+    const convertedItems = (shopItems || []).map((item: any) => ({
+      id: item.id.toString(),
+      item_name: item.name,                   // Use correct database column 'name'
+      description: item.description,
+      category_name: item.metadata?.category || 'theme', // Extract from metadata
+      cost: item.base_cost,                   // Use correct database column 'base_cost'
+      requirements: item.unlock_requirements || {},
+      metadata: item.metadata || {},
+      created_at: item.created_at,
+      updated_at: item.created_at // Use created_at since no updated_at column
+    }));
+
+    return NextResponse.json(convertedItems);
+
   } catch (error) {
-    console.error('Error fetching shop items:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch shop items' },
-      { status: 500 }
-    );
+    console.error('Error in shop-items API:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 
@@ -111,46 +74,47 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!supabaseServerAdmin) {
+      return NextResponse.json({ error: 'Database not available' }, { status: 500 });
+    }
+
     const body = await request.json();
     
-    // Validate required fields
-    if (!body.name || !body.category || !body.price) {
+    // Validate required fields (adjust to match our schema)
+    if (!body.name || !body.base_cost) {
       return NextResponse.json(
-        { error: 'Missing required fields: name, category, price' },
+        { error: 'Missing required fields: name, base_cost' },
         { status: 400 }
       );
     }
 
-    // In production, insert into Supabase:
-    // const { data, error } = await supabase
-    //   .from('reward_shop_items')
-    //   .insert({
-    //     name: body.name,
-    //     description: body.description,
-    //     category: body.category,
-    //     price: body.price,
-    //     icon: body.icon,
-    //     effect: body.effect,
-    //     requirements: body.requirements,
-    //     availability: body.availability || { enabled: true, stock: null },
-    //     metadata: body.metadata || {}
-    //   })
-    //   .select()
-    //   .single();
+    // Insert into coin_spending_categories table with correct column names
+    const { data, error } = await supabaseServerAdmin
+      .from('coin_spending_categories')
+      .insert({
+        id: body.id || body.name.toLowerCase().replace(/\s+/g, '-'),
+        name: body.name,
+        description: body.description,
+        base_cost: body.base_cost,
+        unlock_requirements: body.requirements || {},
+        metadata: {
+          category: body.category || 'theme',
+          rarity: body.rarity || 'common',
+          ...body.metadata
+        }
+      })
+      .select()
+      .single();
 
-    // if (error) throw error;
+    if (error) {
+      console.error('Error creating shop item:', error);
+      return NextResponse.json(
+        { error: 'Failed to create shop item', details: error.message },
+        { status: 500 }
+      );
+    }
 
-    // Mock response for development
-    const newItem = {
-      id: Math.random().toString(36).substr(2, 9),
-      ...body,
-      availability: body.availability || { enabled: true, stock: null },
-      metadata: body.metadata || {},
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    return NextResponse.json(newItem, { status: 201 });
+    return NextResponse.json(data, { status: 201 });
   } catch (error) {
     console.error('Error creating shop item:', error);
     return NextResponse.json(

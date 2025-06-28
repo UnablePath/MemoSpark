@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { TabContainer } from '@/components/layout/TabContainer';
 import { ConnectionInterface } from '@/components/social/ConnectionInterface';
 import { ConnectionsDebug } from '@/components/home/ConnectionsDebug';
@@ -151,32 +151,30 @@ export function DashboardSwipeTabs() {
     triggerAchievement('dashboard_visited');
   }, [triggerAchievement]);
 
-  // Memoize rendered components to prevent unnecessary re-renders and maintain state
-  const memoizedTabComponents = useMemo(() => {
-    return TABS_CONFIG.map((tabConfig) => {
-      const TabComponent = tabConfig.component;
-      
-      if (tabConfig.key === 'connections') {
-        return (
-          <div key={`${tabConfig.key}-persistent`} className="h-full w-full">
-            <ConnectionsErrorBoundary>
-              {USE_DEBUG_COMPONENT ? (
-                <TabComponent />
-              ) : (
-                <TabComponent onSwipeModeChange={handleStudentTabViewModeChange} />
-              )}
-            </ConnectionsErrorBoundary>
-          </div>
-        );
-      }
-      
+  // Render tab components dynamically to ensure proper updates
+  const renderTabContent = (tabConfig: typeof TABS_CONFIG[0], index: number) => {
+    const TabComponent = tabConfig.component;
+    
+    if (tabConfig.key === 'connections') {
       return (
-        <div key={`${tabConfig.key}-persistent`} className="h-full w-full">
-          <TabComponent />
+        <div key={`${tabConfig.key}-${index}`} className="h-full w-full">
+          <ConnectionsErrorBoundary>
+            {USE_DEBUG_COMPONENT ? (
+              <TabComponent />
+            ) : (
+              <TabComponent onSwipeModeChange={handleStudentTabViewModeChange} />
+            )}
+          </ConnectionsErrorBoundary>
         </div>
       );
-    });
-  }, [handleStudentTabViewModeChange]);
+    }
+    
+    return (
+      <div key={`${tabConfig.key}-${index}`} className="h-full w-full">
+        <TabComponent />
+      </div>
+    );
+  };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (!tablistRef.current) return;
@@ -216,7 +214,7 @@ export function DashboardSwipeTabs() {
         panelIds={TABS_CONFIG.map((tab, index) => `dashboard-panel-${tab.key}-${index}`)}
         tabIds={TABS_CONFIG.map((tab, index) => `dashboard-tab-${tab.key}-${index}`)}
       >
-        {memoizedTabComponents}
+        {TABS_CONFIG.map((tabConfig, index) => renderTabContent(tabConfig, index))}
       </TabContainer>
 
       {/* Icon Bar / Tab List */}

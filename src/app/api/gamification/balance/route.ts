@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseServerAdmin } from '@/lib/supabase/server';
+import { coinEconomy } from '@/lib/gamification/CoinEconomy';
 
 // This would be your actual Supabase client
 // import { createClient } from '@supabase/supabase-js';
@@ -17,24 +18,41 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Database not available' }, { status: 500 });
     }
 
-    // Calculate coin balance from transactions using clerk_user_id directly
-    const { data: earnedTransactions } = await supabaseServerAdmin
-      .from('coin_transactions')
-      .select('amount')
-      .eq('user_id', userId)
-      .eq('transaction_type', 'earned');
+    // Primary method: Use CoinEconomy.getCoinBalance() for consistency
+    let balance = 0;
+    let totalEarned = 0;
+    let totalSpent = 0;
 
-    const { data: spentTransactions } = await supabaseServerAdmin
-      .from('coin_transactions')
-      .select('amount')
-      .eq('user_id', userId)
-      .eq('transaction_type', 'spent');
+    try {
+      // Use the same method as other components for consistency
+      balance = await coinEconomy.getCoinBalance(userId);
+      
+      // Get additional analytics for the response
+      const analytics = await coinEconomy.getCoinAnalytics(userId);
+      totalEarned = analytics.total_earned;
+      totalSpent = analytics.total_spent;
+    } catch (coinEconomyError) {
+      console.warn('CoinEconomy method failed, falling back to manual calculation:', coinEconomyError);
+      
+      // Fallback: Calculate from transactions directly (existing logic)
+      const { data: earnedTransactions } = await supabaseServerAdmin
+        .from('coin_transactions')
+        .select('amount')
+        .eq('user_id', userId)
+        .eq('transaction_type', 'earned');
 
-    const totalEarned = earnedTransactions?.reduce((sum, t) => sum + t.amount, 0) || 0;
-    const totalSpent = spentTransactions?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
-    const balance = totalEarned - totalSpent;
+      const { data: spentTransactions } = await supabaseServerAdmin
+        .from('coin_transactions')
+        .select('amount')
+        .eq('user_id', userId)
+        .eq('transaction_type', 'spent');
 
-    // Also get recent transactions for context
+      totalEarned = earnedTransactions?.reduce((sum, t) => sum + t.amount, 0) || 0;
+      totalSpent = spentTransactions?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
+      balance = totalEarned - totalSpent;
+    }
+
+    // Get recent transactions for context
     const { data: recentTransactions } = await supabaseServerAdmin
       .from('coin_transactions')
       .select('*')

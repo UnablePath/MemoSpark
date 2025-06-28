@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client';
 import { AchievementEngine } from './AchievementEngine';
+import { coinEconomy, CoinEarningResult, CoinSpendingResult } from './CoinEconomy';
 import type { UserStats } from '@/types/achievements';
 
 export interface DailyStreak {
@@ -98,7 +99,16 @@ export class StreakTracker {
     pointsEarned: number = 10,
     date?: Date,
     getToken?: () => Promise<string | null>
-  ): Promise<{ success: boolean; newStreak: number; achievementsUnlocked: any[] }> {
+  ): Promise<{ 
+    success: boolean; 
+    newStreak: number; 
+    achievementsUnlocked: any[];
+    coinRewards?: {
+      dailyBonus: CoinEarningResult;
+      milestoneBonus: CoinEarningResult;
+      streakPenalty?: CoinSpendingResult;
+    };
+  }> {
     if (!supabase) {
       throw new Error('Supabase client not initialized');
     }
@@ -106,6 +116,10 @@ export class StreakTracker {
     try {
       const targetDate = date || new Date();
       const dateStr = targetDate.toISOString().split('T')[0];
+
+      // Get previous streak data for comparison (before marking completion)
+      const previousStreakData = await this.getCurrentStreak(userId, getToken);
+      const previousStreak = previousStreakData.current_streak;
 
       // Call the database function to mark completion
       const { data, error } = await supabase.rpc('mark_daily_completion', {
@@ -122,18 +136,65 @@ export class StreakTracker {
 
       // Get updated streak information
       const streakData = await this.getCurrentStreak(userId, getToken);
+      const newStreak = streakData.current_streak;
+      
+      // Initialize coin rewards tracking
+      const coinRewards = {
+        dailyBonus: { success: true, amount: 0, newBalance: 0 } as CoinEarningResult,
+        milestoneBonus: { success: true, amount: 0, newBalance: 0 } as CoinEarningResult,
+        streakPenalty: undefined as CoinSpendingResult | undefined
+      };
+
+      // Detect streak loss and apply penalty
+      if (newStreak < previousStreak && previousStreak >= 14) {
+        try {
+          const penaltyResult = await coinEconomy.penalizeStreakLoss(userId, previousStreak, getToken);
+          coinRewards.streakPenalty = penaltyResult;
+          
+          if (penaltyResult.success && penaltyResult.amount > 0) {
+            console.log(`🚨 Applied streak loss penalty: ${penaltyResult.amount} coins for losing ${previousStreak}-day streak`);
+          }
+        } catch (error) {
+          console.error('Error applying streak penalty:', error);
+        }
+      }
+
+      // Award daily streak bonus coins (for streaks 7+)
+      try {
+        const dailyBonusResult = await coinEconomy.awardStreakBonus(userId, newStreak, getToken);
+        coinRewards.dailyBonus = dailyBonusResult;
+        
+        if (dailyBonusResult.success && dailyBonusResult.amount > 0) {
+          console.log(`🔥 Awarded daily streak bonus: ${dailyBonusResult.amount} coins for ${newStreak}-day streak`);
+        }
+      } catch (error) {
+        console.error('Error awarding daily streak bonus:', error);
+      }
+
+      // Award milestone bonus (for specific milestones: 7, 14, 30, 60, etc.)
+      try {
+        const milestoneBonusResult = await coinEconomy.awardStreakMilestoneBonus(userId, newStreak, getToken);
+        coinRewards.milestoneBonus = milestoneBonusResult;
+        
+        if (milestoneBonusResult.success && milestoneBonusResult.amount > 0) {
+          console.log(`🎉 Awarded milestone bonus: ${milestoneBonusResult.amount} coins for ${newStreak}-day milestone!`);
+        }
+      } catch (error) {
+        console.error('Error awarding milestone bonus:', error);
+      }
       
       // Check for streak achievements
       const achievementsUnlocked = await this.achievementEngine.checkAchievements({
         type: 'streak',
         userId,
-        payload: { streakDays: streakData.current_streak }
+        payload: { streakDays: newStreak }
       }, getToken);
 
       return {
         success: data,
-        newStreak: streakData.current_streak,
-        achievementsUnlocked
+        newStreak: newStreak,
+        achievementsUnlocked,
+        coinRewards
       };
     } catch (error) {
       console.error('Error in markDailyCompletion:', error);
@@ -776,7 +837,7 @@ export class StreakTracker {
           longest_streak,
           total_points,
           profiles!inner(
-            username,
+            full_name,
             streak_visibility
           )
         `)
@@ -794,7 +855,7 @@ export class StreakTracker {
       // Transform data and add rankings
       const leaderboard = (userStats || []).map((stat: any, index: number) => ({
         user_id: stat.user_id,
-        username: stat.profiles?.username || 'Anonymous',
+        username: stat.profiles?.full_name || 'Anonymous',
         current_streak: stat.current_streak || 0,
         longest_streak: stat.longest_streak || 0,
         total_points: stat.total_points || 0,
@@ -812,7 +873,7 @@ export class StreakTracker {
              current_streak,
              longest_streak,
              total_points,
-             profiles(username)
+             profiles(full_name)
            `)
            .eq('user_id', currentUserId)
            .single();
@@ -826,7 +887,7 @@ export class StreakTracker {
 
                      leaderboard.push({
              user_id: currentUserStats.user_id,
-             username: (currentUserStats.profiles as any)?.username || 'You',
+             username: (currentUserStats.profiles as any)?.full_name || 'You',
              current_streak: currentUserStats.current_streak || 0,
              longest_streak: currentUserStats.longest_streak || 0,
              total_points: currentUserStats.total_points || 0,
@@ -860,7 +921,7 @@ export class StreakTracker {
       const { error } = await supabase
         .from('profiles')
         .update({ streak_visibility: isVisible })
-        .eq('user_id', userId);
+        .eq('clerk_user_id', userId);
 
       if (error) {
         console.error('Error updating streak visibility:', error);
@@ -897,7 +958,7 @@ export class StreakTracker {
       const { data, error } = await supabase
         .from('profiles')
         .select('streak_visibility')
-        .eq('user_id', userId)
+        .eq('clerk_user_id', userId)
         .single();
 
       if (error) {

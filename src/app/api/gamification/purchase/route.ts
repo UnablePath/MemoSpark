@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { supabaseServerAdmin } from '@/lib/supabase/server';
+import { coinEconomy } from '@/lib/gamification/CoinEconomy';
 
 // This would be your actual Supabase client
 // import { createClient } from '@supabase/supabase-js';
@@ -12,6 +14,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!supabaseServerAdmin) {
+      return NextResponse.json({ error: 'Database not available' }, { status: 500 });
+    }
+
     const { itemId } = await request.json();
     
     if (!itemId) {
@@ -21,95 +27,118 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // In production, this would be a database transaction:
-    // const { data: item, error: itemError } = await supabase
-    //   .from('reward_shop_items')
-    //   .select('*')
-    //   .eq('id', itemId)
-    //   .single();
+    // Fetch the item from coin_spending_categories
+    const { data: item, error: itemError } = await supabaseServerAdmin
+      .from('coin_spending_categories')
+      .select('*')
+      .eq('id', itemId)
+      .single();
 
-    // if (itemError || !item) {
-    //   return NextResponse.json({ error: 'Item not found' }, { status: 404 });
-    // }
-
-    // const { data: balance, error: balanceError } = await supabase
-    //   .from('coin_balances')
-    //   .select('balance')
-    //   .eq('user_id', userId)
-    //   .single();
-
-    // if (balanceError || !balance || balance.balance < item.price) {
-    //   return NextResponse.json({ error: 'Insufficient coins' }, { status: 400 });
-    // }
-
-    // Mock data for development
-    const mockItems = {
-      '1': { id: '1', name: 'Streak Freeze', price: 100, effect: { type: 'streak_protection', duration: 1 } },
-      '2': { id: '2', name: 'Double XP Boost', price: 200, effect: { type: 'xp_multiplier', multiplier: 2, duration: 24 } },
-      '3': { id: '3', name: 'Time Extension', price: 150, effect: { type: 'deadline_extension', hours: 2 } },
-      '4': { id: '4', name: 'Custom Theme', price: 300, effect: { type: 'theme_unlock', themes: ['dark_pro', 'sunset', 'ocean'] } },
-      '5': { id: '5', name: 'Priority Boost', price: 75, effect: { type: 'priority_access', duration: 7 } }
-    };
-
-    const item = mockItems[itemId as keyof typeof mockItems];
-    if (!item) {
+    if (itemError || !item) {
+      console.error('Item fetch error:', itemError);
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
-    const mockBalance = 500; // Mock user balance
-    if (mockBalance < item.price) {
-      return NextResponse.json({ error: 'Insufficient coins' }, { status: 400 });
+    // Check user's coin balance
+    const userBalance = await coinEconomy.getCoinBalance(userId);
+    if (userBalance < item.cost) {
+      return NextResponse.json({ 
+        error: 'Insufficient coins',
+        required: item.cost,
+        current: userBalance 
+      }, { status: 400 });
     }
 
-    // In production, perform the transaction:
-    // 1. Deduct coins from balance
-    // 2. Record the transaction
-    // 3. Apply the effect (store in user_effects table or similar)
-    // 4. Log the purchase
+    // Check if this is a theme purchase and if user already owns it
+    const isTheme = item.metadata?.type === 'theme';
+    if (isTheme && item.metadata?.theme_id) {
+      const { data: existingPurchase } = await supabaseServerAdmin
+        .from('user_purchased_themes')
+        .select('id')
+        .eq('clerk_user_id', userId)
+        .eq('theme_id', item.metadata.theme_id)
+        .single();
 
-    // const { error: deductError } = await supabase
-    //   .from('coin_balances')
-    //   .update({ balance: balance.balance - item.price })
-    //   .eq('user_id', userId);
+      if (existingPurchase) {
+        return NextResponse.json({ 
+          error: 'Theme already owned' 
+        }, { status: 400 });
+      }
+    }
 
-    // const { error: transactionError } = await supabase
-    //   .from('coin_transactions')
-    //   .insert({
-    //     user_id: userId,
-    //     amount: -item.price,
-    //     type: 'purchase',
-    //     description: `Purchased ${item.name}`,
-    //     metadata: { item_id: itemId, effect: item.effect }
-    //   });
+    // Start transaction-like operations
+    try {
+      // Spend coins using CoinEconomy
+      const spendResult = await coinEconomy.spendCoins(
+        userId,
+        item.cost,
+        item.category_name,
+        `Purchased ${item.item_name}`,
+        {
+          item_id: itemId,
+          item_name: item.item_name,
+          metadata: item.metadata
+        }
+      );
 
-    // const { error: effectError } = await supabase
-    //   .from('user_effects')
-    //   .insert({
-    //     user_id: userId,
-    //     effect_type: item.effect.type,
-    //     effect_data: item.effect,
-    //     expires_at: calculateExpiryDate(item.effect),
-    //     source: 'shop_purchase',
-    //     source_id: itemId
-    //   });
+      if (!spendResult.success) {
+        return NextResponse.json({ 
+          error: spendResult.error || 'Failed to spend coins' 
+        }, { status: 400 });
+      }
 
-    // Mock successful purchase response
-    const purchase = {
-      id: Math.random().toString(36).substr(2, 9),
-      user_id: userId,
-      item_id: itemId,
-      item_name: item.name,
-      price: item.price,
-      effect: item.effect,
-      purchased_at: new Date().toISOString(),
-      new_balance: mockBalance - item.price
-    };
+      // If this is a theme purchase, record it in user_purchased_themes
+      if (isTheme && item.metadata?.theme_id) {
+        const { error: themeError } = await supabaseServerAdmin
+          .from('user_purchased_themes')
+          .insert({
+            clerk_user_id: userId,
+            theme_id: item.metadata.theme_id,
+            price_paid: item.cost,
+            metadata: {
+              item_name: item.item_name,
+              colors: item.metadata.colors,
+              rarity: item.metadata.rarity,
+              purchased_from: 'reward_shop'
+            }
+          });
 
-    return NextResponse.json({
-      success: true,
-      purchase,
-      message: `Successfully purchased ${item.name}!`
-    });
+        if (themeError) {
+          console.error('Error recording theme purchase:', themeError);
+          // Note: In a real app, you'd want to roll back the coin transaction here
+          return NextResponse.json({ 
+            error: 'Failed to record theme purchase' 
+          }, { status: 500 });
+        }
+      }
+
+      // Create successful purchase response
+      const purchase = {
+        id: Math.random().toString(36).substr(2, 9),
+        user_id: userId,
+        item_id: itemId,
+        item_name: item.item_name,
+        price: item.cost,
+        category: item.category_name,
+        metadata: item.metadata,
+        purchased_at: new Date().toISOString(),
+        new_balance: spendResult.newBalance
+      };
+
+      return NextResponse.json({
+        success: true,
+        purchase,
+        message: `Successfully purchased ${item.item_name}!`,
+        theme_id: isTheme ? item.metadata?.theme_id : undefined
+      });
+
+    } catch (transactionError) {
+      console.error('Transaction error:', transactionError);
+      return NextResponse.json(
+        { error: 'Failed to complete purchase transaction' },
+        { status: 500 }
+      );
+    }
 
   } catch (error) {
     console.error('Error processing purchase:', error);
