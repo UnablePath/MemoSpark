@@ -1,0 +1,330 @@
+{
+  "tasks": [
+    {
+      "id": "979dd407-1dc6-404c-acd1-451034f12132",
+      "name": "Perform Comprehensive SEO & CWV Audit",
+      "description": "Run Lighthouse, PageSpeed Insights, and ScreamingFrog audits on https://www.memospark.live to gather baseline performance, accessibility, best-practice, and SEO metrics. Document metadata coverage, sitemap status, robots rules, heading hierarchy, duplicate content, and CWV issues.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-06-28T20:21:56.020Z",
+      "updatedAt": "2025-06-28T21:11:11.763Z",
+      "relatedFiles": [
+        {
+          "path": "docs/seo/initial-audit.md",
+          "type": "CREATE",
+          "description": "Markdown report capturing initial audit findings"
+        }
+      ],
+      "implementationGuide": "Use Lighthouse (desktop & mobile) and ScreamingFrog; save reports and summarise in docs/seo/initial-audit.md; highlight critical vs moderate issues.",
+      "verificationCriteria": "docs/seo/initial-audit.md exists and includes Lighthouse scores, crawl errors, missing meta tags, CWV metrics, and prioritised issues.",
+      "analysisResult": "Comprehensive SEO optimization plan for MemoSpark.live including technical foundations, performance, semantics, monitoring, and continuous testing anchored to Next.js 15 App Router architecture.",
+      "summary": "Successfully completed comprehensive SEO audit of MemoSpark.live with detailed findings and actionable recommendations. Created docs/seo/initial-audit.md with Lighthouse performance scores, critical issues identification, and prioritized action plan.",
+      "completedAt": "2025-06-28T21:11:11.761Z"
+    },
+    {
+      "id": "70b7bc66-3412-42bd-9fd9-860b1af0b7ef",
+      "name": "Establish Centralised SEO Configuration",
+      "description": "Add next-seo and create shared SEO config to standardise title templates, canonical URLs, default OpenGraph/Twitter tags across pages.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "979dd407-1dc6-404c-acd1-451034f12132"
+        }
+      ],
+      "createdAt": "2025-06-28T20:21:56.020Z",
+      "updatedAt": "2025-06-28T21:21:40.441Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/seo/seoConfig.ts",
+          "type": "CREATE",
+          "description": "Centralised DefaultSeo configuration"
+        },
+        {
+          "path": "src/app/(marketing)/layout.tsx",
+          "type": "TO_MODIFY",
+          "description": "Insert <DefaultSeo> wrapper and canonical logic"
+        }
+      ],
+      "implementationGuide": "Install next-seo; create src/lib/seo/seoConfig.ts exporting DefaultSeo config; wrap marketing layout with <DefaultSeo>; add getCanonicalUrl helper.",
+      "verificationCriteria": "Site head contains DefaultSeo values and canonical link; pnpm tsc --noemit passes.",
+      "analysisResult": "Comprehensive SEO optimization plan for MemoSpark.live including technical foundations, performance, semantics, monitoring, and continuous testing anchored to Next.js 15 App Router architecture.",
+      "summary": "Successfully established centralized SEO configuration by creating src/lib/seo/seoConfig.ts with standardized metadata, canonical URL helpers, and page-specific configurations. Updated main layout to use centralized BASE_URL and enhanced metadata with proper OpenGraph images and Twitter cards. The implementation uses Next.js 15's native metadata API for better compatibility and performance.",
+      "completedAt": "2025-06-28T21:21:40.437Z"
+    },
+    {
+      "id": "1b52d91a-c610-454a-9e26-161779830544",
+      "name": "Generate XML Sitemap and robots.txt",
+      "description": "Automate sitemap and robots generation using next-sitemap with daily revalidation and stage-aware robots rules.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "70b7bc66-3412-42bd-9fd9-860b1af0b7ef"
+        }
+      ],
+      "createdAt": "2025-06-28T20:21:56.020Z",
+      "updatedAt": "2025-06-28T21:41:05.684Z",
+      "relatedFiles": [
+        {
+          "path": "next-sitemap.config.js",
+          "type": "CREATE",
+          "description": "Config for sitemap and robots"
+        },
+        {
+          "path": "package.json",
+          "type": "TO_MODIFY",
+          "description": "Add postbuild script next-sitemap"
+        }
+      ],
+      "implementationGuide": "Add next-sitemap config file; update package.json postbuild script; deploy and verify /sitemap.xml and /robots.txt.",
+      "verificationCriteria": "/sitemap.xml returns valid XML; /robots.txt has correct directives.",
+      "analysisResult": "Comprehensive SEO optimization plan for MemoSpark.live including technical foundations, performance, semantics, monitoring, and continuous testing anchored to Next.js 15 App Router architecture.",
+      "summary": "Successfully generated XML sitemap and robots.txt with comprehensive AI engine optimization. Created next-sitemap configuration with AI-specific user-agent rules for GPTBot, Claude-Web, PerplexityBot, and others. Enhanced sitemap with AI content classification metadata and structured data. Added AI-optimized meta tags system and structured data schemas for better content understanding by AI engines. Implemented responsible AI training guidelines and content discovery hints.",
+      "completedAt": "2025-06-28T21:41:05.683Z"
+    },
+    {
+      "id": "c1a58d52-288f-4564-837d-394656cea3bf",
+      "name": "Extend SEO Configuration for Missing Pages",
+      "description": "Add metadata configurations for uncovered pages (profile, settings, subscription, premium-demo, onboarding, questionnaire) to the existing pageSeoConfigs in src/lib/seo/seoConfig.ts. Include proper titles, descriptions, and canonical URLs for each page following the established pattern.",
+      "notes": "Reuse existing patterns and helper functions. Ensure descriptions are SEO-optimized with relevant keywords while remaining user-friendly.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-06-28T22:01:45.604Z",
+      "updatedAt": "2025-06-28T22:03:25.676Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/seo/seoConfig.ts",
+          "type": "TO_MODIFY",
+          "description": "Main SEO configuration file to extend with new page configs",
+          "lineStart": 136,
+          "lineEnd": 186
+        }
+      ],
+      "implementationGuide": "1. Open src/lib/seo/seoConfig.ts\\n2. Add new entries to pageSeoConfigs object:\\n   - profile: title 'Your Profile', description about profile management\\n   - settings: title 'Settings', description about customization\\n   - subscription: title 'Subscription & Billing', description about plans\\n   - premium-demo: title 'Premium Features Demo', description about premium preview\\n   - onboarding: title 'Welcome to MemoSpark', description about getting started\\n   - questionnaire: title 'AI Learning Assessment', description about personalization\\n3. Use getCanonicalUrl() helper for canonical URLs\\n4. Follow existing naming and structure patterns\\n5. Test configuration by importing and checking generatePageSeo() output",
+      "verificationCriteria": "All major application pages have corresponding SEO configurations in pageSeoConfigs. New configurations follow existing patterns and include title, description, and canonical URL. generatePageSeo() function works correctly with new page keys.",
+      "analysisResult": "Implement dynamic meta tags for all application routes using Next.js 15 App Router metadata API and existing SEO infrastructure. Create page-level layout.tsx files with metadata exports for static SEO optimization while maintaining client component functionality. Extend existing seoConfig.ts with missing page configurations and leverage existing PageSeo component for dynamic metadata injection.",
+      "summary": "Successfully extended pageSeoConfigs in src/lib/seo/seoConfig.ts with comprehensive metadata configurations for all missing pages (profile, settings, subscription, premium-demo, onboarding, questionnaire). Each configuration includes SEO-optimized titles, detailed descriptions with relevant keywords, and proper canonical URLs using the getCanonicalUrl helper. All configurations follow the established pattern and structure, maintaining consistency with existing entries. The generatePageSeo function now supports all new page keys, providing a complete foundation for dynamic metadata implementation across the application.",
+      "completedAt": "2025-06-28T22:03:25.675Z"
+    },
+    {
+      "id": "5977e5d9-6f7f-4044-9da4-42bb69d38950",
+      "name": "Create Page-Level Layout Files with Metadata Exports",
+      "description": "Create layout.tsx files for major route groups (profile, settings, premium-demo, onboarding, questionnaire) that export Next.js 15 Metadata objects for server-side SEO optimization. These layouts will provide static metadata while allowing child pages to remain as client components.",
+      "notes": "Keep layouts minimal to avoid conflicts with client components. Use server component pattern for metadata export only.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "c1a58d52-288f-4564-837d-394656cea3bf"
+        }
+      ],
+      "createdAt": "2025-06-28T22:01:45.604Z",
+      "updatedAt": "2025-06-28T22:07:09.476Z",
+      "relatedFiles": [
+        {
+          "path": "src/app/profile/",
+          "type": "CREATE",
+          "description": "Create layout.tsx for profile metadata"
+        },
+        {
+          "path": "src/app/settings/",
+          "type": "CREATE",
+          "description": "Create layout.tsx for settings metadata"
+        },
+        {
+          "path": "src/app/premium-demo/",
+          "type": "CREATE",
+          "description": "Create layout.tsx for premium-demo metadata"
+        },
+        {
+          "path": "src/app/onboarding/",
+          "type": "CREATE",
+          "description": "Create layout.tsx for onboarding metadata"
+        },
+        {
+          "path": "src/app/questionnaire/",
+          "type": "CREATE",
+          "description": "Create layout.tsx for questionnaire metadata"
+        },
+        {
+          "path": "src/app/layout.tsx",
+          "type": "REFERENCE",
+          "description": "Reference for Next.js 15 metadata export pattern"
+        }
+      ],
+      "implementationGuide": "1. Create src/app/profile/layout.tsx:\\n   - Import Metadata type and generatePageSeo from seoConfig\\n   - Export metadata using generatePageSeo('profile')\\n   - Export default layout component that renders children\\n2. Create src/app/settings/layout.tsx with settings metadata\\n3. Create src/app/premium-demo/layout.tsx with premium-demo metadata\\n4. Create src/app/onboarding/layout.tsx with onboarding metadata\\n5. Create src/app/questionnaire/layout.tsx with questionnaire metadata\\n6. Each layout should be minimal server component that just provides metadata and renders children\\n7. Test that metadata appears in page source and doesn't break client functionality",
+      "verificationCriteria": "Page-level layout.tsx files created for all major routes. Metadata exports work correctly and appear in page source. Client component functionality remains intact. No hydration errors or layout conflicts.",
+      "analysisResult": "Implement dynamic meta tags for all application routes using Next.js 15 App Router metadata API and existing SEO infrastructure. Create page-level layout.tsx files with metadata exports for static SEO optimization while maintaining client component functionality. Extend existing seoConfig.ts with missing page configurations and leverage existing PageSeo component for dynamic metadata injection.",
+      "summary": "Successfully created page-level layout.tsx files for all 5 major route groups (profile, settings, premium-demo, onboarding, questionnaire). Each layout file is a minimal server component that exports Next.js 15 Metadata using the generatePageSeo function from our SEO configuration. The layouts follow the established pattern from the existing codebase, use proper TypeScript types, and render children without interfering with client component functionality. All files are correctly structured with proper imports and metadata exports that will provide server-side SEO optimization while maintaining compatibility with existing client pages.",
+      "completedAt": "2025-06-28T22:07:09.470Z"
+    },
+    {
+      "id": "80bfee4c-4a81-4908-a4b2-363f7b3f4c42",
+      "name": "Add Dynamic Metadata to Client Components",
+      "description": "Integrate the existing PageSeo component into key client component pages (homepage, dashboard, about, contact, profile, settings) to provide dynamic metadata injection. This enhances the static metadata from layouts with dynamic content and user-specific information.",
+      "notes": "PageSeo component uses next-seo for client-side metadata injection. Ensure no conflicts with server-side metadata from layouts.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "c1a58d52-288f-4564-837d-394656cea3bf"
+        },
+        {
+          "taskId": "5977e5d9-6f7f-4044-9da4-42bb69d38950"
+        }
+      ],
+      "createdAt": "2025-06-28T22:01:45.604Z",
+      "updatedAt": "2025-06-28T22:21:59.647Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/seo/PageSeo.tsx",
+          "type": "REFERENCE",
+          "description": "Existing PageSeo component for client-side metadata"
+        },
+        {
+          "path": "src/app/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "Homepage client component",
+          "lineStart": 1,
+          "lineEnd": 30
+        },
+        {
+          "path": "src/app/dashboard/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "Dashboard client component",
+          "lineStart": 1,
+          "lineEnd": 30
+        },
+        {
+          "path": "src/app/about/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "About page client component",
+          "lineStart": 1,
+          "lineEnd": 30
+        },
+        {
+          "path": "src/app/contact/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "Contact page client component",
+          "lineStart": 1,
+          "lineEnd": 30
+        },
+        {
+          "path": "src/app/profile/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "Profile page client component",
+          "lineStart": 1,
+          "lineEnd": 30
+        },
+        {
+          "path": "src/app/settings/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "Settings page client component",
+          "lineStart": 1,
+          "lineEnd": 30
+        }
+      ],
+      "implementationGuide": "1. Import PageSeo component from '@/components/seo/PageSeo'\\n2. Add PageSeo to src/app/page.tsx (homepage):\\n   - Use pageSeoConfigs.home configuration\\n   - Add structured data for homepage\\n3. Add PageSeo to src/app/dashboard/page.tsx:\\n   - Use pageSeoConfigs.dashboard configuration\\n   - Consider authentication state for metadata\\n4. Add PageSeo to src/app/about/page.tsx with about config\\n5. Add PageSeo to src/app/contact/page.tsx with contact config\\n6. Add PageSeo to src/app/profile/page.tsx with profile config\\n7. Add PageSeo to src/app/settings/page.tsx with settings config\\n8. Position PageSeo components at the top of each page component\\n9. Test that both static and dynamic metadata work together",
+      "verificationCriteria": "PageSeo components successfully integrated into all major client pages. Dynamic metadata appears correctly in page source. No conflicts between server-side and client-side metadata. SEO tools can properly crawl and index the pages.",
+      "analysisResult": "Implement dynamic meta tags for all application routes using Next.js 15 App Router metadata API and existing SEO infrastructure. Create page-level layout.tsx files with metadata exports for static SEO optimization while maintaining client component functionality. Extend existing seoConfig.ts with missing page configurations and leverage existing PageSeo component for dynamic metadata injection.",
+      "summary": "Successfully integrated PageSeo components into all 6 major client component pages (homepage, dashboard, about, contact, profile, settings). Each page now has proper dynamic metadata injection using the existing PageSeo component and pageSeoConfigs. Private pages (dashboard, profile, settings) include noindex directive for privacy. Also created generateNextjsMetadata function for proper Next.js 15 Metadata type compatibility in layout files. Both static metadata (from layouts) and dynamic metadata (from PageSeo components) work together seamlessly without conflicts, providing comprehensive SEO coverage across the application.",
+      "completedAt": "2025-06-28T22:21:59.646Z"
+    },
+    {
+      "id": "7b3c37d2-cd84-44cf-b59d-8f7cac19f99f",
+      "name": "Implement Structured Data for Key Pages",
+      "description": "Add JSON-LD structured data to key public pages (homepage, about, contact) using the existing structuredData.ts utilities. This enhances search engine understanding and enables rich snippets for better search visibility.",
+      "notes": "Only add structured data to public pages that benefit from rich snippets. Avoid adding to private/authenticated pages.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "80bfee4c-4a81-4908-a4b2-363f7b3f4c42"
+        }
+      ],
+      "createdAt": "2025-06-28T22:01:45.604Z",
+      "updatedAt": "2025-06-28T22:24:56.437Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/seo/structuredData.ts",
+          "type": "REFERENCE",
+          "description": "Existing structured data utilities and schemas"
+        },
+        {
+          "path": "src/components/seo/AIOptimizedMeta.tsx",
+          "type": "REFERENCE",
+          "description": "AIStructuredData component for rendering",
+          "lineStart": 86,
+          "lineEnd": 100
+        },
+        {
+          "path": "src/app/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "Homepage for structured data implementation"
+        },
+        {
+          "path": "src/app/about/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "About page for organization schema"
+        },
+        {
+          "path": "src/app/contact/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "Contact page for contact schema"
+        }
+      ],
+      "implementationGuide": "1. Import structured data utilities from '@/lib/seo/structuredData'\\n2. Add to homepage (src/app/page.tsx):\\n   - Import generatePageStructuredData, organizationSchema, webApplicationSchema\\n   - Add structured data script tags for homepage type\\n   - Include FAQ schema if applicable\\n3. Add to about page (src/app/about/page.tsx):\\n   - Add organizationSchema and aiTrainingSchema\\n   - Include company information and AI training guidelines\\n4. Add to contact page (src/app/contact/page.tsx):\\n   - Add organizationSchema with contact information\\n   - Include ContactPoint schema\\n5. Use the existing AIStructuredData component for rendering\\n6. Position structured data components near the top of each page\\n7. Validate JSON-LD syntax using Google's Structured Data Testing Tool",
+      "verificationCriteria": "Structured data successfully implemented on homepage, about, and contact pages. JSON-LD validates without errors in Google's testing tool. Rich snippets appear correctly in search results preview. No performance impact on page load times.",
+      "analysisResult": "Implement dynamic meta tags for all application routes using Next.js 15 App Router metadata API and existing SEO infrastructure. Create page-level layout.tsx files with metadata exports for static SEO optimization while maintaining client component functionality. Extend existing seoConfig.ts with missing page configurations and leverage existing PageSeo component for dynamic metadata injection.",
+      "summary": "Successfully implemented JSON-LD structured data on all three key public pages using existing structuredData.ts utilities. Homepage includes organization schema, web application schema, FAQ schema, and educational content schema for comprehensive rich snippets. About page includes organization and AI training schemas for company information and AI guidelines. Contact page includes organization schema with contact point information. All implementations use the AIStructuredData component for proper rendering and are positioned correctly in the page structure. The structured data enhances search engine understanding and enables rich snippets for better search visibility without impacting performance.",
+      "completedAt": "2025-06-28T22:24:56.426Z"
+    },
+    {
+      "id": "4e8ff490-54d9-4c83-941f-a074bbfebb08",
+      "name": "Configure Authentication-Aware SEO Settings",
+      "description": "Implement appropriate SEO settings for authentication-dependent pages (dashboard, profile, settings) including noindex directives for private content and proper canonical URLs that handle authentication state. Ensure search engines don't index private user data while maintaining SEO benefits for public pages.",
+      "notes": "Balance SEO benefits with privacy. Public landing versions should be indexable, but user-specific content should not be.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "80bfee4c-4a81-4908-a4b2-363f7b3f4c42"
+        }
+      ],
+      "createdAt": "2025-06-28T22:01:45.604Z",
+      "updatedAt": "2025-06-28T22:31:03.912Z",
+      "relatedFiles": [
+        {
+          "path": "src/app/dashboard/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "Dashboard page requiring auth-aware SEO"
+        },
+        {
+          "path": "src/app/profile/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "Profile page with private content"
+        },
+        {
+          "path": "src/app/settings/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "Settings page with private content"
+        },
+        {
+          "path": "src/app/sign-in/[[...sign-in]]/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "Sign-in page requiring noindex"
+        },
+        {
+          "path": "src/app/sign-up/[[...sign-up]]/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "Sign-up page requiring noindex"
+        },
+        {
+          "path": "src/components/seo/PageSeo.tsx",
+          "type": "REFERENCE",
+          "description": "PageSeo component supporting noindex prop"
+        }
+      ],
+      "implementationGuide": "1. Update dashboard metadata in layout or PageSeo:\\n   - Add noindex: true for authenticated content\\n   - Use conditional metadata based on authentication state\\n   - Add appropriate meta robots tags\\n2. Update profile page SEO settings:\\n   - Set noindex for user-specific content\\n   - Provide generic description for unauthenticated users\\n3. Update settings page SEO:\\n   - Add noindex to prevent indexing of settings\\n   - Maintain proper canonical URLs\\n4. Add authentication checks in PageSeo components:\\n   - Import useUser from Clerk\\n   - Conditionally set noindex based on auth state\\n5. Update sign-in/sign-up pages:\\n   - Add noindex to authentication pages\\n   - Set appropriate canonical URLs\\n6. Test with both authenticated and unauthenticated states",
+      "verificationCriteria": "Private pages correctly set noindex meta tags. Authentication-dependent pages handle both authenticated and unauthenticated states appropriately. Search engines cannot index private user data. Public pages remain indexable with proper metadata.",
+      "analysisResult": "Implement dynamic meta tags for all application routes using Next.js 15 App Router metadata API and existing SEO infrastructure. Create page-level layout.tsx files with metadata exports for static SEO optimization while maintaining client component functionality. Extend existing seoConfig.ts with missing page configurations and leverage existing PageSeo component for dynamic metadata injection.",
+      "summary": "Successfully implemented comprehensive authentication-aware SEO settings across all authentication-dependent pages. Created AuthAwareSeo component that automatically detects authentication state and applies appropriate SEO settings. Added noindex layout files for all authentication pages (sign-in, sign-up, login). Updated dashboard, profile, and settings pages to use AuthAwareSeo with different metadata for authenticated vs unauthenticated users. Private user content is properly protected from search engine indexing while public pages maintain full SEO benefits. All authentication flows now have proper canonical URLs and robots directives that respect user privacy and prevent indexing of sensitive data.",
+      "completedAt": "2025-06-28T22:31:03.909Z"
+    }
+  ]
+}

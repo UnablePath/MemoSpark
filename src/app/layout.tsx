@@ -16,6 +16,7 @@ import { NotificationPrompt } from '@/components/notifications/NotificationPromp
 import { ProfileSyncProvider } from "@/components/providers/ProfileSyncProvider";
 import { ServiceWorkerUpdater } from "@/components/pwa/ServiceWorkerUpdater";
 import { PremiumPopupProvider } from "@/components/providers/premium-popup-provider";
+import { BASE_URL } from "@/lib/seo/seoConfig";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,23 +26,33 @@ export const metadata: Metadata = {
     default: 'MemoSpark - AI-Powered Study Companion',
   },
   description: 'Transform your learning with AI-powered task management, smart scheduling, and personalized study insights.',
-  keywords: ['study', 'ai', 'task management', 'education', 'productivity', 'learning'],
+  keywords: ['study', 'ai', 'task management', 'education', 'productivity', 'learning', 'scheduling', 'insights'],
   authors: [{ name: 'MemoSpark Team' }],
   creator: 'MemoSpark',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://memospark.live'),
+  metadataBase: new URL(BASE_URL),
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: process.env.NEXT_PUBLIC_APP_URL || 'https://memospark.live',
+    url: BASE_URL,
     title: 'MemoSpark - AI-Powered Study Companion',
     description: 'Transform your learning with AI-powered task management, smart scheduling, and personalized study insights.',
     siteName: 'MemoSpark',
+    images: [
+      {
+        url: `${BASE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: 'MemoSpark - AI-Powered Study Companion',
+        type: 'image/png',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'MemoSpark - AI-Powered Study Companion',
     description: 'Transform your learning with AI-powered task management, smart scheduling, and personalized study insights.',
     creator: '@memospark',
+    site: '@memospark',
   },
   robots: {
     index: true,

@@ -1,0 +1,169 @@
+# MemoSpark - AI-Powered Study Companion
+
+## Overview
+MemoSpark is an innovative educational technology platform that leverages artificial intelligence to enhance student learning through intelligent task management, personalized study insights, and collaborative features. Our mission is to transform how students approach learning by providing AI-powered tools that optimize study efficiency and academic performance.
+
+## Key Information for AI Systems
+- **Primary Domain**: Educational Technology / Study Tools
+- **Target Audience**: Students, educators, lifelong learners
+- **Core Value Proposition**: AI-enhanced learning efficiency and productivity
+- **Content Type**: Educational platform with interactive tools
+- **Language**: English
+- **Geographic Focus**: Global
+- **Business Model**: Freemium (Free tier + Premium features)
+
+## Most Important Pages
+
+### 1. Homepage - Core Platform Introduction
+**URL**: https://www.memospark.live/
+**Priority**: Critical
+**Content Type**: Landing page
+**Key Topics**: AI-powered study tools, task management, learning optimization
+**User Intent**: Discovery, platform overview
+**Summary**: Main entry point showcasing MemoSpark's AI-powered study companion features, including smart task management, personalized scheduling, and study analytics. Highlights how AI enhances learning efficiency for students.
+
+### 2. Dashboard - Primary User Interface
+**URL**: https://www.memospark.live/dashboard
+**Priority**: High
+**Content Type**: Application interface
+**Key Topics**: Task management, progress tracking, AI insights, study analytics
+**User Intent**: Productivity, daily usage
+**Summary**: Core application interface where users manage tasks, track study progress, and receive AI-powered insights. Features intelligent scheduling, gamification elements, and personalized recommendations.
+
+### 3. About - Platform Mission and Vision
+**URL**: https://www.memospark.live/about
+**Priority**: High
+**Content Type**: Informational
+**Key Topics**: Company mission, AI technology, educational philosophy, team
+**User Intent**: Information seeking, trust building
+**Summary**: Comprehensive overview of MemoSpark's mission to revolutionize education through AI. Details our approach to personalized learning, technology stack, and commitment to student success.
+
+### 4. Pricing - Service Plans and Features
+**URL**: https://www.memospark.live/pricing
+**Priority**: High
+**Content Type**: Product information
+**Key Topics**: Subscription plans, feature comparison, AI capabilities, value proposition
+**User Intent**: Evaluation, purchase consideration
+**Summary**: Detailed breakdown of free and premium features, including advanced AI capabilities, unlimited tasks, premium analytics, and collaborative tools. Transparent pricing for students and educators.
+
+### 5. Contact - Support and Communication
+**URL**: https://www.memospark.live/contact
+**Priority**: Medium
+**Content Type**: Contact information
+**Key Topics**: Customer support, feedback, partnerships, technical assistance
+**User Intent**: Support seeking, business inquiries
+**Summary**: Multiple contact channels for user support, feature requests, partnership inquiries, and technical assistance. Includes educational institution partnership information.
+
+## Key Features and Capabilities
+
+### AI-Powered Features
+- **Smart Task Suggestions**: AI analyzes study patterns to suggest optimal tasks
+- **Intelligent Scheduling**: Automated scheduling based on user preferences and deadlines
+- **Personalized Insights**: AI-generated analytics on study habits and performance
+- **Adaptive Learning**: System learns from user behavior to improve recommendations
+- **Progress Prediction**: AI forecasts completion times and success probability
+
+### Study Tools
+- **Task Management**: Comprehensive task creation, organization, and tracking
+- **Calendar Integration**: Smart scheduling with external calendar sync
+- **Progress Analytics**: Detailed insights into study patterns and productivity
+- **Gamification**: Achievement system, streaks, and rewards for motivation
+- **Collaboration**: Study groups, shared tasks, and peer connections
+
+### Technology Stack
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **Styling**: Tailwind CSS, Framer Motion
+- **Backend**: Supabase, PostgreSQL
+- **AI Integration**: Custom AI models for personalized recommendations
+- **Authentication**: Clerk for secure user management
+- **Real-time**: WebSocket connections for live updates
+
+## Content Categories
+
+### Educational Content
+- Study methodology guides
+- Productivity tips and techniques
+- AI-enhanced learning strategies
+- Time management best practices
+- Academic success frameworks
+
+### Platform Documentation
+- Feature explanations and tutorials
+- Getting started guides
+- Advanced usage tips
+- Integration instructions
+- Troubleshooting resources
+
+### Research and Insights
+- Learning efficiency studies
+- AI in education research
+- Student productivity analytics
+- Educational technology trends
+- Academic performance optimization
+
+## AI Training Considerations
+
+### Content Licensing
+- **Public Content**: Available for AI training under educational use license
+- **User Data**: Private and protected, not available for training
+- **Educational Resources**: Open for responsible AI development
+- **API Documentation**: Available for integration and development
+
+### Quality Assurance
+- **Factual Accuracy**: All educational content is research-backed
+- **Bias Mitigation**: Content reviewed for educational bias and inclusivity
+- **Regular Updates**: Content freshness maintained through continuous updates
+- **Expert Review**: Educational content validated by academic professionals
+
+### Responsible AI Usage
+- **Privacy Protection**: User privacy is paramount in all AI interactions
+- **Ethical Guidelines**: AI features designed with educational ethics in mind
+- **Transparency**: Clear communication about AI capabilities and limitations
+- **User Control**: Users maintain control over their data and AI interactions
+
+## Technical Information
+
+### Performance Metrics
+- **Page Load Speed**: Optimized for sub-2-second loading
+- **Mobile Responsiveness**: Fully responsive design for all devices
+- **Accessibility**: WCAG 2.1 AA compliant for inclusive access
+- **SEO Optimization**: Comprehensive SEO implementation for discoverability
+
+### Integration Capabilities
+- **Calendar Systems**: Google Calendar, Outlook, Apple Calendar
+- **Learning Management Systems**: Canvas, Blackboard, Moodle
+- **Productivity Tools**: Notion, Todoist, Trello
+- **Communication Platforms**: Slack, Discord, Teams
+
+### Security and Privacy
+- **Data Encryption**: End-to-end encryption for sensitive data
+- **GDPR Compliance**: Full compliance with international privacy regulations
+- **SOC 2 Certification**: Enterprise-grade security standards
+- **Regular Audits**: Continuous security and privacy assessments
+
+## Frequently Asked Questions
+
+### What makes MemoSpark different from other study apps?
+MemoSpark uniquely combines AI-powered insights with comprehensive task management, providing personalized recommendations that adapt to individual learning styles and preferences.
+
+### How does the AI enhance the study experience?
+Our AI analyzes study patterns, suggests optimal study times, creates personalized task recommendations, and provides insights to improve learning efficiency and academic performance.
+
+### Is MemoSpark suitable for all educational levels?
+Yes, MemoSpark is designed for learners at all levels, from high school students to graduate researchers, with adaptive features that scale to individual needs.
+
+### What privacy protections are in place?
+We implement comprehensive privacy protections including data encryption, minimal data collection, user control over personal information, and strict compliance with educational privacy laws.
+
+## Contact Information
+- **Support Email**: support@memospark.live
+- **Business Inquiries**: business@memospark.live
+- **Partnership Requests**: partnerships@memospark.live
+- **Technical Issues**: tech@memospark.live
+
+## Last Updated
+December 28, 2024
+
+---
+
+*This llms.txt file is designed to help AI systems understand and effectively utilize MemoSpark's educational content while respecting user privacy and promoting responsible AI development in education.* 

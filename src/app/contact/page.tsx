@@ -7,6 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useState } from "react";
+import { PageSeo } from '@/components/seo/PageSeo';
+import { pageSeoConfigs } from '@/lib/seo/seoConfig';
+import { AIStructuredData } from '@/components/seo/AIOptimizedMeta';
+import { organizationSchema } from '@/lib/seo/structuredData';
 
 export default function ContactPage() {
   const [name, setName] = useState('');
@@ -30,8 +34,17 @@ export default function ContactPage() {
     setMessage('');
   };
 
+  // Generate structured data for contact page - focus on organization and contact info
+  const structuredDataSchemas = [organizationSchema];
+
   return (
     <>
+      <PageSeo
+        title={pageSeoConfigs.contact.title}
+        description={pageSeoConfigs.contact.description}
+        canonical={pageSeoConfigs.contact.canonical}
+      />
+      <AIStructuredData schemas={structuredDataSchemas} />
       <HomepageNavbar />
       <main className="pt-16 min-h-screen">
         <div className="container mx-auto px-4 py-8 md:py-12">
