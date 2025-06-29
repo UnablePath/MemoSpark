@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
+import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 
 // Global OneSignal interface for TypeScript
 declare global {
@@ -53,7 +53,7 @@ interface OneSignalProviderProps {
 
 export const OneSignalProvider: React.FC<OneSignalProviderProps> = ({ children }) => {
   const { user } = useUser();
-  const { triggerAchievement } = useAchievementTrigger();
+  const { triggerAchievement } = useDebouncedAchievementTrigger();
   const [isInitialized, setIsInitialized] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [playerId, setPlayerId] = useState<string | undefined>();

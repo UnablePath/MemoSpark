@@ -15,7 +15,7 @@ import { NotificationSettings } from '@/components/settings/NotificationSettings
 import { NotificationAnalytics } from '@/components/notifications/NotificationAnalytics';
 import Link from 'next/link';
 import { ReminderSettings } from '@/components/reminders/ReminderSettings';
-import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
+import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 import { useTieredAI } from '@/hooks/useTieredAI';
 import { toast } from 'sonner';
 import { AuthAwareSeo } from '@/components/seo/AuthAwareSeo';
@@ -29,7 +29,7 @@ const SettingsPage: React.FC = () => {
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const { userTier, isLoading: tierLoading } = useTieredAI();
-  const { triggerAchievement } = useAchievementTrigger();
+  const { triggerAchievement } = useDebouncedAchievementTrigger();
   const [activeSection, setActiveSection] = useState<SettingsSection>('theme');
   const [isReminderSettingsOpen, setIsReminderSettingsOpen] = useState(false);
   const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = useState(false);

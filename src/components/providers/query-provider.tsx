@@ -3,6 +3,7 @@
 import type React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { useState } from 'react';
 
 // Create a client
 const createQueryClient = () => {
@@ -12,7 +13,7 @@ const createQueryClient = () => {
         // Time before refetching on window focus
         staleTime: 1000 * 60 * 5, // 5 minutes
         // Time before garbage collection
-        gcTime: 1000 * 60 * 10, // 10 minutes (formerly cacheTime)
+        gcTime: 1000 * 60 * 30, // 30 minutes (was cacheTime)
         // Retry configuration
         retry: (failureCount, error) => {
           // Don't retry on 4xx errors except for 408, 429
@@ -27,7 +28,7 @@ const createQueryClient = () => {
         // Retry delay with exponential backoff
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
         // Refetch on window focus (useful for keeping data fresh)
-        refetchOnWindowFocus: true,
+        refetchOnWindowFocus: false,
         // Don't refetch on reconnect by default (to avoid excessive requests)
         refetchOnReconnect: 'always',
         // Network mode for handling offline scenarios
@@ -77,16 +78,16 @@ interface QueryProviderProps {
 }
 
 export const QueryProvider: React.FC<QueryProviderProps> = ({ children }) => {
-  // NOTE: Avoid useState when initializing the query client if you don't
-  // have a suspense boundary between this and the code that may suspend
-  // because React will throw away the client on the initial render if it
-  // suspends and there is no boundary
-  const queryClient = getQueryClient();
+  const [queryClient] = useState(() => getQueryClient());
 
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      {/* DevTools removed to reduce mobile screen clutter */}
+      <ReactQueryDevtools 
+        initialIsOpen={false} 
+        buttonPosition="bottom-left"
+        position="bottom"
+      />
     </QueryClientProvider>
   );
 }; 

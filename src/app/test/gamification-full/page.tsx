@@ -23,6 +23,7 @@ import {
 import { toast } from 'sonner';
 import { RewardShop } from '@/components/gamification/RewardShop';
 import { UserAnalyticsDashboard } from '@/components/analytics/UserAnalyticsDashboard';
+import { useFetchAchievements, useFetchBalance } from '@/hooks/useAchievementQueries';
 
 interface UserBalance {
   balance: number;
@@ -53,10 +54,28 @@ interface Achievement {
 
 export default function GamificationFullTestPage() {
   const { user } = useUser();
-  const [userBalance, setUserBalance] = useState<UserBalance | null>(null);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Use React Query hooks for data fetching
+  const { data: achievementsData, isLoading: achievementsLoading } = useFetchAchievements();
+  const { data: balanceData, isLoading: balanceLoading } = useFetchBalance();
+
+  // Extract data from consolidated response
+  const userBalance = balanceData ? {
+    balance: balanceData.balance || 0,
+    last_updated: new Date().toISOString(),
+    recent_transactions: [] as Array<{
+      id: string;
+      amount: number;
+      type: string;
+      description: string;
+      created_at: string;
+      metadata: any;
+    }>
+  } : null;
+
+  const loading = achievementsLoading || balanceLoading;
 
   // Mock user stats for demonstration
   const mockUserStats = {
@@ -73,36 +92,22 @@ export default function GamificationFullTestPage() {
   };
 
   useEffect(() => {
-    const fetchGamificationData = async () => {
+    // Load admin achievements for display (this could be moved to a separate hook if needed)
+    const fetchAdminAchievements = async () => {
       if (!user?.id) return;
 
       try {
-        setLoading(true);
-        
-        // Fetch balance and achievements in parallel
-        const [balanceResponse, achievementsResponse] = await Promise.all([
-          fetch('/api/gamification/balance'),
-          fetch('/api/admin/achievements')
-        ]);
-
-        if (balanceResponse.ok) {
-          const balanceData = await balanceResponse.json();
-          setUserBalance(balanceData);
-        }
-
+        const achievementsResponse = await fetch('/api/admin/achievements');
         if (achievementsResponse.ok) {
           const achievementsData = await achievementsResponse.json();
           setAchievements(achievementsData);
         }
       } catch (error) {
-        console.error('Error fetching gamification data:', error);
-        toast.error('Failed to load gamification data');
-      } finally {
-        setLoading(false);
+        console.error('Error fetching admin achievements:', error);
       }
     };
 
-    fetchGamificationData();
+    fetchAdminAchievements();
   }, [user?.id]);
 
   // Simulate earning coins
@@ -113,12 +118,7 @@ export default function GamificationFullTestPage() {
         description: reason
       });
       
-      // Refresh balance
-      const response = await fetch('/api/gamification/balance');
-      if (response.ok) {
-        const data = await response.json();
-        setUserBalance(data);
-      }
+      // React Query will automatically refetch balance data
     } catch (error) {
       console.error('Error earning coins:', error);
     }

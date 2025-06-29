@@ -23,6 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useUser } from '@clerk/nextjs';
 import { useUserTier } from '@/hooks/useUserTier';
 import { usePremiumPopup } from '@/components/providers/premium-popup-provider';
+import { useInvalidateAchievementQueries } from '@/hooks/useAchievementQueries';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -147,6 +148,7 @@ export const CoinThemeShop: React.FC<CoinThemeShopProps> = ({
   const { user } = useUser();
   const { tier } = useUserTier();
   const { showFeatureGatePopup } = usePremiumPopup();
+  const { invalidateBalance, invalidatePurchasedThemes } = useInvalidateAchievementQueries();
   
   const [shopData, setShopData] = useState<ThemeShopData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -301,6 +303,10 @@ export const CoinThemeShop: React.FC<CoinThemeShopProps> = ({
       window.dispatchEvent(new CustomEvent('theme-purchased', {
         detail: { themeId: theme.id, themeName: theme.name, colors: theme.colors }
       }));
+
+      // Invalidate relevant queries to update cached data
+      invalidateBalance(user.id); // Update balance after coin spending
+      invalidatePurchasedThemes(user.id); // Update purchased themes
 
     } catch (error) {
       console.error('Error purchasing theme:', error);

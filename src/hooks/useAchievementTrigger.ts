@@ -3,6 +3,7 @@
 import { useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { toast } from 'sonner';
+import { useInvalidateAchievementQueries } from './useAchievementQueries';
 
 interface AchievementTriggerOptions {
   action?: string;
@@ -13,6 +14,7 @@ interface AchievementTriggerOptions {
 
 export const useAchievementTrigger = () => {
   const { user } = useUser();
+  const { invalidateAchievements, invalidateBalance } = useInvalidateAchievementQueries();
 
   const triggerAchievement = useCallback(async (
     action: string,
@@ -37,6 +39,10 @@ export const useAchievementTrigger = () => {
         const result = await response.json();
         
         if (result.success && result.unlockedAchievements?.length > 0) {
+          // Invalidate relevant queries after successful achievement unlock
+          invalidateAchievements(); // New achievements unlocked
+          invalidateBalance(user.id); // Coins awarded for achievements
+          
           // Trigger the achievement notification system
           const notifier = (window as any).achievementNotifier;
           if (notifier) {
@@ -74,7 +80,7 @@ export const useAchievementTrigger = () => {
     }
 
     return { success: false };
-  }, [user?.id]);
+  }, [user?.id, invalidateAchievements, invalidateBalance]);
 
   // Convenience methods for common achievement triggers
   const triggerTaskCompleted = useCallback((taskName?: string) => {

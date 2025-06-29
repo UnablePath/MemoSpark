@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getCrashoutPosts, createCrashoutPost, deletePost, CrashoutPost, CrashoutPostInput, hasMorePosts } from '@/lib/supabase/crashoutApi';
 import { useAuth } from '@clerk/nextjs';
-import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
+import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 
 interface UseCrashoutPostsOptions {
   filter: 'latest' | 'popular' | 'trending' | 'top' | 'mine';
@@ -29,7 +29,7 @@ export function useCrashoutPosts({
   initialLimit = 5
 }: UseCrashoutPostsOptions): UseCrashoutPostsReturn {
   const { userId, getToken } = useAuth();
-  const { triggerWellnessAction } = useAchievementTrigger();
+  const { triggerWellnessAction } = useDebouncedAchievementTrigger();
   
   const [posts, setPosts] = useState<CrashoutPost[]>([]);
   const [loading, setLoading] = useState(true);

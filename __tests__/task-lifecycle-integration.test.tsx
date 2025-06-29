@@ -63,8 +63,8 @@ describe('Task Lifecycle Integration Tests', () => {
     test('user can create a task through TaskForm and see it in ListView', async () => {
       const user = userEvent.setup();
       
-      // Render TaskForm
-      renderWithProviders(<TaskForm />);
+      // Render TaskForm with required props
+      renderWithProviders(<TaskForm open={true} onOpenChange={() => {}} />);
       
       // User fills out the form
       const titleInput = screen.getByLabelText(/task title/i);
@@ -98,7 +98,7 @@ describe('Task Lifecycle Integration Tests', () => {
     test('user can create recurring task with proper recurrence rule', async () => {
       const user = userEvent.setup();
       
-      renderWithProviders(<TaskForm />);
+      renderWithProviders(<TaskForm open={true} onOpenChange={() => {}} />);
       
       // Fill out basic task info
       await user.type(screen.getByLabelText(/task title/i), 'Weekly Study Session');
@@ -555,7 +555,7 @@ describe('Task Lifecycle Integration Tests', () => {
         })
       );
       
-      renderWithProviders(<TaskForm />);
+      renderWithProviders(<TaskForm open={true} onOpenChange={() => {}} />);
       
       // Fill out and submit form
       await user.type(screen.getByLabelText(/task title/i), 'Network Test Task');

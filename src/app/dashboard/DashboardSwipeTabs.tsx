@@ -12,7 +12,7 @@ import GamificationHub from '@/components/gamification/GamificationHub';
 import { FaUserFriends, FaCalendarAlt, FaBell, FaSpa, FaGamepad } from 'react-icons/fa';
 import { useLocalStorageState } from '@/hooks/useStudentConnection';
 import { useTieredAI } from '@/hooks/useTieredAI';
-import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
+import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 import { usePremiumPopup } from '@/components/providers/premium-popup-provider';
 import { Crown } from 'lucide-react';
 
@@ -48,7 +48,7 @@ export function DashboardSwipeTabs() {
   const { userTier } = tieredAI;
 
   // Achievement system
-  const { triggerAchievement } = useAchievementTrigger();
+  const { triggerAchievement } = useDebouncedAchievementTrigger();
   
   // Premium popup system
   const { showFeatureGatePopup } = usePremiumPopup();

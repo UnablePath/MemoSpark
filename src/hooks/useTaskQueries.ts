@@ -18,7 +18,7 @@ import type {
   TaskFilters,
   TasksResponse,
 } from '@/types/taskTypes';
-import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
+import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 
 // ========================================
 // QUERY KEYS
@@ -126,7 +126,7 @@ export const useDashboardCounts = (getToken?: () => Promise<string | null>) => {
  */
 export const useCreateTask = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
-  const { triggerTaskCompleted } = useAchievementTrigger();
+  const { triggerTaskCompleted } = useDebouncedAchievementTrigger();
 
   return useMutation({
     mutationFn: (taskData: Omit<TaskInsert, 'user_id'>) => createTask(taskData, getToken),
@@ -237,7 +237,7 @@ export const useCreateTask = (getToken?: () => Promise<string | null>) => {
  */
 export const useUpdateTask = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
-  const { triggerAchievement } = useAchievementTrigger();
+  const { triggerAchievement } = useDebouncedAchievementTrigger();
 
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: TaskUpdate }) =>

@@ -39,6 +39,7 @@ const GamificationHub = () => {
   const stats = achievementsData?.stats || { total: 0, unlocked: 0, remaining: 0 };
   const balanceData = achievementsData?.balance;
   const coinBalance = balanceData?.balance || 0;
+  const themesData = achievementsData?.themes;
   
   // Process achievements into the format expected by existing code
   const userAchievements = achievements.filter(a => a.unlocked).map(achievement => ({
@@ -71,8 +72,6 @@ const GamificationHub = () => {
   // Create reload function that invalidates queries
   const reload = () => {
     reloadAchievements();
-    // Also reload coin balance separately if needed
-    loadCoinBalance();
   };
   const [streakTracker] = useState(() => new StreakTracker());
   const [showRewardShop, setShowRewardShop] = useState(false);
@@ -82,20 +81,6 @@ const GamificationHub = () => {
   useEffect(() => {
     triggerAchievement('gamification_opened');
   }, [triggerAchievement]);
-
-  // Fallback coin balance loading (for backward compatibility)
-  const loadCoinBalance = async () => {
-    try {
-      const response = await fetch('/api/gamification/balance');
-      if (response.ok) {
-        const data = await response.json();
-        // This is now handled by the consolidated API, but keeping for manual refresh
-        console.log('Manual balance refresh:', data.balance);
-      }
-    } catch (error) {
-      console.error('Error loading coin balance:', error);
-    }
-  };
 
   // Calculate reward tier progression
   const calculateTierInfo = (points: number) => {

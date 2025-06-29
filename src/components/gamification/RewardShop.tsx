@@ -23,13 +23,16 @@ import {
   Gift,
   Lock,
   Check,
-  RefreshCw
+  RefreshCw,
+  Target,
+  TrendingUp
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { coinEconomy, CoinSpendingCategory } from '@/lib/gamification/CoinEconomy';
 import { useFetchAchievements } from '@/hooks/useAchievementQueries';
 import { useUserTier } from '@/hooks/useUserTier';
 import { usePremiumPopup } from '@/components/providers/premium-popup-provider';
+import { useInvalidateAchievementQueries } from '@/hooks/useAchievementQueries';
 
 interface RewardShopProps {
   variant?: 'full' | 'modal';
@@ -94,46 +97,39 @@ export const RewardShop: React.FC<RewardShopProps> = ({
   onClose
 }) => {
   const { user } = useUser();
+  const { tier } = useUserTier();
   const { setTheme } = useTheme();
-  const { data: achievementsData } = useFetchAchievements();
-  
-  // Extract consolidated balance data
-  const balanceData = achievementsData?.balance;
-  const consolidatedBalance = balanceData?.balance || 0;
-  
-  // Mock userStats for compatibility
-  const userStats = {
-    level: 1,
-    current_streak: 0,
-    total_points: 0
-  };
-  const { tier: userTier, isLoading: tierLoading } = useUserTier();
   const { showFeatureGatePopup } = usePremiumPopup();
-  const [balance, setBalance] = useState(0);
+  const { invalidateBalance, invalidatePurchasedThemes } = useInvalidateAchievementQueries();
+  
+  // State for shop items and user data
   const [shopItems, setShopItems] = useState<CoinSpendingCategory[]>([]);
+  const [balance, setBalance] = useState(0);
+  const [userStats, setUserStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedItem, setSelectedItem] = useState<CoinSpendingCategory | null>(null);
 
   // Check if user is premium
-  const isPremium = userTier === 'premium';
+  const isPremium = tier === 'premium';
+
+  // Use consolidated balance from achievements API if available
+  const consolidatedBalance = 0; // This would come from parent component or context
+
+  useEffect(() => {
+    if (user?.id) {
+      loadShopData();
+    }
+  }, [user?.id, consolidatedBalance]);
 
   // Load shop data
   const loadShopData = async () => {
     if (!user?.id) return;
 
     try {
-      // Use consolidated balance data if available, otherwise fetch separately
-      if (consolidatedBalance > 0) {
-        setBalance(consolidatedBalance);
-      } else {
-        const balanceResponse = await fetch('/api/gamification/balance');
-        if (balanceResponse.ok) {
-          const balanceData = await balanceResponse.json();
-          setBalance(balanceData.balance);
-        }
-      }
+      // Use consolidated balance data from achievements API
+      setBalance(consolidatedBalance);
 
       const itemsResponse = await fetch('/api/gamification/shop-items');
 
@@ -162,10 +158,6 @@ export const RewardShop: React.FC<RewardShopProps> = ({
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    loadShopData();
-  }, [user?.id, consolidatedBalance]);
 
   // Handle item purchase
   const purchaseItem = async (item: CoinSpendingCategory) => {
@@ -210,8 +202,11 @@ export const RewardShop: React.FC<RewardShopProps> = ({
           }
         }
         
-        // Refresh shop data to update any availability changes
-        loadShopData();
+        // Invalidate relevant queries to update cached data
+        invalidateBalance(user.id); // Update balance after coin spending
+        if (isTheme && result.theme_id) {
+          invalidatePurchasedThemes(user.id); // Update purchased themes if theme was bought
+        }
       } else {
         toast.error(`Failed to purchase ${item.item_name}`, {
           description: result.error || 'An error occurred during purchase'

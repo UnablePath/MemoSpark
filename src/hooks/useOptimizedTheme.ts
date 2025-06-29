@@ -3,7 +3,7 @@
 import { useTheme } from 'next-themes';
 import { useCallback, useEffect, useState } from 'react';
 import { useThemeContext } from '@/components/providers/theme-provider';
-import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
+import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 
 /**
  * Optimized theme hook that provides immediate theme switching
@@ -12,7 +12,7 @@ import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
 export function useOptimizedTheme() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const { forceThemeUpdate } = useThemeContext();
-  const { triggerAchievement } = useAchievementTrigger();
+  const { triggerAchievement } = useDebouncedAchievementTrigger();
   const [isChanging, setIsChanging] = useState(false);
 
   // Optimized theme setter with immediate DOM updates

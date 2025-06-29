@@ -341,7 +341,7 @@ const RemindersTab = () => {
         upcoming: filteredReminders.filter(r => !r.completed && !isPast(new Date(r.due_date)) && !isToday(new Date(r.due_date))),
         completed: filteredReminders.filter(r => r.completed)
     };
-
+    
     if (loading) return <RemindersSkeleton />;
     if (error) return <div className="flex items-center justify-center h-full text-red-500"><FaInfoCircle className="mr-4"/>Error: {error.message}</div>;
 
@@ -361,16 +361,16 @@ const RemindersTab = () => {
                     <div className="flex flex-col gap-4 mb-4">
                         {/* Header Row */}
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
-                            <h1 className="text-2xl font-bold">Your Reminders</h1>
-                            <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:gap-2">
-                                <Button variant="outline" onClick={() => setShowReminderSettings(true)} size="sm" className="w-full sm:w-auto">
-                                    <FaCog className="mr-2"/> Settings
-                                </Button>
-                                <Button onClick={() => setShowAddReminder(true)} size="sm" className="w-full sm:w-auto">
-                                    <FaPlus className="mr-2"/> Add Reminder
-                                </Button>
-                            </div>
+                        <h1 className="text-2xl font-bold">Your Reminders</h1>
+                        <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:gap-2">
+                            <Button variant="outline" onClick={() => setShowReminderSettings(true)} size="sm" className="w-full sm:w-auto">
+                                <FaCog className="mr-2"/> Settings
+                            </Button>
+                            <Button onClick={() => setShowAddReminder(true)} size="sm" className="w-full sm:w-auto">
+                                <FaPlus className="mr-2"/> Add Reminder
+                            </Button>
                         </div>
+                    </div>
                         
                         {/* Filter Controls */}
                         <div className="flex flex-col sm:flex-row gap-3 p-3 bg-muted/20 rounded-lg border">
@@ -501,13 +501,13 @@ const RemindersTab = () => {
                                             <span className="text-xs text-muted-foreground font-normal">(last 7 days)</span>
                                         </h3>
                                         <div className="space-y-3">
-                                            <AnimatePresence>
+                            <AnimatePresence>
                                                 {organizedReminders.completed
                                                     .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
                                                     .map(r => 
                                                         <ReminderCard key={r.id} reminder={r} onComplete={handleCompleteReminder} />
                                                     )}
-                                            </AnimatePresence>
+                            </AnimatePresence>
                                         </div>
                                     </div>
                                 )}

@@ -20,14 +20,14 @@ import { toast } from 'sonner';
 import { format } from "date-fns";
 import { ProfileSync } from '@/components/profile/ProfileSync';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
+import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 import { AuthAwareSeo } from '@/components/seo/AuthAwareSeo';
 
 export default function ProfilePage() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const { profile, isLoading: profileLoading, error: profileError, refetch, updateProfile } = useUserProfile();
-  const { triggerAchievement } = useAchievementTrigger();
+  const { triggerAchievement } = useDebouncedAchievementTrigger();
   const [isEditing, setIsEditing] = useState(false);
 
   // Form state from Supabase profile data

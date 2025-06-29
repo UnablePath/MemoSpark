@@ -14,7 +14,8 @@ import { useTheme } from 'next-themes';
 import { DraggableWidget } from "@/components/widgets/DraggableWidget";
 // Import achievement system
 import { AchievementNotificationSystem } from '@/components/achievements/AchievementNotificationSystem';
-import { useAchievementTrigger } from '@/hooks/useAchievementTrigger';
+import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
+import { useFetchAchievements } from '@/hooks/useAchievementQueries';
 import { AuthAwareSeo } from '@/components/seo/AuthAwareSeo';
 
 export default function DashboardPage() {
@@ -28,32 +29,29 @@ export default function DashboardPage() {
   const { userTier, usage, isLoading, tierLimits } = useTieredAI();
   
   // Achievement system
-  const { triggerAchievement } = useAchievementTrigger();
+  const { triggerAchievement } = useDebouncedAchievementTrigger();
+  const { data: achievementsData } = useFetchAchievements();
 
   // Initialize achievements on first load
   useEffect(() => {
-    if (!achievementsInitialized) {
+    if (!achievementsInitialized && achievementsData) {
       initializeAchievements();
       setAchievementsInitialized(true);
     }
-  }, [achievementsInitialized]);
+  }, [achievementsInitialized, achievementsData]);
 
   // Function to populate achievements if they don't exist
   const initializeAchievements = async () => {
     try {
-      // First check if achievements exist
-      const checkResponse = await fetch('/api/achievements');
-      if (checkResponse.ok) {
-        const data = await checkResponse.json();
-        if (data.stats?.total === 0) {
-          // No achievements exist, populate them
-          console.log('Populating achievements...');
-          const populateResponse = await fetch('/api/admin/achievements/populate', {
-            method: 'POST'
-          });
-          if (populateResponse.ok) {
-            console.log('✅ Achievements populated successfully!');
-          }
+      // Check if achievements exist using React Query data
+      if (achievementsData?.stats?.total === 0) {
+        // No achievements exist, populate them
+        console.log('Populating achievements...');
+        const populateResponse = await fetch('/api/admin/achievements/populate', {
+          method: 'POST'
+        });
+        if (populateResponse.ok) {
+          console.log('✅ Achievements populated successfully!');
         }
       }
       

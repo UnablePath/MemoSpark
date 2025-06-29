@@ -1,18 +1,19 @@
 'use client';
 
-import type React from 'react';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useOptimizedTheme } from '@/hooks/useOptimizedTheme';
+import { useThemeContext } from '@/components/providers/theme-provider';
+import { useUser } from '@clerk/nextjs';
+import { useUserTier } from '@/hooks/useUserTier';
+import { useFetchAchievements } from '@/hooks/useAchievementQueries';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { useThemeContext } from '@/components/providers/theme-provider';
-import { useOptimizedTheme } from '@/hooks/useOptimizedTheme';
-import { useUser } from '@clerk/nextjs';
-import { useUserTier } from '@/hooks/useUserTier';
-import { Check, Palette, Sun, Moon, Coins, ShoppingBag, Crown, Lock } from 'lucide-react';
+import { Sun, Moon, Palette, Coins, Crown, Lock } from 'lucide-react';
 import { CoinThemeShop } from '@/components/coins/CoinThemeShop';
-import { Badge } from '@/components/ui/badge';
 
 // Define theme pairs with both light and dark variants
 const themePairs = [
@@ -203,27 +204,25 @@ export const ThemeSettings: React.FC = () => {
   const { accessibilityOptions, setAccessibilityOption } = useThemeContext();
   const { user } = useUser();
   const { tier } = useUserTier();
+  const { data: achievementsData } = useFetchAchievements();
   const { highContrast } = accessibilityOptions;
   const [showCoinThemeShop, setShowCoinThemeShop] = useState(false);
-  const [ownedCoinThemes, setOwnedCoinThemes] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
+
+  // Extract themes data from consolidated response
+  const themesData = achievementsData?.themes;
+  const ownedCoinThemes = themesData?.success 
+    ? themesData.purchasedThemes.map((t: any) => t.theme_id) 
+    : [];
 
   // Launch mode detection - grants access to all themes during launch period
   const isLaunchMode = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_ENABLE_LAUNCH_MODE === 'true';
   const isPremium = tier === 'premium' || isLaunchMode;
 
-  // Load user's owned coin themes
-  useEffect(() => {
-    if (user?.id) {
-      loadOwnedThemes();
-    }
-  }, [user?.id]);
-
   // Listen for theme purchase events to refresh owned themes
   useEffect(() => {
     const handleThemePurchased = () => {
-      // Refresh owned themes when a new theme is purchased
-      loadOwnedThemes();
+      // Themes data will be automatically refreshed by React Query when the achievements data is invalidated
+      console.log('Theme purchased event received - data will refresh automatically');
     };
 
     window.addEventListener('theme-purchased', handleThemePurchased);
@@ -231,24 +230,6 @@ export const ThemeSettings: React.FC = () => {
       window.removeEventListener('theme-purchased', handleThemePurchased);
     };
   }, []);
-
-  const loadOwnedThemes = async () => {
-    if (!user?.id) return;
-    
-    try {
-      setLoading(true);
-      const response = await fetch('/api/gamification/themes');
-      if (response.ok) {
-        const data = await response.json();
-        const owned = data.themes.filter((t: any) => t.isOwned).map((t: any) => t.id);
-        setOwnedCoinThemes(owned);
-      }
-    } catch (error) {
-      console.error('Error loading owned themes:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleHighContrastChange = (checked: boolean) => {
     setAccessibilityOption('highContrast', checked);
@@ -302,8 +283,6 @@ export const ThemeSettings: React.FC = () => {
     // The theme ID comes in as the actual theme ID (e.g., 'theme-forest-dream')
     // so we can apply it directly
     setTheme(themeId);
-    // Refresh owned themes
-    loadOwnedThemes();
   };
 
   return (

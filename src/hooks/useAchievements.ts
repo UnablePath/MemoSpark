@@ -6,7 +6,13 @@ import { fetchUserStats, fetchLeaderboard } from '@/lib/supabase/gamificationApi
 import { StreakTracker } from '@/lib/gamification/StreakTracker';
 import type { UserStats, LeaderboardUser, UserAchievement, Achievement } from '@/types/achievements';
 
+/**
+ * @deprecated This hook is deprecated. Use useFetchAchievements from @/hooks/useAchievementQueries instead.
+ * This legacy hook will be removed in a future version.
+ */
 export const useAchievements = () => {
+  console.warn('useAchievements is deprecated. Use useFetchAchievements from @/hooks/useAchievementQueries instead.');
+  
   const { user, isLoaded } = useUser();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);

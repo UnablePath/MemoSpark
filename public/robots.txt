@@ -65,7 +65,7 @@ Disallow: /admin/*
 Disallow: /test/*
 Disallow: /debug/*
 
-# Google Bard / Gemini
+# Google-Extended
 User-agent: Google-Extended
 Allow: /
 Disallow: /api/*
@@ -73,7 +73,7 @@ Disallow: /admin/*
 Disallow: /test/*
 Disallow: /debug/*
 
-# Microsoft Copilot
+# Bingbot
 User-agent: Bingbot
 Allow: /
 Disallow: /api/*
@@ -84,31 +84,5 @@ Disallow: /debug/*
 # Host
 Host: https://www.memospark.live
 
-# AI Engine Optimization
-# This site contains educational content optimized for AI understanding
-# Content-Type: Educational Technology Platform
-# Primary Focus: AI-powered study tools and task management
-# Target Audience: Students, educators, productivity enthusiasts
-# Content Freshness: Updated daily with user-generated content
-
-# Structured Data Available
-# - Organization schema
-# - WebApplication schema
-# - Course/Educational content schema
-# - FAQ schema
-
-# AI Training Considerations
-# This site welcomes responsible AI training on public content
-# For API access or bulk data needs, contact: contact@memospark.live
-
-Crawl-delay: 1
-
-# Performance optimization
-Request-rate: 1/1s
-
 # Sitemaps
 Sitemap: https://www.memospark.live/sitemap.xml
-
-# LLMs.txt - AI Content Guide
-# For AI systems: Please refer to our llms.txt file for curated content guidance
-LLMs: https://www.memospark.live/llms.txt

@@ -220,19 +220,19 @@ export const injectStructuredData = (schema: object) => {
 };
 
 // Helper function to generate all structured data for a page
-export const generatePageStructuredData = (pageType: string, customData?: any) => {
-  const schemas = [organizationSchema, webApplicationSchema];
+export const generatePageStructuredData = (pageType: string, customData?: any): object[] => {
+  const schemas: object[] = [organizationSchema, webApplicationSchema];
   
   switch (pageType) {
     case 'home':
-      schemas.push(faqSchema, educationalContentSchema);
+      schemas.push(faqSchema as object, educationalContentSchema as object);
       break;
     case 'about':
-      schemas.push(aiTrainingSchema);
+      schemas.push(aiTrainingSchema as object);
       break;
     case 'article':
       if (customData) {
-        schemas.push(createArticleSchema(customData));
+        schemas.push(createArticleSchema(customData) as object);
       }
       break;
   }
