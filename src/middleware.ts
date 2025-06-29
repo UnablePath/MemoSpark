@@ -29,6 +29,10 @@ const isPublicRoute = createRouteMatcher([
     '/icon-512x512.png',
   '/browserconfig.xml',
     '/apple-touch-icon.png',
+  // SEO Files - Must be publicly accessible
+  '/sitemap.xml',
+  '/robots.txt',
+  '/llms.txt',
   '/_next(.*)',
   '/public(.*)',
 ]);
