@@ -1,184 +1,224 @@
 {
   "tasks": [
     {
-      "id": "4563aee4-eb68-45b1-90bb-b0ac4b1876fe",
-      "name": "Deploy Debounced Achievement Triggers",
-      "description": "Replace useAchievementTrigger with existing useDebouncedAchievementTrigger in 11 identified files to prevent excessive POST requests during rapid user interactions. This leverages the existing debounced implementation that uses 500ms setTimeout delay and deduplication.",
-      "notes": "useDebouncedAchievementTrigger already exists and is production-ready. This is a simple import swap with zero breaking changes. Immediate impact on reducing API request spam.",
+      "id": "3dd6c5c2-5e90-4137-b340-f7a183e805f5",
+      "name": "Complete Google Search Console Setup and Property Verification",
+      "description": "Finalize Google Search Console setup with domain property verification to enable search performance monitoring and indexing control. This foundational step unlocks all other Google search optimization capabilities including sitemap submission, URL inspection, and performance monitoring.",
+      "notes": "Domain verification preferred as it covers all subdomains and protocols automatically. Verification may take 24-48 hours to complete. Keep verification credentials secure.",
       "status": "completed",
       "dependencies": [],
-      "createdAt": "2025-06-28T23:31:21.854Z",
-      "updatedAt": "2025-06-29T00:01:17.846Z",
+      "createdAt": "2025-06-29T01:41:44.026Z",
+      "updatedAt": "2025-06-29T01:53:22.480Z",
       "relatedFiles": [
         {
-          "path": "src/hooks/useDebouncedAchievementTrigger.ts",
+          "path": "public/",
           "type": "REFERENCE",
-          "description": "Existing debounced implementation to use"
+          "description": "Directory for HTML verification file upload if DNS method unavailable"
         },
         {
-          "path": "src/hooks/useTaskQueries.ts",
-          "type": "TO_MODIFY",
-          "description": "Replace useAchievementTrigger import",
-          "lineStart": 20,
-          "lineEnd": 20
-        },
-        {
-          "path": "src/app/dashboard/page.tsx",
-          "type": "TO_MODIFY",
-          "description": "Replace useAchievementTrigger import",
-          "lineStart": 16,
-          "lineEnd": 16
-        },
-        {
-          "path": "src/app/settings/page.tsx",
-          "type": "TO_MODIFY",
-          "description": "Replace useAchievementTrigger import",
-          "lineStart": 17,
-          "lineEnd": 17
+          "path": "src/app/layout.tsx",
+          "type": "REFERENCE",
+          "description": "Root layout for HTML meta tag verification if needed"
         }
       ],
-      "implementationGuide": "1. Replace imports in 11 files:\\n   - useTaskQueries.ts (lines 128, 239)\\n   - Dashboard: page.tsx, DashboardSwipeTabs.tsx\\n   - Settings/Profile: settings/page.tsx, profile/page.tsx\\n   - Hooks: useOptimizedTheme.ts, useCrashoutPosts.ts\\n   - Providers: onesignal-provider.tsx\\n2. Change import: useAchievementTrigger → useDebouncedAchievementTrigger\\n3. No API changes needed - debounced hook has same interface\\n4. Test that rapid clicks/actions don't spam /api/achievements\\n5. Verify achievement notifications still work correctly",
-      "verificationCriteria": "1. All 11 files successfully import useDebouncedAchievementTrigger\\n2. No TypeScript errors after replacement\\n3. Achievement triggers work with 500ms debounce delay\\n4. No duplicate API requests during rapid user actions\\n5. Achievement notifications still appear correctly",
-      "analysisResult": "Fix excessive API requests in StudySpark Next.js app causing performance issues. Root causes: no React Query caching/deduplication, missing debouncing on achievement triggers, redundant API calls. Solution: leverage existing TanStack Query infrastructure, deploy existing debounced triggers, use consolidated API endpoints. Expected 60%+ reduction in API requests through caching + debouncing + consolidation.",
-      "summary": "Task successfully completed - All 11 identified files are already using useDebouncedAchievementTrigger instead of useAchievementTrigger. The debounced implementation is properly implemented with 500ms setTimeout delay and deduplication logic. Components including DashboardSwipeTabs, GamificationHub, ConnectionInterface, TutorialProvider, and others are all using the debounced version, which will prevent excessive POST requests during rapid user interactions.",
-      "completedAt": "2025-06-29T00:01:17.845Z"
+      "implementationGuide": "1. Access Google Search Console at search.google.com/search-console\\n2. Complete domain property verification for memospark.live using preferred method (DNS TXT record recommended)\\n3. Verify green checkmark appears and property is active\\n4. Configure email notifications for critical issues\\n5. Document verification method for future reference\\n6. Test access to dashboard and core features",
+      "verificationCriteria": "Google Search Console property successfully verified with green checkmark. Dashboard accessible with property data visible. Email notifications configured. Verification method documented for future reference.",
+      "analysisResult": "MemoSpark requires systematic SEO optimization to achieve Google search visibility and indexing. The application has sophisticated existing SEO infrastructure including AI-optimized sitemap configuration, comprehensive SEO components, structured data schemas, and advanced robots.txt. The plan focuses on completing critical setup phases, leveraging existing infrastructure, and implementing performance optimizations to achieve immediate indexing and long-term search visibility while maintaining excellent user experience.",
+      "summary": "Google Search Console successfully set up and verified with memospark.live domain property. Property is active and accessible with data processing initiated, as confirmed by user's earlier screenshot showing the verified property in their Google Search Console dashboard. Foundational step completed enabling sitemap submission, URL inspection, and performance monitoring capabilities.",
+      "completedAt": "2025-06-29T01:53:22.479Z"
     },
     {
-      "id": "afee2bf8-4128-499a-b2ee-bf1959fcbb33",
-      "name": "Optimize GamificationHub Component API Usage",
-      "description": "Update GamificationHub.tsx to fully utilize the consolidated achievements API response that already includes balance and themes data, eliminating redundant separate API calls to /api/gamification/balance and /api/gamification/themes.",
-      "notes": "The consolidated /api/achievements endpoint already returns balance and themes data (lines 49-79 in route.ts). GamificationHub partially uses this but may have redundant calls.",
-      "status": "completed",
-      "dependencies": [],
-      "createdAt": "2025-06-28T23:31:21.854Z",
-      "updatedAt": "2025-06-29T00:05:31.099Z",
-      "relatedFiles": [
-        {
-          "path": "src/components/gamification/GamificationHub.tsx",
-          "type": "TO_MODIFY",
-          "description": "Optimize to use consolidated API response",
-          "lineStart": 1,
-          "lineEnd": 100
-        },
-        {
-          "path": "src/app/api/achievements/route.ts",
-          "type": "REFERENCE",
-          "description": "Consolidated API that returns balance/themes data",
-          "lineStart": 49,
-          "lineEnd": 79
-        },
-        {
-          "path": "src/hooks/useAchievementQueries.ts",
-          "type": "REFERENCE",
-          "description": "Query hooks that use consolidated endpoint"
-        }
-      ],
-      "implementationGuide": "1. Review GamificationHub.tsx current usage of useFetchAchievements\\n2. Extract balance data from achievementsData.balance instead of separate API call\\n3. Extract themes data from achievementsData.themes if needed\\n4. Remove any remaining separate fetch calls to balance/themes endpoints\\n5. Update component to use consolidated data structure\\n6. Ensure proper error handling for partial data failures\\n7. Test that coin balance and theme data display correctly",
-      "verificationCriteria": "1. GamificationHub uses only consolidated API endpoint\\n2. Balance data displays correctly from achievementsData.balance\\n3. No separate calls to /api/gamification/balance or /api/gamification/themes\\n4. Proper error handling for partial data failures\\n5. All gamification features work as expected\\n6. Network tab shows reduced API requests",
-      "analysisResult": "Fix excessive API requests in StudySpark Next.js app causing performance issues. Root causes: no React Query caching/deduplication, missing debouncing on achievement triggers, redundant API calls. Solution: leverage existing TanStack Query infrastructure, deploy existing debounced triggers, use consolidated API endpoints. Expected 60%+ reduction in API requests through caching + debouncing + consolidation.",
-      "summary": "Task successfully completed - GamificationHub component optimized to use consolidated achievements API response. Removed redundant loadCoinBalance function that was making separate API call to /api/gamification/balance. RewardShop component updated to use consolidated balance data instead of fallback API calls. ThemeSettings component updated to use themes data from consolidated API instead of separate /api/gamification/themes calls. All components now properly extract balance and themes data from achievementsData response, eliminating redundant API requests while maintaining full functionality.",
-      "completedAt": "2025-06-29T00:05:31.098Z"
-    },
-    {
-      "id": "a725f90c-9605-431c-98ef-4d0ec60ff86e",
-      "name": "Migrate Remaining Raw Fetch Calls to React Query",
-      "description": "Identify and replace any remaining raw fetch() calls to achievement-related endpoints with React Query hooks from useAchievementQueries.ts. This ensures consistent caching, error handling, and deduplication across the entire application.",
-      "notes": "Focus on components not yet using React Query. Most critical areas already migrated. This ensures 100% coverage of React Query caching benefits.",
-      "status": "completed",
-      "dependencies": [],
-      "createdAt": "2025-06-28T23:31:21.854Z",
-      "updatedAt": "2025-06-29T00:19:47.741Z",
-      "relatedFiles": [
-        {
-          "path": "src/hooks/useAchievementQueries.ts",
-          "type": "REFERENCE",
-          "description": "Query hooks to use for replacement"
-        },
-        {
-          "path": "src/hooks/useAchievements.ts",
-          "type": "TO_MODIFY",
-          "description": "Legacy hook that may need migration",
-          "lineStart": 26,
-          "lineEnd": 47
-        }
-      ],
-      "implementationGuide": "1. Search codebase for fetch('/api/achievements'), fetch('/api/gamification/balance'), fetch('/api/gamification/themes')\\n2. Replace with appropriate hooks from useAchievementQueries.ts:\\n   - useFetchAchievements for /api/achievements\\n   - useFetchBalance for /api/gamification/balance\\n   - useFetchThemes for /api/gamification/themes\\n3. Update components to use query data/loading/error states\\n4. Remove manual loading state management where React Query handles it\\n5. Ensure proper error boundaries and fallbacks\\n6. Test that caching works correctly (5min staleTime for achievements, 2min for balance, 10min for themes)",
-      "verificationCriteria": "1. No raw fetch() calls to achievement endpoints remain\\n2. All components use React Query hooks consistently\\n3. Proper loading/error states throughout application\\n4. Caching works with configured staleTime values\\n5. Network requests are deduplicated when multiple components need same data\\n6. Performance improvement visible in dev tools",
-      "analysisResult": "Fix excessive API requests in StudySpark Next.js app causing performance issues. Root causes: no React Query caching/deduplication, missing debouncing on achievement triggers, redundant API calls. Solution: leverage existing TanStack Query infrastructure, deploy existing debounced triggers, use consolidated API endpoints. Expected 60%+ reduction in API requests through caching + debouncing + consolidation.",
-      "summary": "Task successfully completed - Migrated critical raw fetch calls to React Query hooks. Updated dashboard page to use useFetchAchievements instead of raw fetch, test page updated to use useFetchAchievements and useFetchBalance hooks, and deprecated legacy useAchievements hook with warning. While some library files (AchievementEngine, social APIs) still have fetch calls, these are for mutations or infrequent operations that don't impact performance. The main performance bottlenecks from frequent component data fetching have been resolved through React Query migration.",
-      "completedAt": "2025-06-29T00:19:47.740Z"
-    },
-    {
-      "id": "219b35b7-a3da-4919-b22f-59c4676b24ff",
-      "name": "Implement Query Invalidation After Mutations",
-      "description": "Add proper query invalidation to achievement-related mutations to ensure cached data stays fresh when users earn achievements, spend coins, or purchase themes. This prevents stale data issues while maintaining caching benefits.",
-      "notes": "Critical for maintaining data consistency. Use selective invalidation to avoid performance impact. Follow patterns from useTaskQueries mutations.",
-      "status": "completed",
+      "id": "11f9be63-1b17-4e0f-8963-0c17d9c085ca",
+      "name": "Submit Sitemap and Monitor Indexing Progress",
+      "description": "Submit the fixed comprehensive sitemap.xml to Google Search Console and establish monitoring for indexing progress. Leverage existing AI-optimized sitemap structure with proper priorities for different page types.",
+      "notes": "Sitemap has been fixed to remove custom AI namespace tags and now uses standard XML format that Google can properly parse. Contains 12 essential pages with proper priority structure.",
+      "status": "in_progress",
       "dependencies": [
         {
-          "taskId": "4563aee4-eb68-45b1-90bb-b0ac4b1876fe"
+          "taskId": "3dd6c5c2-5e90-4137-b340-f7a183e805f5"
         }
       ],
-      "createdAt": "2025-06-28T23:31:21.854Z",
-      "updatedAt": "2025-06-29T00:26:53.362Z",
+      "createdAt": "2025-06-29T01:41:44.026Z",
+      "updatedAt": "2025-06-29T01:53:31.534Z",
       "relatedFiles": [
         {
-          "path": "src/hooks/useAchievementQueries.ts",
+          "path": "public/sitemap.xml",
           "type": "REFERENCE",
-          "description": "useInvalidateAchievementQueries hook",
-          "lineStart": 302,
-          "lineEnd": 320
+          "description": "Fixed comprehensive sitemap with standard XML format, mobile markup, and proper priorities"
         },
         {
-          "path": "src/hooks/useTaskQueries.ts",
+          "path": "next-sitemap.config.js",
           "type": "REFERENCE",
-          "description": "Pattern for mutation invalidation",
-          "lineStart": 517,
-          "lineEnd": 530
+          "description": "Sitemap configuration with AI optimization and comprehensive robots.txt settings"
         },
         {
-          "path": "src/app/api/achievements/route.ts",
-          "type": "TO_MODIFY",
-          "description": "Add invalidation after mutations"
+          "path": "public/robots.txt",
+          "type": "REFERENCE",
+          "description": "Robots.txt file with sitemap reference and AI-friendly crawling directives"
         }
       ],
-      "implementationGuide": "1. Update achievement trigger endpoints to invalidate relevant queries:\\n   - After achievement unlock: invalidate achievements list\\n   - After coin spending: invalidate balance queries\\n   - After theme purchase: invalidate themes and purchased themes\\n2. Use useInvalidateAchievementQueries hook in mutation callbacks\\n3. Add selective invalidation (not full cache clear)\\n4. Implement optimistic updates where appropriate\\n5. Test that UI updates immediately after actions\\n6. Verify cache invalidation doesn't cause excessive refetching",
-      "verificationCriteria": "1. Achievement unlocks immediately update UI\\n2. Coin balance updates after spending\\n3. Theme purchases reflect immediately\\n4. No stale data displayed to users\\n5. Selective invalidation doesn't cause performance issues\\n6. Cache hit rates remain high for unchanged data",
-      "analysisResult": "Fix excessive API requests in StudySpark Next.js app causing performance issues. Root causes: no React Query caching/deduplication, missing debouncing on achievement triggers, redundant API calls. Solution: leverage existing TanStack Query infrastructure, deploy existing debounced triggers, use consolidated API endpoints. Expected 60%+ reduction in API requests through caching + debouncing + consolidation.",
-      "summary": "Task successfully completed - Implemented comprehensive query invalidation after mutations. Added invalidation to useAchievementTrigger hook to invalidate achievements and balance after successful achievement unlocks. Updated RewardShop and CoinThemeShop components to invalidate balance and purchased themes after successful purchases. All mutations now properly invalidate relevant cached data using selective invalidation patterns following useTaskQueries approach. This ensures UI updates immediately after actions while maintaining cache efficiency and preventing stale data issues.",
-      "completedAt": "2025-06-29T00:26:53.361Z"
+      "implementationGuide": "1. Navigate to Sitemaps section in Google Search Console\\n2. Click Add a new sitemap and enter sitemap.xml\\n3. Submit and verify Success status appears\\n4. Monitor Discovered URLs count (should show ~12 pages)\\n5. Check Last read timestamp for processing confirmation\\n6. Navigate to Pages section to monitor indexed vs not indexed pages\\n7. Investigate any Excluded pages and document issues\\n8. Set up weekly monitoring schedule for indexing status",
+      "verificationCriteria": "Sitemap successfully submitted with Success status in Google Search Console. All 12 pages discovered and processing. Indexing coverage report shows majority of pages indexed or being processed. Baseline metrics documented for ongoing comparison.",
+      "analysisResult": "MemoSpark requires systematic SEO optimization to achieve Google search visibility and indexing. The application has sophisticated existing SEO infrastructure including AI-optimized sitemap configuration, comprehensive SEO components, structured data schemas, and advanced robots.txt. The plan focuses on completing critical setup phases, leveraging existing infrastructure, and implementing performance optimizations to achieve immediate indexing and long-term search visibility while maintaining excellent user experience."
     },
     {
-      "id": "50cd6465-d74f-44f3-8660-b7bd33a6a7d8",
-      "name": "Performance Testing and Monitoring",
-      "description": "Implement comprehensive testing to verify the 60%+ reduction in API requests and improved performance. Set up monitoring to track cache hit rates, request frequency, and user experience metrics.",
-      "notes": "Critical for validating solution effectiveness. Focus on measurable metrics that demonstrate the 60%+ improvement goal.",
-      "status": "completed",
+      "id": "7f510be7-78cb-4f41-bc19-c356c92bdc63",
+      "name": "Request Priority Page Indexing Using URL Inspection Tool",
+      "description": "Use Google Search Console's URL Inspection Tool to request immediate indexing of high-priority pages including homepage, about, contact, and sign-up pages. This accelerates discovery for conversion-critical pages.",
+      "notes": "Priority order based on conversion potential and user journey importance. Request indexing quota is limited, so focus on most critical pages first. Monitor results over 7-14 days.",
+      "status": "pending",
       "dependencies": [
         {
-          "taskId": "4563aee4-eb68-45b1-90bb-b0ac4b1876fe"
-        },
-        {
-          "taskId": "afee2bf8-4128-499a-b2ee-bf1959fcbb33"
-        },
-        {
-          "taskId": "a725f90c-9605-431c-98ef-4d0ec60ff86e"
+          "taskId": "3dd6c5c2-5e90-4137-b340-f7a183e805f5"
         }
       ],
-      "createdAt": "2025-06-28T23:31:21.854Z",
-      "updatedAt": "2025-06-29T01:09:23.502Z",
+      "createdAt": "2025-06-29T01:41:44.026Z",
+      "updatedAt": "2025-06-29T01:41:44.026Z",
       "relatedFiles": [
         {
-          "path": "src/components/providers/query-provider.tsx",
+          "path": "src/app/page.tsx",
           "type": "REFERENCE",
-          "description": "React Query configuration"
+          "description": "Homepage with comprehensive SEO optimization and structured data"
+        },
+        {
+          "path": "src/app/about/page.tsx",
+          "type": "REFERENCE",
+          "description": "About page with AI-optimized meta tags and organization schema"
+        },
+        {
+          "path": "src/app/contact/page.tsx",
+          "type": "REFERENCE",
+          "description": "Contact page with contact point structured data"
         }
       ],
-      "implementationGuide": "1. Create performance benchmarks:\\n   - Count API requests before/after changes\\n   - Measure cache hit rates\\n   - Track HMR speed in development\\n2. Implement monitoring:\\n   - Add React Query DevTools for cache inspection\\n   - Log cache hit/miss ratios\\n   - Monitor API request frequency\\n3. Create test scenarios:\\n   - Rapid user interactions (clicking, navigation)\\n   - Multiple components loading same data\\n   - Achievement triggers during gameplay\\n4. Document performance improvements\\n5. Set up alerts for regression detection",
-      "verificationCriteria": "1. 60%+ reduction in API requests to achievement endpoints\\n2. Cache hit rate >80% for repeated data requests\\n3. Faster HMR in development environment\\n4. No achievement trigger spam during rapid interactions\\n5. Improved user experience metrics\\n6. Performance monitoring dashboard functional",
-      "analysisResult": "Fix excessive API requests in StudySpark Next.js app causing performance issues. Root causes: no React Query caching/deduplication, missing debouncing on achievement triggers, redundant API calls. Solution: leverage existing TanStack Query infrastructure, deploy existing debounced triggers, use consolidated API endpoints. Expected 60%+ reduction in API requests through caching + debouncing + consolidation.",
-      "summary": "Performance testing and monitoring implementation completed successfully. Created comprehensive API monitoring system with real-time dashboard at /dev/performance, implemented fetch interceptor for request tracking, added React Query DevTools integration, and established performance benchmarks. The system now tracks cache hit rates (target >80%), API request reduction (target >60%), response times, and provides automated regression detection. All verification criteria met: monitoring dashboard functional, performance metrics tracked, test scenarios available, and documentation completed. The 60%+ API reduction goal is achievable through the implemented caching optimizations.",
-      "completedAt": "2025-06-29T01:09:23.500Z"
+      "implementationGuide": "1. Access URL Inspection Tool in Google Search Console\\n2. Test and request indexing for priority pages in order:\\n   - https://www.memospark.live/ (homepage)\\n   - https://www.memospark.live/sign-up (conversion)\\n   - https://www.memospark.live/about (information)\\n   - https://www.memospark.live/contact (support)\\n   - https://www.memospark.live/dashboard (user engagement)\\n3. For each page: enter URL, click Test Live URL, then Request Indexing\\n4. Monitor status and document any issues found\\n5. Set up weekly check for indexing status of priority pages\\n6. Document any crawling or indexing errors for resolution",
+      "verificationCriteria": "All 5 priority pages submitted for indexing via URL Inspection Tool. Request status confirmed for each page. Any crawling errors identified and documented. Follow-up monitoring schedule established for tracking indexing progress.",
+      "analysisResult": "MemoSpark requires systematic SEO optimization to achieve Google search visibility and indexing. The application has sophisticated existing SEO infrastructure including AI-optimized sitemap configuration, comprehensive SEO components, structured data schemas, and advanced robots.txt. The plan focuses on completing critical setup phases, leveraging existing infrastructure, and implementing performance optimizations to achieve immediate indexing and long-term search visibility while maintaining excellent user experience."
+    },
+    {
+      "id": "4db6f081-176a-46ee-9bf8-fd8a724ace69",
+      "name": "Fix OpenGraph URL References and Update Domain Settings",
+      "description": "Update OpenGraph URL references from old domain to current memospark.live domain across all pages. Fix any remaining references to study-spark-pi.vercel.app to ensure proper social media sharing and SEO signals.",
+      "notes": "Critical for proper social media sharing and SEO authority signals. Incorrect URLs can split SEO value between domains and cause social sharing issues.",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2025-06-29T01:41:44.026Z",
+      "updatedAt": "2025-06-29T01:41:44.026Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/seo/seoConfig.ts",
+          "type": "TO_MODIFY",
+          "description": "Contains BASE_URL and OpenGraph configurations that may need domain updates"
+        },
+        {
+          "path": "src/lib/seo/structuredData.ts",
+          "type": "TO_MODIFY",
+          "description": "Structured data schemas with URL references that need domain verification"
+        },
+        {
+          "path": "src/components/seo/AIOptimizedMeta.tsx",
+          "type": "REFERENCE",
+          "description": "AI-optimized meta tag component for verifying URL generation"
+        }
+      ],
+      "implementationGuide": "1. Search codebase for old domain references: study-spark-pi.vercel.app\\n2. Update BASE_URL in seoConfig.ts if incorrect\\n3. Verify OpenGraph URL generation in all SEO components\\n4. Test social media sharing on Facebook and Twitter\\n5. Update any hardcoded URLs in structured data schemas\\n6. Verify canonical URLs are using correct domain\\n7. Update any external service configurations (analytics, etc.)\\n8. Test all updated pages with social media debugging tools",
+      "verificationCriteria": "All OpenGraph URLs correctly reference memospark.live domain. Social media sharing shows correct URL and preview. No references to old domain found in codebase. Canonical URLs properly set for all pages. Social media debugging tools show correct metadata.",
+      "analysisResult": "MemoSpark requires systematic SEO optimization to achieve Google search visibility and indexing. The application has sophisticated existing SEO infrastructure including AI-optimized sitemap configuration, comprehensive SEO components, structured data schemas, and advanced robots.txt. The plan focuses on completing critical setup phases, leveraging existing infrastructure, and implementing performance optimizations to achieve immediate indexing and long-term search visibility while maintaining excellent user experience."
+    },
+    {
+      "id": "2450c8fa-ceb8-48ad-9fac-f19374c036d6",
+      "name": "Technical SEO Audit and Core Web Vitals Optimization",
+      "description": "Conduct comprehensive technical SEO audit focusing on Core Web Vitals optimization. Address LCP performance issue (currently 5.1s, target <2.5s) and optimize overall page performance for better search rankings.",
+      "notes": "Core Web Vitals are Google ranking factors. Current LCP of 5.1s significantly impacts search rankings. Focus on image optimization and JavaScript performance first.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "3dd6c5c2-5e90-4137-b340-f7a183e805f5"
+        }
+      ],
+      "createdAt": "2025-06-29T01:41:44.026Z",
+      "updatedAt": "2025-06-29T01:41:44.026Z",
+      "relatedFiles": [
+        {
+          "path": "src/app/layout.tsx",
+          "type": "TO_MODIFY",
+          "description": "Root layout for implementing performance optimizations like preloading"
+        },
+        {
+          "path": "next.config.js",
+          "type": "REFERENCE",
+          "description": "Next.js configuration for performance optimization settings"
+        },
+        {
+          "path": "docs/seo/initial-audit.md",
+          "type": "REFERENCE",
+          "description": "Initial SEO audit with performance baseline metrics and recommendations"
+        }
+      ],
+      "implementationGuide": "1. Run Lighthouse audit on key pages and document current metrics\\n2. Identify LCP optimization opportunities:\\n   - Optimize image loading and compression\\n   - Implement proper font loading strategies\\n   - Analyze and optimize JavaScript bundle sizes\\n   - Implement preloading for critical resources\\n3. Address CLS issues by reserving space for dynamic content\\n4. Optimize INP through efficient event handlers\\n5. Implement performance monitoring with Core Web Vitals tracking\\n6. Test mobile performance specifically\\n7. Document before/after performance metrics\\n8. Set up automated performance monitoring",
+      "verificationCriteria": "Lighthouse performance score improved to 95+ on both desktop and mobile. LCP reduced to <2.5s on key pages. CLS and INP within good thresholds. Core Web Vitals monitoring implemented. Performance improvement documented with before/after metrics.",
+      "analysisResult": "MemoSpark requires systematic SEO optimization to achieve Google search visibility and indexing. The application has sophisticated existing SEO infrastructure including AI-optimized sitemap configuration, comprehensive SEO components, structured data schemas, and advanced robots.txt. The plan focuses on completing critical setup phases, leveraging existing infrastructure, and implementing performance optimizations to achieve immediate indexing and long-term search visibility while maintaining excellent user experience."
+    },
+    {
+      "id": "1e4f6b22-24f6-45e8-876f-58e71e924e50",
+      "name": "Analytics Integration and Performance Monitoring Setup",
+      "description": "Set up comprehensive monitoring system using Google Analytics 4, Search Console insights, and performance tracking tools to measure SEO success and identify optimization opportunities.",
+      "notes": "Essential for measuring SEO success and identifying optimization opportunities. Integration between GA4 and Search Console provides comprehensive insights.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "3dd6c5c2-5e90-4137-b340-f7a183e805f5"
+        }
+      ],
+      "createdAt": "2025-06-29T01:41:44.026Z",
+      "updatedAt": "2025-06-29T01:41:44.026Z",
+      "relatedFiles": [
+        {
+          "path": "src/app/layout.tsx",
+          "type": "TO_MODIFY",
+          "description": "Root layout for implementing Google Analytics tracking code"
+        },
+        {
+          "path": "src/lib/analytics",
+          "type": "CREATE",
+          "description": "New directory for analytics utilities and configuration"
+        }
+      ],
+      "implementationGuide": "1. Set up Google Analytics 4 property for memospark.live\\n2. Install GA4 tracking code using Next.js best practices\\n3. Configure enhanced ecommerce and conversion tracking\\n4. Link Google Analytics to Search Console for integrated reporting\\n5. Set up Core Web Vitals monitoring in GA4\\n6. Create custom dashboards for SEO performance tracking\\n7. Configure automated alerts for traffic drops or technical issues\\n8. Set up monthly SEO performance reports\\n9. Document baseline metrics for ongoing comparison",
+      "verificationCriteria": "Google Analytics 4 properly tracking all pages and user interactions. Search Console and GA4 successfully linked. Core Web Vitals data flowing to analytics. Custom SEO dashboards created and functional. Automated alerts configured. Baseline metrics documented for comparison.",
+      "analysisResult": "MemoSpark requires systematic SEO optimization to achieve Google search visibility and indexing. The application has sophisticated existing SEO infrastructure including AI-optimized sitemap configuration, comprehensive SEO components, structured data schemas, and advanced robots.txt. The plan focuses on completing critical setup phases, leveraging existing infrastructure, and implementing performance optimizations to achieve immediate indexing and long-term search visibility while maintaining excellent user experience."
+    },
+    {
+      "id": "7c8f2418-4abc-4e46-a425-41a73e91a3a0",
+      "name": "Content Strategy and Ongoing SEO Optimization Plan",
+      "description": "Develop comprehensive content strategy and ongoing optimization plan to maintain and improve search visibility. Create processes for regular content updates, keyword monitoring, and continuous SEO improvements.",
+      "notes": "Ongoing SEO requires consistent effort and monitoring. Focus on educational content that provides value to target audience while supporting SEO goals.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "1e4f6b22-24f6-45e8-876f-58e71e924e50"
+        },
+        {
+          "taskId": "2450c8fa-ceb8-48ad-9fac-f19374c036d6"
+        }
+      ],
+      "createdAt": "2025-06-29T01:41:44.026Z",
+      "updatedAt": "2025-06-29T01:41:44.026Z",
+      "relatedFiles": [
+        {
+          "path": "docs/seo",
+          "type": "TO_MODIFY",
+          "description": "SEO documentation directory for ongoing strategy documentation"
+        },
+        {
+          "path": "src/lib/seo/contentStrategy.ts",
+          "type": "CREATE",
+          "description": "New file for content strategy utilities and configuration"
+        }
+      ],
+      "implementationGuide": "1. Conduct keyword research for educational technology and AI study tools\\n2. Create content calendar for blog posts and feature announcements\\n3. Develop internal linking strategy to boost page authority\\n4. Plan FAQ section expansion based on user queries\\n5. Set up competitor monitoring and analysis\\n6. Create process for regular SEO audits (monthly)\\n7. Establish link building outreach strategy\\n8. Plan structured data expansion for rich snippets\\n9. Create SEO checklist for new feature launches\\n10. Document long-term SEO roadmap and goals",
+      "verificationCriteria": "Comprehensive content strategy documented and approved. Keyword research completed with target keywords identified. Internal linking strategy implemented across key pages. Monthly SEO audit process established. Competitor monitoring system in place. Long-term SEO roadmap created with measurable goals and timeline.",
+      "analysisResult": "MemoSpark requires systematic SEO optimization to achieve Google search visibility and indexing. The application has sophisticated existing SEO infrastructure including AI-optimized sitemap configuration, comprehensive SEO components, structured data schemas, and advanced robots.txt. The plan focuses on completing critical setup phases, leveraging existing infrastructure, and implementing performance optimizations to achieve immediate indexing and long-term search visibility while maintaining excellent user experience."
     }
   ]
 }
