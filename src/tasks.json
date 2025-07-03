@@ -68,14 +68,14 @@
       "name": "Request Priority Page Indexing Using URL Inspection Tool",
       "description": "Use Google Search Console's URL Inspection Tool to request immediate indexing of high-priority pages including homepage, about, contact, and sign-up pages. This accelerates discovery for conversion-critical pages.",
       "notes": "Priority order based on conversion potential and user journey importance. Request indexing quota is limited, so focus on most critical pages first. Monitor results over 7-14 days.",
-      "status": "pending",
+      "status": "in_progress",
       "dependencies": [
         {
           "taskId": "3dd6c5c2-5e90-4137-b340-f7a183e805f5"
         }
       ],
       "createdAt": "2025-06-29T01:41:44.026Z",
-      "updatedAt": "2025-06-29T01:41:44.026Z",
+      "updatedAt": "2025-07-02T15:39:32.745Z",
       "relatedFiles": [
         {
           "path": "src/app/page.tsx",

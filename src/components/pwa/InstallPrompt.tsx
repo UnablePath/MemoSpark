@@ -59,125 +59,130 @@ export const InstallPrompt: React.FC = () => {
 
   if (showIOSHint) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <Card className="w-full max-w-md bg-white shadow-2xl border-0">
-          <CardHeader className="text-center pb-4">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
-                  <Smartphone className="w-8 h-8 text-white" />
-                </div>
-                <CardTitle className="text-xl font-bold text-gray-900">
-                  Install MemoSpark App
-                </CardTitle>
-                <CardDescription className="text-gray-600 mt-2">
-                  Get the full app experience on your iPhone!
-                </CardDescription>
-              </div>
-              <Button variant="ghost" size="icon" onClick={handleCloseIOSHint} className="text-gray-400 hover:text-gray-600">
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+        <div className="w-full max-w-md max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
+          <Card className="bg-white shadow-2xl border-0 mx-auto">
+            <CardHeader className="text-center pb-4 relative">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleCloseIOSHint} 
+                className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 z-10"
+              >
                 <X className="h-5 w-5" />
               </Button>
-            </div>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
-            {/* Benefits Section */}
-            <div className="bg-blue-50 rounded-lg p-4">
-              <h4 className="font-semibold text-blue-900 mb-3">Why install the app?</h4>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="flex items-center space-x-2 text-blue-800">
-                  <Zap className="w-4 h-4" />
-                  <span>Faster loading</span>
-                </div>
-                <div className="flex items-center space-x-2 text-blue-800">
-                  <Bell className="w-4 h-4" />
-                  <span>Push notifications</span>
-                </div>
-                <div className="flex items-center space-x-2 text-blue-800">
-                  <Wifi className="w-4 h-4" />
-                  <span>Works offline</span>
-                </div>
-                <div className="flex items-center space-x-2 text-blue-800">
-                  <Smartphone className="w-4 h-4" />
-                  <span>Home screen access</span>
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
+                <Smartphone className="w-8 h-8 text-white" />
+              </div>
+              <CardTitle className="text-xl font-bold text-gray-900 pr-8">
+                Install MemoSpark App
+              </CardTitle>
+              <CardDescription className="text-gray-600 mt-2">
+                Get the full app experience on your iPhone!
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="space-y-4 pb-6">
+              {/* Benefits Section */}
+              <div className="bg-blue-50 rounded-lg p-3">
+                <h4 className="font-semibold text-blue-900 mb-2 text-sm">Why install the app?</h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center space-x-1 text-blue-800">
+                    <Zap className="w-3 h-3" />
+                    <span>Faster loading</span>
+                  </div>
+                  <div className="flex items-center space-x-1 text-blue-800">
+                    <Bell className="w-3 h-3" />
+                    <span>Push notifications</span>
+                  </div>
+                  <div className="flex items-center space-x-1 text-blue-800">
+                    <Wifi className="w-3 h-3" />
+                    <span>Works offline</span>
+                  </div>
+                  <div className="flex items-center space-x-1 text-blue-800">
+                    <Smartphone className="w-3 h-3" />
+                    <span>Home screen access</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Step-by-step instructions */}
-            <div className="space-y-4">
-              <h4 className="font-semibold text-gray-900 text-center">Easy Installation in 2 Steps:</h4>
-              
-              {/* Step 1 */}
-              <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
-                    1
+              {/* Step-by-step instructions */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-gray-900 text-center text-sm">Easy Installation in 2 Steps:</h4>
+                
+                {/* Step 1 */}
+                <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-3 border border-green-200">
+                  <div className="flex items-start space-x-2">
+                    <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center font-bold text-xs">
+                      1
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-green-900 mb-1 text-sm">
+                        Tap the Share button
+                      </p>
+                      <div className="flex items-center space-x-1 text-green-800">
+                        <span className="text-xs">Look for this icon at the bottom of Safari:</span>
+                        <div className="bg-white p-1 rounded border border-green-300">
+                          <IOSSafariShareIcon />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-green-900 mb-2">
-                      Tap the Share button
-                    </p>
-                    <div className="flex items-center space-x-2 text-green-800">
-                      <span className="text-sm">Look for this icon at the bottom of Safari:</span>
-                      <div className="bg-white p-2 rounded-lg border border-green-300">
-                        <IOSSafariShareIcon />
+                </div>
+
+                {/* Step 2 */}
+                <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-3 border border-purple-200">
+                  <div className="flex items-start space-x-2">
+                    <div className="w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center font-bold text-xs">
+                      2
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-purple-900 mb-1 text-sm">
+                        Select "Add to Home Screen"
+                      </p>
+                      <div className="flex items-center space-x-1 text-purple-800 flex-wrap">
+                        <span className="text-xs">Scroll down and look for:</span>
+                        <div className="bg-white p-1 rounded border border-purple-300 flex items-center space-x-1">
+                          <AddToHomeIcon />
+                          <span className="text-xs font-medium">Add to Home Screen</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Step 2 */}
-              <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-purple-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
-                    2
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-purple-900 mb-2">
-                      Select "Add to Home Screen"
-                    </p>
-                    <div className="flex items-center space-x-2 text-purple-800">
-                      <span className="text-sm">Scroll down and look for:</span>
-                      <div className="bg-white p-2 rounded-lg border border-purple-300 flex items-center space-x-2">
-                        <AddToHomeIcon />
-                        <span className="text-sm font-medium">Add to Home Screen</span>
-                      </div>
-                    </div>
-                  </div>
+              {/* Additional tip */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-2">
+                <div className="flex items-center space-x-2 text-amber-800">
+                  <div className="w-4 h-4 text-amber-500">💡</div>
+                  <p className="text-xs font-medium">
+                    Tip: The share button is usually in the bottom toolbar of Safari
+                  </p>
                 </div>
               </div>
-            </div>
 
-            {/* Additional tip */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <div className="flex items-center space-x-2 text-amber-800">
-                <div className="w-5 h-5 text-amber-500">💡</div>
-                <p className="text-sm font-medium">
-                  Tip: The share button is usually in the bottom toolbar of Safari
-                </p>
+              {/* Action buttons */}
+              <div className="flex space-x-2 pt-2">
+                <Button 
+                  variant="outline" 
+                  onClick={handleCloseIOSHint}
+                  className="flex-1 text-sm"
+                  size="sm"
+                >
+                  Maybe Later
+                </Button>
+                <Button 
+                  onClick={handleCloseIOSHint}
+                  className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-sm"
+                  size="sm"
+                >
+                  Got It!
+                </Button>
               </div>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex space-x-3 pt-2">
-              <Button 
-                variant="outline" 
-                onClick={handleCloseIOSHint}
-                className="flex-1"
-              >
-                Maybe Later
-              </Button>
-              <Button 
-                onClick={handleCloseIOSHint}
-                className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-              >
-                Got It!
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     )
   }
