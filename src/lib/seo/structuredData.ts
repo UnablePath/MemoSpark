@@ -128,6 +128,28 @@ export const educationalContentSchema = {
   isAccessibleForFree: true,
   inLanguage: 'en',
   timeRequired: 'PT30M', // 30 minutes to get started
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+    availability: 'https://schema.org/InStock',
+    category: 'Free Course',
+    description: 'Free access to AI-enhanced study methodology through MemoSpark platform'
+  },
+  hasCourseInstance: {
+    '@type': 'CourseInstance',
+    courseMode: 'online',
+    instructor: {
+      '@type': 'Organization',
+      name: 'MemoSpark',
+      url: BASE_URL
+    },
+    courseSchedule: {
+      '@type': 'Schedule',
+      duration: 'PT30M',
+      repeatFrequency: 'P1D'
+    }
+  }
 };
 
 // BreadcrumbList Schema for navigation

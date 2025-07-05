@@ -20,15 +20,6 @@
     <mobile:mobile/>
   </url>
   
-  <!-- Sign In -->
-  <url>
-    <loc>https://www.memospark.live/sign-in</loc>
-    <lastmod>2024-12-28T00:00:00+00:00</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-    <mobile:mobile/>
-  </url>
-  
   <!-- About Page -->
   <url>
     <loc>https://www.memospark.live/about</loc>
