@@ -65,12 +65,40 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
   // Debounce timer
   const debounceTimer = React.useRef<NodeJS.Timeout | null>(null);
 
+  // Detect native time input support (iOS Safari lacks reliable support and may reset values)
+  const supportsNativeTimeInput = React.useMemo(() => {
+    if (typeof document === 'undefined') return true;
+    const input = document.createElement('input');
+    input.setAttribute('type', 'time');
+    // If unsupported, browser falls back to text
+    return input.type === 'time';
+  }, []);
+
   // Initialize questionnaire
   useEffect(() => {
     if (user?.id) {
       loadQuestionnaires();
     }
   }, [user?.id]);
+
+  // Local storage key per user to prevent transient resets between renders/navigation
+  const localStorageKey = user?.id ? `questionnaire_answers_${user.id}` : undefined;
+
+  // Merge locally cached answers on mount/template change (does not override server data)
+  useEffect(() => {
+    if (!localStorageKey || !currentTemplate) return;
+    try {
+      const raw = localStorage.getItem(localStorageKey);
+      if (!raw) return;
+      const cached: Record<string, any> = JSON.parse(raw);
+      if (cached && typeof cached === 'object') {
+        setAnswers(prev => ({ ...cached, ...prev }));
+      }
+    } catch {
+      // ignore parse errors
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTemplate?.id, localStorageKey]);
 
   const loadQuestionnaires = async () => {
     try {
@@ -153,6 +181,13 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
     const updatedAnswers = { ...answers, [questionId]: answer };
     setAnswers(updatedAnswers);
 
+    // Persist immediately to localStorage to avoid any UI-driven resets
+    try {
+      if (localStorageKey) {
+        localStorage.setItem(localStorageKey, JSON.stringify(updatedAnswers));
+      }
+    } catch {}
+
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
     }
@@ -181,6 +216,13 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
     try {
       const updatedAnswers = { ...answers, [questionId]: answer };
       setAnswers(updatedAnswers);
+
+      // Persist to local cache immediately
+      try {
+        if (localStorageKey) {
+          localStorage.setItem(localStorageKey, JSON.stringify(updatedAnswers));
+        }
+      } catch {}
 
       // Update response in database
       await questionnaireManager.updateResponse(user.id, currentTemplate.id, updatedAnswers);
@@ -230,13 +272,19 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
       if (nextTemplate) {
         // More questionnaires available
         setStuMessage(`Great job! I learned a lot about you. Ready for the next questionnaire: "${nextTemplate.title}"?`);
-        setTimeout(() => {
+        
+        // Immediately create a response for the next questionnaire so answers persist
+        try {
+          const newResponse = await questionnaireManager.startQuestionnaire(user.id, nextTemplate.id);
           setCurrentTemplate(nextTemplate);
+          setCurrentResponse(newResponse);
+          setAnswers(newResponse?.responses || {});
           setCurrentQuestionIndex(0);
-          setAnswers({});
-          setCurrentResponse(null);
           setStuState('excited');
-        }, 2000); // Reduced from 3000ms to 2000ms
+        } catch (e) {
+          // If creating the response fails, keep the UI message and allow retry via reload
+          console.error('Failed to start next questionnaire response', e);
+        }
       } else {
         // All questionnaires completed
         setCompleted(true);
@@ -257,6 +305,10 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
       setStuState('thinking');
     } finally {
       setSubmitting(false);
+      // Clear any cached answers after completion to avoid stale state later
+      try {
+        if (localStorageKey) localStorage.removeItem(localStorageKey);
+      } catch {}
     }
   };
 
@@ -386,13 +438,72 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
         );
 
       case 'time':
+        if (supportsNativeTimeInput) {
+          return (
+            <Input
+              type="time"
+              value={currentAnswer || ''}
+              onChange={(e) => handleDebouncedAnswer(question.id, e.target.value)}
+              className="w-full"
+            />
+          );
+        }
+        // Fallback: stable hour/minute selectors to avoid input resets on unsupported browsers
+        const raw = typeof currentAnswer === 'string' ? currentAnswer : '';
+        const [hStr, mStr] = (raw && raw.includes(':')) ? raw.split(':') : ['',''];
+        const hour = hStr !== '' ? parseInt(hStr, 10) : undefined;
+        const minute = mStr !== '' ? parseInt(mStr, 10) : undefined;
+
+        const hours = Array.from({ length: 24 }, (_, i) => i);
+        const minutes = Array.from({ length: 12 }, (_, i) => i * 5); // step 5m for usability
+
+        const updateTime = (newHour: number | undefined, newMinute: number | undefined) => {
+          if (newHour === undefined || newMinute === undefined) {
+            handleDebouncedAnswer(question.id, '');
+            return;
+          }
+          const hh = String(newHour).padStart(2, '0');
+          const mm = String(newMinute).padStart(2, '0');
+          handleDebouncedAnswer(question.id, `${hh}:${mm}`);
+        };
+
         return (
-          <Input
-            type="time"
-            value={currentAnswer || ''}
-            onChange={(e) => handleDebouncedAnswer(question.id, e.target.value)}
-            className="w-full"
-          />
+          <div className="flex gap-3">
+            <div className="flex-1 min-w-[8rem]">
+              <Label htmlFor={`${question.id}-hour`} className="mb-2 block">Hour</Label>
+              <select
+                id={`${question.id}-hour`}
+                className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                value={hour ?? ''}
+                onChange={(e) => updateTime(
+                  e.target.value === '' ? undefined : parseInt(e.target.value, 10),
+                  minute
+                )}
+              >
+                <option value="">--</option>
+                {hours.map(h => (
+                  <option key={h} value={h}>{String(h).padStart(2, '0')}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1 min-w-[8rem]">
+              <Label htmlFor={`${question.id}-minute`} className="mb-2 block">Minute</Label>
+              <select
+                id={`${question.id}-minute`}
+                className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                value={minute ?? ''}
+                onChange={(e) => updateTime(
+                  hour,
+                  e.target.value === '' ? undefined : parseInt(e.target.value, 10)
+                )}
+              >
+                <option value="">--</option>
+                {minutes.map(m => (
+                  <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         );
 
       case 'text':

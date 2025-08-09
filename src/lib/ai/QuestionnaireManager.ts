@@ -145,7 +145,8 @@ export class QuestionnaireManager {
    */
   async getTemplate(templateId: string): Promise<QuestionnaireTemplate | null> {
     try {
-      const { data, error } = await this.supabase
+      // Use public client for template reads to avoid any RLS restrictions for end users
+      const { data, error } = await this.publicSupabase
         .from('questionnaire_templates')
         .select('*')
         .eq('id', templateId)
