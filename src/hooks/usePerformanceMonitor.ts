@@ -199,4 +199,4 @@ export const usePerformanceMonitor = () => {
     logMetrics,
     requestLogs: requestLogs.current
   };
-}; 
+};  

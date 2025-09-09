@@ -121,14 +121,14 @@ export const CrashoutRoomTab: React.FC = () => {
       {/* Floating Relaxation Button - Fixed position above all content */}
       <button
         onClick={() => setIsRelaxMode(!isRelaxMode)}
-        className="fixed bottom-24 right-4 sm:bottom-32 sm:right-6 z-[99999] 
+        className="fixed bottom-24 right-4 sm:bottom-32 sm:right-6 z-[9999] 
                    bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-400 hover:to-purple-400
                    rounded-full shadow-2xl border-2 border-white/20
                    flex items-center justify-center
                    transform hover:scale-110 transition-all duration-200 touch-manipulation
                    group overflow-hidden
                    w-14 h-14 sm:w-16 sm:h-16"
-        style={{ zIndex: 99999 }}
+        style={{ zIndex: 9999 }}
         aria-label={isRelaxMode ? "Exit relaxation mode" : "Enter relaxation mode"}
       >
         <BorderBeam 

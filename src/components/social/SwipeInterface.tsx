@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { X, Heart, Undo, Users, Loader2, RefreshCw, Sparkles, GraduationCap, User } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface SwipeInterfaceProps {
   onMatch?: (matchedUser: UserProfile) => void;
@@ -82,10 +83,47 @@ export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({ onMatch, onSwipe
     
     if (direction === 'right') {
       try {
-        await studentDiscovery?.sendConnectionRequest(user?.id!, userSwiped.clerk_user_id);
-        onMatch?.(userSwiped as UserProfile);
+        const status = await studentDiscovery?.sendConnectionRequest(user?.id!, userSwiped.clerk_user_id);
+        if (status === 'accepted') {
+          toast.success("It's a match! 🎉");
+          onMatch?.(userSwiped as UserProfile);
+          // Optional: fire a lightweight notification to the other user (no-op if not configured)
+          try {
+            await fetch('/api/notifications/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: userSwiped.clerk_user_id,
+                notification: {
+                  app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
+                  headings: { en: 'New connection' },
+                  contents: { en: `${user?.firstName ?? 'Someone'} just matched with you!` },
+                  data: { type: 'connection_accept' },
+                },
+              })
+            });
+          } catch {}
+        } else {
+          toast.success('Request sent');
+          try {
+            await fetch('/api/notifications/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: userSwiped.clerk_user_id,
+                notification: {
+                  app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
+                  headings: { en: 'New connection request' },
+                  contents: { en: `${user?.firstName ?? 'Someone'} wants to connect with you` },
+                  data: { type: 'connection_request' },
+                },
+              })
+            });
+          } catch {}
+        }
       } catch (error) {
         console.error('Error sending connection request:', error);
+        toast.error('Failed to send request');
       }
     }
     setCurrentIndex((prev) => prev + 1);

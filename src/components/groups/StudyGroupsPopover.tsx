@@ -43,11 +43,6 @@ import {
   DialogClose
 } from "@/components/ui/dialog";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
   Tabs,
   TabsContent,
   TabsList,
@@ -341,55 +336,46 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
         {trigger || (
           <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
             <Users className="h-4 w-4 mr-2" />
             Study Groups
           </Button>
         )}
-      </PopoverTrigger>
-      <PopoverContent 
-        className="w-[90vw] h-[70vh] sm:w-[85vw] sm:h-[65vh] md:w-[80vw] md:h-[75vh] lg:w-[900px] lg:h-[550px] xl:w-[1000px] xl:h-[600px] p-0 max-w-[calc(100vw-1rem)] max-h-[calc(100vh-6rem)] border shadow-2xl" 
-        side="top" 
-        align="center"
-        sideOffset={5}
-        avoidCollisions={true}
-        collisionPadding={20}
-        alignOffset={0}
-      >
-        <div className="flex flex-col h-full">
+      </DialogTrigger>
+      <DialogContent className="w-full h-full max-w-none max-h-none p-0 border-none shadow-2xl focus:outline-none sm:w-[96vw] sm:h-[90vh] sm:max-w-[1200px] sm:rounded-lg z-[10002] overflow-y-auto">
+        <div className="flex flex-col">
           {/* Header */}
-          <div className="p-4 border-b">
+          <div className="flex-shrink-0 p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <div className="flex items-center justify-between">
               <AnimatedGradientText>
                 <span className="inline animate-gradient bg-gradient-to-r from-[#ffaa40] via-[#9c40ff] to-[#ffaa40] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent">
                   Study Groups Hub
                 </span>
               </AnimatedGradientText>
-              <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
-                <X className="h-4 w-4" />
-              </Button>
             </div>
           </div>
 
-                        <div className="flex flex-1 overflow-hidden">
-                {/* Sidebar */}
-                <div className={cn(
-                  "w-full sm:w-80 sm:border-r bg-muted/50 transition-all duration-300",
-                  selectedGroup && "hidden sm:block"
-                )}>
-                  <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-                    <TabsList className="grid w-full grid-cols-2 m-2 h-9 flex-shrink-0">
-                      <TabsTrigger value="browse" className="text-xs px-2">Browse</TabsTrigger>
-                      <TabsTrigger value="my-groups" className="text-xs px-2">My Groups</TabsTrigger>
-                    </TabsList>
+          <div className="flex flex-1 min-h-0">
+            {/* Sidebar */}
+            <div className={cn(
+              "w-full sm:w-80 sm:border-r bg-muted/50 transition-all duration-300 flex flex-col min-h-0",
+              selectedGroup && "hidden sm:block"
+            )}>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full min-h-0">
+                <div className="flex-shrink-0 p-2 sticky top-[73px] bg-muted/50 z-10">
+                  <TabsList className="grid w-full grid-cols-2 h-9">
+                    <TabsTrigger value="browse" className="text-xs px-2">Browse</TabsTrigger>
+                    <TabsTrigger value="my-groups" className="text-xs px-2">My Groups</TabsTrigger>
+                  </TabsList>
+                </div>
 
-                <TabsContent value="browse" className="flex-1 flex flex-col m-0 overflow-hidden">
-                  <div className="flex-1 flex flex-col p-4 space-y-3 overflow-hidden">
+                <TabsContent value="browse" className="flex-1 flex flex-col min-h-0">
+                  <div className="flex-shrink-0 p-4 space-y-3">
                     {/* Search */}
-                    <div className="relative flex-shrink-0">
+                    <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         placeholder="Search groups..."
@@ -402,7 +388,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                     {/* Create Group Button */}
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button className="w-full flex-shrink-0">
+                        <Button className="w-full">
                           <Plus className="h-4 w-4 mr-2" />
                           Create New Group
                         </Button>
@@ -444,9 +430,11 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
+                  </div>
 
-                    {/* Groups List */}
-                    <ScrollArea className="h-[calc(100%-120px)] sm:h-[350px]">
+                  {/* Groups List */}
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    <ScrollArea className="h-full px-4 pb-4">
                       <div className="space-y-2">
                         {filteredGroups.map((group) => (
                           <Card 
@@ -491,66 +479,68 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                   </div>
                 </TabsContent>
 
-                <TabsContent value="my-groups" className="m-0 p-4 overflow-hidden">
-                  <ScrollArea className="h-[calc(100%-60px)] sm:h-[400px]">
-                    <div className="space-y-2">
-                      {userGroups.map((group) => (
-                        <Card 
-                          key={group.id} 
-                          className={cn(
-                            "cursor-pointer transition-colors hover:bg-accent/50",
-                            selectedGroup?.id === group.id && "bg-accent"
-                          )}
-                          onClick={() => loadGroupDetails(group)}
-                        >
-                          <CardContent className="p-3">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-sm truncate">{group.name}</h4>
-                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                  {group.description}
-                                </p>
+                <TabsContent value="my-groups" className="flex-1 flex flex-col min-h-0">
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    <ScrollArea className="h-full px-4 pb-4">
+                      <div className="space-y-2">
+                        {userGroups.map((group) => (
+                          <Card 
+                            key={group.id} 
+                            className={cn(
+                              "cursor-pointer transition-colors hover:bg-accent/50",
+                              selectedGroup?.id === group.id && "bg-accent"
+                            )}
+                            onClick={() => loadGroupDetails(group)}
+                          >
+                            <CardContent className="p-3">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-sm truncate">{group.name}</h4>
+                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                    {group.description}
+                                  </p>
+                                </div>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                      <MoreVertical className="h-3 w-3" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent>
+                                    <DropdownMenuItem onClick={() => loadGroupDetails(group)}>
+                                      <Settings className="h-4 w-4 mr-2" />
+                                      Manage
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                      className="text-destructive"
+                                      onClick={() => handleLeaveGroup(group.id)}
+                                    >
+                                      <UserMinus className="h-4 w-4 mr-2" />
+                                      Leave Group
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                                    <MoreVertical className="h-3 w-3" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                  <DropdownMenuItem onClick={() => loadGroupDetails(group)}>
-                                    <Settings className="h-4 w-4 mr-2" />
-                                    Manage
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
-                                    className="text-destructive"
-                                    onClick={() => handleLeaveGroup(group.id)}
-                                  >
-                                    <UserMinus className="h-4 w-4 mr-2" />
-                                    Leave Group
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </ScrollArea>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
                 </TabsContent>
               </Tabs>
             </div>
 
             {/* Main Content */}
             <div className={cn(
-              "flex-1 flex flex-col transition-all duration-300",
+              "flex-1 flex flex-col transition-all duration-300 min-h-0 overflow-y-auto",
               !selectedGroup && "hidden sm:flex"
             )}>
               {selectedGroup ? (
                 <>
                   {/* Group Header */}
-                  <div className="p-4 border-b">
+                  <div className="flex-shrink-0 p-4 border-b">
                     <div className="flex items-center gap-3">
                       {/* Mobile Back Button */}
                       <Button
@@ -586,8 +576,8 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                   </div>
 
                   {/* Group Content Tabs */}
-                  <Tabs defaultValue="chat" className="flex-1 flex flex-col">
-                    <TabsList className="mx-4 mt-4 grid w-auto grid-cols-3">
+                  <Tabs defaultValue="chat" className="flex-1 flex flex-col min-h-0">
+                     <TabsList className="mx-4 mt-2 grid w-auto grid-cols-3 flex-shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
                       <TabsTrigger value="chat" className="flex items-center gap-1 sm:gap-2">
                         <MessageSquare className="h-4 w-4" />
                         <span className="hidden sm:inline">Chat</span>
@@ -595,54 +585,62 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                       <TabsTrigger value="resources" className="flex items-center gap-1 sm:gap-2">
                         <BookOpen className="h-4 w-4" />
                         <span className="hidden sm:inline">Resources</span>
+                          <span className="ml-1 hidden sm:inline rounded-full bg-muted px-1.5 text-[10px] leading-5">
+                            {groupResources.length}
+                          </span>
                       </TabsTrigger>
                       <TabsTrigger value="members" className="flex items-center gap-1 sm:gap-2">
                         <Users className="h-4 w-4" />
                         <span className="hidden sm:inline">Members</span>
+                          <span className="ml-1 hidden sm:inline rounded-full bg-muted px-1.5 text-[10px] leading-5">
+                            {groupMembers.length}
+                          </span>
                       </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="chat" className="flex-1 flex flex-col m-0">
-                      <div className="flex-1 p-4">
-                        <ScrollArea className="h-[200px] sm:h-[250px] md:h-[300px]">
-                          <div className="space-y-2">
-                            {groupMessages.length === 0 ? (
-                              <div className="text-center text-muted-foreground py-8">
-                                <MessageSquare className="h-8 w-8 mx-auto mb-2" />
-                                <p>No messages yet. Start the conversation!</p>
+                     <TabsContent value="chat" className="flex-1 flex flex-col min-h-0">
+                       {/* Messages Area - Scrollable */}
+                       <div className="flex-1 p-4 overflow-y-auto">
+                         <div className="space-y-3">
+                           {groupMessages.length === 0 ? (
+                             <div className="flex items-center justify-center h-full">
+                               <div className="text-center text-muted-foreground">
+                                 <MessageSquare className="h-8 w-8 mx-auto mb-2" />
+                                 <p>No messages yet. Start the conversation!</p>
+                               </div>
                               </div>
-                            ) : (
-                              <AnimatedList>
-                                {groupMessages.map((message) => (
-                                  <AnimatedListItem key={message.id}>
-                                    <div className="flex gap-3">
-                                      <Avatar className="h-8 w-8">
-                                        <AvatarFallback>
-                                          {(message.sender_name || message.sender?.full_name || 'Unknown User').charAt(0).toUpperCase()}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
-                                          <span className="font-medium text-sm">
-                                            {message.sender_name || message.sender?.full_name || 'Unknown User'}
-                                          </span>
-                                          <span className="text-xs text-muted-foreground">
-                                            {new Date(message.created_at).toLocaleTimeString()}
-                                          </span>
-                                        </div>
-                                        <p className="text-sm">{message.content}</p>
-                                      </div>
-                                    </div>
-                                  </AnimatedListItem>
-                                ))}
-                              </AnimatedList>
-                            )}
-                          </div>
-                        </ScrollArea>
-                      </div>
+                           ) : (
+                             <AnimatedList>
+                               {groupMessages.map((message) => (
+                                 <AnimatedListItem key={message.id}>
+                                   <div className="flex gap-3">
+                                     <Avatar className="h-8 w-8 flex-shrink-0">
+                                       <AvatarFallback>
+                                         {(message.sender_name || message.sender?.full_name || 'Unknown User').charAt(0).toUpperCase()}
+                                       </AvatarFallback>
+                                     </Avatar>
+                                     <div className="flex-1 min-w-0">
+                                       <div className="flex items-center gap-2 mb-1">
+                                         <span className="font-medium text-sm">
+                                           {message.sender_name || message.sender?.full_name || 'Unknown User'}
+                                         </span>
+                                         <span className="text-xs text-muted-foreground">
+                                           {new Date(message.created_at).toLocaleTimeString()}
+                                         </span>
+                                       </div>
+                                       <p className="text-sm break-words">{message.content}</p>
+                                     </div>
+                                   </div>
+                                 </AnimatedListItem>
+                               ))}
+                             </AnimatedList>
+                           )}
+                         </div>
+                       </div>
                       
-                      {membershipStatus[selectedGroup.id] && (
-                        <div className="p-4 border-t">
+                       {/* Message Input - Fixed at bottom */}
+                       {membershipStatus[selectedGroup.id] && (
+                        <div className="flex-shrink-0 p-4 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
                           <div className="flex gap-2">
                             <Input
                               placeholder="Type a message..."
@@ -667,10 +665,21 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                           </div>
                         </div>
                       )}
+                       {!membershipStatus[selectedGroup.id] && (
+                        <div className="flex-shrink-0 p-4 border-t bg-muted/30">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-muted-foreground">Join this group to participate in chat.</p>
+                            <Button size="sm" onClick={() => handleJoinGroup(selectedGroup.id)}>
+                              Join Group
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </TabsContent>
 
-                    <TabsContent value="resources" className="flex-1 m-0 p-4">
-                      <div className="space-y-4">
+                    <TabsContent value="resources" className="flex-1 flex flex-col min-h-0">
+                      {/* Add Resource Form - Fixed at top */}
+                      <div className="flex-shrink-0 p-4">
                         {membershipStatus[selectedGroup.id] && (
                           <Card>
                             <CardHeader>
@@ -715,62 +724,66 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                             </CardContent>
                           </Card>
                         )}
+                      </div>
 
-                        <ScrollArea className="h-[200px] sm:h-[250px] md:h-[300px]">
-                          <div className="space-y-2">
-                            {groupResources.map((resource) => (
-                              <Card key={resource.id}>
-                                <CardContent className="p-3">
-                                  <div className="flex items-start gap-3">
+                      {/* Resources List - Scrollable */}
+                      <div className="flex-1 px-4 pb-4 overflow-y-auto">
+                        <div className="space-y-2">
+                          {groupResources.map((resource) => (
+                            <Card key={resource.id}>
+                              <CardContent className="p-3">
+                                <div className="flex items-start gap-3">
+                                  <div className="flex-shrink-0">
                                     {getResourceIcon(resource.resource_type)}
-                                    <div className="flex-1">
-                                      <h4 className="font-medium text-sm">{resource.title}</h4>
-                                      {resource.content && (
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                          {resource.content}
-                                        </p>
-                                      )}
-                                      {resource.url && (
-                                        <a 
-                                          href={resource.url} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="text-xs text-blue-500 hover:underline mt-1 block"
-                                        >
-                                          {resource.url}
-                                        </a>
-                                      )}
-                                    </div>
                                   </div>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        </ScrollArea>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-medium text-sm">{resource.title}</h4>
+                                    {resource.content && (
+                                      <p className="text-xs text-muted-foreground mt-1 break-words">
+                                        {resource.content}
+                                      </p>
+                                    )}
+                                    {resource.url && (
+                                      <a 
+                                        href={resource.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-blue-500 hover:underline mt-1 block break-all"
+                                      >
+                                        {resource.url}
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
                       </div>
                     </TabsContent>
 
-                    <TabsContent value="members" className="flex-1 m-0 p-4">
-                      <ScrollArea className="h-[250px] sm:h-[300px] md:h-[400px]">
+                    <TabsContent value="members" className="flex-1 flex flex-col min-h-0">
+                      {/* Members List - Scrollable */}
+                      <div className="flex-1 p-4 overflow-y-auto">
                         <div className="space-y-2">
                           {groupMembers.map((member) => (
                             <Card key={member.id}>
                               <CardContent className="p-3">
                                 <div className="flex items-center justify-between">
-                                                                        <div className="flex items-center gap-3">
-                                        <Avatar>
-                                          <AvatarFallback>
-                                            {member.user_name.charAt(0).toUpperCase()}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                          <p className="font-medium text-sm">{member.user_name}</p>
-                                          <p className="text-xs text-muted-foreground">
-                                            Joined {new Date(member.joined_at).toLocaleDateString()}
-                                          </p>
-                                        </div>
-                                      </div>
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-3">
+                                    <Avatar className="flex-shrink-0">
+                                      <AvatarFallback>
+                                        {member.user_name.charAt(0).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-sm truncate">{member.user_name}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Joined {new Date(member.joined_at).toLocaleDateString()}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-shrink-0">
                                     {getRoleIcon(member.role)}
                                     <Badge variant="outline" className="text-xs">
                                       {member.role}
@@ -781,12 +794,12 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                             </Card>
                           ))}
                         </div>
-                      </ScrollArea>
+                      </div>
                     </TabsContent>
                   </Tabs>
                 </>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-center">
+                <div className="flex-1 flex items-center justify-center text-center p-4">
                   <div>
                     <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <h3 className="font-semibold mb-2">Select a Study Group</h3>
@@ -799,7 +812,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
             </div>
           </div>
         </div>
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   );
 }; 

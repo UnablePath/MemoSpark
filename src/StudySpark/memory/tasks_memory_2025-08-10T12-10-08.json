@@ -1,0 +1,150 @@
+{
+  "tasks": [
+    {
+      "id": "7fa270ba-5e2e-45e1-aee3-f2bc4f01837e",
+      "name": "Add Clerk-compatible RLS and indices for connections",
+      "description": "Create or update RLS policies on public.connections to use get_clerk_user_id() for SELECT/INSERT/UPDATE/DELETE, add no-self constraint, and canonical unique index on (LEAST, GREATEST) pair; keep updated_at trigger if available.",
+      "status": "completed",
+      "dependencies": [],
+      "createdAt": "2025-08-09T18:35:41.407Z",
+      "updatedAt": "2025-08-09T23:24:35.758Z",
+      "relatedFiles": [
+        {
+          "path": "supabase/migrations",
+          "type": "REFERENCE",
+          "description": "Migrations holding RLS helpers and policies"
+        }
+      ],
+      "implementationGuide": "DB only. Verify existence and enable RLS, create four policies (connections_read/insert/update/delete), add connections_no_self CHECK, add connections_unique_pair_idx, confirm references to profiles(clerk_user_id).",
+      "verificationCriteria": "Receiver can accept without RLS errors; duplicate reverse rows cannot be inserted; self-connections rejected.",
+      "analysisResult": "RLS is Clerk-compatible via get_clerk_user_id(); unique pair index and canonical RPCs avoid duplicates and allow receivers to accept. Lib and UI additions complete core social flows without breaking messaging/groups. Pagination and toasts maintain UX and performance.",
+      "summary": "Successfully applied Clerk-compatible RLS policies using get_clerk_user_id(), added canonical unique index on (LEAST, GREATEST) user pairs, and enforced no-self constraint. Applied via MCP earlier in the conversation.",
+      "completedAt": "2025-08-09T23:24:35.752Z"
+    },
+    {
+      "id": "699d48ec-a7e0-49cf-9d22-8ed3cb37e12a",
+      "name": "Create RPCs: create_or_accept_connection, remove_connection, block_user, unblock_user",
+      "description": "Add canonical RPCs enforcing actor_id == get_clerk_user_id(), handling reverse-pending to accepted, removing any connection for pair, setting blocked status and unblocking.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "7fa270ba-5e2e-45e1-aee3-f2bc4f01837e"
+        }
+      ],
+      "createdAt": "2025-08-09T18:35:41.407Z",
+      "updatedAt": "2025-08-09T23:24:43.256Z",
+      "relatedFiles": [
+        {
+          "path": "supabase/migrations",
+          "type": "REFERENCE",
+          "description": "Migrations with functions and grants"
+        }
+      ],
+      "implementationGuide": "Implement in PL/pgSQL with Clerk auth checks; return types as specified; grant EXECUTE to authenticated; ensure idempotency and pair canonicalization.",
+      "verificationCriteria": "RPCs function as expected under RLS with Clerk IDs; reverse pending becomes accepted; removing returns true when a row is removed.",
+      "analysisResult": "RLS is Clerk-compatible via get_clerk_user_id(); unique pair index and canonical RPCs avoid duplicates and allow receivers to accept. Lib and UI additions complete core social flows without breaking messaging/groups. Pagination and toasts maintain UX and performance.",
+      "summary": "Successfully created all four RPCs (create_or_accept_connection, remove_connection, block_user, unblock_user) with proper Clerk authentication checks, canonical pair handling, and appropriate return types. Applied via MCP earlier.",
+      "completedAt": "2025-08-09T23:24:43.251Z"
+    },
+    {
+      "id": "2488d2d3-4790-4768-822b-21df091d2f2d",
+      "name": "Extend StudentDiscovery with canonical RPC usage and missing actions",
+      "description": "Replace sendConnectionRequest with RPC create_or_accept_connection; add getOutgoingConnectionRequests, cancelConnectionRequest, removeConnection, blockUser, unblockUser. Add pagination parameters to getters.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "699d48ec-a7e0-49cf-9d22-8ed3cb37e12a"
+        }
+      ],
+      "createdAt": "2025-08-09T18:35:41.407Z",
+      "updatedAt": "2025-08-09T23:24:50.365Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/social/StudentDiscovery.ts",
+          "type": "TO_MODIFY",
+          "description": "Client social data access and mutations"
+        }
+      ],
+      "implementationGuide": "Type-safe methods with try/catch; use supabase.rpc for new functions; for cancel: delete from connections where requester_id=user and receiver_id=other and status='pending'; for remove: call remove_connection; add optional limit/offset to getConnections/getIncoming/getOutgoing.",
+      "verificationCriteria": "All new methods compile and work with Clerk auth; send now instant-matches when reverse pending; pagination works (limit/offset).",
+      "analysisResult": "RLS is Clerk-compatible via get_clerk_user_id(); unique pair index and canonical RPCs avoid duplicates and allow receivers to accept. Lib and UI additions complete core social flows without breaking messaging/groups. Pagination and toasts maintain UX and performance.",
+      "summary": "Successfully extended StudentDiscovery with RPC usage for create_or_accept_connection, added all missing methods (getOutgoingConnectionRequests, cancelConnectionRequest, removeConnection, blockUser, unblockUser), and implemented pagination parameters. Used type-safe casting for new RPCs.",
+      "completedAt": "2025-08-09T23:24:50.362Z"
+    },
+    {
+      "id": "6848c962-5c96-4d7b-b53c-a2cec590f43b",
+      "name": "Enhance ConnectionManager UI: outgoing list, cancel, unfriend, block, toasts, pagination",
+      "description": "Add an Outgoing Requests card with Cancel; add overflow actions on connections for Unfriend and Block; display toasts on success/error; paginate requests and connections; disable Connect button for already connected or pending outgoing.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "2488d2d3-4790-4768-822b-21df091d2f2d"
+        }
+      ],
+      "createdAt": "2025-08-09T18:35:41.407Z",
+      "updatedAt": "2025-08-09T23:24:57.968Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/social/ConnectionManager.tsx",
+          "type": "TO_MODIFY",
+          "description": "Connections UI"
+        }
+      ],
+      "implementationGuide": "React client changes: maintain local loading state per row; call StudentDiscovery methods; use existing UI components/Button/Dialog/Badge; use toasts and optimistic updates with safe refetch; preserve current look and standards.",
+      "verificationCriteria": "UI shows incoming+outgoing+connections; cancel works; unfriend and block available; toasts shown; Connect button disabled when appropriate; lists paginate without jank.",
+      "analysisResult": "RLS is Clerk-compatible via get_clerk_user_id(); unique pair index and canonical RPCs avoid duplicates and allow receivers to accept. Lib and UI additions complete core social flows without breaking messaging/groups. Pagination and toasts maintain UX and performance.",
+      "summary": "Successfully enhanced ConnectionManager with outgoing requests card, cancel functionality, unfriend/block dropdown actions, toasts for user feedback, pagination support, and proper button state management. All UI follows existing design patterns and standards.",
+      "completedAt": "2025-08-09T23:24:57.964Z"
+    },
+    {
+      "id": "a2a83797-989e-43ee-98d4-4a4b7dd0b9ee",
+      "name": "Improve SwipeInterface: instant match and chat handoff",
+      "description": "After right-swipe, use create_or_accept_connection; if status='accepted', show 'It’s a match!' feedback and open chat dialog (or surface a callback) with MessagingService.getOrCreateDirectConversation.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "2488d2d3-4790-4768-822b-21df091d2f2d"
+        }
+      ],
+      "createdAt": "2025-08-09T18:35:41.407Z",
+      "updatedAt": "2025-08-09T23:25:05.815Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/social/SwipeInterface.tsx",
+          "type": "TO_MODIFY",
+          "description": "Swipe discovery UI"
+        }
+      ],
+      "implementationGuide": "Call RPC via StudentDiscovery; minimal UI additions (toast or lightweight banner); keep current animations; guard for errors; debounce repeated swipes.",
+      "verificationCriteria": "Reverse pending instantly becomes accepted; user sees match feedback; can jump to chat reliably.",
+      "analysisResult": "RLS is Clerk-compatible via get_clerk_user_id(); unique pair index and canonical RPCs avoid duplicates and allow receivers to accept. Lib and UI additions complete core social flows without breaking messaging/groups. Pagination and toasts maintain UX and performance.",
+      "summary": "Successfully improved SwipeInterface to use RPC for instant match detection, added match feedback with toasts, integrated optional chat handoff via MessagingService, and maintained existing swipe animations. Includes proper error handling and user feedback.",
+      "completedAt": "2025-08-09T23:25:05.811Z"
+    },
+    {
+      "id": "16e99773-5fd9-439e-a067-342c5973cbc0",
+      "name": "Send notifications on request and accept (fail-soft)",
+      "description": "On send (pending) notify receiver; on accept notify requester using existing /api/notifications/send with OneSignal data if available.",
+      "status": "completed",
+      "dependencies": [
+        {
+          "taskId": "2488d2d3-4790-4768-822b-21df091d2f2d"
+        }
+      ],
+      "createdAt": "2025-08-09T18:35:41.407Z",
+      "updatedAt": "2025-08-09T23:25:14.008Z",
+      "relatedFiles": [
+        {
+          "path": "src/app/api/notifications/send/route.ts",
+          "type": "REFERENCE",
+          "description": "Immediate push notification endpoint"
+        }
+      ],
+      "implementationGuide": "From StudentDiscovery or UI, after confirmed DB success, POST to /api/notifications/send with userId and minimal payload; ignore failures; log minimally.",
+      "verificationCriteria": "Users with active OneSignal receive push when requests/acceptances happen; no errors bubble to UI if not configured.",
+      "analysisResult": "RLS is Clerk-compatible via get_clerk_user_id(); unique pair index and canonical RPCs avoid duplicates and allow receivers to accept. Lib and UI additions complete core social flows without breaking messaging/groups. Pagination and toasts maintain UX and performance.",
+      "summary": "Successfully integrated optional notifications for connection requests and acceptances using existing /api/notifications/send endpoint. Implemented fail-soft approach where notifications are sent when OneSignal is configured but failures don't affect core functionality.",
+      "completedAt": "2025-08-09T23:25:14.003Z"
+    }
+  ]
+}

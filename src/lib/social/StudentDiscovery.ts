@@ -95,12 +95,20 @@ export class StudentDiscovery {
     return Math.min(0.5, commonChars / lowerTerm.length * 0.5);
   }
 
-  async sendConnectionRequest(requesterId: string, receiverId: string): Promise<void> {
-    const { error } = await this.supabase.from('connections').insert({
-      requester_id: requesterId,
-      receiver_id: receiverId,
+  /**
+   * Create a connection request or accept a reverse pending request if it exists.
+   * Returns the resulting status: 'pending' | 'accepted' | 'rejected' | 'blocked'
+   */
+  async sendConnectionRequest(requesterId: string, receiverId: string): Promise<'pending' | 'accepted' | 'rejected' | 'blocked'> {
+    // Cast to any to allow calling newly added RPCs not present in generated types yet
+    const { data, error } = await (this.supabase as any).rpc('create_or_accept_connection', {
+      actor_id: requesterId,
+      other_id: receiverId,
     });
     if (error) throw error;
+    // data is expected to be a table with (id, status)
+    const status = Array.isArray(data) && data.length > 0 ? (data[0].status as any) : 'pending';
+    return status;
   }
 
   async acceptConnectionRequest(requesterId: string, receiverId: string): Promise<void> {
@@ -135,7 +143,7 @@ export class StudentDiscovery {
     if (error) throw error;
   }
   
-  async getConnections(userId: string): Promise<any[]> {
+  async getConnections(userId: string, opts?: { limit?: number; offset?: number }): Promise<any[]> {
     const { data, error } = await this.supabase
       .from('connections')
       .select(`
@@ -156,7 +164,9 @@ export class StudentDiscovery {
         )
       `)
       .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`)
-      .eq('status', 'accepted');
+      .eq('status', 'accepted')
+      .order('updated_at', { ascending: false })
+      .range(opts?.offset ?? 0, (opts?.offset ?? 0) + (opts?.limit ?? 50) - 1);
       
     if (error) throw error;
     
@@ -199,7 +209,7 @@ export class StudentDiscovery {
     return connectionsWithStreaks;
   }
 
-  async getIncomingConnectionRequests(userId: string): Promise<any[]> {
+  async getIncomingConnectionRequests(userId: string, opts?: { limit?: number; offset?: number }): Promise<any[]> {
     const { data, error } = await this.supabase
       .from('connections')
       .select(`
@@ -207,10 +217,67 @@ export class StudentDiscovery {
         requester:profiles!connections_requester_id_fkey(clerk_user_id, full_name, avatar_url, year_of_study)
       `)
       .eq('receiver_id', userId)
-      .eq('status', 'pending');
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .range(opts?.offset ?? 0, (opts?.offset ?? 0) + (opts?.limit ?? 50) - 1);
 
     if (error) throw error;
     return data || [];
+  }
+
+  async getOutgoingConnectionRequests(userId: string, opts?: { limit?: number; offset?: number }): Promise<any[]> {
+    const { data, error } = await this.supabase
+      .from('connections')
+      .select(`
+        *,
+        receiver:profiles!connections_receiver_id_fkey(clerk_user_id, full_name, avatar_url, year_of_study)
+      `)
+      .eq('requester_id', userId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .range(opts?.offset ?? 0, (opts?.offset ?? 0) + (opts?.limit ?? 50) - 1);
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  async cancelConnectionRequest(requesterId: string, receiverId: string): Promise<boolean> {
+    const { error, count } = await this.supabase
+      .from('connections')
+      .delete({ count: 'exact' })
+      .eq('requester_id', requesterId)
+      .eq('receiver_id', receiverId)
+      .eq('status', 'pending');
+    if (error) throw error;
+    return (count ?? 0) > 0;
+  }
+
+  async removeConnection(userId: string, otherUserId: string): Promise<boolean> {
+    const { data, error } = await (this.supabase as any).rpc('remove_connection', {
+      actor_id: userId,
+      other_id: otherUserId,
+    });
+    if (error) throw error;
+    return Boolean(data);
+  }
+
+  async blockUser(userId: string, otherUserId: string): Promise<'blocked'> {
+    const { data, error } = await (this.supabase as any).rpc('block_user', {
+      actor_id: userId,
+      other_id: otherUserId,
+    });
+    if (error) throw error;
+    const status = Array.isArray(data) && data.length > 0 ? (data[0].status as any) : 'blocked';
+    return status;
+  }
+
+  async unblockUser(userId: string, otherUserId: string): Promise<boolean> {
+    const { data, error } = await (this.supabase as any).rpc('unblock_user', {
+      actor_id: userId,
+      other_id: otherUserId,
+    });
+    if (error) throw error;
+    return Boolean(data);
   }
 
   async getRecommendations(userId: string): Promise<UserSearchResult[]> {

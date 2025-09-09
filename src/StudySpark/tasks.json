@@ -1,0 +1,266 @@
+{
+  "tasks": [
+    {
+      "id": "ed09de39-0603-47dc-98d7-72d83104483a",
+      "name": "Enhance Database Schema for Advanced Study Groups Features",
+      "description": "Extend the existing study groups database schema to support advanced features including study sessions, group categories, analytics tracking, and enhanced metadata. Add new tables and columns while maintaining compatibility with existing RLS policies and relationships.",
+      "notes": "Follow existing migration patterns from 018_study_groups.sql. Ensure all new tables have proper RLS policies. Use JSONB for flexible metadata storage.",
+      "status": "in_progress",
+      "dependencies": [],
+      "createdAt": "2025-08-10T12:10:08.250Z",
+      "updatedAt": "2025-08-10T12:10:13.668Z",
+      "relatedFiles": [
+        {
+          "path": "supabase/migrations/018_study_groups.sql",
+          "type": "REFERENCE",
+          "description": "Existing study groups schema"
+        },
+        {
+          "path": "supabase/migrations/",
+          "type": "CREATE",
+          "description": "New migration file for schema enhancement"
+        }
+      ],
+      "implementationGuide": "CREATE TABLE study_sessions (id, group_id, title, description, session_type, start_time, end_time, max_participants, current_participants, created_by, status, metadata, created_at, updated_at). CREATE TABLE group_categories (id, name, description, icon, color, created_at). ALTER TABLE study_groups ADD COLUMN category_id, privacy_level, tags, max_members, session_count, last_activity_at. CREATE indexes for performance. Apply RLS policies following existing patterns. Use Supabase MCP for migration application.",
+      "verificationCriteria": "Migration applies successfully via Supabase MCP. New tables created with proper relationships and RLS policies. Existing functionality remains intact. TypeScript types updated to reflect new schema.",
+      "analysisResult": "Transform StudySpark's study groups from basic MVP to comprehensive study collaboration platform with enhanced UI/UX, real-time study sessions, advanced resource management, progress tracking, gamification, and improved discovery mechanisms while maintaining architectural consistency with existing patterns."
+    },
+    {
+      "id": "7d1663a1-5c40-4c61-9616-c2cd14291829",
+      "name": "Create StudySessionManager Service",
+      "description": "Implement a comprehensive StudySessionManager service following the established StudyGroupManager patterns. Handle session creation, management, real-time participant tracking, session states, and integration with the messaging system for collaborative features.",
+      "notes": "Use existing StudyGroupManager.ts as template. Implement real-time subscriptions using established MessagingService patterns. Include proper TypeScript interfaces.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "ed09de39-0603-47dc-98d7-72d83104483a"
+        }
+      ],
+      "createdAt": "2025-08-10T12:10:08.250Z",
+      "updatedAt": "2025-08-10T12:10:08.250Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/social/StudyGroupManager.ts",
+          "type": "REFERENCE",
+          "description": "Template for service structure"
+        },
+        {
+          "path": "src/lib/messaging/MessagingService.ts",
+          "type": "REFERENCE",
+          "description": "Real-time patterns"
+        },
+        {
+          "path": "src/lib/social/StudySessionManager.ts",
+          "type": "CREATE",
+          "description": "New service file"
+        }
+      ],
+      "implementationGuide": "export class StudySessionManager { constructor(getToken); async createSession(groupId, sessionData); async joinSession(sessionId, userId); async leaveSession(sessionId, userId); async updateSessionStatus(sessionId, status); async getActiveSessions(groupId); async getSessionParticipants(sessionId); async subscribeToSession(sessionId, callbacks); }. Follow existing service patterns with proper error handling, logging, and Clerk authentication. Integrate with MessagingService for session chat.",
+      "verificationCriteria": "Service follows established patterns. All methods properly handle authentication and errors. Real-time subscriptions work correctly. TypeScript interfaces are complete and exported.",
+      "analysisResult": "Transform StudySpark's study groups from basic MVP to comprehensive study collaboration platform with enhanced UI/UX, real-time study sessions, advanced resource management, progress tracking, gamification, and improved discovery mechanisms while maintaining architectural consistency with existing patterns."
+    },
+    {
+      "id": "3d437661-4913-48c5-91b0-d7fb818d4863",
+      "name": "Implement React Query Hooks for Study Groups",
+      "description": "Create comprehensive React Query hooks for study groups data management following the established useAchievementQueries patterns. Include hooks for groups, sessions, members, resources, and analytics with proper caching, invalidation, and optimistic updates.",
+      "notes": "Follow exact patterns from useAchievementQueries.ts. Use React Query v4/v5 patterns. Include optimistic updates for better UX. Implement proper cache invalidation on mutations.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "7d1663a1-5c40-4c61-9616-c2cd14291829"
+        }
+      ],
+      "createdAt": "2025-08-10T12:10:08.250Z",
+      "updatedAt": "2025-08-10T12:10:08.250Z",
+      "relatedFiles": [
+        {
+          "path": "src/hooks/useAchievementQueries.ts",
+          "type": "REFERENCE",
+          "description": "Template for React Query patterns"
+        },
+        {
+          "path": "src/hooks/useStudyGroupQueries.ts",
+          "type": "CREATE",
+          "description": "New hooks file"
+        }
+      ],
+      "implementationGuide": "Create src/hooks/useStudyGroupQueries.ts with: export const studyGroupKeys = { all: ['studyGroups'], groups: (filters) => [...studyGroupKeys.all, 'groups', filters], sessions: (groupId) => [...studyGroupKeys.all, 'sessions', groupId] }; export function useStudyGroups(filters); export function useStudyGroupMembers(groupId); export function useStudySessions(groupId); export function useCreateStudyGroup(); Include proper error handling, loading states, and cache invalidation strategies.",
+      "verificationCriteria": "All hooks follow established patterns. Proper cache management and invalidation. Loading and error states handled correctly. TypeScript types are complete. Optimistic updates work smoothly.",
+      "analysisResult": "Transform StudySpark's study groups from basic MVP to comprehensive study collaboration platform with enhanced UI/UX, real-time study sessions, advanced resource management, progress tracking, gamification, and improved discovery mechanisms while maintaining architectural consistency with existing patterns."
+    },
+    {
+      "id": "f6b3a85e-8f48-4ac8-9790-02861602e697",
+      "name": "Redesign StudyGroupHub with Modern UI and Enhanced Discovery",
+      "description": "Completely redesign the StudyGroupHub component with modern UI patterns, advanced filtering, categorization, search functionality, and improved user experience. Implement group discovery with recommendations, trending groups, and category-based browsing.",
+      "notes": "Follow existing UI patterns from other hub components. Use MagicCard, Card, Button, and Input components. Implement proper loading states and animations. Include accessibility features.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "3d437661-4913-48c5-91b0-d7fb818d4863"
+        }
+      ],
+      "createdAt": "2025-08-10T12:10:08.250Z",
+      "updatedAt": "2025-08-10T12:10:08.250Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/social/StudyGroupHub.tsx",
+          "type": "TO_MODIFY",
+          "description": "Component to redesign"
+        },
+        {
+          "path": "src/components/ui/magic-card.tsx",
+          "type": "REFERENCE",
+          "description": "UI component to use"
+        },
+        {
+          "path": "src/components/ui/card.tsx",
+          "type": "REFERENCE",
+          "description": "UI component patterns"
+        }
+      ],
+      "implementationGuide": "Redesign src/components/social/StudyGroupHub.tsx with: - Modern card-based layout using MagicCard components - Advanced search with debounced input and filters - Category-based navigation with icons and colors - Group recommendation system - Trending and popular groups sections - Infinite scroll pagination - Real-time member count updates - Join/leave animations and feedback. Use established UI patterns from existing components and shadcn/ui library.",
+      "verificationCriteria": "Modern, responsive design with smooth animations. Advanced search and filtering work correctly. Category navigation is intuitive. Group recommendations are relevant. Performance is optimized with proper loading states.",
+      "analysisResult": "Transform StudySpark's study groups from basic MVP to comprehensive study collaboration platform with enhanced UI/UX, real-time study sessions, advanced resource management, progress tracking, gamification, and improved discovery mechanisms while maintaining architectural consistency with existing patterns."
+    },
+    {
+      "id": "180830e5-7d8a-43d7-a9b8-d1c288fb7ebb",
+      "name": "Create StudySessionInterface with Real-time Collaboration",
+      "description": "Build a comprehensive StudySessionInterface component for managing and participating in study sessions. Include real-time participant tracking, session controls, collaborative features, timer functionality, and integration with group chat.",
+      "notes": "Follow real-time subscription patterns from ChatInterface. Use existing timer components if available. Include proper error handling and connection status indicators. Design for both desktop and mobile.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "f6b3a85e-8f48-4ac8-9790-02861602e697"
+        }
+      ],
+      "createdAt": "2025-08-10T12:10:08.250Z",
+      "updatedAt": "2025-08-10T12:10:08.250Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/messaging/ChatInterface.tsx",
+          "type": "REFERENCE",
+          "description": "Real-time patterns"
+        },
+        {
+          "path": "src/components/groups/StudySessionInterface.tsx",
+          "type": "CREATE",
+          "description": "New component"
+        },
+        {
+          "path": "src/lib/messaging/MessagingService.ts",
+          "type": "REFERENCE",
+          "description": "Real-time service patterns"
+        }
+      ],
+      "implementationGuide": "Create src/components/groups/StudySessionInterface.tsx with: - Session creation and management forms - Real-time participant list with avatars - Session timer and controls (start, pause, end) - Collaborative whiteboard or note-taking area - Integrated chat using MessagingService patterns - Screen sharing integration (if feasible) - Session recording and history - Progress tracking and analytics. Use established real-time patterns from MessagingService.",
+      "verificationCriteria": "Real-time features work smoothly with multiple participants. Session controls are intuitive and responsive. Chat integration works seamlessly. Component is responsive and accessible. All session states are properly handled.",
+      "analysisResult": "Transform StudySpark's study groups from basic MVP to comprehensive study collaboration platform with enhanced UI/UX, real-time study sessions, advanced resource management, progress tracking, gamification, and improved discovery mechanisms while maintaining architectural consistency with existing patterns."
+    },
+    {
+      "id": "0a8588ea-5c08-4a2d-b4a9-a5a260830097",
+      "name": "Implement Advanced Resource Management with File Uploads",
+      "description": "Enhance the resource management system with file upload capabilities, categorization, versioning, and advanced organization features. Create a comprehensive resource library with search, filtering, and collaborative editing capabilities.",
+      "notes": "Research existing file upload patterns in the codebase. Use Supabase Storage for file hosting. Implement proper file type validation and size limits. Include accessibility features for file management.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "180830e5-7d8a-43d7-a9b8-d1c288fb7ebb"
+        }
+      ],
+      "createdAt": "2025-08-10T12:10:08.250Z",
+      "updatedAt": "2025-08-10T12:10:08.250Z",
+      "relatedFiles": [
+        {
+          "path": "src/lib/social/StudyGroupManager.ts",
+          "type": "TO_MODIFY",
+          "description": "Add resource methods",
+          "lineStart": 321,
+          "lineEnd": 346
+        },
+        {
+          "path": "src/components/groups/ResourceLibrary.tsx",
+          "type": "CREATE",
+          "description": "New resource management component"
+        },
+        {
+          "path": "supabase/migrations/018_study_groups.sql",
+          "type": "REFERENCE",
+          "description": "Existing resource schema",
+          "lineStart": 36,
+          "lineEnd": 48
+        }
+      ],
+      "implementationGuide": "Extend StudyGroupManager with file upload methods. Create ResourceManager service for file handling. Implement src/components/groups/ResourceLibrary.tsx with: - File upload with drag-drop interface - Resource categorization (notes, documents, images, videos) - Version control for collaborative editing - Advanced search and filtering - Resource preview and download - Collaborative annotations and comments - Integration with Supabase Storage for file hosting. Use established file handling patterns if they exist in the codebase.",
+      "verificationCriteria": "File uploads work reliably with proper validation. Resource organization is intuitive and efficient. Search and filtering provide accurate results. Collaborative features work smoothly. Storage integration is secure and performant.",
+      "analysisResult": "Transform StudySpark's study groups from basic MVP to comprehensive study collaboration platform with enhanced UI/UX, real-time study sessions, advanced resource management, progress tracking, gamification, and improved discovery mechanisms while maintaining architectural consistency with existing patterns."
+    },
+    {
+      "id": "2c81136f-f8b3-405d-b354-78d1dbb66e54",
+      "name": "Build Group Analytics Dashboard and Progress Tracking",
+      "description": "Create a comprehensive analytics dashboard for study groups showing member engagement, session statistics, resource usage, and progress tracking. Implement individual and group-level analytics with visualizations and insights.",
+      "notes": "Follow exact patterns from UserAnalyticsDashboard.tsx. Use same chart libraries and styling. Include proper data visualization best practices. Make dashboard responsive and interactive.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "0a8588ea-5c08-4a2d-b4a9-a5a260830097"
+        }
+      ],
+      "createdAt": "2025-08-10T12:10:08.250Z",
+      "updatedAt": "2025-08-10T12:10:08.250Z",
+      "relatedFiles": [
+        {
+          "path": "src/components/analytics/UserAnalyticsDashboard.tsx",
+          "type": "REFERENCE",
+          "description": "Template for dashboard structure"
+        },
+        {
+          "path": "src/components/groups/GroupAnalyticsDashboard.tsx",
+          "type": "CREATE",
+          "description": "New analytics component"
+        },
+        {
+          "path": "src/lib/gamification/StreakTracker.ts",
+          "type": "REFERENCE",
+          "description": "Analytics service patterns"
+        }
+      ],
+      "implementationGuide": "Create src/components/groups/GroupAnalyticsDashboard.tsx following UserAnalyticsDashboard patterns: - Member engagement metrics and charts - Session attendance and participation stats - Resource usage analytics - Group progress tracking over time - Individual member performance within groups - Comparative analytics between groups - Export functionality for reports. Use established chart libraries and analytics patterns from existing dashboard components.",
+      "verificationCriteria": "Analytics display accurate and meaningful data. Charts are interactive and responsive. Dashboard loads quickly with proper loading states. Data export functionality works correctly. Insights provide actionable information for group improvement.",
+      "analysisResult": "Transform StudySpark's study groups from basic MVP to comprehensive study collaboration platform with enhanced UI/UX, real-time study sessions, advanced resource management, progress tracking, gamification, and improved discovery mechanisms while maintaining architectural consistency with existing patterns."
+    },
+    {
+      "id": "c16663fc-0ed1-4b05-b316-bc4501ab41ee",
+      "name": "Integrate Enhanced Study Groups with Existing Features",
+      "description": "Complete the integration of enhanced study groups with existing StudySpark features including notifications, achievements, AI recommendations, and task management. Ensure seamless user experience across all features.",
+      "notes": "Follow existing notification patterns from OneSignal integration. Use established achievement trigger patterns. Ensure all integrations maintain performance standards. Include proper error handling and fallback mechanisms.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "2c81136f-f8b3-405d-b354-78d1dbb66e54"
+        }
+      ],
+      "createdAt": "2025-08-10T12:10:08.250Z",
+      "updatedAt": "2025-08-10T12:10:08.250Z",
+      "relatedFiles": [
+        {
+          "path": "src/app/api/notifications/send/route.ts",
+          "type": "TO_MODIFY",
+          "description": "Add group notification types"
+        },
+        {
+          "path": "src/lib/gamification/AchievementProcessor.ts",
+          "type": "TO_MODIFY",
+          "description": "Add group achievements"
+        },
+        {
+          "path": "src/lib/ai/collaborativeFiltering.ts",
+          "type": "TO_MODIFY",
+          "description": "Add group recommendations"
+        }
+      ],
+      "implementationGuide": "Update notification system to handle study group events (session invites, resource sharing, member activities). Extend achievement system with group-specific achievements. Integrate AI recommendation service for group suggestions. Connect group activities with task management system. Update navigation and user flows to incorporate new features. Test all integration points and ensure consistent user experience.",
+      "verificationCriteria": "All integrations work seamlessly without breaking existing functionality. Notifications are relevant and timely. Achievement system properly recognizes group activities. AI recommendations provide valuable group suggestions. User experience is consistent across all features. Performance remains optimal with new integrations.",
+      "analysisResult": "Transform StudySpark's study groups from basic MVP to comprehensive study collaboration platform with enhanced UI/UX, real-time study sessions, advanced resource management, progress tracking, gamification, and improved discovery mechanisms while maintaining architectural consistency with existing patterns."
+    }
+  ]
+}

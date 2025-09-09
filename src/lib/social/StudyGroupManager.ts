@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { getAuthenticatedClient } from '../supabase/client';
+import { ensureUserProfile } from '../supabase/tasksApi';
 import { Database } from '@/types/database';
 import { MessagingService } from '../messaging/MessagingService';
 
@@ -13,6 +14,13 @@ export interface StudyGroup {
   updated_at: string;
   metadata: any; // Json type from database
   conversation_id?: string | null;
+  category_id?: string | null;
+  privacy_level?: 'public' | 'private' | 'invite_only' | null;
+  tags?: string[] | null;
+  max_members?: number | null;
+  session_count?: number | null;
+  last_activity_at?: string | null;
+  is_archived?: boolean | null;
 }
 
 export interface StudyGroupMember {
@@ -46,11 +54,23 @@ export interface StudyGroupResource {
   created_at: string;
 }
 
+export interface GroupCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  display_order: number;
+  is_active: boolean;
+}
+
 export class StudyGroupManager {
   private supabase: ReturnType<typeof createClient<Database>>;
   private messagingService: MessagingService;
+  private getToken?: () => Promise<string | null>;
 
   constructor(getToken?: () => Promise<string | null>) {
+    this.getToken = getToken;
     this.supabase = getAuthenticatedClient(getToken);
     this.messagingService = new MessagingService(getToken);
   }
@@ -68,7 +88,12 @@ export class StudyGroupManager {
   }
 
   // Group Management
-  async createGroup(name: string, userId: string, description?: string): Promise<StudyGroup | null> {
+  async createGroup(
+    name: string,
+    userId: string,
+    description?: string,
+    options?: { categoryId?: string | null; privacyLevel?: 'public' | 'private' | 'invite_only' }
+  ): Promise<StudyGroup | null> {
     try {
       // 1. Create the group conversation first
       const conversationId = await this.messagingService.createGroupConversation(name, userId, description);
@@ -81,6 +106,8 @@ export class StudyGroupManager {
           description,
           created_by: userId,
           conversation_id: conversationId,
+          category_id: options?.categoryId ?? null,
+          privacy_level: options?.privacyLevel ?? 'public',
         })
         .select()
         .single();
@@ -124,6 +151,20 @@ export class StudyGroupManager {
       throw error;
     }
     return data;
+  }
+
+  async attachConversationId(groupId: string, conversationId: string): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .from('study_groups')
+        .update({ conversation_id: conversationId })
+        .eq('id', groupId);
+      if (error) throw error;
+    } catch (error) {
+      this.logError('attachConversationId', error, { groupId, conversationId });
+      // Bubble up for caller to decide to ignore
+      throw error;
+    }
   }
 
   async updateGroup(groupId: string, updates: Partial<StudyGroup>): Promise<StudyGroup> {
@@ -235,6 +276,60 @@ export class StudyGroupManager {
     }
   }
 
+  // Discovery & Categories
+  async getCategories(): Promise<GroupCategory[]> {
+    try {
+      const { data, error } = await (this.supabase as any)
+        .from('group_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      this.logError('getCategories', error, {});
+      return [];
+    }
+  }
+
+  async searchGroups(params: { query?: string; categoryId?: string | null; limit?: number; offset?: number }): Promise<StudyGroup[]> {
+    const { query, categoryId, limit = 20, offset = 0 } = params;
+    try {
+      let builder = this.supabase
+        .from('study_groups')
+        .select('*')
+        .order('last_activity_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (query && query.trim()) {
+        builder = builder.or(`name.ilike.%${query.trim()}%,description.ilike.%${query.trim()}%`);
+      }
+      if (categoryId) {
+        builder = builder.eq('category_id', categoryId);
+      }
+      const { data, error } = await builder;
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      this.logError('searchGroups', error, { query, categoryId, limit, offset });
+      return [];
+    }
+  }
+
+  async getMemberCount(groupId: string): Promise<number> {
+    try {
+      const { count, error } = await this.supabase
+        .from('study_group_members')
+        .select('id', { count: 'exact', head: true })
+        .eq('group_id', groupId);
+      if (error) throw error;
+      return count ?? 0;
+    } catch (error) {
+      this.logError('getMemberCount', error, { groupId });
+      return 0;
+    }
+  }
+
   async isUserMember(groupId: string, userId: string): Promise<boolean> {
     try {
         const { data, error } = await this.supabase
@@ -319,6 +414,11 @@ export class StudyGroupManager {
   
   // Resource Management
   async addResource(groupId: string, userId: string, resource: Omit<StudyGroupResource, 'id' | 'group_id' | 'user_id' | 'created_at'>): Promise<StudyGroupResource> {
+      // Ensure a profile exists for this user to satisfy FK to profiles.clerk_user_id
+      try {
+        await ensureUserProfile(this.getToken);
+      } catch {}
+
       const { data, error } = await this.supabase
         .from('study_group_resources')
         .insert({ ...resource, group_id: groupId, user_id: userId })
