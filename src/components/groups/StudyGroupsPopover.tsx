@@ -154,22 +154,36 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
 
   // Load group details
   const loadGroupDetails = useCallback(async (group: StudyGroup) => {
+    if (!user) return;
+    
     try {
       setSelectedGroup(group);
       
-      // Load members, resources, and messages concurrently
+      // First check if user is a member of this group
+      const isMember = await studyGroupManager.isUserMember(group.id, user.id);
+      
+      if (!isMember) {
+        // If not a member, only show basic group info, no sensitive data
+        setGroupMembers([]);
+        setGroupResources([]);
+        setGroupMessages([]);
+        toast.error("You must be a member to view group details");
+        return;
+      }
+      
+      // Only load sensitive data if user is a member
       const [members, resources] = await Promise.all([
-        studyGroupManager.getGroupMembersWithNames(group.id),
-        studyGroupManager.getResources(group.id)
+        studyGroupManager.getGroupMembersWithNames(group.id, user.id),
+        studyGroupManager.getResources(group.id, user.id)
       ]);
       
       setGroupMembers(members);
       setGroupResources(resources);
       
-      // Load messages if conversation exists
+      // Load messages if conversation exists and user is a member
       if (group.conversation_id) {
         try {
-          const messages = await messagingService.getMessages(group.conversation_id);
+          const messages = await messagingService.getMessages(group.conversation_id, user.id);
           setGroupMessages(messages);
         } catch (error) {
           console.error("Failed to load messages:", error);
@@ -179,7 +193,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
       console.error("Failed to load group details:", error);
       toast.error("Failed to load group details");
     }
-  }, [studyGroupManager, messagingService]);
+  }, [studyGroupManager, messagingService, user]);
 
   // Effects
   useEffect(() => {
@@ -301,7 +315,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
       setNewMessage("");
       
       // Reload messages
-      const messages = await messagingService.getMessages(selectedGroup.conversation_id);
+      const messages = await messagingService.getMessages(selectedGroup.conversation_id, user.id);
       setGroupMessages(messages);
       toast.success("Message sent!");
     } catch (error) {
@@ -345,10 +359,10 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="w-full h-full max-w-none max-h-none p-0 border-none shadow-2xl focus:outline-none sm:w-[96vw] sm:h-[90vh] sm:max-w-[1200px] sm:rounded-lg z-[10002] overflow-y-auto">
-        <div className="flex flex-col">
-          {/* Header */}
-          <div className="flex-shrink-0 p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <DialogContent className="max-w-7xl w-[95vw] h-[85vh] p-0 border-none shadow-2xl z-[10002]">
+        <div className="h-full flex flex-col">
+          {/* Header - Fixed */}
+          <div className="flex-shrink-0 p-4 border-b bg-background">
             <div className="flex items-center justify-between">
               <AnimatedGradientText>
                 <span className="inline animate-gradient bg-gradient-to-r from-[#ffaa40] via-[#9c40ff] to-[#ffaa40] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent">
@@ -358,175 +372,167 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
             </div>
           </div>
 
-          <div className="flex flex-1 min-h-0">
+          {/* Scrollable Content Area */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="flex h-full min-h-[600px]">
             {/* Sidebar */}
             <div className={cn(
-              "w-full sm:w-80 sm:border-r bg-muted/50 transition-all duration-300 flex flex-col min-h-0",
-              selectedGroup && "hidden sm:block"
+              "w-full sm:w-80 sm:border-r bg-muted/50 flex flex-col",
+              selectedGroup && "hidden sm:flex"
             )}>
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full min-h-0">
-                <div className="flex-shrink-0 p-2 sticky top-[73px] bg-muted/50 z-10">
-                  <TabsList className="grid w-full grid-cols-2 h-9">
-                    <TabsTrigger value="browse" className="text-xs px-2">Browse</TabsTrigger>
-                    <TabsTrigger value="my-groups" className="text-xs px-2">My Groups</TabsTrigger>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+                <div className="flex-shrink-0 p-4">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="browse">Browse</TabsTrigger>
+                    <TabsTrigger value="my-groups">My Groups</TabsTrigger>
                   </TabsList>
                 </div>
 
-                <TabsContent value="browse" className="flex-1 flex flex-col min-h-0">
-                  <div className="flex-shrink-0 p-4 space-y-3">
-                    {/* Search */}
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search groups..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-
-                    {/* Create Group Button */}
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button className="w-full">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Create New Group
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Create Study Group</DialogTitle>
-                          <DialogDescription>
-                            Create a collaborative space for studying together.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="groupName">Group Name</Label>
-                            <Input
-                              id="groupName"
-                              placeholder="Enter group name"
-                              value={newGroupName}
-                              onChange={(e) => setNewGroupName(e.target.value)}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="groupDescription">Description</Label>
-                            <Textarea
-                              id="groupDescription"
-                              placeholder="Describe your group's purpose"
-                              value={newGroupDescription}
-                              onChange={(e) => setNewGroupDescription(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <DialogClose asChild>
-                            <Button variant="outline">Cancel</Button>
-                          </DialogClose>
-                          <DialogClose asChild>
-                            <Button onClick={handleCreateGroup}>Create Group</Button>
-                          </DialogClose>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
+                <TabsContent value="browse" className="flex-1 p-4 space-y-4">
+                  {/* Search */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search groups..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
                   </div>
 
-                  {/* Groups List */}
-                  <div className="flex-1 min-h-0 overflow-hidden">
-                    <ScrollArea className="h-full px-4 pb-4">
-                      <div className="space-y-2">
-                        {filteredGroups.map((group) => (
-                          <Card 
-                            key={group.id} 
-                            className={cn(
-                              "cursor-pointer transition-colors hover:bg-accent/50",
-                              selectedGroup?.id === group.id && "bg-accent"
-                            )}
-                            onClick={() => loadGroupDetails(group)}
-                          >
-                            <CardContent className="p-3">
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-sm truncate">{group.name}</h4>
-                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                    {group.description}
-                                  </p>
-                                </div>
-                                <div className="flex items-center gap-1 flex-shrink-0">
-                                  {membershipStatus[group.id] ? (
-                                    <Badge variant="secondary" className="text-xs whitespace-nowrap">Member</Badge>
-                                  ) : (
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline" 
-                                      className="h-8 w-8 p-0"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleJoinGroup(group.id);
-                                      }}
-                                    >
-                                      <UserPlus className="h-3 w-3" />
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                  {/* Create Group Button */}
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="w-full">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create New Group
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create Study Group</DialogTitle>
+                        <DialogDescription>
+                          Create a collaborative space for studying together.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="groupName">Group Name</Label>
+                          <Input
+                            id="groupName"
+                            placeholder="Enter group name"
+                            value={newGroupName}
+                            onChange={(e) => setNewGroupName(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="groupDescription">Description</Label>
+                          <Textarea
+                            id="groupDescription"
+                            placeholder="Describe your group's purpose"
+                            value={newGroupDescription}
+                            onChange={(e) => setNewGroupDescription(e.target.value)}
+                          />
+                        </div>
                       </div>
-                    </ScrollArea>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="outline">Cancel</Button>
+                        </DialogClose>
+                        <DialogClose asChild>
+                          <Button onClick={handleCreateGroup}>Create Group</Button>
+                        </DialogClose>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Groups List */}
+                  <div className="space-y-2">
+                    {filteredGroups.map((group) => (
+                      <Card 
+                        key={group.id} 
+                        className={cn(
+                          "cursor-pointer transition-colors hover:bg-accent/50",
+                          selectedGroup?.id === group.id && "bg-accent"
+                        )}
+                        onClick={() => loadGroupDetails(group)}
+                      >
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-sm truncate">{group.name}</h4>
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                {group.description}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              {membershipStatus[group.id] ? (
+                                <Badge variant="secondary" className="text-xs whitespace-nowrap">Member</Badge>
+                              ) : (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="h-8 w-8 p-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleJoinGroup(group.id);
+                                  }}
+                                >
+                                  <UserPlus className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 </TabsContent>
 
-                <TabsContent value="my-groups" className="flex-1 flex flex-col min-h-0">
-                  <div className="flex-1 min-h-0 overflow-hidden">
-                    <ScrollArea className="h-full px-4 pb-4">
-                      <div className="space-y-2">
-                        {userGroups.map((group) => (
-                          <Card 
-                            key={group.id} 
-                            className={cn(
-                              "cursor-pointer transition-colors hover:bg-accent/50",
-                              selectedGroup?.id === group.id && "bg-accent"
-                            )}
-                            onClick={() => loadGroupDetails(group)}
-                          >
-                            <CardContent className="p-3">
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-sm truncate">{group.name}</h4>
-                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                    {group.description}
-                                  </p>
-                                </div>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                                      <MoreVertical className="h-3 w-3" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent>
-                                    <DropdownMenuItem onClick={() => loadGroupDetails(group)}>
-                                      <Settings className="h-4 w-4 mr-2" />
-                                      Manage
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      className="text-destructive"
-                                      onClick={() => handleLeaveGroup(group.id)}
-                                    >
-                                      <UserMinus className="h-4 w-4 mr-2" />
-                                      Leave Group
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </ScrollArea>
+                <TabsContent value="my-groups" className="flex-1 p-4">
+                  <div className="space-y-2">
+                    {userGroups.map((group) => (
+                      <Card 
+                        key={group.id} 
+                        className={cn(
+                          "cursor-pointer transition-colors hover:bg-accent/50",
+                          selectedGroup?.id === group.id && "bg-accent"
+                        )}
+                        onClick={() => loadGroupDetails(group)}
+                      >
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-sm truncate">{group.name}</h4>
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                {group.description}
+                              </p>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                  <MoreVertical className="h-3 w-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent>
+                                <DropdownMenuItem onClick={() => loadGroupDetails(group)}>
+                                  <Settings className="h-4 w-4 mr-2" />
+                                  Manage
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  className="text-destructive"
+                                  onClick={() => handleLeaveGroup(group.id)}
+                                >
+                                  <UserMinus className="h-4 w-4 mr-2" />
+                                  Leave Group
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 </TabsContent>
               </Tabs>
@@ -534,11 +540,11 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
 
             {/* Main Content */}
             <div className={cn(
-              "flex-1 flex flex-col transition-all duration-300 min-h-0 overflow-y-auto",
+              "flex-1 flex flex-col",
               !selectedGroup && "hidden sm:flex"
             )}>
               {selectedGroup ? (
-                <>
+                <div className="flex flex-col h-full">
                   {/* Group Header */}
                   <div className="flex-shrink-0 p-4 border-b">
                     <div className="flex items-center gap-3">
@@ -576,39 +582,34 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                   </div>
 
                   {/* Group Content Tabs */}
-                  <Tabs defaultValue="chat" className="flex-1 flex flex-col min-h-0">
-                     <TabsList className="mx-4 mt-2 grid w-auto grid-cols-3 flex-shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-                      <TabsTrigger value="chat" className="flex items-center gap-1 sm:gap-2">
-                        <MessageSquare className="h-4 w-4" />
-                        <span className="hidden sm:inline">Chat</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="resources" className="flex items-center gap-1 sm:gap-2">
-                        <BookOpen className="h-4 w-4" />
-                        <span className="hidden sm:inline">Resources</span>
-                          <span className="ml-1 hidden sm:inline rounded-full bg-muted px-1.5 text-[10px] leading-5">
-                            {groupResources.length}
-                          </span>
-                      </TabsTrigger>
-                      <TabsTrigger value="members" className="flex items-center gap-1 sm:gap-2">
-                        <Users className="h-4 w-4" />
-                        <span className="hidden sm:inline">Members</span>
-                          <span className="ml-1 hidden sm:inline rounded-full bg-muted px-1.5 text-[10px] leading-5">
-                            {groupMembers.length}
-                          </span>
-                      </TabsTrigger>
-                    </TabsList>
+                  {membershipStatus[selectedGroup.id] ? (
+                    <div className="flex-1 flex flex-col">
+                      <Tabs defaultValue="chat" className="flex-1 flex flex-col">
+                       <div className="flex-shrink-0 px-4 pt-2">
+                         <TabsList className="grid w-full grid-cols-3">
+                          <TabsTrigger value="chat" className="flex items-center gap-2">
+                            <MessageSquare className="h-4 w-4" />
+                            Chat
+                          </TabsTrigger>
+                          <TabsTrigger value="resources" className="flex items-center gap-2">
+                            <BookOpen className="h-4 w-4" />
+                            Resources ({groupResources.length})
+                          </TabsTrigger>
+                          <TabsTrigger value="members" className="flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            Members ({groupMembers.length})
+                          </TabsTrigger>
+                        </TabsList>
+                       </div>
 
-                     <TabsContent value="chat" className="flex-1 flex flex-col min-h-0">
-                       {/* Messages Area - Scrollable */}
-                       <div className="flex-1 p-4 overflow-y-auto">
-                         <div className="space-y-3">
+                     <TabsContent value="chat" className="flex-1 p-4 space-y-4">
+                       {/* Messages Area */}
+                       <div className="space-y-3">
                            {groupMessages.length === 0 ? (
-                             <div className="flex items-center justify-center h-full">
-                               <div className="text-center text-muted-foreground">
-                                 <MessageSquare className="h-8 w-8 mx-auto mb-2" />
-                                 <p>No messages yet. Start the conversation!</p>
-                               </div>
-                              </div>
+                             <div className="text-center text-muted-foreground py-8">
+                               <MessageSquare className="h-8 w-8 mx-auto mb-2" />
+                               <p>No messages yet. Start the conversation!</p>
+                             </div>
                            ) : (
                              <AnimatedList>
                                {groupMessages.map((message) => (
@@ -636,11 +637,10 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                              </AnimatedList>
                            )}
                          </div>
-                       </div>
-                      
-                       {/* Message Input - Fixed at bottom */}
+                       
+                       {/* Message Input */}
                        {membershipStatus[selectedGroup.id] && (
-                        <div className="flex-shrink-0 p-4 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+                        <div className="border-t p-4">
                           <div className="flex gap-2">
                             <Input
                               placeholder="Type a message..."
@@ -666,7 +666,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                         </div>
                       )}
                        {!membershipStatus[selectedGroup.id] && (
-                        <div className="flex-shrink-0 p-4 border-t bg-muted/30">
+                        <div className="border-t p-4 bg-muted/30">
                           <div className="flex items-center justify-between">
                             <p className="text-sm text-muted-foreground">Join this group to participate in chat.</p>
                             <Button size="sm" onClick={() => handleJoinGroup(selectedGroup.id)}>
@@ -677,9 +677,9 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                       )}
                     </TabsContent>
 
-                    <TabsContent value="resources" className="flex-1 flex flex-col min-h-0">
-                      {/* Add Resource Form - Fixed at top */}
-                      <div className="flex-shrink-0 p-4">
+                    <TabsContent value="resources" className="flex-1 p-4 space-y-4">
+                      {/* Add Resource Form */}
+                      <div>
                         {membershipStatus[selectedGroup.id] && (
                           <Card>
                             <CardHeader>
@@ -726,9 +726,8 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                         )}
                       </div>
 
-                      {/* Resources List - Scrollable */}
-                      <div className="flex-1 px-4 pb-4 overflow-y-auto">
-                        <div className="space-y-2">
+                      {/* Resources List */}
+                      <div className="space-y-2">
                           {groupResources.map((resource) => (
                             <Card key={resource.id}>
                               <CardContent className="p-3">
@@ -758,14 +757,12 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                               </CardContent>
                             </Card>
                           ))}
-                        </div>
                       </div>
                     </TabsContent>
 
-                    <TabsContent value="members" className="flex-1 flex flex-col min-h-0">
-                      {/* Members List - Scrollable */}
-                      <div className="flex-1 p-4 overflow-y-auto">
-                        <div className="space-y-2">
+                    <TabsContent value="members" className="flex-1 p-4">
+                      {/* Members List */}
+                      <div className="space-y-2">
                           {groupMembers.map((member) => (
                             <Card key={member.id}>
                               <CardContent className="p-3">
@@ -793,11 +790,26 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                               </CardContent>
                             </Card>
                           ))}
-                        </div>
                       </div>
                     </TabsContent>
-                  </Tabs>
-                </>
+                      </Tabs>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-center p-4">
+                      <div>
+                        <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                        <h3 className="font-semibold mb-2">Join to View Group Content</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          You must be a member of this group to view chats, resources, and member details.
+                        </p>
+                        <Button onClick={() => selectedGroup && handleJoinGroup(selectedGroup.id)} className="mt-4">
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Join Group
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="flex-1 flex items-center justify-center text-center p-4">
                   <div>
@@ -809,6 +821,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                   </div>
                 </div>
               )}
+            </div>
             </div>
           </div>
         </div>

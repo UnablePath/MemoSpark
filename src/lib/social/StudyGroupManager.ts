@@ -233,7 +233,15 @@ export class StudyGroupManager {
     }
   }
 
-  async getGroupMembers(groupId: string): Promise<StudyGroupMember[]> {
+  async getGroupMembers(groupId: string, requestingUserId?: string): Promise<StudyGroupMember[]> {
+    // If a requesting user is provided, check if they are a member first
+    if (requestingUserId) {
+      const isMember = await this.isUserMember(groupId, requestingUserId);
+      if (!isMember) {
+        throw new Error('Access denied: You must be a member to view group members');
+      }
+    }
+
     const { data, error } = await this.supabase
         .from('study_group_members')
         .select('*')
@@ -432,7 +440,15 @@ export class StudyGroupManager {
       return data;
   }
 
-  async getResources(groupId: string): Promise<StudyGroupResource[]> {
+  async getResources(groupId: string, requestingUserId?: string): Promise<StudyGroupResource[]> {
+      // If a requesting user is provided, check if they are a member first
+      if (requestingUserId) {
+        const isMember = await this.isUserMember(groupId, requestingUserId);
+        if (!isMember) {
+          throw new Error('Access denied: You must be a member to view group resources');
+        }
+      }
+
       const { data, error } = await this.supabase
         .from('study_group_resources')
         .select('*')
@@ -521,9 +537,9 @@ export class StudyGroupManager {
   }
 
   // Enhanced methods that include user names
-  async getGroupMembersWithNames(groupId: string): Promise<(StudyGroupMember & { user_name: string })[]> {
+  async getGroupMembersWithNames(groupId: string, requestingUserId?: string): Promise<(StudyGroupMember & { user_name: string })[]> {
     try {
-      const members = await this.getGroupMembers(groupId);
+      const members = await this.getGroupMembers(groupId, requestingUserId);
       const userIds = members.map(m => m.user_id).filter(Boolean) as string[];
       const userNames = await this.getUserNames(userIds);
       

@@ -1,21 +1,48 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { 
+  useState, 
+  useEffect, 
+  useCallback, 
+  useMemo, 
+  useRef,
+  KeyboardEvent
+} from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InteractiveStu } from '@/components/stu/InteractiveStu';
-import { TutorialManager, type TutorialStep, type TutorialProgress, type TutorialStepConfig } from '@/lib/tutorial';
+import { TutorialManager } from '@/lib/tutorial/TutorialManager';
+import { 
+  TutorialProgress, 
+  TutorialStepConfig, 
+  TutorialError,
+  TutorialStep 
+} from '@/lib/tutorial/types';
 import { cn } from '@/lib/utils';
-import { X, ChevronRight, ChevronLeft, SkipForward, RotateCcw } from 'lucide-react';
+import { 
+  X, 
+  ChevronRight, 
+  ChevronLeft, 
+  SkipForward, 
+  RotateCcw,
+  AlertCircle,
+  HelpCircle,
+  Keyboard,
+  RefreshCw
+} from 'lucide-react';
 
 interface TutorialOverlayProps {
   isVisible: boolean;
   onClose: () => void;
   onComplete: () => void;
   onTabChange?: (tabIndex: number) => void;
+  error?: TutorialError | null;
+  onRetry?: () => Promise<any>;
+  onClearError?: () => void;
   className?: string;
 }
 
@@ -24,10 +51,15 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
   onClose,
   onComplete,
   onTabChange,
+  error,
+  onRetry,
+  onClearError,
   className
 }) => {
   const { user } = useUser();
   const tutorialManager = useMemo(() => TutorialManager.getInstance(), []);
+  
+  // State
   const [currentProgress, setCurrentProgress] = useState<TutorialProgress | null>(null);
   const [currentStepConfig, setCurrentStepConfig] = useState<TutorialStepConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,9 +67,28 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
   const [showContextualHelp, setShowContextualHelp] = useState(false);
   const [isWaitingForAction, setIsWaitingForAction] = useState(false);
   const [actionCompleted, setActionCompleted] = useState(false);
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+
+  // Refs
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout>();
 
   // Memoize all steps to prevent recalculations
   const allSteps = useMemo(() => tutorialManager.getAllSteps(), [tutorialManager]);
+
+  // Calculate current step index and progress
+  const currentStepIndex = useMemo(() => {
+    if (!currentStepConfig) return 0;
+    return allSteps.findIndex(step => step.id === currentStepConfig.id);
+  }, [currentStepConfig, allSteps]);
+
+  const progressPercentage = useMemo(() => {
+    if (!currentProgress || allSteps.length === 0) return 0;
+    const completedCount = currentProgress.completed_steps?.length || 0;
+    return Math.round((completedCount / allSteps.length) * 100);
+  }, [currentProgress, allSteps.length]);
 
   // Load tutorial progress
   useEffect(() => {
@@ -49,7 +100,10 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
         let progress = await tutorialManager.getTutorialProgress(user.id);
         
         if (!progress) {
-          progress = await tutorialManager.initializeTutorial(user.id);
+          const result = await tutorialManager.initializeTutorial(user.id);
+          if (result.success) {
+            progress = result.data!;
+          }
         }
         
         setCurrentProgress(progress);
@@ -87,434 +141,488 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
   useEffect(() => {
     if (!user?.id || !currentStepConfig) return;
 
-    const checkActionRequirement = async () => {
+    const checkActionStatus = async () => {
       if (currentStepConfig.interactiveMode && currentStepConfig.waitForAction) {
-        const { actionCompleted } = await tutorialManager.checkStepActionCompletion(user.id);
+        setIsWaitingForAction(true);
         
-        if (!actionCompleted) {
-          setIsWaitingForAction(true);
-          setActionCompleted(false);
-        } else {
+        const actionStatus = await tutorialManager.checkStepActionCompletion(user.id);
+        setActionCompleted(actionStatus.actionCompleted);
+        
+        if (actionStatus.actionCompleted) {
           setIsWaitingForAction(false);
-          setActionCompleted(true);
+          // Auto-advance if action is completed
+          setTimeout(() => {
+            handleNextStep();
+          }, 1500);
         }
       } else {
         setIsWaitingForAction(false);
-        setActionCompleted(false);
+        setActionCompleted(true);
       }
     };
 
-    checkActionRequirement();
-  }, [user?.id, currentStepConfig, tutorialManager]);
+    checkActionStatus();
+  }, [user?.id, currentStepConfig]);
 
-  // Handle step advancement
-  const advanceStep = useCallback(async () => {
-    if (!user?.id || !currentProgress?.current_step) return;
-
-    const success = await tutorialManager.advanceToNextStep(user.id, currentProgress.current_step);
-    
-    if (success) {
-      const updatedProgress = await tutorialManager.getTutorialProgress(user.id);
-      setCurrentProgress(updatedProgress);
-      
-      if (updatedProgress?.current_step) {
-        if (updatedProgress.current_step === 'completion') {
-          // Tutorial completed
-          onComplete();
-          return;
-        }
-        
-        const stepConfig = tutorialManager.getStepConfig(updatedProgress.current_step);
-        setCurrentStepConfig(stepConfig);
-        
-        // Automatically navigate to the target tab for this step
-        if (stepConfig?.targetTab !== undefined) {
-          setTimeout(() => {
-            // Dispatch custom event for tab change
-            window.dispatchEvent(new CustomEvent('tutorialTabChange', {
-              detail: { tabIndex: stepConfig.targetTab }
-            }));
-            
-            // Also call the callback if provided (for backward compatibility)
-            if (onTabChange) {
-              onTabChange(stepConfig.targetTab!);
-            }
-          }, 300); // Small delay for smooth transition
-        }
-      }
-    }
-  }, [user?.id, currentProgress, tutorialManager, onComplete, onTabChange]);
-
-  // Listen for action completion events
-  useEffect(() => {
-    const handleActionCompleted = async () => {
-      if (!user?.id || !currentStepConfig) return;
-      
-      if (currentStepConfig.interactiveMode && currentStepConfig.waitForAction) {
-        const { actionCompleted } = await tutorialManager.checkStepActionCompletion(user.id);
-        
-        if (actionCompleted) {
-          setActionCompleted(true);
-          setIsWaitingForAction(false);
-          
-          // Auto-advance to next step after a short delay
-          setTimeout(() => {
-            advanceStep();
-          }, 1500);
-        }
-      }
-    };
-
-    window.addEventListener('tutorialActionCompleted', handleActionCompleted);
-    
-    return () => {
-      window.removeEventListener('tutorialActionCompleted', handleActionCompleted);
-    };
-  }, [user?.id, currentStepConfig, tutorialManager, advanceStep]);
-
-  // Highlight target elements with performance optimization
+  // Highlight target elements
   useEffect(() => {
     if (!currentStepConfig?.targetElements) {
       setHighlightedElements([]);
       return;
     }
 
-    // Use requestAnimationFrame for smooth performance
-    const updateHighlights = () => {
+    const highlightElements = () => {
       const elements: Element[] = [];
+      
       currentStepConfig.targetElements?.forEach(selector => {
-        const element = document.querySelector(selector);
-        if (element) {
-          elements.push(element);
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        try {
+          const found = document.querySelectorAll(selector);
+          elements.push(...Array.from(found));
+        } catch (error) {
+          console.warn(`Invalid selector: ${selector}`, error);
         }
       });
 
       setHighlightedElements(elements);
+      
+      // Add highlight class
+      elements.forEach(el => {
+        el.classList.add('tutorial-highlight');
+      });
     };
 
-    requestAnimationFrame(updateHighlights);
-
-    // Show contextual help after a delay
-    const helpTimeout = setTimeout(() => setShowContextualHelp(true), 1000);
+    // Delay highlighting to ensure DOM is ready
+    const timeout = setTimeout(highlightElements, 500);
+    timeoutRef.current = timeout;
 
     return () => {
-      setHighlightedElements([]);
-      setShowContextualHelp(false);
-      clearTimeout(helpTimeout);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      // Remove highlight class
+      highlightedElements.forEach(el => {
+        el.classList.remove('tutorial-highlight');
+      });
     };
-  }, [currentStepConfig]);
+  }, [currentStepConfig?.targetElements]);
 
+  // Keyboard navigation
+  useEffect(() => {
+    if (!isVisible) return;
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't interfere with input fields
+      if (event.target instanceof HTMLInputElement || 
+          event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
 
-  // Handle step skip
-  const skipStep = useCallback(async () => {
-    if (!user?.id || !currentProgress?.current_step) return;
+      switch (event.key) {
+        case 'Escape':
+          if (event.ctrlKey) {
+            onClose();
+          } else if (error && onClearError) {
+            onClearError();
+          }
+          break;
+        case 'ArrowRight':
+        case 'Enter':
+          if (!isWaitingForAction || actionCompleted) {
+            handleNextStep();
+          }
+          break;
+        case 'ArrowLeft':
+          handlePreviousStep();
+          break;
+        case 's':
+        case 'S':
+          if (event.ctrlKey || event.altKey) {
+            event.preventDefault();
+            handleSkipStep();
+          }
+          break;
+        case 'r':
+        case 'R':
+          if ((event.ctrlKey || event.altKey) && onRetry) {
+            event.preventDefault();
+            handleRetry();
+          }
+          break;
+        case 'h':
+        case 'H':
+          if (event.ctrlKey || event.altKey) {
+            event.preventDefault();
+            setShowContextualHelp(prev => !prev);
+          }
+          break;
+        case '?':
+          setShowKeyboardHelp(prev => !prev);
+          break;
+      }
+    };
 
-    const success = await tutorialManager.skipStep(user.id, currentProgress.current_step);
-    
-    if (success) {
-      const updatedProgress = await tutorialManager.getTutorialProgress(user.id);
-      setCurrentProgress(updatedProgress);
-      
-      if (updatedProgress?.current_step) {
-        if (updatedProgress.current_step === 'completion') {
+    document.addEventListener('keydown', handleKeyDown as any);
+    return () => document.removeEventListener('keydown', handleKeyDown as any);
+  }, [isVisible, isWaitingForAction, actionCompleted, error, onClose, onClearError, onRetry]);
+
+  // Focus management for accessibility
+  useEffect(() => {
+    if (isVisible && cardRef.current) {
+      // Focus the card for screen readers
+      cardRef.current.focus();
+    }
+  }, [isVisible, currentStepConfig]);
+
+  // Event handlers
+  const handleNextStep = useCallback(async () => {
+    if (!user?.id || !currentStepConfig) return;
+
+    try {
+      const result = await tutorialManager.advanceToNextStep(user.id, currentStepConfig.id);
+      if (result.success) {
+        const updatedProgress = await tutorialManager.getTutorialProgress(user.id);
+        setCurrentProgress(updatedProgress);
+        
+        if (updatedProgress?.current_step === 'completion') {
           onComplete();
-          return;
-        }
-        
-        const stepConfig = tutorialManager.getStepConfig(updatedProgress.current_step);
-        setCurrentStepConfig(stepConfig);
-        
-        // Automatically navigate to the target tab for this step
-        if (stepConfig?.targetTab !== undefined) {
-          setTimeout(() => {
-            // Dispatch custom event for tab change
-            window.dispatchEvent(new CustomEvent('tutorialTabChange', {
-              detail: { tabIndex: stepConfig.targetTab }
-            }));
-            
-            // Also call the callback if provided (for backward compatibility)
-            if (onTabChange) {
-              onTabChange(stepConfig.targetTab!);
-            }
-          }, 300); // Small delay for smooth transition
+        } else if (updatedProgress?.current_step) {
+          const nextStepConfig = tutorialManager.getStepConfig(updatedProgress.current_step);
+          setCurrentStepConfig(nextStepConfig);
         }
       }
+    } catch (error) {
+      console.error('Error advancing to next step:', error);
     }
-  }, [user?.id, currentProgress, tutorialManager, onComplete]);
+  }, [user?.id, currentStepConfig, tutorialManager, onComplete]);
 
-  // Handle tutorial skip
-  const skipTutorial = useCallback(async () => {
-    if (!user?.id) return;
-
-    const success = await tutorialManager.skipTutorial(user.id);
-    if (success) {
-      onComplete();
-    }
-  }, [user?.id, tutorialManager, onComplete]);
-
-  // Handle tutorial restart
-  const restartTutorial = useCallback(async () => {
-    if (!user?.id) return;
-
-    const success = await tutorialManager.restartTutorial(user.id);
-    if (success) {
-      const updatedProgress = await tutorialManager.getTutorialProgress(user.id);
-      setCurrentProgress(updatedProgress);
+  const handlePreviousStep = useCallback(async () => {
+    if (!currentProgress || currentStepIndex <= 0) return;
+    
+    const previousStepConfig = allSteps[currentStepIndex - 1];
+    if (previousStepConfig) {
+      setCurrentStepConfig(previousStepConfig);
       
-      if (updatedProgress?.current_step) {
-        const stepConfig = tutorialManager.getStepConfig(updatedProgress.current_step);
-        setCurrentStepConfig(stepConfig);
-        
-        // Automatically navigate to the target tab for this step
-        if (stepConfig?.targetTab !== undefined) {
-          setTimeout(() => {
-            // Dispatch custom event for tab change
-            window.dispatchEvent(new CustomEvent('tutorialTabChange', {
-              detail: { tabIndex: stepConfig.targetTab }
-            }));
-            
-            // Also call the callback if provided (for backward compatibility)
-            if (onTabChange) {
-              onTabChange(stepConfig.targetTab!);
-            }
-          }, 300); // Small delay for smooth transition
-        }
+      // Navigate to previous step's tab if needed
+      if (previousStepConfig.targetTab !== undefined && onTabChange) {
+        onTabChange(previousStepConfig.targetTab);
       }
     }
-  }, [user?.id, tutorialManager, onTabChange]);
+  }, [currentProgress, currentStepIndex, allSteps, onTabChange]);
 
-  // Get current step index - memoized for performance
-  const currentStepIndex = useMemo(() => {
-    return currentStepConfig 
-      ? allSteps.findIndex(step => step.id === currentStepConfig.id)
-      : 0;
-  }, [currentStepConfig, allSteps]);
+  const handleSkipStep = useCallback(async () => {
+    if (!user?.id || !currentStepConfig) return;
 
-  // Calculate progress percentage - memoized for performance
-  const progressPercentage = useMemo(() => {
-    return currentStepIndex >= 0 
-      ? (currentStepIndex / allSteps.length) * 100
-      : 0;
-  }, [currentStepIndex, allSteps.length]);
+    try {
+      const result = await tutorialManager.skipStep(user.id, currentStepConfig.id);
+      if (result.success) {
+        await handleNextStep();
+      }
+    } catch (error) {
+      console.error('Error skipping step:', error);
+    }
+  }, [user?.id, currentStepConfig, tutorialManager, handleNextStep]);
 
-  // Memoize animation variants for performance
-  const cardVariants = useMemo(() => ({
-    initial: { opacity: 0, scale: 0.9, y: 20 },
-    animate: { opacity: 1, scale: 1, y: 0 },
-    exit: { opacity: 0, scale: 0.9, y: 20 }
-  }), []);
+  const handleRetry = useCallback(async () => {
+    if (!onRetry) return;
+    
+    setRetrying(true);
+    try {
+      await onRetry();
+      if (onClearError) {
+        onClearError();
+      }
+    } catch (error) {
+      console.error('Error retrying step:', error);
+    } finally {
+      setRetrying(false);
+    }
+  }, [onRetry, onClearError]);
 
-  const backdropVariants = useMemo(() => ({
-    initial: { opacity: 0 },
-    animate: { opacity: 1 },
-    exit: { opacity: 0 }
-  }), []);
+  const handleSkipTutorial = useCallback(async () => {
+    if (!user?.id) return;
 
-  if (!isVisible || isLoading || !currentStepConfig || !currentProgress) {
-    return null;
-  }
+    try {
+      await tutorialManager.skipTutorial(user.id);
+      onClose();
+    } catch (error) {
+      console.error('Error skipping tutorial:', error);
+    }
+  }, [user?.id, tutorialManager, onClose]);
 
-  // If in interactive mode and waiting for action, show minimal overlay
-  if (isWaitingForAction && !actionCompleted) {
-    return (
-      <AnimatePresence>
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          className="fixed bottom-4 right-4 z-50 max-w-xs"
-        >
-          <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-4 text-white shadow-lg">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
-                />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">
-                  {currentStepConfig.actionInstructions || 'Complete the action to continue'}
-                </p>
-              </div>
-            </div>
-            <div className="mt-2 flex justify-end">
-              <button
-                onClick={skipStep}
-                className="text-xs text-white/80 hover:text-white underline"
-              >
-                Next Step
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
-    );
-  }
+  // Don't render if not visible or no step config
+  if (!isVisible || !currentStepConfig) return null;
 
   return (
-    <>
-      {/* Backdrop with highlighted elements */}
+    <AnimatePresence>
       <motion.div
-        variants={backdropVariants}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
-        onClick={(e) => {
-          // Only close if clicking the backdrop, not highlighted elements
-          if (e.target === e.currentTarget) {
-            onClose();
-          }
-        }}
-      />
-
-      {/* Tutorial Card - Mobile responsive positioning */}
-      <motion.div
-        variants={cardVariants}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        transition={{ duration: 0.2, ease: 'easeOut' }}
+        ref={overlayRef}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         className={cn(
-          "fixed z-50",
-          // Better mobile positioning - avoid going off screen
-          "top-2 left-2 right-2",
-          "sm:top-[20%] sm:left-[50%] sm:right-auto sm:-translate-x-1/2 sm:-translate-y-1/4",
-          "w-auto sm:w-full max-w-[calc(100vw-1rem)] sm:max-w-xl lg:max-w-2xl",
-          "max-h-[calc(100vh-1rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto",
+          "fixed inset-0 z-50 bg-black/20 backdrop-blur-sm",
+          "flex items-center justify-center p-4",
           className
         )}
+        role="dialog"
+        aria-labelledby="tutorial-title"
+        aria-describedby="tutorial-description"
+        aria-modal="true"
       >
-        <Card className="bg-background/95 dark:bg-background/95 backdrop-blur-md border border-border shadow-2xl">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12">
-                  <InteractiveStu
-                    size="sm"
-                    className="w-full h-full"
-                    enableTTS={false}
-                    showSpeechBubble={false}
-                    messages={[currentStepConfig.stuMessage]}
-                  />
-                </div>
-                <div>
-                  <CardTitle className="text-lg sm:text-xl text-foreground">{currentStepConfig.title}</CardTitle>
-                  <CardDescription className="text-sm sm:text-base text-muted-foreground">
-                    Step {currentStepIndex + 1} of {allSteps.length}
-                  </CardDescription>
-                </div>
-              </div>
-              <Button variant="ghost" size="icon" onClick={onClose} className="text-foreground hover:bg-muted">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            {/* Progress Bar */}
-            <div className="mt-4">
-              <Progress value={progressPercentage} className="h-2" />
-              <p className="text-sm sm:text-base text-muted-foreground mt-2">
-                {currentStepIndex} of {allSteps.length} steps completed
-              </p>
-            </div>
-          </CardHeader>
-
-          <CardContent className="space-y-6">
-            {/* Stu's Message */}
-            <div className="bg-primary/10 dark:bg-primary/20 border border-primary/30 dark:border-primary/40 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <div className="text-2xl">🐨</div>
-                <div>
-                  <p className="text-sm sm:text-base font-medium text-primary">Stu says:</p>
-                  <p className="text-sm sm:text-base text-foreground/80 mt-1">
-                    {currentStepConfig.stuMessage}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Step Description */}
-            <div>
-              <p className="text-sm sm:text-base leading-relaxed text-foreground">{currentStepConfig.description}</p>
-            </div>
-
-            {/* Contextual Help */}
-            <AnimatePresence mode="wait">
-              {showContextualHelp && currentStepConfig.contextualHelp && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.15 }}
-                  className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3"
-                >
-                  <div className="flex items-start gap-2">
-                    <div className="text-blue-500 dark:text-blue-400 text-base">💡</div>
-                    <p className="text-sm sm:text-base text-blue-700 dark:text-blue-300">
-                      {currentStepConfig.contextualHelp.message}
-                    </p>
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="w-full max-w-2xl"
+        >
+          <Card 
+            ref={cardRef}
+            className="bg-background/95 dark:bg-background/95 backdrop-blur-md border border-border shadow-2xl"
+            tabIndex={-1}
+          >
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12">
+                    <InteractiveStu
+                      size="sm"
+                      className="w-full h-full"
+                      enableTTS={false}
+                      showSpeechBubble={false}
+                      messages={[currentStepConfig.stuMessage]}
+                    />
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between pt-4 border-t border-border gap-3 sm:gap-2">
-              <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" size="sm" onClick={restartTutorial} className="flex-1 sm:flex-initial border-border text-foreground hover:bg-muted">
-                  <RotateCcw className="h-3 w-3 mr-1" />
-                  Restart
-                </Button>
-                <Button variant="outline" size="sm" onClick={skipTutorial} className="flex-1 sm:flex-initial border-border text-foreground hover:bg-muted">
-                  <SkipForward className="h-3 w-3 mr-1" />
-                  Skip Tutorial
-                </Button>
-              </div>
-
-              <div className="flex gap-2 flex-wrap">
-                {currentStepConfig.skipAllowed && (
-                  <Button variant="ghost" size="sm" onClick={skipStep} className="flex-1 sm:flex-initial text-foreground hover:bg-muted">
-                    Next Step
+                  <div>
+                    <CardTitle 
+                      id="tutorial-title"
+                      className="text-lg sm:text-xl text-foreground"
+                    >
+                      {currentStepConfig.title}
+                    </CardTitle>
+                    <CardDescription className="text-sm sm:text-base text-muted-foreground">
+                      Step {currentStepIndex + 1} of {allSteps.length}
+                    </CardDescription>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowKeyboardHelp(!showKeyboardHelp)}
+                    title="Keyboard shortcuts (Press ?)"
+                    aria-label="Show keyboard shortcuts"
+                  >
+                    <Keyboard className="h-4 w-4" />
                   </Button>
-                )}
-                <Button onClick={advanceStep} size="sm" className="flex-1 sm:flex-initial bg-primary text-primary-foreground hover:bg-primary/90">
-                  {currentStepConfig.id === 'completion' ? 'Finish' : 'Next'}
-                  <ChevronRight className="h-3 w-3 ml-1" />
-                </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={onClose}
+                    className="text-foreground hover:bg-muted"
+                    aria-label="Close tutorial"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+              
+              {/* Progress Bar */}
+              <div className="mt-4">
+                <Progress 
+                  value={progressPercentage} 
+                  className="h-2" 
+                  aria-label={`Tutorial progress: ${progressPercentage}%`}
+                />
+                <p className="text-sm sm:text-base text-muted-foreground mt-2">
+                  {currentProgress?.completed_steps?.length || 0} of {allSteps.length} steps completed
+                </p>
+              </div>
+            </CardHeader>
 
-      {/* Element Highlights - Optimized rendering */}
-      <AnimatePresence mode="popLayout">
-        {highlightedElements.map((element, index) => {
-          const rect = element.getBoundingClientRect();
-          return (
-            <motion.div
-              key={`${element.tagName}-${index}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed z-45 pointer-events-none"
-              style={{
-                top: rect.top - 8,
-                left: rect.left - 8,
-                width: rect.width + 16,
-                height: rect.height + 16,
-              }}
-            >
-              <div className="w-full h-full border-2 border-primary rounded-lg bg-primary/10 animate-pulse" />
-            </motion.div>
-          );
-        })}
-      </AnimatePresence>
-    </>
+            <CardContent className="space-y-6">
+              {/* Error Display */}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="flex items-center justify-between">
+                    <span>{error.message}</span>
+                    <div className="flex gap-2 ml-4">
+                      {onRetry && error.retryable && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleRetry}
+                          disabled={retrying}
+                          className="text-xs"
+                        >
+                          <RefreshCw className={cn("h-3 w-3 mr-1", retrying && "animate-spin")} />
+                          Retry
+                        </Button>
+                      )}
+                      {onClearError && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={onClearError}
+                          className="text-xs"
+                        >
+                          Dismiss
+                        </Button>
+                      )}
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Stu's Message */}
+              <div 
+                id="tutorial-description"
+                className="bg-muted/50 rounded-lg p-4 border-l-4 border-primary"
+              >
+                <p className="text-sm sm:text-base text-foreground leading-relaxed">
+                  {currentStepConfig.stuMessage}
+                </p>
+              </div>
+
+              {/* Action Instructions */}
+              {isWaitingForAction && currentStepConfig.actionInstructions && (
+                <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      {actionCompleted ? (
+                        <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      ) : (
+                        <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                        {actionCompleted ? 'Great job!' : 'Action Required'}
+                      </p>
+                      <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                        {actionCompleted 
+                          ? 'You completed the required action. Moving to the next step...'
+                          : currentStepConfig.actionInstructions
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Contextual Help */}
+              {showContextualHelp && currentStepConfig.contextualHelp && (
+                <div className="bg-yellow-50 dark:bg-yellow-950/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
+                  <div className="flex items-start gap-3">
+                    <HelpCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100">
+                        Helpful Tip
+                      </p>
+                      <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                        {currentStepConfig.contextualHelp.message}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Keyboard Help */}
+              {showKeyboardHelp && (
+                <div className="bg-gray-50 dark:bg-gray-950/50 rounded-lg p-4 border">
+                  <h4 className="text-sm font-medium mb-3">Keyboard Shortcuts</h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div><kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-800 rounded">→</kbd> or <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-800 rounded">Enter</kbd> Next step</div>
+                    <div><kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-800 rounded">←</kbd> Previous step</div>
+                    <div><kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-800 rounded">Ctrl+S</kbd> Skip step</div>
+                    <div><kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-800 rounded">Ctrl+R</kbd> Retry</div>
+                    <div><kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-800 rounded">Ctrl+H</kbd> Toggle help</div>
+                    <div><kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-800 rounded">Ctrl+Esc</kbd> Close</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation Buttons */}
+              <div className="flex items-center justify-between pt-4 border-t">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreviousStep}
+                    disabled={currentStepIndex <= 0 || isLoading}
+                    className="text-xs"
+                  >
+                    <ChevronLeft className="h-3 w-3 mr-1" />
+                    Previous
+                  </Button>
+                  
+                  {currentStepConfig.contextualHelp && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowContextualHelp(!showContextualHelp)}
+                      className="text-xs"
+                      title="Toggle helpful tip (Ctrl+H)"
+                    >
+                      <HelpCircle className="h-3 w-3 mr-1" />
+                      {showContextualHelp ? 'Hide' : 'Help'}
+                    </Button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSkipTutorial}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Skip Tutorial
+                  </Button>
+                  
+                  {currentStepConfig.skipAllowed && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSkipStep}
+                      disabled={isLoading}
+                      className="text-xs"
+                      title="Skip this step (Ctrl+S)"
+                    >
+                      <SkipForward className="h-3 w-3 mr-1" />
+                      Skip Step
+                    </Button>
+                  )}
+
+                  <Button
+                    onClick={(!isWaitingForAction || actionCompleted) ? handleNextStep : undefined}
+                    disabled={isLoading || (isWaitingForAction && !actionCompleted)}
+                    size="sm"
+                    className="text-xs"
+                  >
+                    {isWaitingForAction && !actionCompleted ? (
+                      'Waiting for action...'
+                    ) : currentStepIndex === allSteps.length - 1 ? (
+                      'Complete'
+                    ) : (
+                      <>
+                        Next
+                        <ChevronRight className="h-3 w-3 ml-1" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
-}); 
+});
+
+TutorialOverlay.displayName = 'TutorialOverlay';

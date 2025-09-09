@@ -13,8 +13,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ChevronLeft, ChevronRight, Sparkles, Brain, Clock, Heart, CheckCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, Brain, Clock, Heart, CheckCircle, ArrowRight } from 'lucide-react';
 import { InteractiveStu } from '@/components/stu/InteractiveStu';
+import { useRouter } from 'next/navigation';
 import QuestionnaireManager, { 
   QuestionnaireTemplate, 
   QuestionnaireQuestion, 
@@ -48,6 +49,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
 }) => {
   const { user } = useUser();
   const { getToken } = useAuth();
+  const router = useRouter();
   const [questionnaireManager] = useState(() => new QuestionnaireManager(getToken));
   
   // State management
@@ -565,6 +567,19 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
                 <p className="text-blue-800">{stuMessage}</p>
               </div>
             )}
+            
+            {/* Go to Dashboard Button */}
+            <div className="pt-4">
+              <Button 
+                onClick={() => router.push('/dashboard')}
+                className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                size="lg"
+              >
+                Go to Dashboard
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+            
             {/* Reset button for testing/debugging */}
             {process.env.NODE_ENV === 'development' && (
               <div className="pt-4 border-t">

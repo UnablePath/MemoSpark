@@ -1,97 +1,59 @@
 import { supabase } from '@/lib/supabase/client';
-
-export type TutorialStep = 
-  | 'welcome'
-  | 'navigation' 
-  | 'task_creation'
-  | 'ai_suggestions'
-  | 'social_features'
-  | 'crashout_room'
-  | 'achievements'
-  | 'completion';
-
-export type StuAnimationState = 
-  | 'idle'
-  | 'talking'
-  | 'excited'
-  | 'thinking'
-  | 'celebrating'
-  | 'sleeping'
-  | 'stressed'
-  | 'encouraging';
-
-export interface TutorialProgress {
-  id: string;
-  user_id: string;
-  current_step: TutorialStep;
-  completed_steps: TutorialStep[];
-  is_completed: boolean;
-  is_skipped: boolean;
-  step_data: Record<string, any>;
-  last_seen_at: string;
-  started_at: string;
-  completed_at?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface TutorialStepConfig {
-  id: TutorialStep;
-  title: string;
-  description: string;
-  stuMessage: string;
-  stuAnimation: StuAnimationState;
-  duration: number; // seconds
-  targetElements?: string[]; // CSS selectors for highlighting
-  requiredActions?: string[]; // Actions user must complete
-  skipAllowed: boolean;
-  autoAdvance: boolean;
-  targetTab?: number; // Which dashboard tab this step should show
-  interactiveMode?: boolean; // If true, tutorial waits for user action
-  waitForAction?: string; // Specific action to wait for (e.g., 'click_tab', 'create_task')
-  actionInstructions?: string; // Instructions for what user should do
-  contextualHelp?: {
-    message: string;
-    position: 'top' | 'bottom' | 'left' | 'right';
-  };
-}
-
-export interface TutorialReward {
-  step: TutorialStep;
-  reward_type: 'coins' | 'achievement' | 'unlock';
-  reward_value: number;
-  reward_data: {
-    message: string;
-    achievement_type?: string;
-  };
-}
+import { TutorialErrorHandler } from './TutorialErrorHandler';
+import {
+  TutorialStep,
+  TutorialProgress,
+  TutorialStepConfig,
+  TutorialResult,
+  TutorialError,
+  TutorialAnalytics,
+  StuAnimationState,
+  TutorialConfig,
+  DEFAULT_TUTORIAL_CONFIG,
+  TUTORIAL_ERROR_CODES,
+  TutorialActionDetectionConfig,
+} from './types';
 
 export class TutorialManager {
   private static instance: TutorialManager;
+  private errorHandler: TutorialErrorHandler;
+  private config: TutorialConfig;
+  private analyticsQueue: TutorialAnalytics[] = [];
+  private isProcessingAnalytics = false;
+
   private tutorialSteps: TutorialStepConfig[] = [
     {
       id: 'welcome',
-      title: 'Welcome to MemoSpark!',
+      title: 'Welcome to StudySpark!',
       description: 'Hi there! I\'m Stu, your friendly study companion. Let me show you around!',
-      stuMessage: 'Hey! Welcome to MemoSpark! I\'m Stu, and I\'m here to help you become the best student you can be! Ready for a quick tour?',
+      stuMessage: 'Hey! Welcome to StudySpark! I\'m Stu, and I\'m here to help you become the best student you can be! Ready for a quick tour?',
       stuAnimation: 'excited',
       duration: 60,
-      targetTab: 0, // Stay on connections tab initially
+      targetTab: 0,
       skipAllowed: true,
       autoAdvance: false,
       contextualHelp: {
         message: 'Click on me anytime for tips and encouragement!',
         position: 'bottom'
+      },
+      accessibility: {
+        ariaLabel: 'Welcome to StudySpark tutorial step',
+        screenReaderText: 'Welcome step of the StudySpark tutorial. Press Enter to continue or Escape to skip.',
+        keyboardShortcut: 'Enter'
+      },
+      analytics: {
+        trackInteractions: true,
+        customEvents: ['tutorial_started', 'stu_clicked']
       }
     },
     {
       id: 'navigation',
       title: 'Getting Around',
-      description: 'Try clicking on the different tabs to explore MemoSpark!',
+      description: 'Try clicking on the different tabs to explore StudySpark!',
       stuMessage: 'See these tabs at the bottom? Each one unlocks amazing features! Go ahead and tap on the Tasks tab (second one) to see where the magic happens!',
       stuAnimation: 'talking',
       duration: 90,
-      targetTab: 0, // Stay on connections tab to show navigation
+      targetTab: 0,
       targetElements: ['.tab-navigation', '[role="tablist"]'],
       interactiveMode: true,
       waitForAction: 'tab_click',
@@ -101,6 +63,19 @@ export class TutorialManager {
       contextualHelp: {
         message: 'The tabs are at the bottom of your screen!',
         position: 'top'
+      },
+      actionDetection: {
+        selectors: ['[role="tablist"] [role="tab"]', '.tab-navigation .tab', '[data-tab]'],
+        fallbackSelectors: ['[class*="tab"]', 'button[data-testid*="tab"]'],
+        events: ['click', 'keydown'],
+        customEventName: 'tutorialTabChange',
+        timeout: 15000,
+        retries: 2
+      },
+      accessibility: {
+        ariaLabel: 'Navigation tutorial step',
+        screenReaderText: 'Learn to navigate between tabs. Use Tab key to move between tabs, then press Enter to select.',
+        keyboardShortcut: 'Tab'
       }
     },
     {
@@ -110,7 +85,7 @@ export class TutorialManager {
       stuMessage: 'Perfect! You\'re now in the Tasks section. This is where productivity magic happens! Try creating your first task - maybe something like "Study math for 1 hour" or "Read chapter 5". Just type it and hit enter!',
       stuAnimation: 'encouraging',
       duration: 120,
-      targetTab: 1, // Switch to tasks tab
+      targetTab: 1,
       targetElements: ['[data-testid="task-input"]', '.task-creation-form', '.task-input'],
       interactiveMode: true,
       waitForAction: 'task_created',
@@ -121,6 +96,26 @@ export class TutorialManager {
       contextualHelp: {
         message: 'Look for the text input field to add your task!',
         position: 'bottom'
+      },
+      actionDetection: {
+        selectors: [
+          '[data-testid="task-input"]',
+          '.task-creation-form',
+          '.task-input',
+          'input[placeholder*="task"]',
+          'input[placeholder*="todo"]'
+        ],
+        fallbackSelectors: ['form input[type="text"]', 'textarea'],
+        events: ['submit', 'keydown'],
+        customEventName: 'taskCreated',
+        timeout: 60000,
+        retries: 3,
+        requiresUserInteraction: true
+      },
+      accessibility: {
+        ariaLabel: 'Task creation tutorial step',
+        screenReaderText: 'Create your first task. Find the task input field and type your task, then press Enter.',
+        keyboardShortcut: 'Enter'
       }
     },
     {
@@ -130,7 +125,7 @@ export class TutorialManager {
       stuMessage: 'Awesome! You just created your first task! 🎉 Now here\'s where things get really cool - our AI can help you study smarter. Look around this Tasks tab and try interacting with any AI features you see!',
       stuAnimation: 'thinking',
       duration: 90,
-      targetTab: 1, // Stay on tasks tab to show AI features
+      targetTab: 1,
       targetElements: ['.ai-suggestions', '[data-testid="ai-suggestions"]', '.ai-features', '.smart-schedule'],
       interactiveMode: true,
       waitForAction: 'ai_interaction',
@@ -140,6 +135,23 @@ export class TutorialManager {
       contextualHelp: {
         message: 'Look for AI-powered buttons, smart scheduling, or suggestion features!',
         position: 'right'
+      },
+      actionDetection: {
+        selectors: [
+          '.ai-suggestions',
+          '[data-testid="ai-suggestions"]',
+          '.ai-features',
+          '.smart-schedule',
+          'button[data-testid*="ai"]'
+        ],
+        fallbackSelectors: ['[class*="ai"]', '[class*="smart"]', '[class*="suggestion"]'],
+        events: ['click'],
+        timeout: 30000,
+        retries: 2
+      },
+      accessibility: {
+        ariaLabel: 'AI features tutorial step',
+        screenReaderText: 'Explore AI-powered study features. Look for buttons or sections related to AI suggestions or smart scheduling.',
       }
     },
     {
@@ -149,7 +161,7 @@ export class TutorialManager {
       stuMessage: 'Amazing work with the AI features! Now let\'s head back to the Connections tab (first one) to see how you can find study buddies and connect with other students. Studying together is always better!',
       stuAnimation: 'excited',
       duration: 90,
-      targetTab: 0, // Switch back to connections tab
+      targetTab: 0,
       targetElements: ['.social-features', '.student-connections'],
       interactiveMode: true,
       waitForAction: 'connections_explored',
@@ -159,6 +171,18 @@ export class TutorialManager {
       contextualHelp: {
         message: 'Click the first tab to explore connections!',
         position: 'left'
+      },
+      actionDetection: {
+        selectors: ['.social-features', '.student-connections', '[data-testid="connections"]'],
+        fallbackSelectors: ['[class*="social"]', '[class*="connection"]'],
+        events: ['click'],
+        customEventName: 'tutorialTabChange',
+        timeout: 20000,
+        retries: 2
+      },
+      accessibility: {
+        ariaLabel: 'Social features tutorial step',
+        screenReaderText: 'Explore social features and student connections. Navigate to the Connections tab.',
       }
     },
     {
@@ -168,7 +192,7 @@ export class TutorialManager {
       stuMessage: 'Great! You\'ve seen the social features. Now let\'s check out something super important - the Crashout Room! Click on the fourth tab (the spa icon) to visit your stress relief zone. Everyone needs a mental break sometimes!',
       stuAnimation: 'encouraging',
       duration: 60,
-      targetTab: 3, // Switch to crashout tab
+      targetTab: 3,
       targetElements: ['.crashout-features', '[data-testid="crashout-room"]'],
       interactiveMode: true,
       waitForAction: 'crashout_visited',
@@ -178,6 +202,18 @@ export class TutorialManager {
       contextualHelp: {
         message: 'Mental health is just as important as academic success!',
         position: 'top'
+      },
+      actionDetection: {
+        selectors: ['.crashout-features', '[data-testid="crashout-room"]'],
+        fallbackSelectors: ['[class*="crashout"]', '[class*="stress"]', '[class*="wellness"]'],
+        events: ['click'],
+        customEventName: 'tutorialTabChange',
+        timeout: 20000,
+        retries: 2
+      },
+      accessibility: {
+        ariaLabel: 'Crashout room tutorial step',
+        screenReaderText: 'Visit the Crashout Room for stress relief and mental health features. Navigate to the wellness tab.',
       }
     },
     {
@@ -187,7 +223,7 @@ export class TutorialManager {
       stuMessage: 'Awesome! You\'ve explored the Crashout Room. Now for the fun part - let\'s see your achievements! Click on the last tab (the game controller) to see your progress, coins, and achievements. You might have already earned some just from this tutorial!',
       stuAnimation: 'celebrating',
       duration: 60,
-      targetTab: 4, // Switch to gamification tab
+      targetTab: 4,
       targetElements: ['.gamification-features', '.achievements-display'],
       interactiveMode: true,
       waitForAction: 'achievements_viewed',
@@ -197,43 +233,72 @@ export class TutorialManager {
       contextualHelp: {
         message: 'Every small step counts towards your bigger goals!',
         position: 'bottom'
+      },
+      actionDetection: {
+        selectors: ['.gamification-features', '.achievements-display'],
+        fallbackSelectors: ['[class*="achievement"]', '[class*="gamification"]', '[class*="coin"]'],
+        events: ['click'],
+        customEventName: 'tutorialTabChange',
+        timeout: 20000,
+        retries: 2
+      },
+      accessibility: {
+        ariaLabel: 'Achievements tutorial step',
+        screenReaderText: 'View your achievements and gamification progress. Navigate to the gamification tab.',
       }
     },
     {
       id: 'completion',
       title: 'You\'re All Set!',
-      description: 'Congratulations! You\'re now ready to make the most of MemoSpark.',
+      description: 'Congratulations! You\'re now ready to make the most of StudySpark.',
       stuMessage: 'Awesome! You\'ve completed the tour and you\'re officially ready to rock your studies! I\'ll be here whenever you need encouragement or tips. You\'ve got this! 🎉',
       stuAnimation: 'celebrating',
       duration: 60,
-      targetTab: 1, // End on tasks tab to encourage task creation
+      targetTab: 1,
       skipAllowed: false,
       autoAdvance: true,
       contextualHelp: {
         message: 'Remember, I\'m always here to help you succeed!',
         position: 'bottom'
+      },
+      accessibility: {
+        ariaLabel: 'Tutorial completion step',
+        screenReaderText: 'Tutorial completed! You are now ready to use StudySpark effectively.',
+      },
+      analytics: {
+        trackInteractions: true,
+        customEvents: ['tutorial_completed', 'celebration_shown']
       }
     }
   ];
 
-  public static getInstance(): TutorialManager {
+  private constructor(config: Partial<TutorialConfig> = {}) {
+    this.config = { ...DEFAULT_TUTORIAL_CONFIG, ...config };
+    this.errorHandler = TutorialErrorHandler.getInstance();
+  }
+
+  public static getInstance(config?: Partial<TutorialConfig>): TutorialManager {
     if (!TutorialManager.instance) {
-      TutorialManager.instance = new TutorialManager();
+      TutorialManager.instance = new TutorialManager(config);
     }
     return TutorialManager.instance;
   }
 
   /**
-   * Initialize tutorial progress for a new user
+   * Initialize tutorial progress for a new user with enhanced error handling
    */
-  async initializeTutorial(userId: string): Promise<TutorialProgress | null> {
+  async initializeTutorial(userId: string): Promise<TutorialResult<TutorialProgress>> {
     try {
       if (!supabase) {
-        console.error('Supabase client not available');
-        return null;
+        const error = this.errorHandler.createError(
+          TUTORIAL_ERROR_CODES.INITIALIZATION_FAILED,
+          'Supabase client not available',
+          { metadata: { userId } }
+        );
+        return { success: false, error };
       }
 
-      const { data, error } = await supabase
+      const { data, error: dbError } = await supabase
         .from('tutorial_progress')
         .insert({
           user_id: userId,
@@ -242,120 +307,203 @@ export class TutorialManager {
           is_completed: false,
           is_skipped: false,
           step_data: {},
-          started_at: new Date().toISOString()
+          started_at: new Date().toISOString(),
+          error_count: 0
         })
         .select()
         .single();
 
-      if (error) {
-        console.error('Error initializing tutorial:', error);
-        return null;
+      if (dbError) {
+        const error = this.errorHandler.createError(
+          TUTORIAL_ERROR_CODES.DATABASE_ERROR,
+          `Failed to initialize tutorial: ${dbError.message}`,
+          { metadata: { userId, dbError } }
+        );
+        return { success: false, error };
       }
 
-      return data;
+      // Log initialization analytics
+      await this.logAnalytics({
+        step: 'welcome',
+        action: 'started',
+        timestamp: new Date().toISOString(),
+        metadata: { userId, initialized: true }
+      });
+
+      return { success: true, data };
     } catch (error) {
-      console.error('Error initializing tutorial:', error);
-      return null;
+      const tutorialError = this.errorHandler.createError(
+        TUTORIAL_ERROR_CODES.INITIALIZATION_FAILED,
+        `Unexpected error during tutorial initialization: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { metadata: { userId, error } }
+      );
+      return { success: false, error: tutorialError };
     }
   }
 
   /**
-   * Get user's tutorial progress
+   * Get user's tutorial progress with retry logic
    */
-  async getTutorialProgress(userId: string): Promise<TutorialProgress | null> {
-    try {
-      if (!supabase) {
-        console.error('Supabase client not available');
-        return null;
+  async getTutorialProgress(userId: string, retries = 3): Promise<TutorialProgress | null> {
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        if (!supabase) {
+          throw new Error('Supabase client not available');
+        }
+
+        const { data, error } = await supabase
+          .from('tutorial_progress')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
+
+        return data || null;
+      } catch (error) {
+        console.warn(`Attempt ${attempt + 1} failed:`, error);
+        
+        if (attempt === retries - 1) {
+          const tutorialError = this.errorHandler.createError(
+            TUTORIAL_ERROR_CODES.DATABASE_ERROR,
+            `Failed to fetch tutorial progress after ${retries} attempts`,
+            { metadata: { userId, error, attempts: retries } }
+          );
+          
+          // Don't throw, just log and return null
+          console.error('Final attempt failed:', tutorialError);
+          return null;
+        }
+
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
       }
-
-      const { data, error } = await supabase
-        .from('tutorial_progress')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching tutorial progress:', error);
-        return null;
-      }
-
-      return data || null;
-    } catch (error) {
-      console.error('Error fetching tutorial progress:', error);
-      return null;
     }
+
+    return null;
   }
 
   /**
-   * Update tutorial progress to next step
+   * Update tutorial progress to next step with comprehensive error handling
    */
-  async advanceToNextStep(userId: string, currentStep: TutorialStep): Promise<boolean> {
+  async advanceToNextStep(userId: string, currentStep: TutorialStep): Promise<TutorialResult<boolean>> {
     try {
       const currentStepIndex = this.tutorialSteps.findIndex(step => step.id === currentStep);
+      if (currentStepIndex === -1) {
+        const error = this.errorHandler.createError(
+          TUTORIAL_ERROR_CODES.INVALID_STATE,
+          `Invalid current step: ${currentStep}`,
+          { step: currentStep, metadata: { userId, currentStep } }
+        );
+        return { success: false, error };
+      }
+
       const nextStep = currentStepIndex < this.tutorialSteps.length - 1 
         ? this.tutorialSteps[currentStepIndex + 1].id 
         : 'completion';
 
       // Get current progress to append to completed steps
       const currentProgress = await this.getTutorialProgress(userId);
-      const completedSteps = currentProgress?.completed_steps || [];
+      if (!currentProgress) {
+        const error = this.errorHandler.createError(
+          TUTORIAL_ERROR_CODES.INVALID_STATE,
+          'No tutorial progress found for user',
+          { metadata: { userId } }
+        );
+        return { success: false, error };
+      }
+
+      const completedSteps = currentProgress.completed_steps || [];
       
       if (!supabase) {
-        console.error('Supabase client not available');
-        return false;
+        const error = this.errorHandler.createError(
+          TUTORIAL_ERROR_CODES.DATABASE_ERROR,
+          'Supabase client not available',
+          { step: currentStep, metadata: { userId } }
+        );
+        return { success: false, error };
       }
       
-      const { error } = await supabase
+      const { error: dbError } = await supabase
         .from('tutorial_progress')
         .update({
           current_step: nextStep,
           completed_steps: [...completedSteps, currentStep],
           last_seen_at: new Date().toISOString(),
           is_completed: nextStep === 'completion',
-          completed_at: nextStep === 'completion' ? new Date().toISOString() : undefined
+          completed_at: nextStep === 'completion' ? new Date().toISOString() : undefined,
+          error_count: 0 // Reset error count on successful advancement
         })
         .eq('user_id', userId);
 
-      if (error) {
-        console.error('Error advancing tutorial step:', error);
-        return false;
+      if (dbError) {
+        const error = this.errorHandler.createError(
+          TUTORIAL_ERROR_CODES.DATABASE_ERROR,
+          `Failed to advance tutorial step: ${dbError.message}`,
+          { step: currentStep, action: 'advance', metadata: { userId, nextStep, dbError } }
+        );
+        return { success: false, error };
       }
 
       // Log analytics
-      await this.logTutorialAction(userId, currentStep, 'completed');
+      await this.logAnalytics({
+        step: currentStep,
+        action: 'completed',
+        timestamp: new Date().toISOString(),
+        metadata: { userId, nextStep, completedSteps: completedSteps.length + 1 }
+      });
       
-      return true;
+      return { success: true, data: true };
     } catch (error) {
-      console.error('Error advancing tutorial step:', error);
-      return false;
+      const tutorialError = this.errorHandler.createError(
+        TUTORIAL_ERROR_CODES.STEP_VALIDATION_FAILED,
+        `Unexpected error advancing tutorial step: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { step: currentStep, action: 'advance', metadata: { userId, error } }
+      );
+      return { success: false, error: tutorialError };
     }
   }
 
   /**
    * Skip the current tutorial step
    */
-  async skipStep(userId: string, step: TutorialStep): Promise<boolean> {
+  async skipStep(userId: string, step: TutorialStep): Promise<TutorialResult<boolean>> {
     try {
-      await this.logTutorialAction(userId, step, 'skipped');
+      await this.logAnalytics({
+        step,
+        action: 'skipped',
+        timestamp: new Date().toISOString(),
+        metadata: { userId }
+      });
+
       return await this.advanceToNextStep(userId, step);
     } catch (error) {
-      console.error('Error skipping tutorial step:', error);
-      return false;
+      const tutorialError = this.errorHandler.createError(
+        TUTORIAL_ERROR_CODES.STEP_VALIDATION_FAILED,
+        `Failed to skip tutorial step: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { step, action: 'skip', metadata: { userId, error } }
+      );
+      return { success: false, error: tutorialError };
     }
   }
 
   /**
    * Skip entire tutorial
    */
-  async skipTutorial(userId: string): Promise<boolean> {
+  async skipTutorial(userId: string): Promise<TutorialResult<boolean>> {
     try {
       if (!supabase) {
-        console.error('Supabase client not available');
-        return false;
+        const error = this.errorHandler.createError(
+          TUTORIAL_ERROR_CODES.DATABASE_ERROR,
+          'Supabase client not available',
+          { action: 'skip_tutorial', metadata: { userId } }
+        );
+        return { success: false, error };
       }
 
-      const { error } = await supabase
+      const { error: dbError } = await supabase
         .from('tutorial_progress')
         .update({
           is_skipped: true,
@@ -365,30 +513,48 @@ export class TutorialManager {
         })
         .eq('user_id', userId);
 
-      if (error) {
-        console.error('Error skipping tutorial:', error);
-        return false;
+      if (dbError) {
+        const error = this.errorHandler.createError(
+          TUTORIAL_ERROR_CODES.DATABASE_ERROR,
+          `Failed to skip tutorial: ${dbError.message}`,
+          { action: 'skip_tutorial', metadata: { userId, dbError } }
+        );
+        return { success: false, error };
       }
 
-      await this.logTutorialAction(userId, 'completion', 'skipped');
-      return true;
+      await this.logAnalytics({
+        step: 'completion',
+        action: 'skipped',
+        timestamp: new Date().toISOString(),
+        metadata: { userId, skippedEntireTutorial: true }
+      });
+
+      return { success: true, data: true };
     } catch (error) {
-      console.error('Error skipping tutorial:', error);
-      return false;
+      const tutorialError = this.errorHandler.createError(
+        TUTORIAL_ERROR_CODES.STEP_VALIDATION_FAILED,
+        `Unexpected error skipping tutorial: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { action: 'skip_tutorial', metadata: { userId, error } }
+      );
+      return { success: false, error: tutorialError };
     }
   }
 
   /**
    * Restart tutorial from beginning
    */
-  async restartTutorial(userId: string): Promise<boolean> {
+  async restartTutorial(userId: string): Promise<TutorialResult<boolean>> {
     try {
       if (!supabase) {
-        console.error('Supabase client not available');
-        return false;
+        const error = this.errorHandler.createError(
+          TUTORIAL_ERROR_CODES.DATABASE_ERROR,
+          'Supabase client not available',
+          { action: 'restart', metadata: { userId } }
+        );
+        return { success: false, error };
       }
 
-      const { error } = await supabase
+      const { error: dbError } = await supabase
         .from('tutorial_progress')
         .update({
           current_step: 'welcome',
@@ -398,20 +564,36 @@ export class TutorialManager {
           step_data: {},
           started_at: new Date().toISOString(),
           completed_at: null,
-          last_seen_at: new Date().toISOString()
+          last_seen_at: new Date().toISOString(),
+          error_count: 0,
+          last_error: null
         })
         .eq('user_id', userId);
 
-      if (error) {
-        console.error('Error restarting tutorial:', error);
-        return false;
+      if (dbError) {
+        const error = this.errorHandler.createError(
+          TUTORIAL_ERROR_CODES.DATABASE_ERROR,
+          `Failed to restart tutorial: ${dbError.message}`,
+          { action: 'restart', metadata: { userId, dbError } }
+        );
+        return { success: false, error };
       }
 
-      await this.logTutorialAction(userId, 'welcome', 'replay');
-      return true;
+      await this.logAnalytics({
+        step: 'welcome',
+        action: 'started',
+        timestamp: new Date().toISOString(),
+        metadata: { userId, restarted: true }
+      });
+
+      return { success: true, data: true };
     } catch (error) {
-      console.error('Error restarting tutorial:', error);
-      return false;
+      const tutorialError = this.errorHandler.createError(
+        TUTORIAL_ERROR_CODES.INITIALIZATION_FAILED,
+        `Unexpected error restarting tutorial: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { action: 'restart', metadata: { userId, error } }
+      );
+      return { success: false, error: tutorialError };
     }
   }
 
@@ -426,85 +608,98 @@ export class TutorialManager {
    * Get all tutorial steps
    */
   getAllSteps(): TutorialStepConfig[] {
-    return this.tutorialSteps;
+    return [...this.tutorialSteps];
   }
 
   /**
    * Check if user should see tutorial
    */
   async shouldShowTutorial(userId: string): Promise<boolean> {
-    const progress = await this.getTutorialProgress(userId);
-    return !progress || (!progress.is_completed && !progress.is_skipped);
-  }
-
-  /**
-   * Log tutorial action for analytics
-   */
-  private async logTutorialAction(
-    userId: string, 
-    step: TutorialStep, 
-    action: 'started' | 'completed' | 'skipped' | 'replay',
-    metadata: Record<string, any> = {}
-  ): Promise<void> {
     try {
-      if (!supabase) {
-        console.error('Supabase client not available for analytics');
-        return;
-      }
-
-      await supabase
-        .from('tutorial_analytics')
-        .insert({
-          user_id: userId,
-          step,
-          action,
-          metadata,
-          created_at: new Date().toISOString()
-        });
+      const progress = await this.getTutorialProgress(userId);
+      return !progress || (!progress.is_completed && !progress.is_skipped);
     } catch (error) {
-      console.error('Error logging tutorial action:', error);
+      // If we can't determine, err on the side of showing tutorial
+      console.warn('Could not determine tutorial status:', error);
+      return true;
     }
   }
 
   /**
-   * Get tutorial rewards for a step
+   * Enhanced analytics logging with queue
    */
-  async getTutorialRewards(step: TutorialStep): Promise<TutorialReward[]> {
-    try {
-      if (!supabase) {
-        console.error('Supabase client not available');
-        return [];
-      }
+  private async logAnalytics(analytics: TutorialAnalytics): Promise<void> {
+    if (!this.config.enableAnalytics) return;
 
-      const { data, error } = await supabase
-        .from('tutorial_rewards')
-        .select('*')
-        .eq('step', step)
-        .eq('is_active', true);
+    this.analyticsQueue.push(analytics);
 
-      if (error) {
-        console.error('Error fetching tutorial rewards:', error);
-        return [];
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching tutorial rewards:', error);
-      return [];
+    // Process queue if not already processing
+    if (!this.isProcessingAnalytics) {
+      this.processAnalyticsQueue();
     }
   }
 
   /**
-   * Update step-specific data
+   * Process analytics queue with batch processing
    */
-  async updateStepData(userId: string, stepData: Record<string, any>): Promise<boolean> {
+  private async processAnalyticsQueue(): Promise<void> {
+    if (this.isProcessingAnalytics || this.analyticsQueue.length === 0) {
+      return;
+    }
+
+    this.isProcessingAnalytics = true;
+
+    try {
+      const batch = this.analyticsQueue.splice(0, 10); // Process in batches of 10
+
+      if (supabase && batch.length > 0) {
+        const { error } = await supabase
+          .from('tutorial_analytics')
+          .insert(
+            batch.map(item => ({
+              user_id: item.metadata?.userId || 'unknown',
+              step: item.step,
+              action: item.action,
+              time_spent_seconds: item.timeSpent,
+              interaction_count: item.interactionCount,
+              metadata: item.metadata || {},
+              created_at: item.timestamp
+            }))
+          );
+
+        if (error) {
+          console.error('Failed to log analytics:', error);
+          // Put failed items back in queue for retry
+          this.analyticsQueue.unshift(...batch);
+        }
+      }
+    } catch (error) {
+      console.error('Error processing analytics queue:', error);
+    } finally {
+      this.isProcessingAnalytics = false;
+
+      // Continue processing if there are more items
+      if (this.analyticsQueue.length > 0) {
+        setTimeout(() => this.processAnalyticsQueue(), 1000);
+      }
+    }
+  }
+
+  /**
+   * Update step-specific data with error handling
+   */
+  async updateStepData(userId: string, stepData: Record<string, any>): Promise<TutorialResult<boolean>> {
     try {
       if (!supabase) {
-        console.error('Supabase client not available');
-        return false;
+        const error = this.errorHandler.createError(
+          TUTORIAL_ERROR_CODES.DATABASE_ERROR,
+          'Supabase client not available',
+          { action: 'update_step_data', metadata: { userId } }
+        );
+        return { success: false, error };
       }
 
-      const { error } = await supabase
+      const { error: dbError } = await supabase
         .from('tutorial_progress')
         .update({
           step_data: stepData,
@@ -512,15 +707,23 @@ export class TutorialManager {
         })
         .eq('user_id', userId);
 
-      if (error) {
-        console.error('Error updating step data:', error);
-        return false;
+      if (dbError) {
+        const error = this.errorHandler.createError(
+          TUTORIAL_ERROR_CODES.DATABASE_ERROR,
+          `Failed to update step data: ${dbError.message}`,
+          { action: 'update_step_data', metadata: { userId, stepData, dbError } }
+        );
+        return { success: false, error };
       }
 
-      return true;
+      return { success: true, data: true };
     } catch (error) {
-      console.error('Error updating step data:', error);
-      return false;
+      const tutorialError = this.errorHandler.createError(
+        TUTORIAL_ERROR_CODES.STEP_VALIDATION_FAILED,
+        `Unexpected error updating step data: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { action: 'update_step_data', metadata: { userId, stepData, error } }
+      );
+      return { success: false, error: tutorialError };
     }
   }
 
@@ -541,7 +744,8 @@ export class TutorialManager {
         currentStepData.lastActionCompleted = action;
         currentStepData.lastActionTime = new Date().toISOString();
 
-        return await this.updateStepData(userId, currentStepData);
+        const result = await this.updateStepData(userId, currentStepData);
+        return result.success;
       }
 
       return true;
@@ -588,10 +792,22 @@ export class TutorialManager {
   /**
    * Check if current step requires user action and if it's completed
    */
-  async checkStepActionCompletion(userId: string): Promise<{ needsAction: boolean; actionCompleted: boolean; action?: string }> {
+  async checkStepActionCompletion(userId: string): Promise<{ 
+    needsAction: boolean; 
+    actionCompleted: boolean; 
+    action?: string;
+    error?: TutorialError;
+  }> {
     try {
       const progress = await this.getTutorialProgress(userId);
-      if (!progress) return { needsAction: false, actionCompleted: false };
+      if (!progress) {
+        const error = this.errorHandler.createError(
+          TUTORIAL_ERROR_CODES.INVALID_STATE,
+          'No tutorial progress found',
+          { action: 'check_action_completion', metadata: { userId } }
+        );
+        return { needsAction: false, actionCompleted: false, error };
+      }
 
       const stepConfig = this.getStepConfig(progress.current_step);
       if (!stepConfig?.interactiveMode || !stepConfig.waitForAction) {
@@ -605,8 +821,62 @@ export class TutorialManager {
         action: stepConfig.waitForAction
       };
     } catch (error) {
-      console.error('Error checking step action completion:', error);
-      return { needsAction: false, actionCompleted: false };
+      const tutorialError = this.errorHandler.createError(
+        TUTORIAL_ERROR_CODES.STEP_VALIDATION_FAILED,
+        `Error checking step action completion: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { action: 'check_action_completion', metadata: { userId, error } }
+      );
+      return { needsAction: false, actionCompleted: false, error: tutorialError };
     }
   }
-} 
+
+  /**
+   * Get tutorial configuration
+   */
+  getConfig(): TutorialConfig {
+    return { ...this.config };
+  }
+
+  /**
+   * Update tutorial configuration
+   */
+  updateConfig(newConfig: Partial<TutorialConfig>): void {
+    this.config = { ...this.config, ...newConfig };
+  }
+
+  /**
+   * Get tutorial statistics
+   */
+  async getTutorialStats(): Promise<{
+    totalUsers: number;
+    completionRate: number;
+    averageTimeToComplete: number;
+    mostSkippedStep: string | null;
+    errorStats: any;
+  }> {
+    try {
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
+
+      // This would require additional database queries
+      // Implementation depends on your analytics requirements
+      return {
+        totalUsers: 0,
+        completionRate: 0,
+        averageTimeToComplete: 0,
+        mostSkippedStep: null,
+        errorStats: this.errorHandler.getErrorStats()
+      };
+    } catch (error) {
+      console.error('Error getting tutorial stats:', error);
+      return {
+        totalUsers: 0,
+        completionRate: 0,
+        averageTimeToComplete: 0,
+        mostSkippedStep: null,
+        errorStats: this.errorHandler.getErrorStats()
+      };
+    }
+  }
+}

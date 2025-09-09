@@ -244,8 +244,47 @@ export class MessagingService {
   }
 
   // Get messages for a conversation
-  async getMessages(conversationId: string, limit = 50, offset = 0): Promise<MessageWithDetails[]> {
+  async getMessages(conversationId: string, requestingUserId?: string, limit = 50, offset = 0): Promise<MessageWithDetails[]> {
     try {
+      // If requesting user is provided, verify they have access to this conversation
+      if (requestingUserId) {
+        const { data: conversationData, error: convError } = await this.supabase
+          .from('conversations')
+          .select('id, metadata')
+          .eq('id', conversationId)
+          .single();
+
+        if (convError) throw convError;
+
+        // Check if this is a study group conversation
+        const metadata = conversationData?.metadata as Record<string, any> | null;
+        if (metadata && metadata.study_group_id) {
+          // Verify user is a member of the study group
+          const { data: memberData, error: memberError } = await this.supabase
+            .from('study_group_members')
+            .select('id')
+            .eq('group_id', metadata.study_group_id)
+            .eq('user_id', requestingUserId)
+            .single();
+
+          if (memberError || !memberData) {
+            throw new Error('Access denied: You must be a member of this group to view messages');
+          }
+        } else {
+          // For direct conversations, check if user is a participant
+          const { data: participantData, error: participantError } = await this.supabase
+            .from('conversation_participants')
+            .select('id')
+            .eq('conversation_id', conversationId)
+            .eq('user_id', requestingUserId)
+            .single();
+
+          if (participantError || !participantData) {
+            throw new Error('Access denied: You are not a participant in this conversation');
+          }
+        }
+      }
+
       const { data, error } = await this.supabase
         .from('messages')
         .select(`

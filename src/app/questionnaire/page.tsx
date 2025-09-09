@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/nextjs';
 import { AIQuestionnaire } from '@/components/ai/AIQuestionnaire';
 import { Button } from '@/components/ui/button';
@@ -10,11 +10,15 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 function QuestionnairePageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const fromOnboarding = searchParams.get('from') === 'onboarding';
 
   const handleQuestionnaireComplete = (patterns: any) => {
     console.log('AI Patterns analyzed:', patterns);
-    // Here you could redirect to the dashboard
+    // Redirect to dashboard after completion
+    setTimeout(() => {
+      router.push('/dashboard');
+    }, 2000); // Give user 2 seconds to see completion message before auto-redirect
   };
 
   return (
