@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
     webhookEndpoint: `${appUrl || req.url.split('/api')[0]}/api/clerk-webhooks`,
     expectedUrls: {
       local: 'http://localhost:3000/api/clerk-webhooks',
-      preview: 'https://study-spark-pi.vercel.app/api/clerk-webhooks',
-      production: 'https://memospark.live/api/clerk-webhooks'
+      preview: 'https://www.memospark.live/api/clerk-webhooks',
+      production: 'https://www.memospark.live/api/clerk-webhooks'
     },
     status: (webhookSecret && supabaseUrl && supabaseServiceRole) ? 'ready' : 'misconfigured'
   });

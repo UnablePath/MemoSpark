@@ -15,6 +15,7 @@ import { format, parseISO } from "date-fns";
 import { Calendar as CalendarIcon, ArrowRight, User, Mail, GraduationCap, Sparkles, ChevronLeft, ChevronRight, Code, Palette, BookOpen, Music as MusicIcon, Brain, Briefcase, Dumbbell, MessageSquare, Globe, Atom, Film, Users as UsersIcon, Target, TrendingUp, HelpCircle, Settings, BookText, Zap } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { completeOnboarding } from './_actions';
+import { useOnboardingAnalytics } from '@/lib/analytics/onboardingAnalytics';
 
 const MAX_DATE = new Date();
 const MIN_DATE = new Date(MAX_DATE.getFullYear() - 100, MAX_DATE.getMonth(), MAX_DATE.getDate());
@@ -87,6 +88,7 @@ const setInLocalStorage = (key: string, value: any) => {
 export default function ClerkOnboardingPage() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
+  const analytics = useOnboardingAnalytics();
   
   const [name, setName] = useState(() => getFromLocalStorage('onboardingName', ''));
   const [email, setEmail] = useState(() => getFromLocalStorage('onboardingEmail', ''));
@@ -131,6 +133,15 @@ export default function ClerkOnboardingPage() {
   useEffect(() => setInLocalStorage('onboardingAiExplanationStyle', aiPreferences.explanationStyle), [aiPreferences.explanationStyle]);
   useEffect(() => setInLocalStorage('onboardingAiInteractionFrequency', aiPreferences.interactionFrequency), [aiPreferences.interactionFrequency]);
   useEffect(() => setInLocalStorage('onboardingStep', step), [step]);
+  
+  // Track initial step entry and step changes
+  useEffect(() => {
+    if (isLoaded && user?.id) {
+      const stepNames = ['Profile', 'Details', 'Learning', 'Subjects', 'Interests'];
+      const currentStepName = stepNames[step - 1];
+      analytics.trackStepEntered(step, currentStepName, user.id);
+    }
+  }, [step, isLoaded, user?.id, analytics]);
 
   useEffect(() => {
     if (user) {
@@ -214,6 +225,18 @@ export default function ClerkOnboardingPage() {
           keysToRemove.forEach(key => localStorage.removeItem(key));
         }
         
+        // Track successful onboarding completion
+        analytics.trackOnboardingCompleted(user?.id || '', {
+          name,
+          email,
+          yearOfStudy,
+          birthDate: birthDateString,
+          interests,
+          learningStyle,
+          subjects,
+          aiPreferences,
+        });
+        
         router.push('/questionnaire?from=onboarding');
       } else if (res?.error) {
         // Error case with possible field errors
@@ -254,21 +277,47 @@ export default function ClerkOnboardingPage() {
 
   const handleNextStep = () => {
     setFormError(null);
+    
+    // Track step completion before validation
+    const stepNames = ['Profile', 'Details', 'Learning', 'Subjects', 'Interests'];
+    const currentStepName = stepNames[step - 1];
+    
+    // Validation checks
     if (step === 1 && (!name || !email)) {
       setFormError("Please fill in your name and email to continue.");
+      analytics.trackValidationError(step, currentStepName, { name: name ? [] : ['Name is required'], email: email ? [] : ['Email is required'] }, user?.id);
       return;
     }
     if (step === 2 && !birthDateString) {
       setFormError("Please select your date of birth to continue.");
+      analytics.trackValidationError(step, currentStepName, { birthDate: ['Birth date is required'] }, user?.id);
       return;
     }
     if (step === 4 && subjects.length === 0) {
       setFormError("Please select at least one subject to continue.");
+      analytics.trackValidationError(step, currentStepName, { subjects: ['At least one subject is required'] }, user?.id);
       return;
     }
-
+    
+    // Track step completion
+    const stepData = {
+      name: step === 1 ? name : undefined,
+      email: step === 1 ? email : undefined,
+      yearOfStudy: step === 2 ? yearOfStudy : undefined,
+      birthDate: step === 2 ? birthDateString : undefined,
+      learningStyle: step === 3 ? learningStyle : undefined,
+      subjects: step === 4 ? subjects : undefined,
+      interests: step === 5 ? interests : undefined,
+      aiPreferences: step === 5 ? aiPreferences : undefined,
+    };
+    
+    analytics.trackStepCompleted(step, currentStepName, user?.id, stepData);
+    
     if (step < totalSteps) {
-      setStep(step + 1);
+      const nextStep = step + 1;
+      const nextStepName = stepNames[nextStep - 1];
+      setStep(nextStep);
+      analytics.trackStepEntered(nextStep, nextStepName, user?.id);
     } else {
       handleFinalSubmit();
     }
@@ -336,17 +385,60 @@ export default function ClerkOnboardingPage() {
             Let's personalize your learning experience in just a few steps.
           </CardDescription>
           
-          <div role="status" aria-live="polite" aria-label={`Step ${step} of ${totalSteps}`} className="flex justify-center space-x-2 pt-2">
-            {[...Array(totalSteps)].map((_, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "h-1.5 rounded-full transition-all duration-300",
-                  index + 1 === step ? "w-8 bg-primary" : "w-4 bg-primary/20"
-                )}
-                aria-hidden="true"
-              />
-            ))}
+          {/* Enhanced Progress Indicator */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>Step {step} of {totalSteps}</span>
+              <span>{Math.round((step / totalSteps) * 100)}% Complete</span>
+            </div>
+            
+            <div role="status" aria-live="polite" aria-label={`Step ${step} of ${totalSteps}`} className="w-full">
+              <div className="w-full bg-muted rounded-full h-2 mb-3">
+                <div 
+                  className="bg-primary h-2 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${(step / totalSteps) * 100}%` }}
+                />
+              </div>
+              
+              <div className="flex justify-between">
+                {[...Array(totalSteps)].map((_, index) => {
+                  const stepNumber = index + 1;
+                  const isCompleted = stepNumber < step;
+                  const isCurrent = stepNumber === step;
+                  const isOptional = stepNumber === 3 || stepNumber === 5;
+                  
+                  return (
+                    <div key={stepNumber} className="flex flex-col items-center">
+                      <div 
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-all duration-300 ${
+                          isCompleted 
+                            ? 'bg-primary text-primary-foreground shadow-md' 
+                            : isCurrent 
+                            ? 'bg-primary/20 text-primary border-2 border-primary animate-pulse' 
+                            : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {isCompleted ? '✓' : stepNumber}
+                      </div>
+                      <div className="text-xs text-center mt-1 max-w-[50px]">
+                        <div className={`${isCurrent ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                          {stepNumber === 1 && 'Profile'}
+                          {stepNumber === 2 && 'Details'}
+                          {stepNumber === 3 && 'Learning'}
+                          {stepNumber === 4 && 'Subjects'}
+                          {stepNumber === 5 && 'Interests'}
+                        </div>
+                        {isOptional && (
+                          <div className="text-xs text-green-600 dark:text-green-400">
+                            Optional
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </CardHeader>
 
@@ -473,16 +565,19 @@ export default function ClerkOnboardingPage() {
             </div>
           )}
 
-          {/* Step 3: Learning Style */}
+          {/* Step 3: Learning Style (Optional) */}
           {step === 3 && (
             <div className="space-y-6">
               <div className="space-y-2">
                 <Label className="text-base flex items-center gap-2">
                   <Brain size={16} className="text-primary" aria-hidden="true" />
                   How do you learn best?
+                  <span className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-1 rounded-full">
+                    Optional
+                  </span>
                 </Label>
                 <p className="text-sm text-muted-foreground pb-2">
-                  Understanding your learning style helps us personalize your study experience.
+                  Understanding your learning style helps us personalize your study experience. You can skip this and set it later.
                 </p>
                 <div className="space-y-3">
                   {learningStyles.map((style) => (
@@ -560,9 +655,12 @@ export default function ClerkOnboardingPage() {
                   <Label className="text-base flex items-center gap-2">
                     <Sparkles size={16} className="text-primary" aria-hidden="true" />
                     Your interests
+                    <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+                      Optional
+                    </span>
                   </Label>
                   <p className="text-sm text-muted-foreground pb-2">
-                    Select a few topics you&apos;re passionate about. This helps us connect you with like-minded peers.
+                    Select a few topics you&apos;re passionate about. This helps us connect you with like-minded peers. You can add these later in your profile.
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
                     {availableInterests.map((interest) => {
@@ -666,26 +764,46 @@ export default function ClerkOnboardingPage() {
             <div></div> /* Placeholder to keep Next button to the right */
           )}
           
-          <Button 
-            onClick={handleNextStep} 
-            className="h-11 px-6 group focus:outline-dashed focus:outline-2 focus:outline-offset-2"
-            aria-label={step < totalSteps ? "Go to next step" : "Complete setup"}
-            disabled={isSubmitting}
-          >
-            {isSubmitting && step === totalSteps ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                Completing...
-              </>
-            ) : step < totalSteps ? (
-              <>
-                Next
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
-              </>
-            ) : (
-              'Complete Setup'
+          <div className="flex gap-2">
+            {/* Show skip button for optional steps */}
+            {(step === 3 || step === 5) && (
+              <Button 
+                variant="ghost" 
+                onClick={() => {
+                  const stepNames = ['Profile', 'Details', 'Learning', 'Subjects', 'Interests'];
+                  const currentStepName = stepNames[step - 1];
+                  analytics.trackStepSkipped(step, currentStepName, user?.id);
+                  handleNextStep();
+                }}
+                className="h-11 px-4 text-muted-foreground hover:text-foreground focus:outline-dashed focus:outline-2 focus:outline-offset-2"
+                aria-label="Skip this step"
+                disabled={isSubmitting}
+              >
+                Skip
+              </Button>
             )}
-          </Button>
+            
+            <Button 
+              onClick={handleNextStep} 
+              className="h-11 px-6 group focus:outline-dashed focus:outline-2 focus:outline-offset-2"
+              aria-label={step < totalSteps ? "Go to next step" : "Complete setup"}
+              disabled={isSubmitting}
+            >
+              {isSubmitting && step === totalSteps ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Completing...
+                </>
+              ) : step < totalSteps ? (
+                <>
+                  {(step === 3 || step === 5) ? 'Continue' : 'Next'}
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                </>
+              ) : (
+                'Complete Setup'
+              )}
+            </Button>
+          </div>
         </CardFooter>
       </Card>
       

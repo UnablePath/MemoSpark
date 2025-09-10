@@ -1,12 +1,27 @@
 'use client';
 
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/nextjs';
-import { AIQuestionnaire } from '@/components/ai/AIQuestionnaire';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+
+// Lazy load the heavy AIQuestionnaire component
+const AIQuestionnaire = lazy(() => import('@/components/ai/AIQuestionnaire').then(module => ({ default: module.AIQuestionnaire })));
+
+// Enhanced loading component for better UX
+const QuestionnaireLoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-[400px]">
+    <div className="flex flex-col items-center gap-4">
+      <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <div className="text-center">
+        <h3 className="text-lg font-semibold mb-2">Loading AI Questionnaire</h3>
+        <p className="text-sm text-muted-foreground">Preparing your personalized experience...</p>
+      </div>
+    </div>
+  </div>
+);
 
 function QuestionnairePageContent() {
   const searchParams = useSearchParams();
@@ -42,11 +57,13 @@ function QuestionnairePageContent() {
           </div>
         )}
         
-        {/* Questionnaire Component */}
-        <AIQuestionnaire 
-          onComplete={handleQuestionnaireComplete}
-          className="w-full"
-        />
+        {/* Questionnaire Component - Lazy Loaded */}
+        <Suspense fallback={<QuestionnaireLoadingSpinner />}>
+          <AIQuestionnaire 
+            onComplete={handleQuestionnaireComplete}
+            className="w-full"
+          />
+        </Suspense>
       </div>
     </div>
   );

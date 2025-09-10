@@ -2,6 +2,80 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile touch optimization */
+@layer base {
+  /* Improve touch targets for better mobile UX */
+  .touch-target {
+    min-height: 44px; /* iOS minimum touch target */
+    min-width: 44px;
+    position: relative;
+  }
+  
+  /* Ensure buttons have adequate touch area */
+  button, 
+  [role="button"],
+  [role="tab"],
+  input[type="button"],
+  input[type="submit"] {
+    min-height: 44px;
+    touch-action: manipulation; /* Prevent double-tap zoom */
+  }
+  
+  /* Optimize form inputs for mobile */
+  input, 
+  textarea, 
+  select {
+    min-height: 44px;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  /* Better tap feedback */
+  .tap-feedback {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    transition: background-color 0.1s ease;
+  }
+  
+  .tap-feedback:active {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  
+  /* Improve scroll performance on mobile */
+  .smooth-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Safe area handling for mobile devices */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-area-left {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .safe-area-right {
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  /* Responsive text sizing */
+  .text-responsive {
+    font-size: clamp(0.875rem, 2.5vw, 1rem);
+  }
+  
+  .text-responsive-lg {
+    font-size: clamp(1.125rem, 3vw, 1.25rem);
+  }
+  
+  .text-responsive-xl {
+    font-size: clamp(1.5rem, 4vw, 2rem);
+  }
+}
+
 /* Theme optimization - Prevent flash of unstyled content */
 :root {
   color-scheme: dark light;

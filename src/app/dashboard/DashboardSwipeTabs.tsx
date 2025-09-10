@@ -1,20 +1,23 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { TabContainer } from '@/components/layout/TabContainer';
-import { ConnectionInterface } from '@/components/social/ConnectionInterface';
-import { ConnectionsDebug } from '@/components/home/ConnectionsDebug';
 import ConnectionsErrorBoundary from '@/components/home/ConnectionsErrorBoundary';
-import { TaskEventHub } from '@/components/tasks/TaskEventHub';
-import RemindersTab from '@/components/reminders/RemindersTab';
-import CrashoutTab from '@/components/dashboard/CrashoutTab';
-import GamificationHub from '@/components/gamification/GamificationHub';
+
+// Lazy load heavy components for better performance
+const ConnectionInterface = lazy(() => import('@/components/social/ConnectionInterface').then(module => ({ default: module.ConnectionInterface })));
+const ConnectionsDebug = lazy(() => import('@/components/home/ConnectionsDebug').then(module => ({ default: module.ConnectionsDebug })));
+const TaskEventHub = lazy(() => import('@/components/tasks/TaskEventHub').then(module => ({ default: module.TaskEventHub })));
+const RemindersTab = lazy(() => import('@/components/reminders/RemindersTab'));
+const CrashoutTab = lazy(() => import('@/components/dashboard/CrashoutTab'));
+const GamificationHub = lazy(() => import('@/components/gamification/GamificationHub'));
 import { FaUserFriends, FaCalendarAlt, FaBell, FaSpa, FaGamepad } from 'react-icons/fa';
 import { useLocalStorageState } from '@/hooks/useStudentConnection';
 import { useTieredAI } from '@/hooks/useTieredAI';
 import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 import { usePremiumPopup } from '@/components/providers/premium-popup-provider';
 import { Crown } from 'lucide-react';
+import { TabLoadingSpinner } from '@/components/ui/TabLoadingSpinner';
 
 // Toggle this to test - set to true to show debug component instead of actual connections tab
 const USE_DEBUG_COMPONENT = false;
@@ -159,11 +162,13 @@ export function DashboardSwipeTabs() {
       return (
         <div key={`${tabConfig.key}-${index}`} className="h-full w-full">
           <ConnectionsErrorBoundary>
-            {USE_DEBUG_COMPONENT ? (
-              <TabComponent />
-            ) : (
-              <TabComponent onSwipeModeChange={handleStudentTabViewModeChange} />
-            )}
+            <Suspense fallback={<TabLoadingSpinner />}>
+              {USE_DEBUG_COMPONENT ? (
+                <TabComponent />
+              ) : (
+                <TabComponent onSwipeModeChange={handleStudentTabViewModeChange} />
+              )}
+            </Suspense>
           </ConnectionsErrorBoundary>
         </div>
       );
@@ -171,7 +176,9 @@ export function DashboardSwipeTabs() {
     
     return (
       <div key={`${tabConfig.key}-${index}`} className="h-full w-full">
-        <TabComponent />
+        <Suspense fallback={<TabLoadingSpinner />}>
+          <TabComponent />
+        </Suspense>
       </div>
     );
   };

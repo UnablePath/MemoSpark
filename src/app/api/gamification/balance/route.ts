@@ -3,6 +3,9 @@ import { auth } from '@clerk/nextjs/server';
 import { supabaseServerAdmin } from '@/lib/supabase/server';
 import { coinEconomy } from '@/lib/gamification/CoinEconomy';
 
+// Force dynamic rendering since we use auth() which requires headers
+export const dynamic = 'force-dynamic';
+
 // Enable Next.js edge caching for GET requests (1 minute for balance - changes often)
 export const revalidate = 60;
 

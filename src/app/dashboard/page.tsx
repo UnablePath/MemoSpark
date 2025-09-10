@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import Link from 'next/link';
 import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
 import DashboardSwipeTabs from './DashboardSwipeTabs';
-import { SignedIn, UserButton } from "@clerk/nextjs";
+import { SignedIn, UserButton, useUser } from "@clerk/nextjs";
 import { User as UserIcon, Settings as SettingsIcon, Crown, Sparkles } from 'lucide-react';
 import { useTieredAI } from '@/hooks/useTieredAI';
 import { Button } from '@/components/ui/button';
@@ -17,16 +17,45 @@ import { AchievementNotificationSystem } from '@/components/achievements/Achieve
 import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 import { useFetchAchievements } from '@/hooks/useAchievementQueries';
 import { AuthAwareSeo } from '@/components/seo/AuthAwareSeo';
+import { WelcomeFlow } from '@/components/onboarding/WelcomeFlow';
+import { useConversionTracking } from '@/lib/analytics/conversionTracking';
 
 export default function DashboardPage() {
   // Widget settings
   const [isWidgetEnabled] = useState(true); // Enable widget for better UX
   const [achievementsInitialized, setAchievementsInitialized] = useState(false);
+  const [showWelcomeFlow, setShowWelcomeFlow] = useState(false);
   const constraintsRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
   
+  // User data
+  const { user } = useUser();
+  const conversionTracker = useConversionTracking();
+  
   // Tier-aware dashboard features
   const { userTier, usage, isLoading, tierLimits } = useTieredAI();
+  
+  // Check if user is new (from onboarding or first visit)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromOnboarding = urlParams.has('from') && urlParams.get('from') === 'onboarding';
+    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+    
+    if (user?.id) {
+      // Track dashboard visit
+      const isFirstVisit = fromOnboarding || !hasSeenWelcome;
+      conversionTracker.trackDashboardVisit(user.id, isFirstVisit);
+      
+      // Track signup completion if coming from onboarding
+      if (fromOnboarding) {
+        conversionTracker.trackSignUpCompleted(user.id, user.primaryEmailAddress?.emailAddress);
+      }
+    }
+    
+    if (fromOnboarding || !hasSeenWelcome) {
+      setShowWelcomeFlow(true);
+    }
+  }, [user, conversionTracker]);
   
   // Achievement system
   const { triggerAchievement } = useDebouncedAchievementTrigger();
@@ -288,6 +317,26 @@ export default function DashboardPage() {
 
         {/* ARIA live region for status messages */}
         <div aria-live="polite" className="sr-only" id="dashboard-status-message"></div>
+        
+        {/* Welcome Flow for new users */}
+        {showWelcomeFlow && (
+          <WelcomeFlow
+            userName={user?.fullName || user?.firstName || undefined}
+            userSubjects={[]} // TODO: Get from user profile
+            onComplete={() => {
+              setShowWelcomeFlow(false);
+              localStorage.setItem('hasSeenWelcome', 'true');
+              // Clear URL params
+              window.history.replaceState({}, '', '/dashboard');
+              
+              // Trigger first achievement
+              setTimeout(() => {
+                triggerAchievement('welcome_completed');
+                triggerAchievement('first_login');
+              }, 1000);
+            }}
+          />
+        )}
       </div>
     </>
   );

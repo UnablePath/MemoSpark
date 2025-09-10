@@ -1,21 +1,24 @@
 "use client";
 
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { MemoSparkLogoSvg } from '@/components/ui/MemoSparkLogoSvg';
 import Image from 'next/image';
-import { SignedIn, SignedOut, SignUpButton } from '@clerk/nextjs';
+import { SignedIn, SignedOut } from '@clerk/nextjs';
+import { ABTestCTA } from '@/components/ui/ABTestCTA';
 import { HomepageNavbar } from '@/components/layout/HomepageNavbar';
 import { ArrowRight, BrainCircuit, CalendarCheck, Gem } from 'lucide-react';
 import RetroGrid from "@/components/ui/retro-grid";
 import AnimatedShinyText from "@/components/ui/animated-shiny-text";
 import { BubblePopGame } from "@/components/home/BubblePopGame";
+import { SocialProof } from "@/components/home/SocialProof";
 import { PageSeo } from '@/components/seo/PageSeo';
 import { pageSeoConfigs } from '@/lib/seo/seoConfig';
 import { AIStructuredData } from '@/components/seo/AIOptimizedMeta';
 import { generatePageStructuredData } from '@/lib/seo/structuredData';
+import { useConversionTracking } from '@/lib/analytics/conversionTracking';
 
 // Feature Card Component
 interface FeatureCardProps {
@@ -43,6 +46,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description, cla
 
 export default function LandingPage() {
   const featuresRef = useRef<HTMLDivElement>(null);
+  const conversionTracker = useConversionTracking();
 
   const scrollToFeatures = () => {
     featuresRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -50,6 +54,11 @@ export default function LandingPage() {
 
   // Generate structured data for homepage
   const structuredDataSchemas = generatePageStructuredData('home');
+
+  // Track landing page view
+  useEffect(() => {
+    conversionTracker.trackLandingPageView();
+  }, [conversionTracker]);
 
   return (
     <>
@@ -87,15 +96,7 @@ export default function LandingPage() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <SignedOut>
-                  <SignUpButton mode="modal">
-                    <div
-                      className="z-10 flex items-center justify-center"
-                    >
-                      <AnimatedShinyText className="inline-flex items-center justify-center rounded-lg border border-border bg-primary text-primary-foreground px-6 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background">
-                        <span>✨ Sign Up Free</span>
-                      </AnimatedShinyText>
-                    </div>
-                  </SignUpButton>
+                <ABTestCTA />
               </SignedOut>
               <SignedIn>
                 <Link href="/dashboard" passHref>
@@ -156,6 +157,9 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
+
+        {/* Social Proof Section */}
+        <SocialProof />
         
         {/* Footer */}
         <footer className="responsive-container text-center py-8 text-muted-foreground text-sm">

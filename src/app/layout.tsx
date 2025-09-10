@@ -16,9 +16,14 @@ import { NotificationPrompt } from '@/components/notifications/NotificationPromp
 import { ProfileSyncProvider } from "@/components/providers/ProfileSyncProvider";
 import { ServiceWorkerUpdater } from "@/components/pwa/ServiceWorkerUpdater";
 import { PremiumPopupProvider } from "@/components/providers/premium-popup-provider";
+import { NetworkErrorBoundary } from "@/components/ui/NetworkErrorBoundary";
 import { BASE_URL } from "@/lib/seo/seoConfig";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ 
+  subsets: ["latin"],
+  display: 'swap', // Optimize font loading for better LCP
+  preload: true,
+});
 
 export const metadata: Metadata = {
   title: {
@@ -108,6 +113,12 @@ export default function RootLayout({
   return (
       <html lang="en" suppressHydrationWarning>
       <head>
+          {/* Performance optimizations - preload critical resources */}
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+          <link rel="dns-prefetch" href="https://cdn.onesignal.com" />
+          <link rel="dns-prefetch" href="https://api.memospark.live" />
+          
           {/* OneSignal Web SDK - Official Implementation */}
           <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
           <script
@@ -159,13 +170,15 @@ export default function RootLayout({
                     <TutorialProvider>
                       <OneSignalProvider>
                         <PremiumPopupProvider>
-                          <ClientBody>
-                            {children}
-                            <PwaInstaller />
-                            <ServiceWorkerUpdater />
-                            <NotificationPrompt />
-                            <Toaster />
-                          </ClientBody>
+                          <NetworkErrorBoundary>
+                            <ClientBody>
+                              {children}
+                              <PwaInstaller />
+                              <ServiceWorkerUpdater />
+                              <NotificationPrompt />
+                              <Toaster />
+                            </ClientBody>
+                          </NetworkErrorBoundary>
                         </PremiumPopupProvider>
                       </OneSignalProvider>
                     </TutorialProvider>
