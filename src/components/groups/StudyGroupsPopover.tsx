@@ -88,13 +88,14 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
 
   // State management
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("browse");
+  const [activeTab, setActiveTab] = useState("my-groups");
   const [selectedGroup, setSelectedGroup] = useState<StudyGroup | null>(null);
   const [groupMembers, setGroupMembers] = useState<(StudyGroupMember & { user_name: string })[]>([]);
   const [groupResources, setGroupResources] = useState<StudyGroupResource[]>([]);
   const [groupMessages, setGroupMessages] = useState<Message[]>([]);
   const [userGroups, setUserGroups] = useState<StudyGroup[]>([]);
   const [allGroups, setAllGroups] = useState<StudyGroup[]>([]);
+  const [browsableGroups, setBrowsableGroups] = useState<StudyGroup[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [membershipStatus, setMembershipStatus] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -123,15 +124,39 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
     }
   }, [studyGroupManager, user]);
 
-  // Load all groups for browsing
-  const loadAllGroups = useCallback(async () => {
+  // Load user's groups (groups they're members of)
+  const loadMyGroups = useCallback(async () => {
+    if (!user) return;
+    try {
+      setIsLoading(true);
+      // Only get groups the user is actually a member of
+      const groups = await studyGroupManager.getUserGroups(user.id);
+      setAllGroups(groups);
+      
+      // Since these are all user's groups, all membership status is true
+      const statusMap = groups.reduce((acc, group) => {
+        acc[group.id] = true;
+        return acc;
+      }, {} as Record<string, boolean>);
+      
+      setMembershipStatus(statusMap);
+    } catch (error) {
+      console.error("Failed to load user groups:", error);
+      toast.error("Failed to load your groups");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [studyGroupManager, user]);
+
+  // Load all groups for browsing (including non-member groups)
+  const loadBrowsableGroups = useCallback(async () => {
     if (!user) return;
     try {
       setIsLoading(true);
       const groups = await studyGroupManager.getAllGroups();
-      setAllGroups(groups);
+      setBrowsableGroups(groups);
       
-      // Check membership status
+      // Check membership status for all groups
       const statusPromises = groups.map(async (group) => ({
         id: group.id,
         isMember: await studyGroupManager.isUserMember(group.id, user.id)
@@ -145,7 +170,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
       
       setMembershipStatus(statusMap);
     } catch (error) {
-      console.error("Failed to load all groups:", error);
+      console.error("Failed to load browsable groups:", error);
       toast.error("Failed to load groups");
     } finally {
       setIsLoading(false);
@@ -199,9 +224,9 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
   useEffect(() => {
     if (isOpen && user) {
       loadUserGroups();
-      loadAllGroups();
+      loadMyGroups();
     }
-  }, [isOpen, user, loadUserGroups, loadAllGroups]);
+  }, [isOpen, user, loadUserGroups, loadMyGroups]);
 
   // Group creation
   const handleCreateGroup = async () => {
@@ -212,7 +237,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
       setNewGroupName("");
       setNewGroupDescription("");
       loadUserGroups();
-      loadAllGroups();
+      loadMyGroups();
       toast.success("Group created successfully!");
     } catch (error) {
       console.error("Failed to create group:", error);
@@ -235,7 +260,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
       await studyGroupManager.addMember(groupId, user.id, 'member');
       setMembershipStatus(prev => ({ ...prev, [groupId]: true }));
       loadUserGroups();
-      loadAllGroups(); // Refresh to update membership status
+      loadMyGroups(); // Refresh to update membership status
       toast.success("Joined group successfully!");
     } catch (error) {
       console.error("Failed to join group:", error);
@@ -257,7 +282,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
       await studyGroupManager.removeMember(groupId, user.id);
       setMembershipStatus(prev => ({ ...prev, [groupId]: false }));
       loadUserGroups();
-      loadAllGroups(); // Refresh to update membership status
+      loadMyGroups(); // Refresh to update membership status
       if (selectedGroup?.id === groupId) {
         setSelectedGroup(null);
       }
@@ -324,14 +349,15 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
     }
   };
 
-  // Filter groups based on search
+  // Filter groups based on search and active tab
   const filteredGroups = useMemo(() => {
-    if (!searchQuery) return allGroups;
-    return allGroups.filter(group => 
+    const sourceGroups = activeTab === "browse" ? browsableGroups : allGroups;
+    if (!searchQuery) return sourceGroups;
+    return sourceGroups.filter(group => 
       group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       group.description?.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [allGroups, searchQuery]);
+  }, [allGroups, browsableGroups, activeTab, searchQuery]);
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -380,11 +406,16 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
               "w-full sm:w-80 sm:border-r bg-muted/50 flex flex-col",
               selectedGroup && "hidden sm:flex"
             )}>
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+              <Tabs value={activeTab} onValueChange={(value) => {
+                setActiveTab(value);
+                if (value === "browse") {
+                  loadBrowsableGroups();
+                }
+              }} className="flex flex-col h-full">
                 <div className="flex-shrink-0 p-4">
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="browse">Browse</TabsTrigger>
                     <TabsTrigger value="my-groups">My Groups</TabsTrigger>
+                    <TabsTrigger value="browse">Browse All</TabsTrigger>
                   </TabsList>
                 </div>
 
@@ -393,11 +424,16 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search groups..."
+                      placeholder="Search all groups..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10"
                     />
+                  </div>
+
+                  {/* Browse Info */}
+                  <div className="text-center text-sm text-muted-foreground py-2">
+                    <p>Browse all study groups and join the ones that interest you!</p>
                   </div>
 
                   {/* Create Group Button */}
@@ -448,50 +484,88 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
 
                   {/* Groups List */}
                   <div className="space-y-2">
-                    {filteredGroups.map((group) => (
-                      <Card 
-                        key={group.id} 
-                        className={cn(
-                          "cursor-pointer transition-colors hover:bg-accent/50",
-                          selectedGroup?.id === group.id && "bg-accent"
-                        )}
-                        onClick={() => loadGroupDetails(group)}
-                      >
-                        <CardContent className="p-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-medium text-sm truncate">{group.name}</h4>
-                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                {group.description}
-                              </p>
+                    {filteredGroups.length === 0 ? (
+                      <div className="text-center text-muted-foreground py-8">
+                        <Users className="h-8 w-8 mx-auto mb-2" />
+                        <p>No groups found</p>
+                      </div>
+                    ) : (
+                      filteredGroups.map((group) => (
+                        <Card 
+                          key={group.id} 
+                          className={cn(
+                            "cursor-pointer transition-colors hover:bg-accent/50",
+                            selectedGroup?.id === group.id && "bg-accent"
+                          )}
+                          onClick={() => {
+                            if (membershipStatus[group.id]) {
+                              loadGroupDetails(group);
+                            } else {
+                              // For non-members in browse mode, show join prompt
+                              setSelectedGroup(group);
+                            }
+                          }}
+                        >
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-sm truncate">{group.name}</h4>
+                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                  {group.description}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                {membershipStatus[group.id] ? (
+                                  <Badge variant="secondary" className="text-xs whitespace-nowrap">Member</Badge>
+                                ) : (
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="h-8 w-8 p-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleJoinGroup(group.id);
+                                    }}
+                                  >
+                                    <UserPlus className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                              {membershipStatus[group.id] ? (
-                                <Badge variant="secondary" className="text-xs whitespace-nowrap">Member</Badge>
-                              ) : (
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className="h-8 w-8 p-0"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleJoinGroup(group.id);
-                                  }}
-                                >
-                                  <UserPlus className="h-3 w-3" />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      ))
+                    )}
                   </div>
                 </TabsContent>
 
-                <TabsContent value="my-groups" className="flex-1 p-4">
+                <TabsContent value="my-groups" className="flex-1 p-4 space-y-4">
+                  {/* Search for My Groups */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search your groups..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+
                   <div className="space-y-2">
-                    {userGroups.map((group) => (
+                    {allGroups.length === 0 ? (
+                      <div className="text-center text-muted-foreground py-8">
+                        <Users className="h-8 w-8 mx-auto mb-2" />
+                        <p>You haven't joined any groups yet</p>
+                        <Button 
+                          variant="outline" 
+                          className="mt-4"
+                          onClick={() => setActiveTab("browse")}
+                        >
+                          Browse Groups
+                        </Button>
+                      </div>
+                    ) : (
+                      allGroups.map((group) => (
                       <Card 
                         key={group.id} 
                         className={cn(
@@ -532,7 +606,8 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                           </div>
                         </CardContent>
                       </Card>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </TabsContent>
               </Tabs>
