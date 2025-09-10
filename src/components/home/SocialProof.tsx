@@ -144,7 +144,7 @@ export const SocialProof: React.FC = () => {
               Trusted by Students Across Ghana
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Join thousands of Ghanaian students who have already transformed their study habits with MemoSpark
+              Join hundreds of Ghanaian students who have already transformed their study habits with MemoSpark
             </p>
           </motion.div>
           
