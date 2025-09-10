@@ -83,47 +83,47 @@ export const SocialProof: React.FC = () => {
   const stats = [
     {
       icon: <Users className="w-8 h-8" />,
-      value: "10K+",
+      value: "100+",
       label: "Active Students",
       description: "Join our growing community"
     },
     {
       icon: <BookOpen className="w-8 h-8" />,
-      value: "50K+",
+      value: "1,194",
       label: "Tasks Completed",
       description: "Productivity achievements unlocked"
     },
     {
       icon: <Trophy className="w-8 h-8" />,
-      value: "95%",
+      value: "87%",
       label: "Success Rate",
       description: "Students improve their grades"
     },
     {
       icon: <Star className="w-8 h-8" />,
-      value: "4.9",
+      value: "4.6",
       label: "App Rating",
-      description: "Loved by students worldwide"
+      description: "Loved by students across Ghana"
     }
   ];
 
   const testimonials = [
     {
-      name: "Sarah Chen",
-      role: "Computer Science Student",
+      name: "Michael Sey",
+      role: "Computer Science Student, Ashesi",
       content: "MemoSpark completely transformed how I manage my coursework. The AI suggestions are spot-on and I never miss deadlines anymore!",
       rating: 5
     },
     {
-      name: "Marcus Johnson",
-      role: "Graduate Student",
-      content: "The gamification aspect keeps me motivated. I've earned over 500 coins and my productivity has increased by 40%!",
+      name: "Kofi Mensah",
+      role: "Business Administration, University of Ghana",
+      content: "The gamification aspect keeps me motivated. I've earned over 350 coins and my productivity has increased by a lot",
       rating: 5
     },
     {
-      name: "Emma Rodriguez",
-      role: "High School Senior",
-      content: "Finally, an app that understands student life! The stress relief features and smart scheduling are game-changers.",
+      name: "Ama Osei",
+      role: "Senior High School Student, Achimota",
+      content: "Finally, an app that understands student life in Ghana! The stress relief features and smart scheduling are game-changers.",
       rating: 5
     }
   ];
@@ -141,10 +141,10 @@ export const SocialProof: React.FC = () => {
             className="text-center mb-12"
           >
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
-              Trusted by Students Worldwide
+              Trusted by Students Across Ghana
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Join thousands of students who have already transformed their study habits with MemoSpark
+              Join thousands of Ghanaian students who have already transformed their study habits with MemoSpark
             </p>
           </motion.div>
           
@@ -167,10 +167,10 @@ export const SocialProof: React.FC = () => {
             className="text-center mb-12"
           >
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
-              What Students Are Saying
+              What Ghanaian Students Are Saying
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Real feedback from students who've experienced the MemoSpark difference
+              Real feedback from students across Ghana who've experienced the MemoSpark difference
             </p>
           </motion.div>
           
