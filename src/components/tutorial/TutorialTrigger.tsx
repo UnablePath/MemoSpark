@@ -41,15 +41,18 @@ export const TutorialTrigger: React.FC<TutorialTriggerProps> = memo(({
     const hasError = !!error;
     const needsAttention = shouldShowTutorial && !isCompleted && !isActive;
     
+    // If we're showing fallback, treat as if tutorial is available but not started
+    const isFallback = showFallback && isLoading && !currentProgress;
+    
     return {
       isCompleted,
       hasError,
-      needsAttention,
+      needsAttention: isFallback || needsAttention,
       icon: isCompleted ? <RotateCcw className="h-4 w-4" /> : <Play className="h-4 w-4" />,
       text: isCompleted ? 'Replay Tutorial' : 'Start Tutorial',
       loadingIcon: <Loader2 className="h-4 w-4 animate-spin" />
     };
-  }, [currentProgress, error, shouldShowTutorial, isActive]);
+  }, [currentProgress, error, shouldShowTutorial, isActive, showFallback, isLoading]);
 
   const handleClick = React.useCallback(() => {
     if (!isLoading && !disabled) {
@@ -57,8 +60,24 @@ export const TutorialTrigger: React.FC<TutorialTriggerProps> = memo(({
     }
   }, [showTutorial, isLoading, disabled]);
 
-  // Don't render if loading and no current state
-  if (isLoading && !currentProgress) {
+  // Don't render if loading and no current state, but add timeout fallback
+  const [showFallback, setShowFallback] = React.useState(false);
+  
+  React.useEffect(() => {
+    if (isLoading && !currentProgress) {
+      // If still loading after 3 seconds, show fallback UI
+      const fallbackTimer = setTimeout(() => {
+        setShowFallback(true);
+      }, 3000);
+      
+      return () => clearTimeout(fallbackTimer);
+    } else {
+      setShowFallback(false);
+    }
+  }, [isLoading, currentProgress]);
+  
+  // Show fallback after timeout or don't render at all if still loading
+  if (isLoading && !currentProgress && !showFallback) {
     return null;
   }
 

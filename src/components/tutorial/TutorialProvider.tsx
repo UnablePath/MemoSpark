@@ -146,7 +146,7 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
     ];
   }, [state.isActive, state.currentProgress, config.enableKeyboardNavigation]);
 
-  // Check tutorial status - optimized with useCallback
+  // Check tutorial status - optimized with useCallback and timeout
   const checkTutorialStatus = useCallback(async () => {
     if (!user?.id) {
       setState(prev => ({ ...prev, isLoading: false }));
@@ -156,8 +156,22 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
       
-      const progress = await tutorialManager.getTutorialProgress(user.id);
-      const shouldShow = await tutorialManager.shouldShowTutorial(user.id);
+      // Add timeout wrapper to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Tutorial status check timed out'));
+        }, 5000); // 5 second timeout
+        timeoutsRef.current.push(timeout);
+      });
+
+      // Race between the actual operations and timeout
+      const [progress, shouldShow] = await Promise.race([
+        Promise.all([
+          tutorialManager.getTutorialProgress(user.id),
+          tutorialManager.shouldShowTutorial(user.id)
+        ]),
+        timeoutPromise
+      ]) as [any, boolean];
       
       setState(prev => ({
         ...prev,
@@ -177,17 +191,18 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
         timeoutsRef.current.push(timeout);
       }
     } catch (error) {
-      const tutorialError = errorHandler.createError(
-        'INITIALIZATION_FAILED',
-        `Failed to check tutorial status: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { metadata: { userId: user.id } }
-      );
+      // On timeout or error, set safe defaults and stop loading
+      console.warn('Tutorial status check failed:', error);
       
       setState(prev => ({
         ...prev,
-        error: tutorialError,
-        isLoading: false
+        currentProgress: null,
+        isLoading: false,
+        error: null // Don't show error for timeout, just fail silently
       }));
+      
+      // Default to showing tutorial for new users when we can't determine status
+      setShouldShowTutorial(true);
     }
   }, [user?.id, tutorialManager, errorHandler, autoStart, isDashboard]);
 
@@ -201,6 +216,26 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
     
     return cleanup;
   }, [isLoaded, checkTutorialStatus, setupEventListeners, cleanup]);
+
+  // Failsafe: ensure loading state never persists longer than 10 seconds
+  useEffect(() => {
+    if (state.isLoading) {
+      const failsafeTimeout = setTimeout(() => {
+        console.warn('Tutorial loading failsafe triggered - forcing loading to false');
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          currentProgress: null,
+          error: null
+        }));
+        setShouldShowTutorial(true); // Default to showing tutorial
+      }, 10000); // 10 second absolute maximum
+      
+      timeoutsRef.current.push(failsafeTimeout);
+      
+      return () => clearTimeout(failsafeTimeout);
+    }
+  }, [state.isLoading]);
 
   // Initialize action detection when tutorial becomes active
   useEffect(() => {

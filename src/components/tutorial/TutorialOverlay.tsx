@@ -90,21 +90,34 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
     return Math.round((completedCount / allSteps.length) * 100);
   }, [currentProgress, allSteps.length]);
 
-  // Load tutorial progress
+  // Load tutorial progress with timeout protection
   useEffect(() => {
     if (!user?.id || !isVisible) return;
 
     const loadProgress = async () => {
       setIsLoading(true);
       try {
-        let progress = await tutorialManager.getTutorialProgress(user.id);
-        
-        if (!progress) {
-          const result = await tutorialManager.initializeTutorial(user.id);
-          if (result.success) {
-            progress = result.data!;
+        // Add timeout protection for overlay loading
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('Tutorial overlay loading timed out'));
+          }, 4000); // 4 second timeout for overlay
+        });
+
+        const progressPromise = (async () => {
+          let progress = await tutorialManager.getTutorialProgress(user.id);
+          
+          if (!progress) {
+            const result = await tutorialManager.initializeTutorial(user.id);
+            if (result.success) {
+              progress = result.data!;
+            }
           }
-        }
+          
+          return progress;
+        })();
+
+        const progress = await Promise.race([progressPromise, timeoutPromise]);
         
         setCurrentProgress(progress);
         
@@ -128,7 +141,10 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
           }
         }
       } catch (error) {
-        console.error('Error loading tutorial progress:', error);
+        console.warn('Error loading tutorial progress:', error);
+        // Set safe defaults on error
+        setCurrentProgress(null);
+        setCurrentStepConfig(null);
       } finally {
         setIsLoading(false);
       }

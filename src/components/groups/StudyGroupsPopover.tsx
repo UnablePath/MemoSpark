@@ -385,25 +385,24 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-7xl w-[95vw] h-[85vh] p-0 border-none shadow-2xl z-[10002]">
-        <div className="h-full flex flex-col">
-          {/* Header - Fixed */}
-          <div className="flex-shrink-0 p-4 border-b bg-background">
-            <div className="flex items-center justify-between">
-              <AnimatedGradientText>
-                <span className="inline animate-gradient bg-gradient-to-r from-[#ffaa40] via-[#9c40ff] to-[#ffaa40] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent">
-                  Study Groups Hub
-                </span>
-              </AnimatedGradientText>
-            </div>
+      <DialogContent className="max-w-7xl w-[95vw] h-[85vh] p-0 flex flex-col overflow-hidden">
+        {/* Header - Fixed */}
+        <div className="flex-shrink-0 p-4 border-b bg-background">
+          <div className="flex items-center justify-between">
+            <AnimatedGradientText>
+              <span className="inline animate-gradient bg-gradient-to-r from-[#ffaa40] via-[#9c40ff] to-[#ffaa40] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent">
+                Study Groups Hub
+              </span>
+            </AnimatedGradientText>
           </div>
+        </div>
 
-          {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="flex h-full min-h-[600px]">
+        {/* Main Content - Scrollable */}
+        <div className="flex-1 overflow-hidden">
+          <div className="flex h-full">
             {/* Sidebar */}
             <div className={cn(
-              "w-full sm:w-80 sm:border-r bg-muted/50 flex flex-col",
+              "w-full sm:w-80 sm:border-r bg-muted/50 flex flex-col overflow-hidden",
               selectedGroup && "hidden sm:flex"
             )}>
               <Tabs value={activeTab} onValueChange={(value) => {
@@ -412,14 +411,14 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                   loadBrowsableGroups();
                 }
               }} className="flex flex-col h-full">
-                <div className="flex-shrink-0 p-4">
+                <div className="flex-shrink-0 p-4 border-b">
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="my-groups">My Groups</TabsTrigger>
                     <TabsTrigger value="browse">Browse All</TabsTrigger>
                   </TabsList>
                 </div>
 
-                <TabsContent value="browse" className="flex-1 p-4 space-y-4">
+                <TabsContent value="browse" className="flex-1 overflow-y-auto p-4 space-y-4">
                   {/* Search */}
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -539,7 +538,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                   </div>
                 </TabsContent>
 
-                <TabsContent value="my-groups" className="flex-1 p-4 space-y-4">
+                <TabsContent value="my-groups" className="flex-1 overflow-y-auto p-4 space-y-4">
                   {/* Search for My Groups */}
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -615,7 +614,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
 
             {/* Main Content */}
             <div className={cn(
-              "flex-1 flex flex-col",
+              "flex-1 flex flex-col overflow-hidden",
               !selectedGroup && "hidden sm:flex"
             )}>
               {selectedGroup ? (
@@ -677,7 +676,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                         </TabsList>
                        </div>
 
-                     <TabsContent value="chat" className="flex-1 p-4 space-y-4">
+                     <TabsContent value="chat" className="flex-1 overflow-y-auto p-4 space-y-4">
                        {/* Messages Area */}
                        <div className="space-y-3">
                            {groupMessages.length === 0 ? (
@@ -752,7 +751,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                       )}
                     </TabsContent>
 
-                    <TabsContent value="resources" className="flex-1 p-4 space-y-4">
+                    <TabsContent value="resources" className="flex-1 overflow-y-auto p-4 space-y-4">
                       {/* Add Resource Form */}
                       <div>
                         {membershipStatus[selectedGroup.id] && (
@@ -835,7 +834,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                       </div>
                     </TabsContent>
 
-                    <TabsContent value="members" className="flex-1 p-4">
+                    <TabsContent value="members" className="flex-1 overflow-y-auto p-4">
                       {/* Members List */}
                       <div className="space-y-2">
                           {groupMembers.map((member) => (
@@ -896,7 +895,6 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                   </div>
                 </div>
               )}
-            </div>
             </div>
           </div>
         </div>

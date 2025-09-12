@@ -342,20 +342,31 @@ export class TutorialManager {
   }
 
   /**
-   * Get user's tutorial progress with retry logic
+   * Get user's tutorial progress with optimized retry logic and timeout
    */
-  async getTutorialProgress(userId: string, retries = 3): Promise<TutorialProgress | null> {
+  async getTutorialProgress(userId: string, retries = 2): Promise<TutorialProgress | null> {
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
         if (!supabase) {
           throw new Error('Supabase client not available');
         }
 
-        const { data, error } = await supabase
-          .from('tutorial_progress')
-          .select('*')
-          .eq('user_id', userId)
-          .single();
+        // Create a timeout promise for individual query
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('Database query timed out'));
+          }, 3000); // 3 second timeout per attempt
+        });
+
+        // Race between query and timeout
+        const { data, error } = await Promise.race([
+          supabase
+            .from('tutorial_progress')
+            .select('*')
+            .eq('user_id', userId)
+            .single(),
+          timeoutPromise
+        ]);
 
         if (error && error.code !== 'PGRST116') {
           throw error;
@@ -363,22 +374,16 @@ export class TutorialManager {
 
         return data || null;
       } catch (error) {
-        console.warn(`Attempt ${attempt + 1} failed:`, error);
+        console.warn(`Tutorial progress fetch attempt ${attempt + 1} failed:`, error);
         
         if (attempt === retries - 1) {
-          const tutorialError = this.errorHandler.createError(
-            TUTORIAL_ERROR_CODES.DATABASE_ERROR,
-            `Failed to fetch tutorial progress after ${retries} attempts`,
-            { metadata: { userId, error, attempts: retries } }
-          );
-          
-          // Don't throw, just log and return null
-          console.error('Final attempt failed:', tutorialError);
+          // Don't create complex error objects, just log and return null
+          console.warn('Failed to fetch tutorial progress, using defaults');
           return null;
         }
 
-        // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        // Shorter retry delay - 500ms, 1s instead of 1s, 2s, 4s
+        await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
       }
     }
 
@@ -612,12 +617,23 @@ export class TutorialManager {
   }
 
   /**
-   * Check if user should see tutorial
+   * Check if user should see tutorial - optimized with timeout
    */
   async shouldShowTutorial(userId: string): Promise<boolean> {
     try {
-      const progress = await this.getTutorialProgress(userId);
-      return !progress || (!progress.is_completed && !progress.is_skipped);
+      // Use a shorter timeout for this check since it's called frequently
+      const timeoutPromise = new Promise<boolean>((resolve) => {
+        setTimeout(() => {
+          // Default to true (show tutorial) on timeout
+          resolve(true);
+        }, 2000); // 2 second timeout
+      });
+
+      const progressPromise = this.getTutorialProgress(userId).then(progress => {
+        return !progress || (!progress.is_completed && !progress.is_skipped);
+      });
+
+      return await Promise.race([progressPromise, timeoutPromise]);
     } catch (error) {
       // If we can't determine, err on the side of showing tutorial
       console.warn('Could not determine tutorial status:', error);
