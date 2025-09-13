@@ -37,9 +37,18 @@ export default function DashboardPage() {
   
   // Check if user is new (from onboarding or first visit)
   useEffect(() => {
+    // Ensure we're on the client side before accessing window or localStorage
+    if (typeof window === 'undefined') return;
+    
     const urlParams = new URLSearchParams(window.location.search);
     const fromOnboarding = urlParams.has('from') && urlParams.get('from') === 'onboarding';
-    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+    
+    let hasSeenWelcome = false;
+    try {
+      hasSeenWelcome = !!localStorage.getItem('hasSeenWelcome');
+    } catch (error) {
+      console.warn('localStorage not available:', error);
+    }
     
     if (user?.id) {
       // Track dashboard visit
@@ -325,9 +334,17 @@ export default function DashboardPage() {
             userSubjects={[]} // TODO: Get from user profile
             onComplete={() => {
               setShowWelcomeFlow(false);
-              localStorage.setItem('hasSeenWelcome', 'true');
-              // Clear URL params
-              window.history.replaceState({}, '', '/dashboard');
+              
+              // Safely set localStorage
+              try {
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('hasSeenWelcome', 'true');
+                  // Clear URL params
+                  window.history.replaceState({}, '', '/dashboard');
+                }
+              } catch (error) {
+                console.warn('localStorage not available:', error);
+              }
               
               // Trigger first achievement
               setTimeout(() => {

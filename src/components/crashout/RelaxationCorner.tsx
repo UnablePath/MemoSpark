@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
-import { Gamepad2, Wind, Music, Palette } from 'lucide-react';
+import { useRelaxationAudio, type RelaxationSoundType } from '@/hooks/useRelaxationAudio';
+import { Gamepad2, Wind, Music, Palette, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 
 const breathingCycle = [
   { text: 'Breathe In...', duration: 4000, phase: 'inhale' },
@@ -18,6 +19,19 @@ type RelaxationMode = 'breathing' | 'ragdoll' | 'music' | 'drawing';
 
 export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) => {
   const { triggerWellnessAction } = useDebouncedAchievementTrigger();
+  const {
+    currentSound,
+    isPlaying,
+    volume,
+    isLoading,
+    error,
+    playSound,
+    pauseSound,
+    stopSound,
+    setVolume,
+    togglePlayPause,
+  } = useRelaxationAudio();
+  
   const [currentMode, setCurrentMode] = useState<RelaxationMode>('breathing');
   const [cycleIndex, setCycleIndex] = useState(0);
   const [isBreathingActive, setIsBreathingActive] = useState(false);
@@ -76,9 +90,22 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
   ];
 
   const handleModeChange = (mode: RelaxationMode) => {
+    // Stop audio when switching away from music mode
+    if (currentMode === 'music' && mode !== 'music') {
+      stopSound();
+    }
+    
     setCurrentMode(mode);
     // Trigger achievement when a session is started
     triggerWellnessAction('stress_relief_session_started');
+  };
+
+  // Cleanup audio when exiting
+  const handleExit = () => {
+    if (currentSound) {
+      stopSound();
+    }
+    onExit();
   };
 
   const getBreathingScale = () => {
@@ -224,20 +251,173 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
         );
 
       case 'music':
+        const soundscapes: Array<{
+          id: RelaxationSoundType;
+          name: string;
+          emoji: string;
+          description: string;
+        }> = [
+          { id: 'ocean-waves', name: 'Ocean Waves', emoji: '🌊', description: 'Gentle waves for deep relaxation' },
+          { id: 'rain-sounds', name: 'Rain Sounds', emoji: '🌧️', description: 'Soft rainfall for focus' },
+          { id: 'crackling-fire', name: 'Crackling Fire', emoji: '🔥', description: 'Warm fireplace ambience' },
+          { id: 'forest-ambience', name: 'Forest Ambience', emoji: '🌲', description: 'Nature sounds and birds' },
+        ];
+
         return (
-          <div className="text-center space-y-6">
-            <div className="bg-gray-800/80 backdrop-blur-sm rounded-xl p-8 max-w-md mx-auto border border-gray-700">
-              <h3 className="text-2xl font-bold text-white mb-6">Calming Soundscapes</h3>
-              <div className="space-y-4">
-                {['🌊 Ocean Waves', '🌧️ Rain Sounds', '🔥 Crackling Fire', '🌲 Forest Ambience'].map((sound) => (
-                  <button
-                    key={sound}
-                    className="w-full py-3 px-4 bg-purple-600/20 hover:bg-purple-600/40 rounded-lg text-white transition-colors border border-purple-500/30"
-                  >
-                    {sound}
-                  </button>
-                ))}
+          <div className="text-center space-y-6 max-w-2xl mx-auto">
+            {/* Header with current status */}
+            <div className="bg-gray-800/80 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
+              <h3 className="text-2xl font-bold text-white mb-2">Calming Soundscapes</h3>
+              <p className="text-gray-300 mb-4">
+                {currentSound ? `Now playing: ${soundscapes.find(s => s.id === currentSound)?.name}` : 'Select a soundscape to begin'}
+              </p>
+              
+              {/* Global Controls */}
+              <div className="flex items-center justify-center space-x-4 mb-4">
+                <button
+                  onClick={togglePlayPause}
+                  disabled={!currentSound}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                    !currentSound 
+                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                      : isPlaying 
+                      ? 'bg-red-600 hover:bg-red-700 text-white'
+                      : 'bg-green-600 hover:bg-green-700 text-white'
+                  }`}
+                  aria-label={isPlaying ? 'Pause audio' : 'Play audio'}
+                >
+                  {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                  <span>{isPlaying ? 'Pause' : 'Play'}</span>
+                </button>
+
+                <button
+                  onClick={stopSound}
+                  disabled={!currentSound}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    !currentSound 
+                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-600 hover:bg-gray-700 text-white'
+                  }`}
+                  aria-label="Stop audio"
+                >
+                  Stop
+                </button>
               </div>
+
+              {/* Volume Control */}
+              <div className="flex items-center space-x-3 max-w-xs mx-auto">
+                <VolumeX className="h-4 w-4 text-gray-400" />
+                <div className="flex-1">
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={volume}
+                    onChange={(e) => setVolume(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                    aria-label="Volume control"
+                  />
+                </div>
+                <Volume2 className="h-4 w-4 text-gray-400" />
+                <span className="text-sm text-gray-400 w-8">{Math.round(volume * 100)}%</span>
+              </div>
+
+              {/* Loading and Error States */}
+              {isLoading && (
+                <div className="mt-4 text-blue-400 flex items-center justify-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-400 border-t-transparent"></div>
+                  <span>Loading audio...</span>
+                </div>
+              )}
+
+              {error && (
+                <div className="mt-4 text-red-400 text-sm">
+                  ⚠️ {error} (Using generated sounds as fallback)
+                </div>
+              )}
+            </div>
+
+            {/* Sound Selection Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {soundscapes.map((soundscape) => {
+                const isActive = currentSound === soundscape.id;
+                const isCurrentlyPlaying = isActive && isPlaying;
+                
+                return (
+                  <div
+                    key={soundscape.id}
+                    className={`relative bg-gray-800/60 backdrop-blur-sm rounded-xl p-6 border transition-all cursor-pointer group ${
+                      isActive 
+                        ? 'border-purple-500 bg-purple-900/20' 
+                        : 'border-gray-700 hover:border-gray-600 hover:bg-gray-800/80'
+                    }`}
+                    onClick={() => playSound(soundscape.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        playSound(soundscape.id);
+                      }
+                    }}
+                    aria-label={`Play ${soundscape.name}`}
+                  >
+                    {/* Visual Feedback for Active Sound */}
+                    {isCurrentlyPlaying && (
+                      <div className="absolute inset-0 rounded-xl bg-purple-500/10 animate-pulse"></div>
+                    )}
+                    
+                    <div className="relative z-10">
+                      <div className="text-4xl mb-3 transition-transform group-hover:scale-110">
+                        {soundscape.emoji}
+                      </div>
+                      <h4 className="text-lg font-semibold text-white mb-2">
+                        {soundscape.name}
+                      </h4>
+                      <p className="text-sm text-gray-400 mb-4">
+                        {soundscape.description}
+                      </p>
+                      
+                      {/* Status Indicator */}
+                      <div className="flex items-center justify-center space-x-2">
+                        {isActive ? (
+                          <div className="flex items-center space-x-1 text-purple-400">
+                            {isCurrentlyPlaying ? (
+                              <>
+                                <div className="flex space-x-1">
+                                  <div className="w-1 h-4 bg-purple-400 animate-pulse"></div>
+                                  <div className="w-1 h-4 bg-purple-400 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                                  <div className="w-1 h-4 bg-purple-400 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                                </div>
+                                <span className="text-sm">Playing</span>
+                              </>
+                            ) : (
+                              <>
+                                <Pause className="h-4 w-4" />
+                                <span className="text-sm">Paused</span>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-1 text-gray-500 group-hover:text-purple-400 transition-colors">
+                            <Play className="h-4 w-4" />
+                            <span className="text-sm">Click to play</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Instructions */}
+            <div className="bg-gray-800/40 backdrop-blur-sm rounded-lg p-4 border border-gray-700">
+              <p className="text-gray-300 text-sm">
+                💡 <strong>Tip:</strong> These sounds are designed to loop seamlessly. 
+                Use them while studying, meditating, or whenever you need to relax and focus.
+              </p>
             </div>
           </div>
         );
@@ -275,7 +455,7 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
       <div className="flex items-center justify-between p-6 border-b border-gray-700">
         <h2 className="text-3xl font-bold text-white">Stress Relief Corner 🧘‍♀️</h2>
         <button 
-          onClick={onExit} 
+          onClick={handleExit} 
           className="text-white text-2xl font-bold bg-white/10 hover:bg-white/20 p-3 rounded-full transition-colors"
           aria-label="Exit relaxation mode"
         >

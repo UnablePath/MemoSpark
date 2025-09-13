@@ -35,6 +35,9 @@ export const TutorialTrigger: React.FC<TutorialTriggerProps> = memo(({
     isActive
   } = useTutorial();
 
+  // Don't render if loading and no current state, but add timeout fallback
+  const [showFallback, setShowFallback] = React.useState(false);
+
   // Memoize computed values
   const tutorialState = useMemo(() => {
     const isCompleted = currentProgress?.is_completed || currentProgress?.is_skipped;
@@ -59,9 +62,6 @@ export const TutorialTrigger: React.FC<TutorialTriggerProps> = memo(({
       showTutorial();
     }
   }, [showTutorial, isLoading, disabled]);
-
-  // Don't render if loading and no current state, but add timeout fallback
-  const [showFallback, setShowFallback] = React.useState(false);
   
   React.useEffect(() => {
     if (isLoading && !currentProgress) {
