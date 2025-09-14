@@ -91,7 +91,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground mb-10 text-constrain">
-              MemoSpark is the AI-powered companion that turns your study habits into achievements. Get smart, stay motivated, and never miss a deadline.
+              MemoSpark is an AI-powered companion that turns your study habits into achievements. Study smarter, stay motivated, and never miss a deadline.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -147,7 +147,7 @@ export default function LandingPage() {
               <FeatureCard
                 icon={<CalendarCheck size={32} className="text-green-300" />}
                 title="Smart Scheduling"
-                description="Plan your study sessions effectively with our intelligent, AI-powered tools."
+                description="Plan your study sessions effectively with our intelligent AI-powered tools."
               />
               <FeatureCard
                 icon={<BrainCircuit size={32} className="text-green-300" />}

@@ -117,7 +117,7 @@ export const SocialProof: React.FC = () => {
     {
       name: "Kofi Mensah",
       role: "Business Administration, University of Ghana",
-      content: "The gamification aspect keeps me motivated. I've earned over 350 coins and my productivity has increased by a lot",
+      content: "The gamification aspect keeps me motivated. I've earned over 350 coins and my productivity has increased significantly!",
       rating: 5
     },
     {
