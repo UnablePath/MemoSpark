@@ -40,3 +40,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+SECURE_ANALYTICS_SETUP.md
+ww.cjs
