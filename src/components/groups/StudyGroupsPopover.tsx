@@ -410,11 +410,11 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
         </div>
 
         {/* Main Content - Scrollable */}
-        <div className="flex-1 overflow-hidden">
-          <div className="flex h-full">
+        <div className="flex-1 overflow-y-auto">
+          <div className="flex min-h-full">
             {/* Sidebar */}
             <div className={cn(
-              "w-full sm:w-80 sm:border-r bg-muted/50 flex flex-col overflow-hidden",
+              "w-full sm:w-80 sm:border-r bg-muted/50 flex flex-col",
               selectedGroup && "hidden sm:flex"
             )}>
               <Tabs value={activeTab} onValueChange={(value) => {
@@ -430,7 +430,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                   </TabsList>
                 </div>
 
-                <TabsContent value="browse" className="flex-1 overflow-y-auto p-4 space-y-4">
+                <TabsContent value="browse" className="flex-1 p-4 space-y-4">
                   {/* Search */}
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -550,7 +550,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                   </div>
                 </TabsContent>
 
-                <TabsContent value="my-groups" className="flex-1 overflow-y-auto p-4 space-y-4">
+                <TabsContent value="my-groups" className="flex-1 p-4 space-y-4">
                   {/* Search for My Groups */}
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -626,11 +626,11 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
 
             {/* Main Content */}
             <div className={cn(
-              "flex-1 flex flex-col overflow-hidden",
+              "flex-1 flex flex-col",
               !selectedGroup && "hidden sm:flex"
             )}>
               {selectedGroup ? (
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col">
                   {/* Group Header */}
                   <div className="flex-shrink-0 p-4 border-b">
                     <div className="flex items-center gap-3">
@@ -718,7 +718,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                        )}
                      </TabsContent>
 
-                    <TabsContent value="resources" className="flex-1 overflow-y-auto p-4 space-y-4">
+                    <TabsContent value="resources" className="flex-1 p-4 space-y-4">
                       {/* Add Resource Form */}
                       <div>
                         {membershipStatus[selectedGroup.id] && (
@@ -801,7 +801,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                       </div>
                     </TabsContent>
 
-                    <TabsContent value="members" className="flex-1 overflow-y-auto p-4">
+                    <TabsContent value="members" className="flex-1 p-4">
                       {/* Members List */}
                       <div className="space-y-2">
                           {groupMembers.map((member) => (
