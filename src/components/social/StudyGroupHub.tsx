@@ -529,33 +529,34 @@ export const StudyGroupHub: React.FC = () => {
               Browse Groups
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-[1100px] w-[95vw] h-[80vh] p-0 overflow-hidden border-none shadow-2xl">
-            <div className="flex flex-col h-full">
-              {/* Header */}
-              <div className="p-4 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="flex items-center justify-between">
-                  <AnimatedGradientText>
-                    <span className="inline animate-gradient bg-gradient-to-r from-[#ffaa40] via-[#9c40ff] to-[#ffaa40] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent">
-                      Study Groups Hub
-                    </span>
-                  </AnimatedGradientText>
-                  {/* Single close control is provided by the dialog chrome; remove duplicate */}
-                </div>
+          <DialogContent className="max-w-[1100px] w-[95vw] h-[80vh] p-0 flex flex-col overflow-hidden border-none shadow-2xl">
+            {/* Header - Fixed */}
+            <div className="flex-shrink-0 p-4 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+              <div className="flex items-center justify-between">
+                <AnimatedGradientText>
+                  <span className="inline animate-gradient bg-gradient-to-r from-[#ffaa40] via-[#9c40ff] to-[#ffaa40] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent">
+                    Study Groups Hub
+                  </span>
+                </AnimatedGradientText>
+                {/* Single close control is provided by the dialog chrome; remove duplicate */}
               </div>
+            </div>
 
-              <div className="flex flex-1 overflow-hidden min-h-0">
+            {/* Main Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="flex min-h-full">
                 {/* Sidebar */}
                 <div className={cn(
-                  "w-full sm:w-80 sm:border-r bg-muted/40 transition-all duration-300 flex flex-col h-full min-h-0 overflow-hidden",
+                  "w-full sm:w-80 sm:border-r bg-muted/40 transition-all duration-300 flex flex-col",
                   selectedGroup && "hidden sm:block"
                 )}>
-                  <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col min-h-0">
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col">
                     <TabsList className="grid w-full grid-cols-2 m-2 h-10 rounded-xl sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
                       <TabsTrigger value="browse" className="text-xs px-3 rounded-lg">Browse</TabsTrigger>
                       <TabsTrigger value="my-groups" className="text-xs px-3 rounded-lg">My Groups</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="browse" className="m-0 h-[calc(100%-60px)]">
+                    <TabsContent value="browse" className="m-0">
                       <div className="p-4 space-y-4">
                         {/* Search & Categories */}
                         <div className="space-y-3">
@@ -672,7 +673,7 @@ export const StudyGroupHub: React.FC = () => {
                         </Dialog>
 
                         {/* Groups List (discovery) */}
-                        <ScrollArea className="flex-1 min-h-0 rounded-md border p-4">
+                        <div className="rounded-md border p-4">
                           <div className="space-y-2">
                             {(discoveryQuery.data ?? filteredGroups).map((group) => (
                               <Card 
@@ -721,12 +722,12 @@ export const StudyGroupHub: React.FC = () => {
                               </Card>
                             ))}
                           </div>
-                        </ScrollArea>
+                        </div>
                       </div>
                     </TabsContent>
 
-                    <TabsContent value="my-groups" className="m-0 flex-1 min-h-0">
-                      <ScrollArea className="flex-1 min-h-0 p-4">
+                    <TabsContent value="my-groups" className="m-0">
+                      <div className="p-4">
                         <div className="space-y-2">
                           {userGroups.map((group) => (
                             <Card 
@@ -771,7 +772,7 @@ export const StudyGroupHub: React.FC = () => {
                             </Card>
                           ))}
                         </div>
-                      </ScrollArea>
+                      </div>
                     </TabsContent>
                   </Tabs>
                 </div>
@@ -858,9 +859,9 @@ export const StudyGroupHub: React.FC = () => {
                           </TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="chat" className="flex-1 flex flex-col m-0">
-                           <div className="flex-1 p-4 min-h-0">
-                             <ScrollArea className="h-full rounded-md border p-4">
+                        <TabsContent value="chat" className="flex-1 m-0">
+                           <div className="p-4">
+                             <div className="rounded-md border p-4">
                               <div className="space-y-4">
                                 {groupMessages.length === 0 ? (
                                   <div className="text-center text-muted-foreground py-8">
@@ -894,7 +895,7 @@ export const StudyGroupHub: React.FC = () => {
                                   </AnimatedList>
                                 )}
                               </div>
-                            </ScrollArea>
+                             </div>
                           </div>
                           
                           {membershipStatus[selectedGroup.id] && (
@@ -934,7 +935,7 @@ export const StudyGroupHub: React.FC = () => {
                         </TabsContent>
 
                         {/* Sessions Tab */}
-                        <TabsContent value="sessions" className="flex-1 flex flex-col m-0">
+                        <TabsContent value="sessions" className="flex-1 m-0">
                           <div className="p-4 space-y-4">
                               <Card>
                               <CardHeader>
@@ -1185,7 +1186,7 @@ export const StudyGroupHub: React.FC = () => {
                               </Card>
                             )}
 
-                            <ScrollArea className="h-[200px] sm:h-[250px] md:h-[300px] rounded-md border p-4">
+                            <div className="rounded-md border p-4">
                               <div className="space-y-2">
                                 {groupResources.map((resource) => (
                                   <Card key={resource.id}>
@@ -1215,12 +1216,12 @@ export const StudyGroupHub: React.FC = () => {
                                   </Card>
                                 ))}
                               </div>
-                            </ScrollArea>
+                            </div>
                           </div>
                         </TabsContent>
 
                         <TabsContent value="members" className="flex-1 m-0 p-4">
-                          <ScrollArea className="h-[200px] sm:h-[250px] md:h-[300px] rounded-md border p-4">
+                          <div className="rounded-md border p-4">
                             <div className="space-y-2">
                               {groupMembers.map((member) => (
                                 <Card key={member.id}>
@@ -1250,7 +1251,7 @@ export const StudyGroupHub: React.FC = () => {
                                 </Card>
                               ))}
                             </div>
-                          </ScrollArea>
+                          </div>
                         </TabsContent>
                       </Tabs>
                     </>
