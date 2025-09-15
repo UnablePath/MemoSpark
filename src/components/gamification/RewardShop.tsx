@@ -33,6 +33,7 @@ import { useFetchAchievements } from '@/hooks/useAchievementQueries';
 import { useUserTier } from '@/hooks/useUserTier';
 import { usePremiumPopup } from '@/components/providers/premium-popup-provider';
 import { useInvalidateAchievementQueries } from '@/hooks/useAchievementQueries';
+import { useCoinBalance } from '@/hooks/useCoinBalance';
 
 interface RewardShopProps {
   variant?: 'full' | 'modal';
@@ -101,10 +102,10 @@ export const RewardShop: React.FC<RewardShopProps> = ({
   const { setTheme } = useTheme();
   const { showFeatureGatePopup } = usePremiumPopup();
   const { invalidateBalance, invalidatePurchasedThemes } = useInvalidateAchievementQueries();
+  const { balance, spendCoins, refreshBalance } = useCoinBalance();
   
   // State for shop items and user data
   const [shopItems, setShopItems] = useState<CoinSpendingCategory[]>([]);
-  const [balance, setBalance] = useState(0);
   const [userStats, setUserStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
@@ -114,23 +115,17 @@ export const RewardShop: React.FC<RewardShopProps> = ({
   // Check if user is premium
   const isPremium = tier === 'premium';
 
-  // Use consolidated balance from achievements API if available
-  const consolidatedBalance = 0; // This would come from parent component or context
-
   useEffect(() => {
     if (user?.id) {
       loadShopData();
     }
-  }, [user?.id, consolidatedBalance]);
+  }, [user?.id]);
 
   // Load shop data
   const loadShopData = async () => {
     if (!user?.id) return;
 
     try {
-      // Use consolidated balance data from achievements API
-      setBalance(consolidatedBalance);
-
       const itemsResponse = await fetch('/api/gamification/shop-items');
 
       if (itemsResponse.ok) {
@@ -184,7 +179,8 @@ export const RewardShop: React.FC<RewardShopProps> = ({
           description: `You spent ${item.cost} coins. New balance: ${result.purchase.new_balance}`
         });
         
-        setBalance(result.purchase.new_balance);
+        // Update centralized balance - no need to set local state
+        refreshBalance();
         setSelectedItem(null);
         
         // If it's a theme, apply it immediately and show success message

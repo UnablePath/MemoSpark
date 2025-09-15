@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Coins, Gift, TrendingUp, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { coinEconomy, CoinBonusEvent } from '@/lib/gamification/CoinEconomy';
+import { useCoinBalance } from '@/hooks/useCoinBalance';
 
 interface CoinWidgetProps {
   variant?: 'minimal' | 'compact' | 'detailed';
@@ -23,36 +24,37 @@ export const CoinWidget: React.FC<CoinWidgetProps> = ({
   onCoinChange
 }) => {
   const { user } = useUser();
-  const [balance, setBalance] = useState(0);
+  const { balance, loading: balanceLoading, refreshBalance, earnCoins } = useCoinBalance();
   const [bonusEvents, setBonusEvents] = useState<CoinBonusEvent[]>([]);
   const [todayEarned, setTodayEarned] = useState(0);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
 
-  // Load coin data
+  // Load additional coin data (not balance, which comes from hook)
   const loadCoinData = async () => {
     if (!user?.id) return;
 
     try {
-      const [balanceData, bonusData, summaryData] = await Promise.all([
-        coinEconomy.getCoinBalance(user.id),
+      const [bonusData, summaryData] = await Promise.all([
         coinEconomy.getActiveBonusEvents(),
         coinEconomy.getEarningSummary(user.id)
       ]);
 
-      setBalance(balanceData);
       setBonusEvents(bonusData);
       setTodayEarned(summaryData.todayEarned);
-      
-      if (onCoinChange) {
-        onCoinChange(balanceData);
-      }
     } catch (error) {
       console.error('Error loading coin data:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  // Notify parent component when balance changes
+  useEffect(() => {
+    if (onCoinChange) {
+      onCoinChange(balance);
+    }
+  }, [balance, onCoinChange]);
 
   useEffect(() => {
     loadCoinData();
@@ -70,12 +72,10 @@ export const CoinWidget: React.FC<CoinWidgetProps> = ({
         toast.success(`Daily bonus claimed! +${result.amount} coins`, {
           icon: '🪙'
         });
-        setBalance(result.newBalance);
-        setTodayEarned(prev => prev + result.amount);
         
-        if (onCoinChange) {
-          onCoinChange(result.newBalance);
-        }
+        // Update centralized balance
+        await earnCoins(result.amount, 'daily_bonus');
+        setTodayEarned(prev => prev + result.amount);
       } else {
         if (result.error?.includes('already claimed')) {
           toast.info('Daily bonus already claimed today');

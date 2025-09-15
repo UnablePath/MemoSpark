@@ -19,6 +19,7 @@ import { KoalaMascot } from "@/components/ui/koala-mascot";
 import { cn } from "@/lib/utils";
 import { useReminders } from "@/hooks/useReminders";
 import { useFetchAchievements } from "@/hooks/useAchievementQueries";
+import { useCoinBalanceDisplay } from "@/hooks/useCoinBalance";
 import { checkAchievementProgress } from "@/lib/supabase/client";
 import { RemindersSkeleton } from "./RemindersSkeleton";
 import { ReminderSettings } from "./ReminderSettings";
@@ -77,7 +78,7 @@ const RemindersTab = () => {
     const [showReminderSettings, setShowReminderSettings] = useState(false);
     const [showAddReminder, setShowAddReminder] = useState(false);
     const [showCoinShop, setShowCoinShop] = useState(false);
-    const [coinBalance, setCoinBalance] = useState(0);
+    const { balance: coinBalance } = useCoinBalanceDisplay();
     
     // Filter and view states
     const [reminderFilter, setReminderFilter] = useState<'active' | 'completed' | 'all'>('active');
@@ -130,21 +131,7 @@ const RemindersTab = () => {
         }
     }, [loading, reminders]);
 
-    // Load coin balance separately
-    useEffect(() => {
-        const loadCoinBalance = async () => {
-            if (userId) {
-                try {
-                    const { coinEconomy } = await import('@/lib/gamification/CoinEconomy');
-                    const balance = await coinEconomy.getCoinBalance(userId);
-                    setCoinBalance(balance);
-                } catch (error) {
-                    console.error('Error loading coin balance:', error);
-                }
-            }
-        };
-        loadCoinBalance();
-    }, [userId]);
+    // Coin balance is now managed by useCoinBalanceDisplay hook
     
     const handleCompleteReminder = async (reminder: Reminder) => {
         if (!userId) return;

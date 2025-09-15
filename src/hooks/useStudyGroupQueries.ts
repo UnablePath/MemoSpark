@@ -54,7 +54,7 @@ export function useDiscoverGroups(getToken: () => Promise<string | null>, filter
   const manager = useMemo(() => new StudyGroupManager(getToken), [getToken]);
   return useQuery({
     queryKey: studyGroupKeys.discovery(filters),
-    queryFn: () => manager.searchGroups({ query: filters.q, categoryId: filters.categoryId, limit: 30, offset: 0 }),
+    queryFn: () => manager.searchGroups({ query: filters.q, categoryId: filters.categoryId || undefined, limit: 30, offset: 0 }),
   });
 }
 

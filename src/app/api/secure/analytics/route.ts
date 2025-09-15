@@ -4,6 +4,7 @@ import { supabaseServerAdmin } from '@/lib/supabase/server';
 import { createHash } from 'crypto';
 
 function getClientIP(request: NextRequest): string {
+  // Check various headers for client IP
   const forwarded = request.headers.get('x-forwarded-for');
   const real = request.headers.get('x-real-ip');
   const cfConnecting = request.headers.get('cf-connecting-ip');
@@ -18,7 +19,8 @@ function getClientIP(request: NextRequest): string {
     return cfConnecting;
   }
   
-  return request.ip || '127.0.0.1';
+  // For development, allow localhost
+  return '127.0.0.1';
 }
 
 function isIPAllowed(ip: string): boolean {
@@ -34,7 +36,7 @@ function isIPAllowed(ip: string): boolean {
 
 async function getComprehensiveAnalytics() {
   if (!supabaseServerAdmin) {
-    throw new Error('Database not available');
+    throw new Error('Database not available - SUPABASE_SERVICE_ROLE_KEY missing');
   }
 
   const now = new Date();
@@ -48,21 +50,30 @@ async function getComprehensiveAnalytics() {
       .from('user_profiles')
       .select('*');
 
-    if (usersError) throw usersError;
+    if (usersError) {
+      console.error('Error querying user_profiles:', usersError);
+      throw new Error(`user_profiles table error: ${usersError.message}`);
+    }
 
     // Task Analytics
     const { data: tasks, error: tasksError } = await supabaseServerAdmin
       .from('tasks')
       .select('*');
 
-    if (tasksError) throw tasksError;
+    if (tasksError) {
+      console.error('Error querying tasks:', tasksError);
+      throw new Error(`tasks table error: ${tasksError.message}`);
+    }
 
     // Achievement Analytics
     const { data: achievements, error: achievementsError } = await supabaseServerAdmin
       .from('user_achievements')
       .select('*');
 
-    if (achievementsError) throw achievementsError;
+    if (achievementsError) {
+      console.error('Error querying user_achievements:', achievementsError);
+      throw new Error(`user_achievements table error: ${achievementsError.message}`);
+    }
 
     // Gamification Analytics
     const { data: gamification, error: gamificationError } = await supabaseServerAdmin
@@ -226,7 +237,8 @@ export async function GET(request: NextRequest) {
     console.error('Analytics API error:', error);
     return NextResponse.json({ 
       error: 'Failed to fetch analytics data',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
     }, { status: 500 });
   }
 }

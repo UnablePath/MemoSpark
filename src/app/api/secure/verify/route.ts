@@ -22,6 +22,7 @@ const SECURE_CONFIG = {
 const attemptStore = new Map<string, { count: number; lastAttempt: number; lockedUntil?: number }>();
 
 function getClientIP(request: NextRequest): string {
+  // Check various headers for client IP
   const forwarded = request.headers.get('x-forwarded-for');
   const real = request.headers.get('x-real-ip');
   const cfConnecting = request.headers.get('cf-connecting-ip');
@@ -36,7 +37,8 @@ function getClientIP(request: NextRequest): string {
     return cfConnecting;
   }
   
-  return request.ip || '127.0.0.1';
+  // For development, allow localhost
+  return '127.0.0.1';
 }
 
 function hashPassword(password: string): string {

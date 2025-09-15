@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { StudyGroupManager, StudyGroup, StudyGroupMember, StudyGroupResource } from '@/lib/social/StudyGroupManager';
 import { MessagingService } from '@/lib/messaging/MessagingService';
+import { StudyGroupChatPanel } from './StudyGroupChatPanel';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -198,11 +199,16 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
       
       // Only load sensitive data if user is a member
       const [members, resources] = await Promise.all([
-        studyGroupManager.getGroupMembersWithNames(group.id, user.id),
-        studyGroupManager.getResources(group.id, user.id)
+        studyGroupManager.getGroupMembersWithNames(group.id),
+        studyGroupManager.getResources(group.id)
       ]);
       
-      setGroupMembers(members);
+      // Map members to include user_name property
+      const membersWithUserName = members.map(member => ({
+        ...member,
+        user_name: member.name || 'Unknown'
+      }));
+      setGroupMembers(membersWithUserName);
       setGroupResources(resources);
       
       // Load messages if conversation exists and user is a member
@@ -233,7 +239,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
     if (!user || !newGroupName.trim()) return;
     
     try {
-      await studyGroupManager.createGroup(newGroupName, user.id, newGroupDescription);
+      await StudyGroupManager.createGroup(newGroupName, newGroupDescription);
       setNewGroupName("");
       setNewGroupDescription("");
       loadUserGroups();
@@ -257,7 +263,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
         return;
       }
 
-      await studyGroupManager.addMember(groupId, user.id, 'member');
+      await StudyGroupManager.joinGroup(groupId);
       setMembershipStatus(prev => ({ ...prev, [groupId]: true }));
       loadUserGroups();
       loadMyGroups(); // Refresh to update membership status
@@ -279,7 +285,7 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
         return;
       }
 
-      await studyGroupManager.removeMember(groupId, user.id);
+      await StudyGroupManager.leaveGroup(groupId);
       setMembershipStatus(prev => ({ ...prev, [groupId]: false }));
       loadUserGroups();
       loadMyGroups(); // Refresh to update membership status
@@ -301,9 +307,9 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
       await studyGroupManager.addResource(selectedGroup.id, user.id, {
         resource_type: newResourceType,
         title: newResourceTitle,
-        content: newResourceContent || null,
-        url: newResourceUrl || null,
-        file_path: null
+        description: newResourceContent || undefined,
+        url: newResourceUrl || undefined,
+        file_path: undefined
       });
       
       setNewResourceTitle("");
@@ -386,6 +392,12 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
         )}
       </DialogTrigger>
       <DialogContent className="max-w-7xl w-[95vw] h-[85vh] p-0 flex flex-col overflow-hidden">
+        {/* Hidden title for accessibility */}
+        <DialogHeader className="sr-only">
+          <DialogTitle>Study Groups Hub</DialogTitle>
+          <DialogDescription>Browse and manage your study groups</DialogDescription>
+        </DialogHeader>
+        
         {/* Header - Fixed */}
         <div className="flex-shrink-0 p-4 border-b bg-background">
           <div className="flex items-center justify-between">
@@ -676,80 +688,35 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
                         </TabsList>
                        </div>
 
-                     <TabsContent value="chat" className="flex-1 overflow-y-auto p-4 space-y-4">
-                       {/* Messages Area */}
-                       <div className="space-y-3">
-                           {groupMessages.length === 0 ? (
-                             <div className="text-center text-muted-foreground py-8">
+                     <TabsContent value="chat" className="flex-1 p-0">
+                       {membershipStatus[selectedGroup.id] ? (
+                         selectedGroup?.conversation_id ? (
+                           <StudyGroupChatPanel 
+                             conversationId={selectedGroup.conversation_id}
+                             groupName={selectedGroup.name}
+                             className="h-full border-0"
+                           />
+                         ) : (
+                           <div className="flex items-center justify-center h-64 p-4">
+                             <div className="text-center text-muted-foreground">
                                <MessageSquare className="h-8 w-8 mx-auto mb-2" />
-                               <p>No messages yet. Start the conversation!</p>
+                               <p>Chat not available for this group</p>
+                               <p className="text-xs">Group conversation needs to be set up</p>
                              </div>
-                           ) : (
-                             <AnimatedList>
-                               {groupMessages.map((message) => (
-                                 <AnimatedListItem key={message.id}>
-                                   <div className="flex gap-3">
-                                     <Avatar className="h-8 w-8 flex-shrink-0">
-                                       <AvatarFallback>
-                                         {(message.sender_name || message.sender?.full_name || 'Unknown User').charAt(0).toUpperCase()}
-                                       </AvatarFallback>
-                                     </Avatar>
-                                     <div className="flex-1 min-w-0">
-                                       <div className="flex items-center gap-2 mb-1">
-                                         <span className="font-medium text-sm">
-                                           {message.sender_name || message.sender?.full_name || 'Unknown User'}
-                                         </span>
-                                         <span className="text-xs text-muted-foreground">
-                                           {new Date(message.created_at).toLocaleTimeString()}
-                                         </span>
-                                       </div>
-                                       <p className="text-sm break-words">{message.content}</p>
-                                     </div>
-                                   </div>
-                                 </AnimatedListItem>
-                               ))}
-                             </AnimatedList>
-                           )}
+                           </div>
+                         )
+                       ) : (
+                         <div className="flex items-center justify-center h-64 p-4">
+                           <div className="text-center">
+                             <MessageSquare className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                             <p className="text-muted-foreground mb-3">Join this group to participate in chat</p>
+                             <Button size="sm" onClick={() => handleJoinGroup(selectedGroup.id)}>
+                               Join Group
+                             </Button>
+                           </div>
                          </div>
-                       
-                       {/* Message Input */}
-                       {membershipStatus[selectedGroup.id] && (
-                        <div className="border-t p-4">
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="Type a message..."
-                              value={newMessage}
-                              onChange={(e) => setNewMessage(e.target.value)}
-                              onKeyPress={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                  e.preventDefault();
-                                  handleSendMessage();
-                                }
-                              }}
-                              disabled={!membershipStatus[selectedGroup.id]}
-                              className="flex-1"
-                            />
-                            <Button 
-                              onClick={handleSendMessage}
-                              disabled={!newMessage.trim() || !membershipStatus[selectedGroup.id]}
-                              className="h-10 w-10 p-0 flex-shrink-0"
-                            >
-                              <Send className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                       {!membershipStatus[selectedGroup.id] && (
-                        <div className="border-t p-4 bg-muted/30">
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm text-muted-foreground">Join this group to participate in chat.</p>
-                            <Button size="sm" onClick={() => handleJoinGroup(selectedGroup.id)}>
-                              Join Group
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </TabsContent>
+                       )}
+                     </TabsContent>
 
                     <TabsContent value="resources" className="flex-1 overflow-y-auto p-4 space-y-4">
                       {/* Add Resource Form */}

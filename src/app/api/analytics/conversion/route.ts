@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const conversionEvent = {
       ...body,
       user_id: userId || body.user_data?.user_id || null,
-      ip_address: request.ip || null,
+      ip_address: null,
       user_agent: request.headers.get('user-agent') || null,
       created_at: new Date().toISOString(),
     };

@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const analyticsEvent = {
       ...body,
       user_id: userId || body.userId || null,
-      ip_address: request.ip || null,
+      ip_address: null,
       user_agent: request.headers.get('user-agent') || null,
       created_at: new Date().toISOString(),
     };

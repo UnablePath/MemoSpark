@@ -57,7 +57,7 @@ export function useRetryableRequest<T>(
     isRetrying: false,
   });
 
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const execute = useCallback(async (isRetry = false) => {
     setState(prev => ({
@@ -212,3 +212,4 @@ export function useRetryableQuery<T>(
     isFresh: Date.now() - lastSuccessTime < (config?.staleTime || 5 * 60 * 1000),
   };
 }
+

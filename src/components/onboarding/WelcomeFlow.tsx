@@ -245,3 +245,4 @@ export const WelcomeFlow: React.FC<WelcomeFlowProps> = ({
     </div>
   );
 };
+

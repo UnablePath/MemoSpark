@@ -20,12 +20,14 @@ import { stuCelebration } from '@/lib/stu/StuCelebration';
 import { StreakTracker } from '@/lib/gamification/StreakTracker';
 import { RewardShop } from './RewardShop';
 import { toast } from 'sonner';
+import { useCoinBalanceDisplay } from '@/hooks/useCoinBalance';
 import type { LeaderboardUser, UserAchievement } from '@/types/achievements';
 
 const GamificationHub = () => {
   const { user } = useUser();
   const { data: achievementsData, isLoading: loading, error } = useFetchAchievements();
   const { invalidateAll: reloadAchievements } = useInvalidateAchievementQueries();
+  const { balance: coinBalance } = useCoinBalanceDisplay();
   const { 
     triggerAchievement, 
     triggerTaskCompleted, 
@@ -37,8 +39,6 @@ const GamificationHub = () => {
   // Extract data from the consolidated response
   const achievements = achievementsData?.achievements || [];
   const stats = achievementsData?.stats || { total: 0, unlocked: 0, remaining: 0 };
-  const balanceData = achievementsData?.balance;
-  const coinBalance = balanceData?.balance || 0;
   const themesData = achievementsData?.themes;
   
   // Process achievements into the format expected by existing code

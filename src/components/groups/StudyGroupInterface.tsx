@@ -116,7 +116,7 @@ export const StudyGroupInterface: React.FC = () => {
   const handleSelectGroup = async (group: StudyGroup) => {
     if(!studyGroupManager) return;
     setSelectedGroup(group);
-    const members = await studyGroupManager.getGroupMembers(group.id);
+    const members = await studyGroupManager.getGroupMembersWithNames(group.id);
     setGroupMembers(members);
   };
 

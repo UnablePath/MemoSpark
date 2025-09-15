@@ -73,7 +73,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
   // Refs
   const overlayRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Memoize all steps to prevent recalculations
   const allSteps = useMemo(() => tutorialManager.getAllSteps(), [tutorialManager]);
