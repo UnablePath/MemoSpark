@@ -12,8 +12,8 @@
   }
   
   /* Ensure buttons have adequate touch area */
-  button, 
-  [role="button"],
+  button:not([data-radix-select-trigger]), 
+  [role="button"]:not([data-radix-select-trigger]),
   [role="tab"],
   input[type="button"],
   input[type="submit"] {
@@ -36,17 +36,33 @@
   [data-radix-select-trigger] {
     min-height: unset !important;
     cursor: pointer !important;
+    pointer-events: auto !important;
+    user-select: none !important;
   }
   
   [data-radix-select-content] {
     z-index: 9999 !important;
-    position: relative !important;
+    pointer-events: auto !important;
+  }
+  
+  /* Ensure Radix Select components are not affected by global button styles */
+  [data-radix-select-trigger]:not([data-disabled]) {
+    opacity: 1 !important;
+  }
+  
+  /* Debug styles for Select components */
+  [data-radix-select-trigger] {
+    outline: 1px solid red !important;
+  }
+  
+  [data-radix-select-content] {
+    outline: 2px solid blue !important;
   }
   
   /* Optimize form inputs for mobile */
   input, 
   textarea, 
-  select {
+  select:not([data-radix-select-trigger]) {
     min-height: 44px;
     font-size: 16px; /* Prevent zoom on iOS */
   }
