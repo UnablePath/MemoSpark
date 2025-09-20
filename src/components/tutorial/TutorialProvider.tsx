@@ -73,7 +73,7 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
   
   // Rate limiting for tutorial status checks
   const lastStatusCheckRef = useRef<number>(0);
-  const readonly STATUS_CHECK_INTERVAL = 5000; // 5 seconds minimum between checks
+  const STATUS_CHECK_INTERVAL = 5000; // 5 seconds minimum between checks
 
   // Check if we're on dashboard
   useEffect(() => {
