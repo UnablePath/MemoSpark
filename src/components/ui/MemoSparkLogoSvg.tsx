@@ -14,10 +14,8 @@ export const MemoSparkLogoSvg: React.FC<MemoSparkLogoSvgProps> = ({
   darkBackground = false
 }) => {
   // Calculate proportional width based on original dimensions (1062.4 x 199.48)
-  // Reduce size by 7% globally
   const aspectRatio = 1062.4 / 199.48;
-  const adjustedHeight = height * 0.93; // 7% reduction
-  const width = adjustedHeight * aspectRatio;
+  const width = height * aspectRatio;
   
   // Determine text color: explicit prop > context-based > CSS custom property > theme-aware fallback
   const logoTextColor = textColor || 
@@ -27,10 +25,10 @@ export const MemoSparkLogoSvg: React.FC<MemoSparkLogoSvgProps> = ({
   return (
     <svg
       viewBox="0 0 1062.4 199.48"
-      height={adjustedHeight}
+      height={height}
       width={width}
       style={{ 
-        height: adjustedHeight, 
+        height, 
         width, 
         display: 'block',
         '--logo-text-color': logoTextColor

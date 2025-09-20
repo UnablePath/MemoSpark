@@ -1061,8 +1061,8 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
          <Dialog open={showICalDialog} onOpenChange={setShowICalDialog}>
            <DialogContent className="max-w-4xl">
              <DialogHeader>
-               <DialogTitle>Import/Export Calendar</DialogTitle>
-               <DialogDescription>
+               <DialogTitle className="text-foreground">Import/Export Calendar</DialogTitle>
+               <DialogDescription className="text-muted-foreground">
                  Import events from iCal files or export your calendar data
                </DialogDescription>
              </DialogHeader>

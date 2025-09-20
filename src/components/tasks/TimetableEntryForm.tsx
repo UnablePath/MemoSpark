@@ -466,7 +466,7 @@ export const TimetableEntryForm: React.FC<TimetableEntryFormProps> = ({
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0 rounded-lg" align="center">
                       <Calendar
                         mode="single"
                         selected={field.value}
@@ -511,7 +511,7 @@ export const TimetableEntryForm: React.FC<TimetableEntryFormProps> = ({
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0 rounded-lg" align="center">
                       <Calendar
                         mode="single"
                         selected={field.value}

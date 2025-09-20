@@ -643,8 +643,8 @@ export const TimetableView: React.FC<TimetableViewProps> = ({
       <Dialog open={showICalDialog} onOpenChange={setShowICalDialog}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Import/Export Timetable</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-foreground">Import/Export Timetable</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Import class schedules from iCal files or export your timetable data
             </DialogDescription>
           </DialogHeader>

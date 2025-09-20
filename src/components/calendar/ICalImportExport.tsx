@@ -200,15 +200,15 @@ export const ICalImportExport: React.FC<ICalImportExportProps> = ({
             <div
               className={`
                 border-2 border-dashed rounded-lg p-6 text-center transition-colors
-                ${dragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}
-                ${isImporting ? 'opacity-50 pointer-events-none' : 'hover:border-gray-400'}
+                ${dragOver ? 'border-primary bg-primary/10' : 'border-muted-foreground/30'}
+                ${isImporting ? 'opacity-50 pointer-events-none' : 'hover:border-muted-foreground/50'}
               `}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
             >
-              <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-sm text-gray-600 mb-2">
+              <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-sm text-foreground mb-2">
                 Drag and drop your .ics file here, or
               </p>
               <Button
@@ -230,7 +230,7 @@ export const ICalImportExport: React.FC<ICalImportExportProps> = ({
             {isImporting && (
               <div className="space-y-2">
                 <Progress value={undefined} className="h-2" />
-                <p className="text-sm text-gray-600">Processing iCal file...</p>
+                <p className="text-sm text-foreground">Processing iCal file...</p>
               </div>
             )}
 
@@ -305,9 +305,9 @@ export const ICalImportExport: React.FC<ICalImportExportProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-sm text-gray-600 space-y-2">
+            <div className="text-sm text-foreground space-y-2">
               <p>Export your calendar data to an .ics file that can be imported into:</p>
-              <ul className="list-disc list-inside ml-4">
+              <ul className="list-disc list-inside ml-4 text-muted-foreground">
                 <li>Google Calendar</li>
                 <li>Apple Calendar</li>
                 <li>Outlook</li>
@@ -315,9 +315,9 @@ export const ICalImportExport: React.FC<ICalImportExportProps> = ({
               </ul>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
               <div className="space-y-1">
-                <p className="font-medium">Export includes:</p>
+                <p className="font-medium text-foreground">Export includes:</p>
                 <div className="flex gap-2">
                   {tasks.length > 0 && (
                     <Badge variant="outline">{tasks.length} tasks</Badge>
@@ -355,6 +355,7 @@ export const ICalImportExport: React.FC<ICalImportExportProps> = ({
     </div>
   );
 };
+
 
 
 

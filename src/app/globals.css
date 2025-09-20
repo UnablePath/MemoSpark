@@ -32,6 +32,17 @@
     min-width: unset !important;
   }
   
+  /* Fix for Select components - ensure they work properly */
+  [data-radix-select-trigger] {
+    min-height: unset !important;
+    cursor: pointer !important;
+  }
+  
+  [data-radix-select-content] {
+    z-index: 9999 !important;
+    position: relative !important;
+  }
+  
   /* Optimize form inputs for mobile */
   input, 
   textarea, 
