@@ -28,7 +28,7 @@ export function ConditionalHeader() {
       </div>
       
       <SignedIn>
-        <UserButton afterSignOutUrl="/">
+        <UserButton fallbackRedirectUrl="/">
           {/* Check Clerk docs for the exact prop name if /user-profile is the default manage account page */}
           {/* UserButton.UserProfilePage might be for overriding the entire page, 
              UserButton.User членыПрофиляLink is for adding links. 

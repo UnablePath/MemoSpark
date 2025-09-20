@@ -36,6 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from '@clerk/nextjs';
 import { useFetchTasks } from "@/hooks/useTaskQueries";
+import { ICalImportExport } from "@/components/calendar/ICalImportExport";
 import {
   expandRecurringTasks,
   getRecurrenceDescription,
@@ -64,6 +65,7 @@ import {
   Book,
   BookOpen,
   Calendar as CalendarIcon,
+  FileDown,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -244,6 +246,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
   const [selectedTask, setSelectedTask] = useState<Task | ScheduledTask | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showICalDialog, setShowICalDialog] = useState(false);
 
   // Refs
   const calendarRef = useRef<FullCalendar>(null);
@@ -818,23 +821,36 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
             </Button>
           </div>
 
-          <Separator />
+           <Separator />
 
-          <Button
-            onClick={handleRefresh}
-            className={actionButtonVariants({
-              variant: "secondary",
-              size: "sm",
-            })}
-            aria-label="Refresh calendar data"
-          >
-            <Loader2 className="h-4 w-4 mr-2" />
-            Refresh Data
-          </Button>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
+           <div className="space-y-2">
+             <Button
+               onClick={() => setShowICalDialog(true)}
+               className="w-full"
+               variant="outline"
+             >
+               <FileDown className="h-4 w-4 mr-2" />
+               Import/Export iCal
+             </Button>
+           </div>
+
+           <Separator />
+
+           <Button
+             onClick={handleRefresh}
+             className={actionButtonVariants({
+               variant: "secondary",
+               size: "sm",
+             })}
+             aria-label="Refresh calendar data"
+           >
+             <Loader2 className="h-4 w-4 mr-2" />
+             Refresh Data
+           </Button>
+         </div>
+       </SheetContent>
+     </Sheet>
+   );
 
   // Main render with enhanced accessibility and responsive design
   return (
@@ -908,39 +924,50 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
               </label>
             </div>
 
-            {/* Smart schedule controls for desktop */}
-            <div className="hidden md:flex items-center gap-2">
-              <Button
-                onClick={generateSmartSchedule}
-                disabled={isGeneratingSchedule}
-                variant="outline"
-                size="sm"
-              >
-                {isGeneratingSchedule ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Smart Schedule
-                  </>
-                )}
-              </Button>
-              <Switch
-                id="show-smart-schedule"
-                checked={showSmartSchedule}
-                onCheckedChange={setShowSmartSchedule}
-                aria-label="Toggle smart schedule view"
-              />
-              <label
-                htmlFor="show-smart-schedule"
-                className="text-sm text-muted-foreground cursor-pointer"
-              >
-                AI View
-              </label>
-            </div>
+             {/* Smart schedule controls for desktop */}
+             <div className="hidden md:flex items-center gap-2">
+               <Button
+                 onClick={generateSmartSchedule}
+                 disabled={isGeneratingSchedule}
+                 variant="outline"
+                 size="sm"
+               >
+                 {isGeneratingSchedule ? (
+                   <>
+                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                     Generating...
+                   </>
+                 ) : (
+                   <>
+                     <Sparkles className="h-4 w-4 mr-2" />
+                     Smart Schedule
+                   </>
+                 )}
+               </Button>
+               <Switch
+                 id="show-smart-schedule"
+                 checked={showSmartSchedule}
+                 onCheckedChange={setShowSmartSchedule}
+                 aria-label="Toggle smart schedule view"
+               />
+               <label
+                 htmlFor="show-smart-schedule"
+                 className="text-sm text-muted-foreground cursor-pointer"
+               >
+                 AI View
+               </label>
+             </div>
+
+             {/* iCal Import/Export button */}
+             <Button
+               onClick={() => setShowICalDialog(true)}
+               variant="outline"
+               size="sm"
+               className="hidden md:flex"
+             >
+               <FileDown className="h-4 w-4 mr-2" />
+               iCal
+             </Button>
 
             <MobileNavigation />
           </div>
@@ -1028,8 +1055,37 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
           </Card>
         </MagicCard>
 
-        <TaskDetailsModal />
-      </div>
-    </BlurFade>
-  );
-};
+         <TaskDetailsModal />
+
+         {/* iCal Import/Export Dialog */}
+         <Dialog open={showICalDialog} onOpenChange={setShowICalDialog}>
+           <DialogContent className="max-w-4xl">
+             <DialogHeader>
+               <DialogTitle>Import/Export Calendar</DialogTitle>
+               <DialogDescription>
+                 Import events from iCal files or export your calendar data
+               </DialogDescription>
+             </DialogHeader>
+             <ICalImportExport
+               tasks={tasks}
+               timetableEntries={[]}
+               onTasksImported={(importedTasks) => {
+                 toast({
+                   title: "Tasks Imported",
+                   description: `Successfully imported ${importedTasks.length} tasks from iCal file.`,
+                 });
+                 refetch();
+               }}
+               onTimetableEntriesImported={(importedEntries) => {
+                 toast({
+                   title: "Timetable Entries Imported", 
+                   description: `Successfully imported ${importedEntries.length} timetable entries from iCal file.`,
+                 });
+               }}
+             />
+           </DialogContent>
+         </Dialog>
+       </div>
+     </BlurFade>
+   );
+ };

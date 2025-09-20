@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Crown,
   Lock,
+  FileDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from '@clerk/nextjs';
@@ -28,6 +29,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ICalImportExport } from "@/components/calendar/ICalImportExport";
 import type { TimetableEntry, DayOfWeek } from "@/types/taskTypes";
 
 interface TimetableViewProps {
@@ -108,6 +111,7 @@ export const TimetableView: React.FC<TimetableViewProps> = ({
   const [selectedEntry, setSelectedEntry] = useState<TimetableEntry | null>(
     null,
   );
+  const [showICalDialog, setShowICalDialog] = useState(false);
 
   // Create token provider function for Supabase integration
   const getTokenForSupabase = useCallback(() => 
@@ -615,9 +619,48 @@ export const TimetableView: React.FC<TimetableViewProps> = ({
       role="main"
       aria-label="Timetable view"
     >
+      {/* Header with iCal button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Timetable</h2>
+          <p className="text-sm text-muted-foreground">Manage your class schedule</p>
+        </div>
+        <Button
+          onClick={() => setShowICalDialog(true)}
+          variant="outline"
+          size="sm"
+        >
+          <FileDown className="h-4 w-4 mr-2" />
+          iCal
+        </Button>
+      </div>
+
       {renderPremiumTeaser()}
       {renderDesktopGrid()}
       {renderMobileList()}
+
+      {/* iCal Import/Export Dialog */}
+      <Dialog open={showICalDialog} onOpenChange={setShowICalDialog}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Import/Export Timetable</DialogTitle>
+            <DialogDescription>
+              Import class schedules from iCal files or export your timetable data
+            </DialogDescription>
+          </DialogHeader>
+          <ICalImportExport
+            tasks={[]}
+            timetableEntries={entries}
+            onTasksImported={(importedTasks) => {
+              toast.success(`Successfully imported ${importedTasks.length} tasks from iCal file.`);
+            }}
+            onTimetableEntriesImported={(importedEntries) => {
+              toast.success(`Successfully imported ${importedEntries.length} timetable entries from iCal file.`);
+              refetch();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </main>
   );
 };

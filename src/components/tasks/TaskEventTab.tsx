@@ -1373,6 +1373,7 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                                       "focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 focus:ring-offset-background",
                                       "checked:bg-primary checked:border-primary checked:text-primary-foreground",
                                       "hover:border-primary/50",
+                                      "circular-element !min-h-[unset] !min-w-[unset]" // Override mobile touch targets and maintain aspect ratio
                                     )}
                                     aria-labelledby={`task-title-${task.id}`}
                                     aria-describedby={`task-details-${task.id}`}

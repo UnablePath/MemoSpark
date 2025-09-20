@@ -5,6 +5,7 @@ import { useAuth, useUser } from '@clerk/nextjs';
 import { StudyGroupManager, StudyGroup, StudyGroupMember, StudyGroupResource } from '@/lib/social/StudyGroupManager';
 import { MessagingService } from '@/lib/messaging/MessagingService';
 import { StudyGroupChatPanel } from './StudyGroupChatPanel';
+import { StudyGroupErrorBoundary } from '@/components/error-boundaries/StudyGroupErrorBoundary';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -382,15 +383,19 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
-            <Users className="h-4 w-4 mr-2" />
-            Study Groups
-          </Button>
-        )}
-      </DialogTrigger>
+    <StudyGroupErrorBoundary onRetry={() => {
+      loadUserGroups();
+      loadBrowsableGroups();
+    }}>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          {trigger || (
+            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+              <Users className="h-4 w-4 mr-2" />
+              Study Groups
+            </Button>
+          )}
+        </DialogTrigger>
       <DialogContent className="max-w-7xl w-[95vw] h-[85vh] p-0 flex flex-col overflow-hidden">
         {/* Hidden title for accessibility */}
         <DialogHeader className="sr-only">
@@ -867,5 +872,6 @@ export const StudyGroupsPopover: React.FC<StudyGroupsPopoverProps> = ({ trigger 
         </div>
       </DialogContent>
     </Dialog>
+    </StudyGroupErrorBoundary>
   );
 }; 

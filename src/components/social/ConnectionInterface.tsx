@@ -27,6 +27,7 @@ import { StudyGroupHub } from './StudyGroupHub';
 import { ActivityFeed } from './ActivityFeed';
 import { ConnectionManager } from './ConnectionManager';
 import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
+import { StudyGroupErrorBoundary } from '@/components/error-boundaries/StudyGroupErrorBoundary';
 
 interface ConnectionInterfaceProps {
   onSwipeModeChange?: (isSwipeMode: boolean) => void;
@@ -155,10 +156,14 @@ export const ConnectionInterface: React.FC<ConnectionInterfaceProps> = ({ onSwip
               </div>
             )}
             
-            <ConnectionManager searchTerm={searchTerm} />
+            <StudyGroupErrorBoundary>
+              <ConnectionManager searchTerm={searchTerm} />
+            </StudyGroupErrorBoundary>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <ActivityFeed />
-                <StudyGroupHub />
+                <StudyGroupErrorBoundary>
+                  <StudyGroupHub />
+                </StudyGroupErrorBoundary>
             </div>
         </div>
       )}

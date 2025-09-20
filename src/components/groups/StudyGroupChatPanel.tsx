@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Send, Users, MoreVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStudyGroupChat, type ChatMessage, type ChatParticipant } from '@/lib/social/StudyGroupChat';
+import { MessagingErrorBoundary } from '@/components/error-boundaries/MessagingErrorBoundary';
 import { toast } from 'sonner';
 
 interface StudyGroupChatPanelProps {
@@ -216,7 +217,13 @@ export const StudyGroupChatPanel: React.FC<StudyGroupChatPanelProps> = ({
   }
 
   return (
-    <Card className={cn("h-full flex flex-col", className)}>
+    <MessagingErrorBoundary onRetry={() => {
+      // Reconnect to chat
+      if (chat) {
+        chat.connect();
+      }
+    }}>
+      <Card className={cn("h-full flex flex-col", className)}>
       <CardHeader className="flex-shrink-0 pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">{groupName} Chat</CardTitle>
@@ -344,6 +351,7 @@ export const StudyGroupChatPanel: React.FC<StudyGroupChatPanelProps> = ({
         </div>
       </div>
     </Card>
+    </MessagingErrorBoundary>
   );
 };
 

@@ -192,7 +192,7 @@ export default function DashboardPage() {
             <SignedIn>
               <div className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 flex items-center justify-center">
                 <UserButton 
-                  afterSignOutUrl="/"
+                  fallbackRedirectUrl="/"
                   appearance={{
                     variables: {
                       colorPrimary: '#22c55e',

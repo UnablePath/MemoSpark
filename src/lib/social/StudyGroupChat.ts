@@ -56,7 +56,9 @@ export class StudyGroupChat {
    */
   async connect(): Promise<void> {
     if (this.channel) {
-      console.warn('Chat already connected');
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Chat already connected');
+      }
       return;
     }
 
@@ -102,16 +104,29 @@ export class StudyGroupChat {
           this.handleTypingEvent(payload);
         });
 
-      // Subscribe to the channel
+      // Subscribe to the channel with retry logic
       const status = await this.channel.subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('Connected to chat channel');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Connected to chat channel');
+          }
           
           // Track presence
           await this.channel?.track({
             user_id: this.currentUserId,
             online_at: new Date().toISOString(),
           });
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Failed to connect to chat channel');
+          // Attempt to reconnect after a delay
+          setTimeout(() => {
+            this.attemptReconnect();
+          }, 5000);
+        } else if (status === 'TIMED_OUT') {
+          console.warn('Chat channel connection timed out, will retry');
+          setTimeout(() => {
+            this.attemptReconnect();
+          }, 3000);
         }
       });
 
@@ -120,7 +135,32 @@ export class StudyGroupChat {
       }
     } catch (error) {
       console.error('Error connecting to chat:', error);
-      throw error;
+      // Don't throw the error to prevent cascade failures
+      // Instead, set up retry logic
+      setTimeout(() => {
+        this.attemptReconnect();
+      }, 5000);
+    }
+  }
+
+  /**
+   * Attempt to reconnect to the chat channel
+   */
+  private async attemptReconnect(): Promise<void> {
+    if (this.channel) {
+      await this.disconnect();
+    }
+    
+    try {
+      await this.connect();
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to reconnect to chat:', error);
+      }
+      // Retry again after a longer delay
+      setTimeout(() => {
+        this.attemptReconnect();
+      }, 10000);
     }
   }
 

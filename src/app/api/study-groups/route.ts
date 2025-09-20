@@ -20,30 +20,30 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-      // Use Supabase to get study groups
-      let groups;
-      
-      if (type === 'my-groups') {
-        // Get user's groups using the existing RPC function
-        const { data, error } = await supabase
-          .rpc('get_user_study_groups', { p_user_id: userId });
-      
+    // Use Supabase to get study groups
+    let groups;
+    
+    if (type === 'my-groups') {
+      // Get user's groups using the existing RPC function
+      const { data, error } = await supabase
+        .rpc('get_user_study_groups', { p_user_id: userId });
+    
       if (error) {
         console.error('Error fetching user groups:', error);
         return NextResponse.json({ error: 'Failed to fetch groups' }, { status: 500 });
       }
       
       groups = data || [];
-      } else {
-        // Get all groups with optional filtering
-        let query_builder = supabase
-          .from('study_groups')
-          .select(`
-            *,
-            study_group_members!inner(count),
-            profiles!study_groups_created_by_fkey(name)
-          `)
-          .range(offset, offset + limit - 1);
+    } else {
+      // Get all groups with optional filtering
+      let query_builder = supabase
+        .from('study_groups')
+        .select(`
+          *,
+          study_group_members!inner(count),
+          profiles!study_groups_created_by_fkey(name)
+        `)
+        .range(offset, offset + limit - 1);
 
       // Add search filter
       if (query) {

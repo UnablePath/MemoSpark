@@ -21,6 +21,17 @@
     touch-action: manipulation; /* Prevent double-tap zoom */
   }
   
+  /* Override for circular elements to maintain aspect ratio */
+  input[type="checkbox"],
+  input[type="radio"],
+  [data-radix-collection-item],
+  .aspect-square,
+  [role="switch"],
+  [data-state] {
+    min-height: unset !important;
+    min-width: unset !important;
+  }
+  
   /* Optimize form inputs for mobile */
   input, 
   textarea, 
@@ -842,6 +853,33 @@ html[class*="theme-"]:not([class*="-light"]) {
       min-height: 40px;
       min-width: 40px;
     }
+  }
+  
+  /* Circular element fixes - maintain aspect ratio */
+  .circular-element {
+    min-height: unset !important;
+    min-width: unset !important;
+    aspect-ratio: 1 / 1;
+  }
+  
+  /* Specific fixes for UI components */
+  [data-radix-collection-item] {
+    min-height: unset !important;
+    min-width: unset !important;
+  }
+  
+  /* Switch component fixes */
+  [role="switch"] {
+    min-height: unset !important;
+  }
+  
+  /* Checkbox and radio button fixes */
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: unset !important;
+    min-width: unset !important;
+    width: auto !important;
+    height: auto !important;
   }
   
   /* Prevent text from breaking layout */
