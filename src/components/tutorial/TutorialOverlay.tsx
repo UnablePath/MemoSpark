@@ -43,6 +43,7 @@ interface TutorialOverlayProps {
   error?: TutorialError | null;
   onRetry?: () => Promise<any>;
   onClearError?: () => void;
+  currentProgress?: TutorialProgress | null;
   className?: string;
 }
 
@@ -54,6 +55,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
   error,
   onRetry,
   onClearError,
+  currentProgress: propCurrentProgress,
   className
 }) => {
   const { user } = useUser();
@@ -90,68 +92,58 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = React.memo(({
     return Math.round((completedCount / allSteps.length) * 100);
   }, [currentProgress, allSteps.length]);
 
-  // Load tutorial progress with timeout protection
+  // Use progress from context instead of making separate requests
   useEffect(() => {
-    if (!user?.id || !isVisible) return;
+    if (!isVisible) return;
 
-    const loadProgress = async () => {
-      setIsLoading(true);
-      try {
-        // Add timeout protection for overlay loading
-        const timeoutPromise = new Promise<never>((_, reject) => {
+    // Use the progress from the tutorial context instead of making a new request
+    if (propCurrentProgress) {
+      setCurrentProgress(propCurrentProgress);
+      
+      if (propCurrentProgress.current_step) {
+        const stepConfig = tutorialManager.getStepConfig(propCurrentProgress.current_step);
+        setCurrentStepConfig(stepConfig);
+        
+        // Automatically navigate to the target tab for this step
+        if (stepConfig?.targetTab !== undefined) {
           setTimeout(() => {
-            reject(new Error('Tutorial overlay loading timed out'));
-          }, 4000); // 4 second timeout for overlay
-        });
-
-        const progressPromise = (async () => {
-          let progress = await tutorialManager.getTutorialProgress(user.id);
-          
-          if (!progress) {
-            const result = await tutorialManager.initializeTutorial(user.id);
-            if (result.success) {
-              progress = result.data!;
+            // Dispatch custom event for tab change
+            window.dispatchEvent(new CustomEvent('tutorialTabChange', {
+              detail: { tabIndex: stepConfig.targetTab }
+            }));
+            
+            // Also call the callback if provided (for backward compatibility)
+            if (onTabChange) {
+              onTabChange(stepConfig.targetTab!);
             }
-          }
-          
-          return progress;
-        })();
-
-        const progress = await Promise.race([progressPromise, timeoutPromise]);
-        
-        setCurrentProgress(progress);
-        
-        if (progress?.current_step) {
-          const stepConfig = tutorialManager.getStepConfig(progress.current_step);
-          setCurrentStepConfig(stepConfig);
-          
-          // Automatically navigate to the target tab for this step
-          if (stepConfig?.targetTab !== undefined) {
-            setTimeout(() => {
-              // Dispatch custom event for tab change
-              window.dispatchEvent(new CustomEvent('tutorialTabChange', {
-                detail: { tabIndex: stepConfig.targetTab }
-              }));
-              
-              // Also call the callback if provided (for backward compatibility)
-              if (onTabChange) {
-                onTabChange(stepConfig.targetTab!);
-              }
-            }, 300); // Small delay for smooth transition
-          }
+          }, 300); // Small delay for smooth transition
         }
-      } catch (error) {
-        console.warn('Error loading tutorial progress:', error);
-        // Set safe defaults on error
-        setCurrentProgress(null);
-        setCurrentStepConfig(null);
-      } finally {
-        setIsLoading(false);
       }
-    };
-
-    loadProgress();
-  }, [user?.id, isVisible, tutorialManager, onTabChange]);
+      setIsLoading(false);
+    } else {
+      // Only initialize if we don't have progress and user is available
+      if (user?.id) {
+        const initializeProgress = async () => {
+          setIsLoading(true);
+          try {
+            const result = await tutorialManager.initializeTutorial(user.id);
+            if (result.success && result.data) {
+              setCurrentProgress(result.data);
+              const stepConfig = tutorialManager.getStepConfig(result.data.current_step);
+              setCurrentStepConfig(stepConfig);
+            }
+          } catch (error) {
+            console.warn('Tutorial initialization failed:', error);
+            setError(error instanceof Error ? error.message : 'Failed to initialize tutorial');
+          } finally {
+            setIsLoading(false);
+          }
+        };
+        
+        initializeProgress();
+      }
+    }
+  }, [isVisible, propCurrentProgress, user?.id, tutorialManager, onTabChange]);
 
   // Check if current step requires user action
   useEffect(() => {

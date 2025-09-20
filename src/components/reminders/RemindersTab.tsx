@@ -663,6 +663,9 @@ const RemindersTab = () => {
                             <FaPlus className="mr-2 text-green-500" />
                             Create Smart Reminder
                         </DialogTitle>
+                        <DialogDescription>
+                            Set up a smart reminder with AI-powered scheduling and personalized notifications.
+                        </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 sm:space-y-6">
                         {/* Title Field */}

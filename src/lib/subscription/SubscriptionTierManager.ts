@@ -1,4 +1,4 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { 
   SubscriptionTier,
   SubscriptionTierConfig, 
@@ -8,6 +8,7 @@ import {
   SubscriptionCheckResult,
   DEFAULT_TIER_CONFIGS
 } from '../../types/subscription';
+import { supabase } from '../supabase/client';
 
 // Track ongoing subscription creations to prevent double execution in dev mode
 const subscriptionCreationFlags = new Map<string, Promise<UserSubscriptionData>>();
@@ -16,21 +17,15 @@ export class SubscriptionTierManager {
   private supabase: SupabaseClient;
 
   constructor(supabaseClient?: SupabaseClient) {
-    // Use provided client or create new one with environment check
+    // Use provided client or fallback to singleton
     if (supabaseClient) {
       this.supabase = supabaseClient;
     } else {
-      // Only access process.env on server side or provide fallback
-      if (typeof window === 'undefined') {
-        // Server side
-        this.supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-      } else {
-        // Client side - should always pass supabaseClient
-        throw new Error('SubscriptionTierManager requires a Supabase client on the client side');
+      // Use the singleton client to prevent multiple instances
+      if (!supabase) {
+        throw new Error('Supabase client not available. Please ensure proper initialization.');
       }
+      this.supabase = supabase;
     }
   }
 

@@ -18,19 +18,29 @@ export async function GET(
 
     const groupId = params.id;
 
+    // Add timeout wrapper for database queries
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Database query timed out'));
+      }, 10000); // 10 second timeout
+    });
+
     // Get group details with members
-    const { data: group, error: groupError } = await supabase
-      .from('study_groups')
-      .select(`
-        *,
-        study_group_members(
+    const { data: group, error: groupError } = await Promise.race([
+      supabase
+        .from('study_groups')
+        .select(`
           *,
-          profiles(name, email)
-        ),
-        profiles!study_groups_created_by_fkey(name)
-      `)
-      .eq('id', groupId)
-      .single();
+          study_group_members(
+            *,
+            profiles(name, email)
+          ),
+          profiles!study_groups_created_by_fkey(name)
+        `)
+        .eq('id', groupId)
+        .single(),
+      timeoutPromise
+    ]);
 
     if (groupError) {
       console.error('Error fetching group:', groupError);

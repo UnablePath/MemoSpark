@@ -70,6 +70,10 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
   // Refs for cleanup
   const eventListenersRef = useRef<(() => void)[]>([]);
   const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+  
+  // Rate limiting for tutorial status checks
+  const lastStatusCheckRef = useRef<number>(0);
+  const readonly STATUS_CHECK_INTERVAL = 5000; // 5 seconds minimum between checks
 
   // Check if we're on dashboard
   useEffect(() => {
@@ -146,12 +150,20 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
     ];
   }, [state.isActive, state.currentProgress, config.enableKeyboardNavigation]);
 
-  // Check tutorial status - optimized with useCallback and timeout
+  // Check tutorial status - optimized with useCallback, timeout, and rate limiting
   const checkTutorialStatus = useCallback(async () => {
     if (!user?.id) {
       setState(prev => ({ ...prev, isLoading: false }));
       return;
     }
+
+    // Rate limiting: prevent excessive status checks
+    const now = Date.now();
+    if (now - lastStatusCheckRef.current < STATUS_CHECK_INTERVAL) {
+      console.log('Tutorial status: Rate limited, skipping check');
+      return;
+    }
+    lastStatusCheckRef.current = now;
 
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -206,16 +218,25 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
     }
   }, [user?.id, tutorialManager, errorHandler, autoStart, isDashboard]);
 
+  // Debounced status check to prevent rapid successive calls
+  const debouncedStatusCheck = useCallback(() => {
+    const timeout = setTimeout(() => {
+      checkTutorialStatus();
+    }, 1000); // 1 second debounce
+    
+    timeoutsRef.current.push(timeout);
+  }, [checkTutorialStatus]);
+
   // Initialize when user is loaded
   useEffect(() => {
     if (!isLoaded) return;
     
     cleanup(); // Clean up any existing listeners
     setupEventListeners();
-    checkTutorialStatus();
+    debouncedStatusCheck();
     
     return cleanup;
-  }, [isLoaded, checkTutorialStatus, setupEventListeners, cleanup]);
+  }, [isLoaded, debouncedStatusCheck, setupEventListeners, cleanup]);
 
   // Failsafe: ensure loading state never persists longer than 10 seconds
   useEffect(() => {
@@ -503,6 +524,7 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
           error={state.error}
           onRetry={retryCurrentStep}
           onClearError={clearError}
+          currentProgress={state.currentProgress}
         />
       )}
     </TutorialContext.Provider>

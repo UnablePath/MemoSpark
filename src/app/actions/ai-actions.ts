@@ -149,34 +149,18 @@ function createSuggestionContext(context: any): SuggestionContext {
 }
 
 /**
- * Create authenticated Supabase client for server actions
- * Uses official Clerk-Supabase native integration
+ * Get authenticated Supabase client for server actions
+ * Uses singleton pattern to prevent multiple instances
  */
-function createServerSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase configuration');
+function getServerSupabaseClient() {
+  // Import the server-side singleton
+  const { supabaseServer } = require('@/lib/supabase/server');
+  
+  if (!supabaseServer) {
+    throw new Error('Supabase server client not available');
   }
-
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-    // Native Clerk-Supabase integration
-    accessToken: async () => {
-      try {
-        const { getToken } = await auth();
-        const token = await getToken({ template: 'supabase-integration' });
-        return token;
-      } catch (error) {
-        console.warn('Failed to get Clerk session token:', error);
-        return null;
-      }
-    },
-  });
+  
+  return supabaseServer;
 }
 
 /**
@@ -248,7 +232,7 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
     }
 
     // 4. Rate limiting check
-    const supabase = createServerSupabaseClient();
+    const supabase = getServerSupabaseClient();
     const today = new Date().toISOString().split('T')[0];
     
     const { data: usage, error: usageError } = await supabase

@@ -94,27 +94,37 @@ export class OneSignalService {
     if (this.isInitialized) return true;
     
     try {
-      if (typeof window === 'undefined' || !process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID) {
+      if (typeof window === 'undefined') {
+        console.log('OneSignal: Server-side, skipping initialization');
+        return false;
+      }
+
+      if (!process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID) {
+        console.warn('OneSignal: App ID not configured, skipping initialization');
         return false;
       }
 
       // OneSignal is initialized via script tags in layout.tsx
       // Just wait for it to be available and mark as initialized
-      if (typeof window !== 'undefined' && window.OneSignal) {
+      if (window.OneSignal) {
+        console.log('OneSignal: Already available, marking as initialized');
         this.isInitialized = true;
         return true;
       }
       
       // Wait for OneSignal to be loaded
+      console.log('OneSignal: Waiting for SDK to load...');
       await new Promise<void>((resolve, reject) => {
         const checkInterval = setInterval(() => {
           if (window.OneSignal) {
+            console.log('OneSignal: SDK loaded successfully');
             clearInterval(checkInterval);
             resolve();
           }
         }, 100);
         
         setTimeout(() => {
+          console.warn('OneSignal: SDK not found after 5 seconds');
           clearInterval(checkInterval);
           reject(new Error('OneSignal SDK not found'));
         }, 5000);
@@ -123,7 +133,7 @@ export class OneSignalService {
       this.isInitialized = true;
       return true;
     } catch (error) {
-      console.error('Failed to initialize OneSignal:', error);
+      console.warn('OneSignal: Failed to initialize:', error);
       return false;
     }
   }

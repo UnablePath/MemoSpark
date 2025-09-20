@@ -667,6 +667,9 @@ export const SmartScheduleView: React.FC<SmartScheduleViewProps> = ({ className 
               <BookOpen className="h-5 w-5" />
               No Tasks to Schedule
             </DialogTitle>
+            <DialogDescription>
+              Create some tasks first to use the smart scheduling feature.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="text-center py-2 sm:py-4">

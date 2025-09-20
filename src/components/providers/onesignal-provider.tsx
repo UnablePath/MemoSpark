@@ -86,6 +86,7 @@ export const OneSignalProvider: React.FC<OneSignalProviderProps> = ({ children }
       }
       
       if (window.OneSignal) {
+        console.log('OneSignal: Provider initialization successful');
         try {
           // Set up OneSignal with user authentication if user is logged in
           if (user?.id) {
@@ -176,9 +177,10 @@ export const OneSignalProvider: React.FC<OneSignalProviderProps> = ({ children }
           setIsInitialized(true);
         }
       } else {
-        console.warn('OneSignal not available');
+        console.warn('OneSignal: SDK not available after 5 seconds, using fallback');
         setError('OneSignal SDK not loaded');
         setIsInitialized(true);
+        // Don't treat this as a critical error, just disable OneSignal features
       }
     };
 

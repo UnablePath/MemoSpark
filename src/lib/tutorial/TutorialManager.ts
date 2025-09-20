@@ -20,6 +20,16 @@ export class TutorialManager {
   private config: TutorialConfig;
   private analyticsQueue: TutorialAnalytics[] = [];
   private isProcessingAnalytics = false;
+  
+  // Request deduplication cache to prevent concurrent requests
+  private requestCache = new Map<string, Promise<any>>();
+  
+  // Aggressive caching for tutorial progress to reduce database load
+  private progressCache = new Map<string, { data: TutorialProgress | null; timestamp: number }>();
+  private readonly CACHE_DURATION = 120000; // 2 minutes cache - much more aggressive
+  private readonly MAX_CACHE_SIZE = 50; // Smaller cache size
+  private readonly GLOBAL_REQUEST_LIMIT = 10; // Max 10 requests per minute globally
+  private requestCounts = new Map<string, { count: number; resetTime: number }>();
 
   private tutorialSteps: TutorialStepConfig[] = [
     {
@@ -342,9 +352,93 @@ export class TutorialManager {
   }
 
   /**
-   * Get user's tutorial progress with optimized retry logic and timeout
+   * Get user's tutorial progress with aggressive caching to reduce database load
+   * Uses both request deduplication and result caching
    */
   async getTutorialProgress(userId: string, retries = 2): Promise<TutorialProgress | null> {
+    const cacheKey = `tutorial_progress_${userId}`;
+    const now = Date.now();
+    
+    // Global rate limiting - check if we've exceeded the global request limit
+    const globalKey = 'global_tutorial_requests';
+    const globalCount = this.requestCounts.get(globalKey);
+    if (globalCount) {
+      if (now - globalCount.resetTime < 60000) { // 1 minute window
+        if (globalCount.count >= this.GLOBAL_REQUEST_LIMIT) {
+          console.warn('Tutorial progress: Global rate limit exceeded, returning cached data or null');
+          // Return cached data if available, otherwise null
+          const cached = this.progressCache.get(cacheKey);
+          return cached ? cached.data : null;
+        }
+      } else {
+        // Reset counter
+        this.requestCounts.set(globalKey, { count: 0, resetTime: now });
+      }
+    } else {
+      this.requestCounts.set(globalKey, { count: 0, resetTime: now });
+    }
+    
+    // Check if we have a cached result that's still valid
+    if (this.progressCache.has(cacheKey)) {
+      const cached = this.progressCache.get(cacheKey)!;
+      if (now - cached.timestamp < this.CACHE_DURATION) {
+        console.log('Tutorial progress: Using cached result for user:', userId);
+        return cached.data;
+      } else {
+        // Remove expired cache entry
+        this.progressCache.delete(cacheKey);
+      }
+    }
+    
+    // Check if there's already a pending request for this user
+    if (this.requestCache.has(cacheKey)) {
+      console.log('Tutorial progress: Reusing pending request for user:', userId);
+      return this.requestCache.get(cacheKey);
+    }
+    
+    // Create the request promise
+    const requestPromise = this._fetchTutorialProgress(userId, retries);
+    
+    // Cache the promise
+    this.requestCache.set(cacheKey, requestPromise);
+    
+    try {
+      const result = await requestPromise;
+      
+      // Increment global request counter
+      const globalCount = this.requestCounts.get(globalKey)!;
+      this.requestCounts.set(globalKey, { ...globalCount, count: globalCount.count + 1 });
+      
+      // Cache the result
+      this._cacheProgressResult(cacheKey, result);
+      
+      return result;
+    } finally {
+      // Remove from request cache when done
+      this.requestCache.delete(cacheKey);
+    }
+  }
+  
+  /**
+   * Cache tutorial progress result with size management
+   */
+  private _cacheProgressResult(cacheKey: string, data: TutorialProgress | null): void {
+    // Clean up old entries if cache is too large
+    if (this.progressCache.size >= this.MAX_CACHE_SIZE) {
+      const oldestKey = this.progressCache.keys().next().value;
+      this.progressCache.delete(oldestKey);
+    }
+    
+    this.progressCache.set(cacheKey, {
+      data,
+      timestamp: Date.now()
+    });
+  }
+  
+  /**
+   * Internal method to fetch tutorial progress
+   */
+  private async _fetchTutorialProgress(userId: string, retries = 2): Promise<TutorialProgress | null> {
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
         if (!supabase) {
@@ -388,6 +482,15 @@ export class TutorialManager {
     }
 
     return null;
+  }
+
+  /**
+   * Clear cached progress for a user (call when progress is updated)
+   */
+  clearProgressCache(userId: string): void {
+    const cacheKey = `tutorial_progress_${userId}`;
+    this.progressCache.delete(cacheKey);
+    this.requestCache.delete(cacheKey);
   }
 
   /**
@@ -452,6 +555,9 @@ export class TutorialManager {
         return { success: false, error };
       }
 
+      // Clear cache since progress was updated
+      this.clearProgressCache(userId);
+      
       // Log analytics
       await this.logAnalytics({
         step: currentStep,
@@ -858,6 +964,17 @@ export class TutorialManager {
    */
   updateConfig(newConfig: Partial<TutorialConfig>): void {
     this.config = { ...this.config, ...newConfig };
+  }
+
+  /**
+   * Clean up resources and stop processing
+   */
+  cleanup(): void {
+    this.isProcessingAnalytics = false;
+    this.analyticsQueue = [];
+    this.requestCache.clear();
+    this.progressCache.clear();
+    this.requestCounts.clear();
   }
 
   /**

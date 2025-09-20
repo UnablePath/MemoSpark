@@ -67,35 +67,18 @@ type ActionResponse = {
 };
 
 /**
- * Create authenticated Supabase client for server actions
- * Uses official Clerk-Supabase native integration (no JWT template needed)
+ * Get authenticated Supabase client for server actions
+ * Uses singleton pattern to prevent multiple instances
  */
-function createServerSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase configuration');
+function getServerSupabaseClient() {
+  // Import the server-side singleton
+  const { supabaseServer } = require('@/lib/supabase/server');
+  
+  if (!supabaseServer) {
+    throw new Error('Supabase server client not available');
   }
-
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-    // Native Clerk-Supabase integration - uses our JWT template
-    accessToken: async () => {
-      try {
-        const { getToken } = await auth();
-        // Use our Supabase integration template
-        const token = await getToken({ template: 'supabase-integration' });
-        return token;
-      } catch (error) {
-        console.warn('Failed to get Clerk session token:', error);
-        return null;
-      }
-    },
-  });
+  
+  return supabaseServer;
 }
 
 export async function completeUserProfileOnboarding(formData: FormData): Promise<ActionResponse> {
@@ -161,7 +144,7 @@ export async function completeUserProfileOnboarding(formData: FormData): Promise
 
       // 4. Sync profile to Supabase (optional - Clerk is source of truth)
       try {
-        const supabase = createServerSupabaseClient();
+        const supabase = getServerSupabaseClient();
 
         // First check if we can get a valid Clerk token for Supabase auth
         const { getToken } = await auth();

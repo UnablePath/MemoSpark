@@ -267,24 +267,24 @@ export class StudyGroupManager {
   }
 
   /**
-   * Get user's study groups (instance method)
+   * Get user's study groups using API route
    */
   async getUserGroups(userId: string): Promise<StudyGroupWithMembers[]> {
     try {
-      if (!supabase) {
-        console.error('Supabase client not available');
+      const response = await fetch('/api/study-groups?type=my-groups', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Error fetching user groups:', response.statusText);
         return [];
       }
 
-      const { data, error } = await supabase
-        .rpc('get_user_study_groups', { p_user_id: userId });
-
-      if (error) {
-        console.error('Error fetching user groups:', error);
-        return [];
-      }
-
-      return data || [];
+      const data = await response.json();
+      return data.groups || [];
     } catch (error) {
       console.error('Error in getUserGroups:', error);
       return [];
@@ -292,31 +292,24 @@ export class StudyGroupManager {
   }
 
   /**
-   * Get all available study groups
+   * Get all available study groups using API route to avoid complex queries
    */
   async getAllGroups(): Promise<StudyGroupWithMembers[]> {
     try {
-      if (!supabase) {
-        console.error('Supabase client not available');
+      const response = await fetch('/api/study-groups?type=discover&limit=100', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Error fetching groups:', response.statusText);
         return [];
       }
 
-      const { data, error } = await supabase
-        .from('study_groups')
-        .select(`
-          *,
-          study_group_members(count)
-        `);
-
-      if (error) {
-        console.error('Error fetching all groups:', error);
-        return [];
-      }
-
-      return data?.map(group => ({
-        ...group,
-        member_count: group.study_group_members?.[0]?.count || 0
-      })) || [];
+      const data = await response.json();
+      return data.groups || [];
     } catch (error) {
       console.error('Error in getAllGroups:', error);
       return [];
@@ -324,40 +317,27 @@ export class StudyGroupManager {
   }
 
   /**
-   * Get a specific group by ID
+   * Get a specific group by ID using API route
    */
   async getGroup(groupId: string): Promise<StudyGroupWithMembers | null> {
     try {
-      if (!supabase) {
-        console.error('Supabase client not available');
+      const response = await fetch(`/api/study-groups/${groupId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        console.error('Error fetching group:', response.statusText);
         return null;
       }
 
-      const { data, error } = await supabase
-        .from('study_groups')
-        .select(`
-          *,
-          study_group_members(
-            *,
-            profiles(name, email)
-          )
-        `)
-        .eq('id', groupId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching group:', error);
-        return null;
-      }
-
-      return {
-        ...data,
-        members: data.study_group_members?.map((member: any) => ({
-          ...member,
-          name: member.profiles?.name,
-          email: member.profiles?.email
-        })) || []
-      };
+      const data = await response.json();
+      return data.group || null;
     } catch (error) {
       console.error('Error in getGroup:', error);
       return null;
