@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { SignedIn, SignedOut } from '@clerk/nextjs';
+import { Show } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { pricingStrip } from '@/components/home/homepageContent';
 import { useConversionTracking } from '@/lib/analytics/conversionTracking';
@@ -58,14 +58,14 @@ export const PricingStripSection: React.FC = () => {
                 <p className="text-3xl font-black tracking-tighter text-white">20 GHS</p>
                 <p className="text-xs text-white/35">per month or 212 GHS a year</p>
               </div>
-              <SignedOut>
+              <Show when="signed-out">
                 <Button asChild className="bg-white font-semibold text-black hover:bg-white/90">
                   <Link href="/sign-up" onClick={() => trackPricingStripClick('signed_out')}>
                     {pricingStrip.signedOutCta}
                   </Link>
                 </Button>
-              </SignedOut>
-              <SignedIn>
+              </Show>
+              <Show when="signed-in">
                 <Button asChild className="bg-white font-semibold text-black hover:bg-white/90">
                   <Link
                     href="/settings/subscription"
@@ -74,7 +74,7 @@ export const PricingStripSection: React.FC = () => {
                     {pricingStrip.signedInCta}
                   </Link>
                 </Button>
-              </SignedIn>
+              </Show>
               <p className="text-xs text-white/20">You can stay on the free plan as long as you want.</p>
             </div>
           </div>

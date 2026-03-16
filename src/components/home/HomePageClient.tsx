@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { SignedIn, SignedOut } from '@clerk/nextjs';
+import { Show } from '@clerk/nextjs';
 import { HomepageNavbar } from '@/components/layout/HomepageNavbar';
 import { BubblePopGame } from '@/components/home/BubblePopGame';
 import { SocialProof } from '@/components/home/SocialProof';
@@ -40,16 +40,16 @@ export function HomePageClient() {
                   Pop some bubbles.
                 </h2>
               </div>
-              <SignedIn>
+              <Show when="signed-in">
                 <p className="hidden text-sm text-white/25 md:block">
                   Your score can count toward achievements
                 </p>
-              </SignedIn>
-              <SignedOut>
+              </Show>
+              <Show when="signed-out">
                 <p className="hidden text-sm text-white/25 md:block">
                   Sign in if you want the achievement to count
                 </p>
-              </SignedOut>
+              </Show>
             </div>
             <div className="mx-auto max-w-4xl">
               <BubblePopGame />

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { MemoSparkLogoSvg } from '@/components/ui/MemoSparkLogoSvg';
 import { Button } from '@/components/ui/button';
-import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import { SignInButton, SignUpButton, Show, UserButton } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Menu, X, Settings, User } from 'lucide-react';
@@ -60,15 +60,15 @@ export function HomepageNavbar() {
 
           {/* Auth Buttons */}
           <div className="flex items-center space-x-2">
-            <SignedOut>
+            <Show when="signed-out">
               <SignInButton mode="modal">
                 <Button variant="ghost" size="sm" className="text-xs lg:text-sm font-medium hover:bg-primary/10 text-foreground hover:text-primary">Sign In</Button>
               </SignInButton>
               <SignUpButton mode="modal">
                 <Button size="sm" className="text-xs lg:text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90">Sign Up Free</Button>
               </SignUpButton>
-            </SignedOut>
-            <SignedIn>
+            </Show>
+            <Show when="signed-in">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full hover:bg-primary/10">
@@ -91,13 +91,13 @@ export function HomepageNavbar() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </SignedIn>
+            </Show>
           </div>
         </div>
 
         {/* Mobile Menu Button and Profile for authenticated users */}
         <div className="md:hidden flex items-center space-x-2">
-          <SignedIn>
+          <Show when="signed-in">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full hover:bg-primary/10 bg-muted/50">
@@ -120,7 +120,7 @@ export function HomepageNavbar() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </SignedIn>
+          </Show>
           <Button 
             variant="ghost" 
             size="sm"
@@ -161,15 +161,15 @@ export function HomepageNavbar() {
             </Link>
           </div>
           <div className="px-2 pb-3 pt-2 border-t border-border/40">
-            <SignedOut>
+            <Show when="signed-out">
               <SignInButton mode="modal">
                 <Button variant="outline" size="sm" className="w-full mb-2 font-medium bg-background text-foreground border-border hover:bg-muted/50 hover:text-primary">Sign In</Button>
               </SignInButton>
               <SignUpButton mode="modal">
                 <Button size="sm" className="w-full font-medium bg-primary text-primary-foreground hover:bg-primary/90">Sign Up Free</Button>
               </SignUpButton>
-            </SignedOut>
-            <SignedIn>
+            </Show>
+            <Show when="signed-in">
               <Button
                 asChild
                 variant="outline"
@@ -180,7 +180,7 @@ export function HomepageNavbar() {
                   Dashboard
                 </Link>
               </Button>
-            </SignedIn>
+            </Show>
           </div>
         </div>
       )}

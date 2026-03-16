@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import Link from 'next/link';
 import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
 import DashboardSwipeTabs from './DashboardSwipeTabs';
-import { SignedIn, UserButton, useUser } from "@clerk/nextjs";
+import { Show, UserButton, useUser } from "@clerk/nextjs";
 import { User as UserIcon, Settings as SettingsIcon, Crown, Sparkles } from 'lucide-react';
 import { useTieredAI } from '@/hooks/useTieredAI';
 import { Button } from '@/components/ui/button';
@@ -189,7 +189,7 @@ export default function DashboardPage() {
             <TutorialTrigger variant="icon" />
             
             {/* Clerk User Button - simple black/white theme */}
-            <SignedIn>
+            <Show when="signed-in">
               <div className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 flex items-center justify-center">
                 <UserButton 
                   fallbackRedirectUrl="/"
@@ -313,7 +313,7 @@ export default function DashboardPage() {
                   userProfileMode="modal"
                 />
               </div>
-            </SignedIn>
+            </Show>
           </div>
         </div>
         

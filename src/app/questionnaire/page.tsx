@@ -2,7 +2,7 @@
 
 import React, { lazy, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/nextjs';
+import { Show, RedirectToSignIn } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
@@ -72,15 +72,15 @@ function QuestionnairePageContent() {
 export default function QuestionnairePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <SignedOut>
+      <Show when="signed-out">
         <RedirectToSignIn />
-      </SignedOut>
+      </Show>
       
-      <SignedIn>
+      <Show when="signed-in">
         <React.Suspense fallback={<div>Loading...</div>}>
           <QuestionnairePageContent />
         </React.Suspense>
-      </SignedIn>
+      </Show>
     </div>
   );
 } 

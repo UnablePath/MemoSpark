@@ -1,7 +1,7 @@
 'use client'; // Mark as a Client Component
 
 import { usePathname } from "next/navigation";
-import { SignedIn, UserButton } from "@clerk/nextjs";
+import { Show, UserButton } from "@clerk/nextjs";
 import { User as UserIcon, Settings as SettingsIcon } from 'lucide-react';
 import { MemoSparkLogoSvg } from '@/components/ui/MemoSparkLogoSvg';
 import Link from 'next/link';
@@ -27,7 +27,7 @@ export function ConditionalHeader() {
         {/* "Tasks & Events" title removed as per new request */}
       </div>
       
-      <SignedIn>
+      <Show when="signed-in">
         <UserButton fallbackRedirectUrl="/">
           {/* Check Clerk docs for the exact prop name if /user-profile is the default manage account page */}
           {/* UserButton.UserProfilePage might be for overriding the entire page, 
@@ -41,7 +41,7 @@ export function ConditionalHeader() {
               If you only add UserProfileLinks, they are added to the existing menu. 
           */}
         </UserButton>
-      </SignedIn>
+      </Show>
       {/* 
       <SignedOut>
         This part is generally not needed if all routes except '/' are protected 

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { SignedIn, SignedOut } from '@clerk/nextjs';
+import { Show } from '@clerk/nextjs';
 import { ArrowRight, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -62,17 +62,17 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLearnMoreClick }) =>
             </p>
 
             <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:gap-4">
-              <SignedOut>
+              <Show when="signed-out">
                 <ABTestCTA />
-              </SignedOut>
-              <SignedIn>
+              </Show>
+              <Show when="signed-in">
                 <Button asChild size="lg" className="bg-white font-semibold text-black hover:bg-white/90">
                   <Link href="/dashboard">
                     Go to Dashboard
                   </Link>
                 </Button>
-              </SignedIn>
-              <SignedOut>
+              </Show>
+              <Show when="signed-out">
                 <Button
                   asChild
                   size="lg"
@@ -83,8 +83,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLearnMoreClick }) =>
                     {heroCopy.secondaryCtaLabel}
                   </a>
                 </Button>
-              </SignedOut>
-              <SignedIn>
+              </Show>
+              <Show when="signed-in">
                 <Button
                   asChild
                   size="lg"
@@ -95,7 +95,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLearnMoreClick }) =>
                     {heroCopy.secondaryCtaLabel}
                   </Link>
                 </Button>
-              </SignedIn>
+              </Show>
             </div>
 
             <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] font-medium uppercase tracking-widest text-white/25">
