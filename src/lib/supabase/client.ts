@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { SupabaseAIConfig } from '@/types/ai';
+import { getSafeStorage } from '@/lib/safe-storage';
 
 // Export all from tasksApi and remindersApi
 export * from './tasksApi';
@@ -186,13 +187,13 @@ class SupabaseAIConfigManager {
    * Load configuration from localStorage
    */
   private loadConfig(): SupabaseAIConfig {
+    const storage = getSafeStorage();
+    if (!storage) return { ...DEFAULT_AI_CONFIG };
     try {
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem(SupabaseAIConfigManager.CONFIG_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          return { ...DEFAULT_AI_CONFIG, ...parsed };
-        }
+      const stored = storage.getItem(SupabaseAIConfigManager.CONFIG_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return { ...DEFAULT_AI_CONFIG, ...parsed };
       }
     } catch (error) {
       console.warn('Failed to load Supabase AI config:', error);
@@ -204,10 +205,10 @@ class SupabaseAIConfigManager {
    * Save configuration to localStorage
    */
   private saveConfig(): void {
+    const storage = getSafeStorage();
+    if (!storage) return;
     try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(SupabaseAIConfigManager.CONFIG_KEY, JSON.stringify(this.config));
-      }
+      storage.setItem(SupabaseAIConfigManager.CONFIG_KEY, JSON.stringify(this.config));
     } catch (error) {
       console.warn('Failed to save Supabase AI config:', error);
     }
@@ -218,9 +219,8 @@ class SupabaseAIConfigManager {
    */
   reset(): void {
     this.config = { ...DEFAULT_AI_CONFIG };
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(SupabaseAIConfigManager.CONFIG_KEY);
-    }
+    const storage = getSafeStorage();
+    if (storage) storage.removeItem(SupabaseAIConfigManager.CONFIG_KEY);
   }
 }
 

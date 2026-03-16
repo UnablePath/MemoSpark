@@ -90,7 +90,7 @@ process.env = {
 };
 
 // Setup global test utilities
-export const createMockElement = (tagName: string = 'div', attributes: Record<string, string> = {}) => {
+export const createMockElement = (tagName = 'div', attributes: Record<string, string> = {}) => {
   const element = document.createElement(tagName);
   Object.entries(attributes).forEach(([key, value]) => {
     element.setAttribute(key, value);
@@ -111,7 +111,7 @@ export const createMockMouseEvent = (type: string, options: MouseEventInit = {})
 };
 
 // Helper to wait for async operations in tests
-export const waitFor = (ms: number = 0) => new Promise(resolve => setTimeout(resolve, ms));
+export const waitFor = (ms = 0) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Helper to flush all pending promises
 export const flushPromises = () => new Promise(resolve => setImmediate(resolve));

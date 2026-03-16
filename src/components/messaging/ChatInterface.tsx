@@ -303,17 +303,17 @@ const TypingIndicator: React.FC<{ typingUsers: TypingIndicatorType[] }> = ({ typ
       <div className="flex gap-1">
         <motion.div
           animate={{ y: [0, -4, 0] }}
-          transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+          transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0 }}
           className="w-2 h-2 bg-gray-400 rounded-full"
         />
         <motion.div
           animate={{ y: [0, -4, 0] }}
-          transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
+          transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0.2 }}
           className="w-2 h-2 bg-gray-400 rounded-full"
         />
         <motion.div
           animate={{ y: [0, -4, 0] }}
-          transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
+          transition={{ duration: 0.6, repeat: Number.POSITIVE_INFINITY, delay: 0.4 }}
           className="w-2 h-2 bg-gray-400 rounded-full"
         />
       </div>

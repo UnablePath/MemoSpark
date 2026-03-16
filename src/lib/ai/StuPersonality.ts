@@ -1,4 +1,4 @@
-import { ExtendedTask, SuggestionContext } from '../../types/ai';
+import type { ExtendedTask, SuggestionContext } from '../../types/ai';
 
 export interface StuPersonalityResponse {
   message: string;

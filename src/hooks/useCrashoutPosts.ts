@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getCrashoutPosts, createCrashoutPost, deletePost, CrashoutPost, CrashoutPostInput, hasMorePosts } from '@/lib/supabase/crashoutApi';
+import { getCrashoutPosts, createCrashoutPost, deletePost, type CrashoutPost, type CrashoutPostInput, hasMorePosts } from '@/lib/supabase/crashoutApi';
 import { useAuth } from '@clerk/nextjs';
 import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 

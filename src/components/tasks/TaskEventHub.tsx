@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import type React from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { Calendar, LayoutList, Plus, Grid3X3, GraduationCap, Brain, ChevronRight, ChevronLeft, Sparkles, Crown, BrainCircuit } from 'lucide-react';

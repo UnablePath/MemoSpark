@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase/client';
 import { AchievementEngine } from './AchievementEngine';
-import { coinEconomy, CoinEarningResult, CoinSpendingResult } from './CoinEconomy';
+import { coinEconomy, type CoinEarningResult, type CoinSpendingResult } from './CoinEconomy';
 import type { UserStats } from '@/types/achievements';
 
 export interface DailyStreak {
@@ -95,8 +95,8 @@ export class StreakTracker {
    */
   async markDailyCompletion(
     userId: string,
-    tasksCompleted: number = 1,
-    pointsEarned: number = 10,
+    tasksCompleted = 1,
+    pointsEarned = 10,
     date?: Date,
     getToken?: () => Promise<string | null>
   ): Promise<{ 
@@ -317,7 +317,7 @@ export class StreakTracker {
     today.setHours(0, 0, 0, 0); // Reset time for accurate date comparison
     
     // Start from today and work backwards
-    let checkDate = new Date(today);
+    const checkDate = new Date(today);
     let foundToday = false;
     
     for (let dayOffset = 0; dayOffset <= sortedStreaks.length + 1; dayOffset++) {
@@ -760,8 +760,8 @@ export class StreakTracker {
    * Get streak leaderboard with privacy controls
    */
   async getStreakLeaderboard(
-    limit: number = 10,
-    includeCurrentUser: boolean = true,
+    limit = 10,
+    includeCurrentUser = true,
     currentUserId?: string,
     getToken?: () => Promise<string | null>
   ): Promise<Array<{
@@ -810,9 +810,9 @@ export class StreakTracker {
    * Basic streak leaderboard fallback
    */
   private async getBasicStreakLeaderboard(
-    limit: number = 10,
+    limit = 10,
     currentUserId?: string,
-    includeCurrentUser: boolean = true
+    includeCurrentUser = true
   ): Promise<Array<{
     user_id: string;
     username: string;

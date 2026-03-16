@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -122,7 +123,7 @@ export const BillingPortal: React.FC<BillingPortalProps> = ({ className }) => {
     }
   };
 
-  const formatCurrency = (amount: number, currency: string = 'GHS') => {
+  const formatCurrency = (amount: number, currency = 'GHS') => {
     return new Intl.NumberFormat('en-GH', {
       style: 'currency',
       currency: currency,

@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Coins, Gift, TrendingUp, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { coinEconomy, CoinBonusEvent } from '@/lib/gamification/CoinEconomy';
+import { coinEconomy, type CoinBonusEvent } from '@/lib/gamification/CoinEconomy';
 import { useCoinBalance } from '@/hooks/useCoinBalance';
 
 interface CoinWidgetProps {

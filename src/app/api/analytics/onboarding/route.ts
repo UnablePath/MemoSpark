@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseServerAdmin } from '@/lib/supabase/server';
 
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const days = parseInt(searchParams.get('days') || '7');
+    const days = Number.parseInt(searchParams.get('days') || '7');
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -159,7 +159,7 @@ function processAnalyticsData(analytics: any[]) {
 
   // Calculate rates
   Object.keys(summary.stepCompletionRates).forEach(step => {
-    const stepData = summary.stepCompletionRates[parseInt(step)];
+    const stepData = summary.stepCompletionRates[Number.parseInt(step)];
     stepData.rate = stepData.entered > 0 ? (stepData.completed / stepData.entered) * 100 : 0;
   });
 
@@ -173,7 +173,7 @@ function processAnalyticsData(analytics: any[]) {
     const [step] = dropOffSteps.reduce((max, current) => 
       current[1] > max[1] ? current : max
     );
-    summary.mostCommonDropOffStep = parseInt(step);
+    summary.mostCommonDropOffStep = Number.parseInt(step);
   }
 
   return summary;

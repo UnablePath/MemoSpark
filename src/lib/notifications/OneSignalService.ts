@@ -592,7 +592,7 @@ export class OneSignalService {
   /**
    * Get user's notification analytics
    */
-  async getUserNotificationAnalytics(userId: string, days: number = 30) {
+  async getUserNotificationAnalytics(userId: string, days = 30) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -660,7 +660,7 @@ export class OneSignalService {
 
       // Check Safari version for PWA support
       const safariMatch = navigator.userAgent.match(/Version\/(\d+\.\d+)/);
-      const safariVersion = safariMatch ? parseFloat(safariMatch[1]) : 0;
+      const safariVersion = safariMatch ? Number.parseFloat(safariMatch[1]) : 0;
       
       if (safariVersion < 11.3) {
         result.issues.push(`Safari ${safariVersion} detected. iOS 11.3+ required for PWA notifications`);

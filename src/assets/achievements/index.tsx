@@ -1,5 +1,5 @@
 // Achievement Badge SVG Components
-import React from 'react';
+import type React from 'react';
 
 export const FirstTaskBadge: React.FC<{ className?: string }> = ({ className = "w-8 h-8" }) => (
   <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">

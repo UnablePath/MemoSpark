@@ -5,9 +5,9 @@ export const organizationSchema = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'MemoSpark',
-  description: 'AI-powered study companion for students and educators',
+  description: 'Student app for tasks, timetables, study groups, messaging, crashout posts, and AI support.',
   url: BASE_URL,
-  logo: `${BASE_URL}/logo.png`,
+  logo: `${BASE_URL}/MemoSpark.svg`,
   sameAs: [
     'https://twitter.com/memospark',
     'https://linkedin.com/company/memospark',
@@ -35,34 +35,21 @@ export const webApplicationSchema = {
   '@context': 'https://schema.org',
   '@type': 'WebApplication',
   name: 'MemoSpark',
-  description: 'AI-powered study companion that helps students optimize their learning through intelligent task management and personalized insights',
+  description: 'Student app for tasks, timetables, study groups, messaging, crashout posts, and AI support.',
   url: BASE_URL,
   applicationCategory: 'EducationalApplication',
   operatingSystem: 'Web Browser',
   browserRequirements: 'Requires JavaScript. Modern browser recommended.',
   softwareVersion: '1.0',
-  offers: {
-    '@type': 'Offer',
-    price: '0',
-    priceCurrency: 'USD',
-    category: 'Freemium',
-  },
   featureList: [
-    'AI-powered task suggestions',
-    'Smart scheduling',
-    'Progress tracking',
-    'Study analytics',
-    'Gamification elements',
-    'Social study features',
+    'Tasks and timetables',
+    'Study groups and messaging',
+    'Crashout forum and private journal',
+    'AI support and smart scheduling',
+    'Gamification and streaks',
+    'Student analytics',
   ],
-  screenshot: `${BASE_URL}/screenshot.png`,
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: '4.8',
-    ratingCount: '1250',
-    bestRating: '5',
-    worstRating: '1',
-  },
+  screenshot: `${BASE_URL}/og-image.svg`,
 };
 
 // FAQ Schema for AI engines
@@ -247,7 +234,6 @@ export const generatePageStructuredData = (pageType: string, customData?: any): 
   
   switch (pageType) {
     case 'home':
-      schemas.push(faqSchema as object, educationalContentSchema as object);
       break;
     case 'about':
       schemas.push(aiTrainingSchema as object);

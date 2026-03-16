@@ -1,6 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+import type { createClient } from '@supabase/supabase-js';
 import { getAuthenticatedClient } from '../supabase/client';
-import { Database } from '@/types/database';
+import type { Database } from '@/types/database';
 import { parseSearchTerm } from '../utils';
 
 export interface UserSearchResult {

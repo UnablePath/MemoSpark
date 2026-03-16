@@ -111,7 +111,7 @@ export class StressMeter {
     }
   }
 
-  async getRecentStressReadings(limit: number = 10): Promise<StressReading[]> {
+  async getRecentStressReadings(limit = 10): Promise<StressReading[]> {
     try {
       const supabase = this.getSupabaseClient();
       if (!supabase) return [];

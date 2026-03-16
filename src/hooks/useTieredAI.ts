@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { AIFeatureType, TierAwareAIRequest, TierAwareAIResponse } from '@/types/ai';
-import { SubscriptionTier } from '@/types/subscription';
+import { type AIFeatureType, TierAwareAIRequest, type TierAwareAIResponse } from '@/types/ai';
+import type { SubscriptionTier } from '@/types/subscription';
 import { useAuth } from '@clerk/nextjs';
 
 interface TieredAIUsage {

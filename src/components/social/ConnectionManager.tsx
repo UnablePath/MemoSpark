@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import type React from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth, useUser } from '@clerk/nextjs';
-import { StudentDiscovery, UserSearchResult } from '@/lib/social/StudentDiscovery';
+import { StudentDiscovery, type UserSearchResult } from '@/lib/social/StudentDiscovery';
 import { MessagingService } from '@/lib/messaging/MessagingService';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

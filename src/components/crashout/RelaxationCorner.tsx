@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 import { useRelaxationAudio, type RelaxationSoundType } from '@/hooks/useRelaxationAudio';
 import { Gamepad2, Wind, Music, Palette, Play, Pause, Volume2, VolumeX } from 'lucide-react';
@@ -314,7 +315,7 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
                     max="1"
                     step="0.1"
                     value={volume}
-                    onChange={(e) => setVolume(parseFloat(e.target.value))}
+                    onChange={(e) => setVolume(Number.parseFloat(e.target.value))}
                     className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
                     aria-label="Volume control"
                   />

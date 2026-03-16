@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import { useOptimizedTheme } from '@/hooks/useOptimizedTheme';
 import { useThemeContext } from '@/components/providers/theme-provider';
 import { useUser } from '@clerk/nextjs';

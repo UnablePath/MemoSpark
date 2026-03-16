@@ -74,8 +74,8 @@ export interface SpeechSynthesisOptions {
 export class VoiceService {
   private recognition: SpeechRecognition | null = null;
   private synthesis: SpeechSynthesis | null = null;
-  private isListening: boolean = false;
-  private isSupported: boolean = false;
+  private isListening = false;
+  private isSupported = false;
 
   constructor() {
     this.initializeServices();
@@ -299,8 +299,8 @@ export class VoiceService {
     // Time patterns (5 PM, 3:30, etc.)
     const timeMatch = text.match(/(\d{1,2}):?(\d{2})?\s?(am|pm|AM|PM)/);
     if (timeMatch) {
-      const hour = parseInt(timeMatch[1]);
-      const minute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+      const hour = Number.parseInt(timeMatch[1]);
+      const minute = timeMatch[2] ? Number.parseInt(timeMatch[2]) : 0;
       const isPM = timeMatch[3].toLowerCase() === 'pm';
       
       const dueDate = new Date(today);

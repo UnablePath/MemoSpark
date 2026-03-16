@@ -1,6 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import type React from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 
@@ -249,7 +250,7 @@ export const OneSignalProvider: React.FC<OneSignalProviderProps> = ({ children }
     }
   };
 
-  const subscribe = async (force: boolean = false): Promise<boolean> => {
+  const subscribe = async (force = false): Promise<boolean> => {
     console.log('🔔 Subscribe called', { force, isOperating });
     
     // Debouncing - prevent multiple operations within 3 seconds
@@ -412,7 +413,7 @@ export const OneSignalProvider: React.FC<OneSignalProviderProps> = ({ children }
 
       // Check Safari version
       const safariMatch = navigator.userAgent.match(/Version\/(\d+\.\d+)/);
-      const safariVersion = safariMatch ? parseFloat(safariMatch[1]) : 0;
+      const safariVersion = safariMatch ? Number.parseFloat(safariMatch[1]) : 0;
       
       if (safariVersion < 11.3) {
         issues.push(`Safari ${safariVersion} detected. iOS 11.3+ required for PWA notifications`);

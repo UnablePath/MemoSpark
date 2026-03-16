@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { PostComposer } from './PostComposer';
 import { PostFeed } from './PostFeed';
 import { RelaxationCorner } from './RelaxationCorner';
 import { FloatingParticles } from './FloatingParticles';
 import { CrashoutStats } from './CrashoutStats';
-import { CrashoutPostInput, createCrashoutPost } from '@/lib/supabase/crashoutApi';
+import { type CrashoutPostInput, createCrashoutPost } from '@/lib/supabase/crashoutApi';
 import { Particles } from '@/components/ui/particles';
 import { BorderBeam } from '@/components/ui/border-beam';
 

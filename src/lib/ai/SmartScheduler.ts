@@ -1,11 +1,11 @@
 import { 
-  PatternData, 
-  UserPreferences, 
-  ExtendedTask, 
-  ScheduledTask, 
-  ScheduleAdjustment,
-  TimeSlot,
-  Priority,
+  type PatternData, 
+  type UserPreferences, 
+  type ExtendedTask, 
+  type ScheduledTask, 
+  type ScheduleAdjustment,
+  type TimeSlot,
+  type Priority,
   TaskType
 } from '@/types/ai';
 import { createClient } from '@/lib/supabase/client';
@@ -187,8 +187,8 @@ export class SmartScheduler {
     return Object.entries(hourlyPerformance)
       .filter(([, data]) => data.count >= 3) // Need at least 3 completions for reliability
       .map(([hour, data]) => ({
-        startHour: parseInt(hour),
-        endHour: parseInt(hour) + 1,
+        startHour: Number.parseInt(hour),
+        endHour: Number.parseInt(hour) + 1,
         efficiency: Math.min(data.efficiency, 1), // Normalize to 0-1
         dayOfWeek: undefined
       }))

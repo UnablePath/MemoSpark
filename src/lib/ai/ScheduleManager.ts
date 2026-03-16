@@ -89,7 +89,7 @@ export class ScheduleManager {
   /**
    * Get scheduling analytics for a user
    */
-  async getSchedulingAnalytics(userId: string, days: number = 30): Promise<{
+  async getSchedulingAnalytics(userId: string, days = 30): Promise<{
     totalScheduled: number;
     completedOnTime: number;
     averageActualVsScheduled: number;
@@ -179,7 +179,7 @@ export class ScheduleManager {
   /**
    * Get recent scheduling patterns for learning
    */
-  async getRecentPatterns(userId: string, limit: number = 50): Promise<{
+  async getRecentPatterns(userId: string, limit = 50): Promise<{
     preferredStartTimes: number[];
     averageSessionLength: number;
     subjectPerformance: Record<string, { completed: number; total: number; avgConfidence: number }>;
@@ -332,7 +332,7 @@ export class ScheduleManager {
   /**
    * Get schedule history for a user
    */
-  async getScheduleHistory(userId: string, days: number = 30): Promise<{
+  async getScheduleHistory(userId: string, days = 30): Promise<{
     schedules: Array<{
       date: string;
       schedule: ScheduledTask[];

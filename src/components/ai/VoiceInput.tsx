@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
-import { VoiceService, VoiceProcessingResult } from '../../lib/ai/VoiceService';
+import { VoiceService, type VoiceProcessingResult } from '../../lib/ai/VoiceService';
 import { cn } from '../../lib/utils';
 
 interface VoiceInputProps {

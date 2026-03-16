@@ -156,7 +156,7 @@ export const usePerformanceMonitor = () => {
   };
 
   // Get recent request logs
-  const getRecentLogs = (minutes: number = 5) => {
+  const getRecentLogs = (minutes = 5) => {
     const cutoff = new Date(Date.now() - minutes * 60 * 1000);
     return requestLogs.current.filter(log => log.timestamp > cutoff);
   };

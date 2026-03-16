@@ -1,11 +1,11 @@
-import { DefaultSeoProps } from 'next-seo';
+import type { DefaultSeoProps } from 'next-seo';
 import type { Metadata } from 'next';
 
 // Base URL for the application
 export const BASE_URL = 'https://www.memospark.live';
 
 // Helper function to generate canonical URLs
-export const getCanonicalUrl = (path: string = ''): string => {
+export const getCanonicalUrl = (path = ''): string => {
   // Remove leading slash if present to avoid double slashes
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
   return `${BASE_URL}${cleanPath ? `/${cleanPath}` : ''}`;
@@ -14,8 +14,8 @@ export const getCanonicalUrl = (path: string = ''): string => {
 // Default SEO configuration
 export const defaultSeoConfig: DefaultSeoProps = {
   titleTemplate: '%s | MemoSpark',
-  defaultTitle: 'MemoSpark - AI-Powered Study Companion',
-  description: 'Transform your learning with AI-powered task management, smart scheduling, and personalized study insights.',
+  defaultTitle: 'MemoSpark - Student life, in one place',
+  description: 'MemoSpark helps students keep up with coursework, find people in their classes, and stay on track when the week gets rough.',
   
   // Canonical URL will be set per page
   canonical: BASE_URL,
@@ -26,15 +26,15 @@ export const defaultSeoConfig: DefaultSeoProps = {
     locale: 'en_US',
     url: BASE_URL,
     siteName: 'MemoSpark',
-    title: 'MemoSpark - AI-Powered Study Companion',
-    description: 'Transform your learning with AI-powered task management, smart scheduling, and personalized study insights.',
+    title: 'MemoSpark - Student life, in one place',
+    description: 'MemoSpark helps students keep up with coursework, find people in their classes, and stay on track when the week gets rough.',
     images: [
       {
-        url: `${BASE_URL}/og-image.png`,
+        url: `${BASE_URL}/og-image.svg`,
         width: 1200,
         height: 630,
-        alt: 'MemoSpark - AI-Powered Study Companion',
-        type: 'image/png',
+        alt: 'MemoSpark - Student life, in one place',
+        type: 'image/svg+xml',
       },
     ],
   },
@@ -50,7 +50,7 @@ export const defaultSeoConfig: DefaultSeoProps = {
   additionalMetaTags: [
     {
       name: 'keywords',
-      content: 'study, ai, task management, education, productivity, learning, scheduling, insights',
+      content: 'students, study planning, task management, timetables, study groups, messaging, wellness, productivity',
     },
     {
       name: 'author',
@@ -94,42 +94,8 @@ export const defaultSeoConfig: DefaultSeoProps = {
   additionalLinkTags: [
     {
       rel: 'icon',
-      href: '/icon.svg',
+      href: '/MemoSpark.svg',
       type: 'image/svg+xml',
-    },
-    {
-      rel: 'icon',
-      href: '/icon-192x192.png',
-      sizes: '192x192',
-      type: 'image/png',
-    },
-    {
-      rel: 'icon',
-      href: '/icon-256x256.png',
-      sizes: '256x256',
-      type: 'image/png',
-    },
-    {
-      rel: 'icon',
-      href: '/icon-384x384.png',
-      sizes: '384x384',
-      type: 'image/png',
-    },
-    {
-      rel: 'icon',
-      href: '/icon-512x512.png',
-      sizes: '512x512',
-      type: 'image/png',
-    },
-    {
-      rel: 'apple-touch-icon',
-      href: '/apple-touch-icon.png',
-      sizes: '180x180',
-      type: 'image/png',
-    },
-    {
-      rel: 'manifest',
-      href: '/manifest.webmanifest',
     },
   ],
 };
@@ -137,8 +103,8 @@ export const defaultSeoConfig: DefaultSeoProps = {
 // Page-specific SEO configurations
 export const pageSeoConfigs = {
   home: {
-    title: 'AI-Powered Study Companion',
-    description: 'Transform your learning with AI-powered task management, smart scheduling, and personalized study insights. Join thousands of students improving their academic performance.',
+    title: 'Student life, in one place',
+    description: 'MemoSpark helps students keep up with coursework, meet people in their classes, vent when the week gets rough, and stay on track with AI support.',
     canonical: getCanonicalUrl(),
   },
   
@@ -238,10 +204,10 @@ export const generateNextjsMetadata = (pageKey: keyof typeof pageSeoConfigs): Me
       siteName: 'MemoSpark',
       images: [
         {
-          url: `${BASE_URL}/og-image.png`,
+          url: `${BASE_URL}/og-image.svg`,
           width: 1200,
           height: 630,
-          alt: 'MemoSpark - AI-Powered Study Companion',
+          alt: 'MemoSpark - Student life, in one place',
         },
       ],
       locale: 'en_US',

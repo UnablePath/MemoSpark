@@ -162,7 +162,7 @@ const RemindersTab = () => {
         if (isToday) {
             const [hours, minutes] = reminderForm.due_time.split(':');
             const dueDateTime = new Date(selectedDate);
-            dueDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            dueDateTime.setHours(Number.parseInt(hours), Number.parseInt(minutes), 0, 0);
             
             if (dueDateTime <= now) {
                 toast.error('Due time cannot be in the past. Please select a future time for today.');
@@ -172,7 +172,7 @@ const RemindersTab = () => {
             // Also validate reminder time if it's set for today
             const [reminderHours, reminderMinutes] = reminderForm.reminder_time.split(':');
             const reminderDateTime = new Date(selectedDate);
-            reminderDateTime.setHours(parseInt(reminderHours), parseInt(reminderMinutes), 0, 0);
+            reminderDateTime.setHours(Number.parseInt(reminderHours), Number.parseInt(reminderMinutes), 0, 0);
             
             if (reminderDateTime <= now) {
                 toast.error('Reminder time cannot be in the past. Please select a future reminder time for today.');
@@ -190,11 +190,11 @@ const RemindersTab = () => {
                 
                 // Create due date with time
                 const dueDateTime = new Date(reminderForm.due_date);
-                dueDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                dueDateTime.setHours(Number.parseInt(hours), Number.parseInt(minutes), 0, 0);
                 
                 // Create reminder date with time (same day as due date)
                 const reminderDateTime = new Date(reminderForm.due_date);
-                reminderDateTime.setHours(parseInt(reminderHours), parseInt(reminderMinutes), 0, 0);
+                reminderDateTime.setHours(Number.parseInt(reminderHours), Number.parseInt(reminderMinutes), 0, 0);
                 
                 // Create basic reminder first to ensure it appears in RemindersTab
                 const reminderData: ReminderCreateInput = {
@@ -255,11 +255,11 @@ const RemindersTab = () => {
                 
                 // Create due date with time
                 const dueDateTime = new Date(reminderForm.due_date);
-                dueDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                dueDateTime.setHours(Number.parseInt(hours), Number.parseInt(minutes), 0, 0);
                 
                 // Create reminder date with time (same day as due date)
                 const reminderDateTime = new Date(reminderForm.due_date);
-                reminderDateTime.setHours(parseInt(reminderHours), parseInt(reminderMinutes), 0, 0);
+                reminderDateTime.setHours(Number.parseInt(reminderHours), Number.parseInt(reminderMinutes), 0, 0);
                 
                 const reminderData: ReminderCreateInput = {
                     title: reminderForm.title,
@@ -509,8 +509,8 @@ const RemindersTab = () => {
                         <motion.div
                             animate={stuAnimation}
                             variants={{
-                                idle: { y: [0, -5, 0], transition: { duration: 2, repeat: Infinity } },
-                                talking: { y: [0, -8, 0], transition: { duration: 0.5, repeat: Infinity } },
+                                idle: { y: [0, -5, 0], transition: { duration: 2, repeat: Number.POSITIVE_INFINITY } },
+                                talking: { y: [0, -8, 0], transition: { duration: 0.5, repeat: Number.POSITIVE_INFINITY } },
                                 excited: { scale: [1, 1.1, 1], rotate: [-5, 5, -5, 0], transition: { duration: 0.5 } }
                             }}
                             onClick={handleStuClick}

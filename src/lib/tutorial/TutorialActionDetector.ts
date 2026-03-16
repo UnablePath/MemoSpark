@@ -2,7 +2,7 @@
 
 import { TutorialManager } from './TutorialManager';
 import { TutorialErrorHandler } from './TutorialErrorHandler';
-import { TutorialActionDetectionConfig, TUTORIAL_ERROR_CODES } from './types';
+import { type TutorialActionDetectionConfig, TUTORIAL_ERROR_CODES } from './types';
 
 interface ActionListener {
   cleanup: () => void;

@@ -242,7 +242,7 @@ export async function trackNotificationDismiss(notificationId: string): Promise<
 }
 
 // Get user notification analytics
-export async function getUserNotificationAnalytics(days: number = 30): Promise<ActionResult> {
+export async function getUserNotificationAnalytics(days = 30): Promise<ActionResult> {
   try {
     const { userId } = await auth();
     

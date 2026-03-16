@@ -6,7 +6,7 @@ import React, {
   useCallback, 
   useMemo, 
   useRef,
-  KeyboardEvent
+  type KeyboardEvent
 } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '@clerk/nextjs';
@@ -17,9 +17,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InteractiveStu } from '@/components/stu/InteractiveStu';
 import { TutorialManager } from '@/lib/tutorial/TutorialManager';
 import { 
-  TutorialProgress, 
-  TutorialStepConfig, 
-  TutorialError,
+  type TutorialProgress, 
+  type TutorialStepConfig, 
+  type TutorialError,
   TutorialStep 
 } from '@/lib/tutorial/types';
 import { cn } from '@/lib/utils';

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import { costOptimizedAI } from '@/lib/ai/CostOptimizedAIService';
 
 interface CostStats {

@@ -17,9 +17,9 @@ import { ChevronLeft, ChevronRight, Sparkles, Brain, Clock, Heart, CheckCircle, 
 import { InteractiveStu } from '@/components/stu/InteractiveStu';
 import { useRouter } from 'next/navigation';
 import QuestionnaireManager, { 
-  QuestionnaireTemplate, 
-  QuestionnaireQuestion, 
-  QuestionnaireResponse 
+  type QuestionnaireTemplate, 
+  type QuestionnaireQuestion, 
+  type QuestionnaireResponse 
 } from '@/lib/ai/QuestionnaireManager';
 
 interface AIQuestionnaireProps {
@@ -212,7 +212,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
     }, 500); // 500ms debounce delay
   }, [answers, currentTemplate, user?.id, questionnaireManager]);
 
-  const handleAnswer = async (questionId: string, answer: any, autoAdvance: boolean = true) => {
+  const handleAnswer = async (questionId: string, answer: any, autoAdvance = true) => {
     if (!currentTemplate || !user?.id) return;
 
     try {
@@ -453,8 +453,8 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
         // Fallback: stable hour/minute selectors to avoid input resets on unsupported browsers
         const raw = typeof currentAnswer === 'string' ? currentAnswer : '';
         const [hStr, mStr] = (raw && raw.includes(':')) ? raw.split(':') : ['',''];
-        const hour = hStr !== '' ? parseInt(hStr, 10) : undefined;
-        const minute = mStr !== '' ? parseInt(mStr, 10) : undefined;
+        const hour = hStr !== '' ? Number.parseInt(hStr, 10) : undefined;
+        const minute = mStr !== '' ? Number.parseInt(mStr, 10) : undefined;
 
         const hours = Array.from({ length: 24 }, (_, i) => i);
         const minutes = Array.from({ length: 12 }, (_, i) => i * 5); // step 5m for usability
@@ -478,7 +478,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
                 className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 value={hour ?? ''}
                 onChange={(e) => updateTime(
-                  e.target.value === '' ? undefined : parseInt(e.target.value, 10),
+                  e.target.value === '' ? undefined : Number.parseInt(e.target.value, 10),
                   minute
                 )}
               >
@@ -496,7 +496,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
                 value={minute ?? ''}
                 onChange={(e) => updateTime(
                   hour,
-                  e.target.value === '' ? undefined : parseInt(e.target.value, 10)
+                  e.target.value === '' ? undefined : Number.parseInt(e.target.value, 10)
                 )}
               >
                 <option value="">--</option>

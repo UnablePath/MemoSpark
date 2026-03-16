@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
+import type React from 'react';
+import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { TabContainer } from '@/components/layout/TabContainer';
 import ConnectionsErrorBoundary from '@/components/home/ConnectionsErrorBoundary';
 

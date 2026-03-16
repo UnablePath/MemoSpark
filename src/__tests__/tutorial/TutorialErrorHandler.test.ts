@@ -1,6 +1,6 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import { TutorialErrorHandler } from '@/lib/tutorial/TutorialErrorHandler';
-import { TUTORIAL_ERROR_CODES, TutorialErrorCode } from '@/lib/tutorial/types';
+import { TUTORIAL_ERROR_CODES, type TutorialErrorCode } from '@/lib/tutorial/types';
 
 // Mock window.gtag for analytics
 Object.defineProperty(window, 'gtag', {

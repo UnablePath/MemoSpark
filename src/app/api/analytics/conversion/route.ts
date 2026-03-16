@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseServerAdmin } from '@/lib/supabase/server';
 
@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
     // Add server-side metadata
     const conversionEvent = {
       ...body,
+      event_type: body.event_type || body.event,
       user_id: userId || body.user_data?.user_id || null,
       ip_address: null,
       user_agent: request.headers.get('user-agent') || null,
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const days = parseInt(searchParams.get('days') || '30');
+    const days = Number.parseInt(searchParams.get('days') || '30');
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -103,6 +104,7 @@ export async function GET(request: NextRequest) {
 function processConversionFunnel(conversions: any[]) {
   const funnel = {
     landing_views: 0,
+    pricing_intents: 0,
     sign_ups_started: 0,
     sign_ups_completed: 0,
     onboarding_started: 0,
@@ -135,6 +137,10 @@ function processConversionFunnel(conversions: any[]) {
       case 'sign_up_started':
         funnel.sign_ups_started++;
         break;
+      case 'pricing_cta_click':
+      case 'pricing_strip_click':
+        funnel.pricing_intents++;
+        break;
       case 'sign_up':
         funnel.sign_ups_completed++;
         break;
@@ -163,6 +169,8 @@ function processConversionFunnel(conversions: any[]) {
 
   // Calculate conversion rates
   const rates = {
+    landing_to_pricing_intent: funnel.landing_views ?
+      ((funnel.pricing_intents / funnel.landing_views) * 100).toFixed(2) : '0',
     landing_to_signup: funnel.landing_views ? 
       ((funnel.sign_ups_completed / funnel.landing_views) * 100).toFixed(2) : '0',
     signup_to_onboarding: funnel.sign_ups_completed ? 

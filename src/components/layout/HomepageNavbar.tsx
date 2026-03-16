@@ -72,6 +72,7 @@ export function HomepageNavbar() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full hover:bg-primary/10">
+                  <span className="sr-only">Open account menu</span>
                     <User className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -100,6 +101,7 @@ export function HomepageNavbar() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full hover:bg-primary/10 bg-muted/50">
+                  <span className="sr-only">Open account menu</span>
                   <User className="h-4 w-4 text-foreground" />
                 </Button>
               </DropdownMenuTrigger>
@@ -168,9 +170,16 @@ export function HomepageNavbar() {
               </SignUpButton>
             </SignedOut>
             <SignedIn>
-              <Link href="/dashboard" passHref legacyBehavior>
-                 <Button variant="outline" size="sm" className="w-full mb-2 font-medium bg-background text-foreground border-border hover:bg-muted/50 hover:text-primary" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Button>
-              </Link>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="mb-2 w-full font-medium bg-background text-foreground border-border hover:bg-muted/50 hover:text-primary"
+              >
+                <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+                  Dashboard
+                </Link>
+              </Button>
             </SignedIn>
           </div>
         </div>

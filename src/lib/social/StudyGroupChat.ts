@@ -218,7 +218,7 @@ export class StudyGroupChat {
   /**
    * Load chat history
    */
-  async loadMessages(limit: number = 50, before?: string): Promise<ChatMessage[]> {
+  async loadMessages(limit = 50, before?: string): Promise<ChatMessage[]> {
     if (!supabase) {
       return [];
     }

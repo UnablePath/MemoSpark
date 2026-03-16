@@ -1,14 +1,14 @@
 import {
-  TierAwareAIRequest,
-  TierAwareAIResponse,
-  ExtendedTask,
-  SuggestionContext,
-  AISuggestion,
+  type TierAwareAIRequest,
+  type TierAwareAIResponse,
+  type ExtendedTask,
+  type SuggestionContext,
+  type AISuggestion,
   ClassTimetableEntry,
-  UserPreferences,
+  type UserPreferences,
   UserAIPreferences,
 } from '../../types/ai';
-import { SubscriptionTier } from '../../types/subscription';
+import type { SubscriptionTier } from '../../types/subscription';
 import { costOptimizedAI } from './CostOptimizedAIService'; 
 import { patternEngine } from './patternEngine';
 import { suggestionEngine } from './suggestionEngine';

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Lock, Unlock, Smile, Tag, X } from 'lucide-react';
-import { CrashoutPostInput } from '@/lib/supabase/crashoutApi';
+import type { CrashoutPostInput } from '@/lib/supabase/crashoutApi';
 
 interface PostComposerProps {
   onPost: (post: CrashoutPostInput) => Promise<void>;

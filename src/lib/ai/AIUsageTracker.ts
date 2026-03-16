@@ -1,9 +1,9 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { 
-  AIUsageTracking, 
+  type AIUsageTracking, 
   AIFeatureUsage, 
-  UsageIncrementResult,
-  SubscriptionCheckResult 
+  type UsageIncrementResult,
+  type SubscriptionCheckResult 
 } from '../../types/subscription';
 import { SubscriptionTierManager } from '../subscription/SubscriptionTierManager';
 
@@ -25,7 +25,7 @@ export class AIUsageTracker {
    */
   async trackAIRequest(
     clerkUserId: string, 
-    feature: string = 'basic_ai'
+    feature = 'basic_ai'
   ): Promise<SubscriptionCheckResult & { canProceed: boolean }> {
     try {
       // First check if user can make the request
@@ -74,7 +74,7 @@ export class AIUsageTracker {
    */
   async incrementUsage(
     clerkUserId: string, 
-    feature: string = 'basic_ai'
+    feature = 'basic_ai'
   ): Promise<UsageIncrementResult> {
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -193,7 +193,7 @@ export class AIUsageTracker {
   /**
    * Get usage history for a user (last 30 days)
    */
-  async getUsageHistory(clerkUserId: string, days: number = 30): Promise<AIUsageTracking[]> {
+  async getUsageHistory(clerkUserId: string, days = 30): Promise<AIUsageTracking[]> {
     try {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);

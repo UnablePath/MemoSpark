@@ -1,10 +1,10 @@
 import {
-  PatternRecognitionEngine,
+  type PatternRecognitionEngine,
   patternEngine,
   type PatternData,
 } from './patternEngine';
 import {
-  SuggestionEngine,
+  type SuggestionEngine,
   suggestionEngine,
 } from './suggestionEngine';
 import type { Task, ClassTimetableEntry, UserPreferences, StudySuggestion, SuggestionContext, UserAIPreferences } from '@/types/ai';

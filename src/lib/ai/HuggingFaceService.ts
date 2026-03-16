@@ -1,5 +1,5 @@
 import { HfInference } from '@huggingface/inference';
-import { ExtendedTask, SuggestionContext, AISuggestion, PatternData } from '../../types/ai';
+import type { ExtendedTask, SuggestionContext, AISuggestion, PatternData } from '../../types/ai';
 
 export interface MLEnhancedSuggestion extends AISuggestion {
   mlProcessed: boolean;

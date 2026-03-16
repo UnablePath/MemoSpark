@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -757,7 +758,7 @@ export const SmartScheduleView: React.FC<SmartScheduleViewProps> = ({ className 
                       min="15"
                       max="300"
                       value={quickTaskForm.estimatedDuration}
-                      onChange={(e) => setQuickTaskForm(prev => ({ ...prev, estimatedDuration: parseInt(e.target.value) || 60 }))}
+                      onChange={(e) => setQuickTaskForm(prev => ({ ...prev, estimatedDuration: Number.parseInt(e.target.value) || 60 }))}
                       className="h-10 sm:h-11"
                     />
                   </div>

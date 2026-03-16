@@ -30,7 +30,7 @@ export function FloatingParticles() {
           }}
           transition={{
             duration: particle.duration,
-            repeat: Infinity,
+            repeat: Number.POSITIVE_INFINITY,
             ease: "easeInOut",
           }}
         />

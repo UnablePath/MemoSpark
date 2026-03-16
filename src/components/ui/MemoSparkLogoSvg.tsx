@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 
 interface MemoSparkLogoSvgProps {
   height: number;
@@ -13,18 +13,16 @@ export const MemoSparkLogoSvg: React.FC<MemoSparkLogoSvgProps> = ({
   textColor,
   darkBackground = false
 }) => {
-  // Calculate proportional width based on original dimensions (1062.4 x 199.48)
-  const aspectRatio = 1062.4 / 199.48;
+  const aspectRatio = 1200 / 199.48;
   const width = height * aspectRatio;
   
-  // Determine text color: explicit prop > context-based > CSS custom property > theme-aware fallback
   const logoTextColor = textColor || 
     (darkBackground ? '#ffffff' : 'hsl(var(--foreground))') ||
     'var(--logo-text-color, hsl(var(--foreground)))';
   
   return (
     <svg
-      viewBox="0 0 1062.4 199.48"
+      viewBox="0 0 1200 199.48"
       height={height}
       width={width}
       style={{ 
@@ -48,7 +46,7 @@ export const MemoSparkLogoSvg: React.FC<MemoSparkLogoSvgProps> = ({
                 fontWeight: 'normal',
                 fontSize: '120.41100311px',
                 fontFamily: 'linea, sans-serif',
-                fill: 'hsl(142, 76%, 36%)', // Always use the primary green color
+                fill: 'hsl(142, 76%, 36%)',
                 fillOpacity: 1,
                 fillRule: 'nonzero',
                 stroke: 'none'
@@ -66,15 +64,15 @@ export const MemoSparkLogoSvg: React.FC<MemoSparkLogoSvgProps> = ({
                 fontWeight: 900,
                 fontSize: '120.41098785px',
                 fontFamily: 'Futura, Arial, sans-serif',
-                fill: logoTextColor, // Use adaptive color
+                fill: logoTextColor,
                 fillOpacity: 1,
                 fillRule: 'nonzero',
                 stroke: 'none'
               }}
               transform="matrix(1,0,0,-0.9000009,496.246,28.6102)"
             >
-              <tspan y="0" x="0 62.385303 150.59816 224.33784">PARK</tspan>
-              <tspan y="-7.6085033" x="-496.24619 -388.26117 -323.34857 -216.30257">MEMO</tspan>
+              <tspan y="0" x="0 82 168 258">PARK</tspan>
+              <tspan y="-7.6085033" x="-496.246 -392.246 -310.246 -206.246">MEMO</tspan>
             </text>
           </g>
         </g>

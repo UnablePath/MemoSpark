@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import { Brain, Zap, TrendingUp, Shield, Clock, Target, Sparkles, Activity } from 'lucide-react';
 
 interface IntelligenceTier {

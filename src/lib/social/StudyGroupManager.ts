@@ -3,7 +3,7 @@
  */
 
 import { supabase } from '@/lib/supabase/client';
-import { Database } from '@/types/database';
+import type { Database } from '@/types/database';
 
 // Types from database
 export type StudyGroup = Database['public']['Tables']['study_groups']['Row'];
@@ -49,7 +49,7 @@ export class StudyGroupManager {
   /**
    * Create a new study group
    */
-  static async createGroup(name: string, description?: string, privacy_level: string = 'public'): Promise<StudyGroup> {
+  static async createGroup(name: string, description?: string, privacy_level = 'public'): Promise<StudyGroup> {
     try {
       const response = await fetch('/api/study-groups', {
         method: 'POST',
@@ -517,7 +517,7 @@ export class StudyGroupManager {
   /**
    * Add a member to a group
    */
-  async addMember(groupId: string, userId: string, role: string = 'member'): Promise<boolean> {
+  async addMember(groupId: string, userId: string, role = 'member'): Promise<boolean> {
     try {
       if (!supabase) {
         console.error('Supabase client not available');

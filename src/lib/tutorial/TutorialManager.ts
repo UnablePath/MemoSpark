@@ -1,14 +1,14 @@
 import { supabase } from '@/lib/supabase/client';
 import { TutorialErrorHandler } from './TutorialErrorHandler';
 import {
-  TutorialStep,
-  TutorialProgress,
-  TutorialStepConfig,
-  TutorialResult,
-  TutorialError,
-  TutorialAnalytics,
+  type TutorialStep,
+  type TutorialProgress,
+  type TutorialStepConfig,
+  type TutorialResult,
+  type TutorialError,
+  type TutorialAnalytics,
   StuAnimationState,
-  TutorialConfig,
+  type TutorialConfig,
   DEFAULT_TUTORIAL_CONFIG,
   TUTORIAL_ERROR_CODES,
   TutorialActionDetectionConfig,

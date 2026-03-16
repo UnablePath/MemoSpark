@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,10 +26,10 @@ import {
 import { toast } from 'sonner';
 import { 
   coinEconomy, 
-  CoinTransaction, 
-  CoinAnalytics, 
-  CoinSpendingCategory, 
-  CoinBonusEvent 
+  type CoinTransaction, 
+  type CoinAnalytics, 
+  type CoinSpendingCategory, 
+  type CoinBonusEvent 
 } from '@/lib/gamification/CoinEconomy';
 
 interface CoinDisplayProps {

@@ -1,8 +1,8 @@
 import { consolidatedAIService } from '@/lib/ai';
 import { SubscriptionTierManager } from '@/lib/subscription/SubscriptionTierManager';
 import { createClient } from '@supabase/supabase-js';
-import { ExtendedTask, SuggestionContext, AIFeatureType } from '@/types/ai';
-import { SubscriptionTier } from '@/types/subscription';
+import { type ExtendedTask, type SuggestionContext, AIFeatureType } from '@/types/ai';
+import type { SubscriptionTier } from '@/types/subscription';
 
 export interface TestUser {
   id: string;

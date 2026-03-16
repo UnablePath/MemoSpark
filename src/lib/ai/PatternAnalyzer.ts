@@ -1,4 +1,4 @@
-import { PatternData, UserPreferences, Task } from "@/types/ai";
+import type { PatternData, UserPreferences, Task } from "@/types/ai";
 
 export class PatternAnalyzer {
   private preferences: UserPreferences;
@@ -151,7 +151,7 @@ export class PatternAnalyzer {
       .filter(([, data]) => data.count >= 2) // At least 2 completions
       .sort(([, a], [, b]) => b.count - a.count) // Sort by frequency
       .slice(0, 4) // Top 4 hours
-      .map(([hour]) => parseInt(hour));
+      .map(([hour]) => Number.parseInt(hour));
 
     if (productiveHours.length > 0) {
       this.patterns.timePattern.mostProductiveHours = productiveHours;
@@ -303,7 +303,7 @@ export class PatternAnalyzer {
       const topPerformanceHours = Object.entries(hourlyPerformance)
         .sort(([,a], [,b]) => b.efficiency - a.efficiency)
         .slice(0, 4)
-        .map(([hour]) => parseInt(hour));
+        .map(([hour]) => Number.parseInt(hour));
       
       // Blend with user preferences (70% learned, 30% stated preference)
       const currentProductiveHours = this.patterns.timePattern.mostProductiveHours || [];
@@ -338,7 +338,7 @@ export class PatternAnalyzer {
       const avgDuration = stats.totalDuration / stats.count;
       const efficiency = avgDifficulty / avgDuration; // Higher difficulty per minute = more efficient
       
-      performance[parseInt(hour)] = {
+      performance[Number.parseInt(hour)] = {
         efficiency,
         count: stats.count
       };
@@ -526,7 +526,7 @@ export class PatternAnalyzer {
       .sort(([,a], [,b]) => b - a)
       .slice(0, 3)
       .map(([day]) => {
-        const dayNum = parseInt(day);
+        const dayNum = Number.parseInt(day);
         const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         return dayNames[dayNum] || 'Monday';
       });

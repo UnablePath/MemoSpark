@@ -1,4 +1,4 @@
-import { TutorialError, TutorialErrorCode, TUTORIAL_ERROR_CODES } from './types';
+import { type TutorialError, type TutorialErrorCode, TUTORIAL_ERROR_CODES } from './types';
 
 export class TutorialErrorHandler {
   private static instance: TutorialErrorHandler;

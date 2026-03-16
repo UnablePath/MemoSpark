@@ -1,10 +1,10 @@
-import { Vector2D, RigidBody, Joint, Force } from './PhysicsTypes';
+import type { Vector2D, RigidBody, Joint, Force } from './PhysicsTypes';
 
 export class PhysicsEngine {
   private bodies: RigidBody[] = [];
   private joints: Joint[] = [];
   private gravity: Vector2D = { x: 0, y: 9.81 };
-  private damping: number = 0.99;
+  private damping = 0.99;
   private worldBounds: { width: number; height: number };
 
   constructor(worldBounds: { width: number; height: number }) {

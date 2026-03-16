@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useRef, useCallback, useEffect } from 'react';
+import type React from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import { useCrashoutPosts } from '@/hooks/useCrashoutPosts';
 import { PostCard } from './PostCard';
 import { Loader2 } from 'lucide-react';

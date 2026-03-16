@@ -1,5 +1,7 @@
 'use client';
 
+import { getSafeStorage } from '@/lib/safe-storage';
+
 interface ConversionEvent {
   event: string;
   value?: number;
@@ -19,10 +21,69 @@ interface ConversionEvent {
   custom_parameters?: Record<string, any>;
 }
 
+interface TrackEventParams extends Record<string, any> {
+  value?: number;
+  currency?: string;
+  items?: ConversionEvent['items'];
+  user_data?: ConversionEvent['user_data'];
+}
+
+interface ConversionFunnel {
+  landing_page_view: number;
+  sign_up_started: number;
+  sign_up_completed: number;
+  onboarding_started: number;
+  onboarding_completed: number;
+  first_task_created: number;
+  dashboard_visits: number;
+  purchases: number;
+}
+
+const EMPTY_FUNNEL: ConversionFunnel = {
+  landing_page_view: 0,
+  sign_up_started: 0,
+  sign_up_completed: 0,
+  onboarding_started: 0,
+  onboarding_completed: 0,
+  first_task_created: 0,
+  dashboard_visits: 0,
+  purchases: 0,
+};
+
 class ConversionTracker {
   private sessionId: string;
   private landingSource: string | null = null;
   private campaignData: Record<string, string> = {};
+
+  private getActiveExperimentAssignments(): Record<string, string> {
+    const storage = getSafeStorage();
+    if (!storage) return {};
+
+    try {
+      const activeExperiments: Record<string, string> = {};
+      const prefix = 'memospark_experiment_assignment:';
+
+      for (let i = 0; i < storage.length; i += 1) {
+        const key = storage.key(i);
+        if (!key || !key.startsWith(prefix)) continue;
+
+        const experimentKey = key.replace(prefix, '');
+        const raw = storage.getItem(key);
+        if (!raw) continue;
+
+        const parsed = JSON.parse(raw) as { variant?: { key?: string } };
+        const variantKey = parsed?.variant?.key;
+        if (variantKey) {
+          activeExperiments[experimentKey] = variantKey;
+        }
+      }
+
+      return activeExperiments;
+    } catch (error) {
+      console.warn('Failed to read active experiment assignments:', error);
+      return {};
+    }
+  }
 
   constructor() {
     this.sessionId = this.generateSessionId();
@@ -34,7 +95,8 @@ class ConversionTracker {
   }
 
   private initializeTracking() {
-    if (typeof window === 'undefined') return;
+    const storage = getSafeStorage();
+    if (!storage) return;
 
     // Capture UTM parameters and referrer
     const urlParams = new URLSearchParams(window.location.search);
@@ -49,15 +111,15 @@ class ConversionTracker {
     };
 
     // Detect if this is from an influencer campaign
-    if (this.campaignData.utm_source?.includes('influencer') || 
+    if (this.campaignData.utm_source?.includes('influencer') ||
         this.campaignData.utm_campaign?.includes('influencer') ||
         this.campaignData.utm_medium === 'social') {
       this.landingSource = 'influencer';
     }
 
     // Store campaign data in localStorage for session persistence
-    localStorage.setItem('campaign_data', JSON.stringify(this.campaignData));
-    localStorage.setItem('session_id', this.sessionId);
+    storage.setItem('campaign_data', JSON.stringify(this.campaignData));
+    storage.setItem('session_id', this.sessionId);
 
     // Track page view
     this.trackEvent('page_view', {
@@ -67,14 +129,22 @@ class ConversionTracker {
   }
 
   // Track conversion events
-  trackEvent(eventName: string, parameters: Record<string, any> = {}) {
+  trackEvent(eventName: string, parameters: TrackEventParams = {}) {
+    const { value, currency, items, user_data, ...restParameters } = parameters;
+    const activeExperiments = this.getActiveExperimentAssignments();
+
     const event: ConversionEvent = {
       event: eventName,
+      value,
+      currency,
+      items,
+      user_data,
       custom_parameters: {
-        ...parameters,
+        ...restParameters,
         session_id: this.sessionId,
         landing_source: this.landingSource,
         timestamp: Date.now(),
+        active_experiments: activeExperiments,
         ...this.campaignData,
       },
     };
@@ -142,7 +212,7 @@ class ConversionTracker {
     });
   }
 
-  trackDashboardVisit(userId: string, isFirstVisit: boolean = false) {
+  trackDashboardVisit(userId: string, isFirstVisit = false) {
     this.trackEvent('dashboard_visit', {
       conversion_stage: 'retention',
       is_first_visit: isFirstVisit,
@@ -173,6 +243,13 @@ class ConversionTracker {
       days_active: daysActive,
       value: Math.min(daysActive * 2, 50), // Cap at 50
       user_data: { user_id: userId },
+    });
+  }
+
+  trackPricingIntent(placement: string) {
+    this.trackEvent('pricing_cta_click', {
+      conversion_stage: 'pricing_intent',
+      placement,
     });
   }
 
@@ -237,27 +314,31 @@ class ConversionTracker {
   }
 
   private storeEventLocally(event: ConversionEvent) {
+    const storage = getSafeStorage();
+    if (!storage) return;
     try {
-      const stored = localStorage.getItem('conversion_events') || '[]';
+      const stored = storage.getItem('conversion_events') || '[]';
       const events = JSON.parse(stored);
       events.push(event);
-      
+
       // Keep only last 100 events
       if (events.length > 100) {
         events.splice(0, events.length - 100);
       }
-      
-      localStorage.setItem('conversion_events', JSON.stringify(events));
+
+      storage.setItem('conversion_events', JSON.stringify(events));
     } catch (error) {
       console.warn('Failed to store conversion event locally:', error);
     }
   }
 
   // Get conversion funnel data for analysis
-  getConversionFunnel() {
+  getConversionFunnel(): ConversionFunnel {
+    const storage = getSafeStorage();
+    if (!storage) return EMPTY_FUNNEL;
     try {
-      const events = JSON.parse(localStorage.getItem('conversion_events') || '[]');
-      const funnel = {
+      const events = JSON.parse(storage.getItem('conversion_events') || '[]');
+      const funnel: ConversionFunnel = {
         landing_page_view: events.filter((e: any) => e.event === 'landing_page_view').length,
         sign_up_started: events.filter((e: any) => e.event === 'sign_up_started').length,
         sign_up_completed: events.filter((e: any) => e.event === 'sign_up').length,
@@ -270,7 +351,7 @@ class ConversionTracker {
 
       return funnel;
     } catch {
-      return {};
+      return EMPTY_FUNNEL;
     }
   }
 

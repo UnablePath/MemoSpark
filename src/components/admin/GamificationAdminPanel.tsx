@@ -1082,7 +1082,7 @@ export default GamificationAdminPanel;
 */
 
 // Production replacement component
-import React from 'react';
+import type React from 'react';
 
 export const GamificationAdminPanel: React.FC = () => {
   return (

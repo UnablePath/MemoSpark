@@ -290,7 +290,7 @@ export class CostOptimizedAIService {
     return item.data;
   }
 
-  private setCache(key: string, data: any, hoursToExpire: number = 24): void {
+  private setCache(key: string, data: any, hoursToExpire = 24): void {
     const expires = Date.now() + (hoursToExpire * 60 * 60 * 1000);
     this.cache.set(key, { data, timestamp: Date.now(), expires });
   }

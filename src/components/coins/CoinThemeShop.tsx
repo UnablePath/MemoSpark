@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Palette, 
@@ -185,7 +186,7 @@ export const CoinThemeShop: React.FC<CoinThemeShopProps> = ({
   };
 
   // Map coin theme IDs to actual theme IDs
-  const mapToActualThemeId = (coinThemeId: string, isDarkMode: boolean = true) => {
+  const mapToActualThemeId = (coinThemeId: string, isDarkMode = true) => {
     const themeMap: Record<string, { dark: string; light: string }> = {
       'forest-dream': { 
         dark: 'theme-forest-dream', 

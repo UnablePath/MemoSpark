@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { ScheduleManager } from '@/lib/ai/ScheduleManager';
 import { auth } from '@clerk/nextjs/server';
 
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const days = parseInt(searchParams.get('days') || '30');
+    const days = Number.parseInt(searchParams.get('days') || '30');
 
     const scheduleManager = new ScheduleManager();
     

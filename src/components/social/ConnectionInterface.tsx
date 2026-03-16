@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import type React from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth, useUser } from '@clerk/nextjs';
-import { StudentDiscovery, UserSearchResult } from '@/lib/social/StudentDiscovery';
-import { StudyGroupManager, StudyGroup } from '@/lib/social/StudyGroupManager';
+import { StudentDiscovery, type UserSearchResult } from '@/lib/social/StudentDiscovery';
+import { StudyGroupManager, type StudyGroup } from '@/lib/social/StudyGroupManager';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";

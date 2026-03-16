@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { coinEconomy, CoinSpendingCategory } from '@/lib/gamification/CoinEconomy';
+import { coinEconomy, type CoinSpendingCategory } from '@/lib/gamification/CoinEconomy';
 import { toast } from 'sonner';
 
 export interface UseRewardShopReturn {

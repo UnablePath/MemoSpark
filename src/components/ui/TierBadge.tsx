@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
+import type React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { Crown, Zap, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SubscriptionTier } from '@/types/subscription';
+import type { SubscriptionTier } from '@/types/subscription';
 
 const tierBadgeVariants = cva(
   "inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full border",

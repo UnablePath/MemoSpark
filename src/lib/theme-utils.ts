@@ -28,9 +28,9 @@ export const colorUtils: ColorUtilities = {
   },
 
   hexToHsl: (hex: string): string => {
-    const r = parseInt(hex.slice(1, 3), 16) / 255;
-    const g = parseInt(hex.slice(3, 5), 16) / 255;
-    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const r = Number.parseInt(hex.slice(1, 3), 16) / 255;
+    const g = Number.parseInt(hex.slice(3, 5), 16) / 255;
+    const b = Number.parseInt(hex.slice(5, 7), 16) / 255;
     
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
@@ -90,9 +90,9 @@ export const colorUtils: ColorUtilities = {
       if (!color.startsWith('#')) {
         hex = colorUtils.hslToHex(color);
       }
-      const r = parseInt(hex.slice(1, 3), 16) / 255;
-      const g = parseInt(hex.slice(3, 5), 16) / 255;
-      const b = parseInt(hex.slice(5, 7), 16) / 255;
+      const r = Number.parseInt(hex.slice(1, 3), 16) / 255;
+      const g = Number.parseInt(hex.slice(3, 5), 16) / 255;
+      const b = Number.parseInt(hex.slice(5, 7), 16) / 255;
       
       const sRGB = [r, g, b].map(c => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
       return 0.2126 * sRGB[0] + 0.7152 * sRGB[1] + 0.0722 * sRGB[2];
@@ -154,9 +154,9 @@ export class ThemeGenerator {
       const match = hsl.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
       if (!match) return {h: 0, s: 0, l: 50};
       return {
-        h: parseInt(match[1]),
-        s: parseInt(match[2]),
-        l: parseInt(match[3])
+        h: Number.parseInt(match[1]),
+        s: Number.parseInt(match[2]),
+        l: Number.parseInt(match[3])
       };
     };
 

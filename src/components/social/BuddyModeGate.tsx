@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Crown, Users, Lock, Video, MessageCircle, UserPlus, Calendar, BookOpen, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

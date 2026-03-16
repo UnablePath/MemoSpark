@@ -1,6 +1,6 @@
-import { createClient, RealtimeChannel } from '@supabase/supabase-js';
+import type { createClient, RealtimeChannel } from '@supabase/supabase-js';
 import { getAuthenticatedClient } from '../supabase/client';
-import { Database } from '@/types/database';
+import type { Database } from '@/types/database';
 import * as CryptoJS from 'crypto-js';
 import { useAuth } from '@clerk/nextjs';
 

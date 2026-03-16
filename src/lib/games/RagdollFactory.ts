@@ -1,4 +1,4 @@
-import { RigidBody, Joint, RagdollConfig, Vector2D } from './PhysicsTypes';
+import type { RigidBody, Joint, RagdollConfig, Vector2D } from './PhysicsTypes';
 
 export class RagdollFactory {
   static createRagdoll(config: RagdollConfig): { bodies: RigidBody[]; joints: Joint[] } {

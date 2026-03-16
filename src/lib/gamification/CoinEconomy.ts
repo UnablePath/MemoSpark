@@ -401,8 +401,8 @@ export class CoinEconomy {
    */
   async getTransactionHistory(
     userId: string,
-    limit: number = 50,
-    offset: number = 0,
+    limit = 50,
+    offset = 0,
     getToken?: () => Promise<string | null>
   ): Promise<CoinTransaction[]> {
     if (!supabase) {
@@ -1019,7 +1019,7 @@ export class CoinEconomy {
    */
   async compensateUnfairPenalty(
     userId: string,
-    compensationAmount: number = 200,
+    compensationAmount = 200,
     getToken?: () => Promise<string | null>
   ): Promise<CoinEarningResult> {
     return await this.awardCoins(

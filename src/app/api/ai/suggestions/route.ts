@@ -1,8 +1,8 @@
 import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { AIFeatureType } from '@/types/ai';
-import { SubscriptionTier } from '@/types/subscription';
+import type { AIFeatureType } from '@/types/ai';
+import type { SubscriptionTier } from '@/types/subscription';
 
 // Type guard to check if a string is a valid AIFeatureType
 function isAIFeatureType(feature: string): feature is AIFeatureType {

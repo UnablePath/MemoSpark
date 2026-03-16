@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseServerAdmin } from '@/lib/supabase/server';
 import { createHash } from 'crypto';
@@ -157,6 +157,8 @@ async function getComprehensiveAnalytics() {
       return sum + (pricing[s.tier as keyof typeof pricing] || 0);
     }, 0) || 0;
 
+    const getConversionEventName = (conversion: any): string => conversion.event || conversion.event_type || '';
+
     return {
       overview: {
         totalUsers,
@@ -179,13 +181,22 @@ async function getComprehensiveAnalytics() {
         tasksLast7d,
         achievementsLast7d,
         newUsers7d: users?.filter(u => new Date(u.created_at) >= sevenDaysAgo).length || 0,
-        conversionsLast7d: conversions?.filter(c => c.event_type === 'subscription_created').length || 0
+        conversionsLast7d: conversions?.filter(c => {
+          const eventName = getConversionEventName(c);
+          return eventName === 'subscription_created' || eventName === 'purchase';
+        }).length || 0
       },
       conversionFunnel: {
-        signups: conversions?.filter(c => c.event_type === 'user_registered').length || 0,
+        signups: conversions?.filter(c => {
+          const eventName = getConversionEventName(c);
+          return eventName === 'user_registered' || eventName === 'sign_up';
+        }).length || 0,
         onboardingCompleted: onboarding?.filter(o => o.completed).length || 0,
-        firstTaskCreated: conversions?.filter(c => c.event_type === 'first_task_created').length || 0,
-        subscribed: conversions?.filter(c => c.event_type === 'subscription_created').length || 0
+        firstTaskCreated: conversions?.filter(c => getConversionEventName(c) === 'first_task_created').length || 0,
+        subscribed: conversions?.filter(c => {
+          const eventName = getConversionEventName(c);
+          return eventName === 'subscription_created' || eventName === 'purchase';
+        }).length || 0
       },
       systemHealth: {
         databaseConnected: true,

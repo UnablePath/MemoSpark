@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useTheme } from 'next-themes';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,7 +29,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { coinEconomy, CoinSpendingCategory } from '@/lib/gamification/CoinEconomy';
+import { coinEconomy, type CoinSpendingCategory } from '@/lib/gamification/CoinEconomy';
 import { useFetchAchievements } from '@/hooks/useAchievementQueries';
 import { useUserTier } from '@/hooks/useUserTier';
 import { usePremiumPopup } from '@/components/providers/premium-popup-provider';

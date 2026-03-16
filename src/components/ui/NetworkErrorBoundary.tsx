@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Component, ReactNode } from 'react';
+import React, { Component, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -100,7 +100,7 @@ export class NetworkErrorBoundary extends Component<Props, State> {
     }
   };
 
-  handleAutoRetry = (delay: number = 3000) => {
+  handleAutoRetry = (delay = 3000) => {
     const timeout = setTimeout(() => {
       if (this.state.isOnline) {
         this.handleRetry();

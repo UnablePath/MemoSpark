@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, createRef, useCallback } from 'react';
+import type React from 'react';
+import { useState, useEffect, useMemo, createRef, useCallback } from 'react';
 import TinderCard from 'react-tinder-card';
 import { useAuth, useUser } from '@clerk/nextjs';
-import { StudentDiscovery, UserSearchResult } from '@/lib/social/StudentDiscovery';
-import { UserProfile } from '@/lib/social/StudentDiscovery';
+import { StudentDiscovery, type UserSearchResult } from '@/lib/social/StudentDiscovery';
+import type { UserProfile } from '@/lib/social/StudentDiscovery';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

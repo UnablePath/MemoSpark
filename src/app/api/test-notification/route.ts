@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 // Send test notification via OneSignal REST API
 export async function POST(request: NextRequest) {

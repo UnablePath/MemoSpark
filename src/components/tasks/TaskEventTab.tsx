@@ -1849,7 +1849,7 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                           value={newTask.reminderMinutes?.toString() || "15"}
                           onValueChange={(value) => setNewTask(prev => ({ 
                             ...prev, 
-                            reminderMinutes: parseInt(value) 
+                            reminderMinutes: Number.parseInt(value) 
                           }))}
                         >
                           <SelectTrigger>

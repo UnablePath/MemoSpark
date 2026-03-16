@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack -H 0.0.0.0",
+    "dev": "node --localstorage-file=.next/localstorage.json ./node_modules/next/dist/bin/next dev --turbopack -H 0.0.0.0",
     "build": "next build",
     "postbuild": "next-sitemap",
     "start": "next start",

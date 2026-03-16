@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import type React from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,7 +46,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { CrashoutJournal, JournalEntry, WritingPrompt, MoodType, MoodAnalytics } from '@/lib/services/CrashoutJournal';
+import { CrashoutJournal, type JournalEntry, type WritingPrompt, type MoodType, type MoodAnalytics } from '@/lib/services/CrashoutJournal';
 import { supabase } from '@/lib/supabase/client';
 
 // Mood configuration

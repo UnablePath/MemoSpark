@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { oneSignalService } from '@/lib/notifications/OneSignalService';
 import { auth } from '@clerk/nextjs/server';
 

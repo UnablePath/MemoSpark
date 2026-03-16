@@ -17,14 +17,14 @@ import { TutorialErrorHandler } from '@/lib/tutorial/TutorialErrorHandler';
 import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 import { TutorialOverlay } from './TutorialOverlay';
 import { 
-  TutorialContextValue, 
-  TutorialState, 
+  type TutorialContextValue, 
+  type TutorialState, 
   TutorialProgress, 
   TutorialError, 
-  TutorialResult,
-  TutorialStep,
+  type TutorialResult,
+  type TutorialStep,
   DEFAULT_TUTORIAL_CONFIG,
-  TutorialConfig
+  type TutorialConfig
 } from '@/lib/tutorial/types';
 
 interface TutorialProviderProps {

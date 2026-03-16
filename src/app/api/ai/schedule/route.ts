@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { SmartScheduler } from '@/lib/ai/SmartScheduler';
 import { PatternAnalyzer } from '@/lib/ai/PatternAnalyzer';
 import { ScheduleManager } from '@/lib/ai/ScheduleManager';

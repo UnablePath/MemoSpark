@@ -1,11 +1,11 @@
-import { SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { 
-  SubscriptionTier,
-  SubscriptionTierConfig, 
-  UserSubscription, 
-  UserSubscriptionData,
-  SubscriptionLimits,
-  SubscriptionCheckResult,
+  type SubscriptionTier,
+  type SubscriptionTierConfig, 
+  type UserSubscription, 
+  type UserSubscriptionData,
+  type SubscriptionLimits,
+  type SubscriptionCheckResult,
   DEFAULT_TIER_CONFIGS
 } from '../../types/subscription';
 import { supabase } from '../supabase/client';

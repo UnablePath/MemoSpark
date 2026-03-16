@@ -1,4 +1,4 @@
-import { SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type MoodType = 'stressed' | 'overwhelmed' | 'frustrated' | 'anxious' | 'sad' | 'exhausted';
 
@@ -57,7 +57,7 @@ export class CrashoutJournal {
     userId: string,
     content: string,
     mood: MoodType,
-    moodIntensity: number = 5,
+    moodIntensity = 5,
     title?: string,
     tags: string[] = [],
     promptId?: string
@@ -219,7 +219,7 @@ export class CrashoutJournal {
   }
 
   // Analytics and Insights
-  async getMoodInsights(userId: string, days: number = 7): Promise<MoodAnalytics> {
+  async getMoodInsights(userId: string, days = 7): Promise<MoodAnalytics> {
     const { data, error } = await this.supabase
       .rpc('get_mood_insights', {
         p_user_id: userId,

@@ -299,7 +299,7 @@ export default function PWATestPage() {
       
       // Create a task due in (reminderOffset + 5) minutes so we can test the reminder
       const dueDate = new Date();
-      dueDate.setMinutes(dueDate.getMinutes() + parseInt(reminderOffset) + 5);
+      dueDate.setMinutes(dueDate.getMinutes() + Number.parseInt(reminderOffset) + 5);
       
       const response = await fetch('/api/test-task-creation', {
         method: 'POST',
@@ -314,7 +314,7 @@ export default function PWATestPage() {
           type: 'academic',
           reminder_settings: {
             enabled: true,
-            offset_minutes: parseInt(reminderOffset),
+            offset_minutes: Number.parseInt(reminderOffset),
             type: 'notification'
           }
         }),

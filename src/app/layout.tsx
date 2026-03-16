@@ -28,10 +28,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: {
     template: '%s | MemoSpark',
-    default: 'MemoSpark - AI-Powered Study Companion',
+    default: 'MemoSpark - Student life, in one place',
   },
-  description: 'Transform your learning with AI-powered task management, smart scheduling, and personalized study insights.',
-  keywords: ['study', 'ai', 'task management', 'education', 'productivity', 'learning', 'scheduling', 'insights'],
+  description: 'MemoSpark helps students keep up with coursework, find people in their classes, and stay on track when the week gets rough.',
+  keywords: ['students', 'study planning', 'task management', 'timetables', 'study groups', 'messaging', 'wellness', 'productivity'],
   authors: [{ name: 'MemoSpark Team' }],
   creator: 'MemoSpark',
   metadataBase: new URL(BASE_URL),
@@ -39,23 +39,23 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: BASE_URL,
-    title: 'MemoSpark - AI-Powered Study Companion',
-    description: 'Transform your learning with AI-powered task management, smart scheduling, and personalized study insights.',
+    title: 'MemoSpark - Student life, in one place',
+    description: 'MemoSpark helps students keep up with coursework, find people in their classes, and stay on track when the week gets rough.',
     siteName: 'MemoSpark',
     images: [
       {
-        url: `${BASE_URL}/og-image.png`,
+        url: `${BASE_URL}/og-image.svg`,
         width: 1200,
         height: 630,
-        alt: 'MemoSpark - AI-Powered Study Companion',
-        type: 'image/png',
+        alt: 'MemoSpark - Student life, in one place',
+        type: 'image/svg+xml',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'MemoSpark - AI-Powered Study Companion',
-    description: 'Transform your learning with AI-powered task management, smart scheduling, and personalized study insights.',
+    title: 'MemoSpark - Student life, in one place',
+    description: 'MemoSpark helps students keep up with coursework, find people in their classes, and stay on track when the week gets rough.',
     creator: '@memospark',
     site: '@memospark',
   },
@@ -70,17 +70,9 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
-      { url: '/icon.svg', type: 'image/svg+xml' },
-      { url: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon-256x256.png', sizes: '256x256', type: 'image/png' },
-      { url: '/icon-384x384.png', sizes: '384x384', type: 'image/png' },
-      { url: '/icon-512x512.png', sizes: '512x512', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/MemoSpark.svg', type: 'image/svg+xml' },
     ],
   },
   appleWebApp: {

@@ -1,4 +1,5 @@
 import { format, parseISO, differenceInHours, differenceInDays, getHours, getDay, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
+import { getSafeStorage } from '@/lib/safe-storage';
 import type { 
   BaseTask, 
   ExtendedTask, 
@@ -597,14 +598,14 @@ export class PatternRecognitionEngine {
    * Save user preferences
    */
   saveUserPreferences(preferences: UserPreferences): void {
-    // Only access localStorage on the client side
-    if (typeof window === 'undefined') {
-      console.log('Skipping localStorage save on server side');
+    const storage = getSafeStorage();
+    if (!storage) {
+      if (typeof window === 'undefined') console.log('Skipping localStorage save on server side');
       return;
     }
 
     try {
-      localStorage.setItem(PatternRecognitionEngine.PREFERENCES_KEY, JSON.stringify(preferences));
+      storage.setItem(PatternRecognitionEngine.PREFERENCES_KEY, JSON.stringify(preferences));
     } catch (error) {
       console.error('Failed to save user preferences:', error);
     }
@@ -614,13 +615,11 @@ export class PatternRecognitionEngine {
    * Load user preferences
    */
   getUserPreferences(): UserPreferences | null {
-    // Only access localStorage on the client side
-    if (typeof window === 'undefined') {
-      return null;
-    }
+    const storage = getSafeStorage();
+    if (!storage) return null;
 
     try {
-      const stored = localStorage.getItem(PatternRecognitionEngine.PREFERENCES_KEY);
+      const stored = storage.getItem(PatternRecognitionEngine.PREFERENCES_KEY);
       return stored ? JSON.parse(stored) : null;
     } catch (error) {
       console.error('Failed to load user preferences:', error);
@@ -639,15 +638,15 @@ export class PatternRecognitionEngine {
    * Save patterns to localStorage with size management
    */
   private savePatterns(patterns: PatternData): void {
-    // Only access localStorage on the client side
-    if (typeof window === 'undefined') {
-      console.log('Skipping localStorage save on server side');
+    const storage = getSafeStorage();
+    if (!storage) {
+      if (typeof window === 'undefined') console.log('Skipping localStorage save on server side');
       return;
     }
 
     try {
       const serialized = JSON.stringify(patterns);
-      
+
       // Check storage size
       if (serialized.length > PatternRecognitionEngine.MAX_STORAGE_SIZE) {
         console.warn('Pattern data exceeds storage limit, trimming data');
@@ -657,9 +656,9 @@ export class PatternRecognitionEngine {
           // Remove less critical data if needed
           totalTasksAnalyzed: Math.min(patterns.totalTasksAnalyzed, 100)
         };
-        localStorage.setItem(PatternRecognitionEngine.STORAGE_KEY, JSON.stringify(trimmedPatterns));
+        storage.setItem(PatternRecognitionEngine.STORAGE_KEY, JSON.stringify(trimmedPatterns));
       } else {
-        localStorage.setItem(PatternRecognitionEngine.STORAGE_KEY, serialized);
+        storage.setItem(PatternRecognitionEngine.STORAGE_KEY, serialized);
       }
     } catch (error) {
       console.error('Failed to save patterns to localStorage:', error);
@@ -670,15 +669,15 @@ export class PatternRecognitionEngine {
    * Load patterns from localStorage
    */
   private loadPatterns(): void {
-    // Only access localStorage on the client side
-    if (typeof window === 'undefined') {
-      console.log('Skipping localStorage access on server side');
+    const storage = getSafeStorage();
+    if (!storage) {
+      if (typeof window === 'undefined') console.log('Skipping localStorage access on server side');
       this.patterns = null;
       return;
     }
 
     try {
-      const stored = localStorage.getItem(PatternRecognitionEngine.STORAGE_KEY);
+      const stored = storage.getItem(PatternRecognitionEngine.STORAGE_KEY);
       if (stored) {
         this.patterns = JSON.parse(stored);
       }
@@ -693,10 +692,8 @@ export class PatternRecognitionEngine {
    */
   clearPatterns(): void {
     this.patterns = null;
-    // Only access localStorage on the client side
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(PatternRecognitionEngine.STORAGE_KEY);
-    }
+    const storage = getSafeStorage();
+    if (storage) storage.removeItem(PatternRecognitionEngine.STORAGE_KEY);
   }
 
   /**
@@ -786,9 +783,9 @@ export class PatternRecognitionEngine {
    * Save timetable to localStorage for offline access
    */
   private saveTimetableToLocalStorage(userId: string, timetable: ClassTimetableEntry[]): void {
-    // Only access localStorage on the client side
-    if (typeof window === 'undefined') {
-      console.log('Skipping timetable localStorage save on server side');
+    const storage = getSafeStorage();
+    if (!storage) {
+      if (typeof window === 'undefined') console.log('Skipping timetable localStorage save on server side');
       return;
     }
 
@@ -800,7 +797,7 @@ export class PatternRecognitionEngine {
         lastUpdated: new Date().toISOString(),
         version: 1
       };
-      localStorage.setItem(storageKey, JSON.stringify(timetableData));
+      storage.setItem(storageKey, JSON.stringify(timetableData));
       console.log('Timetable saved to localStorage for offline access');
     } catch (error) {
       console.error('Failed to save timetable to localStorage:', error);
@@ -811,14 +808,12 @@ export class PatternRecognitionEngine {
    * Load timetable from localStorage (offline fallback)
    */
   private loadTimetableFromLocalStorage(userId: string): ClassTimetableEntry[] {
-    // Only access localStorage on the client side
-    if (typeof window === 'undefined') {
-      return [];
-    }
+    const storage = getSafeStorage();
+    if (!storage) return [];
 
     try {
       const storageKey = `memospark_timetable_${userId}`;
-      const stored = localStorage.getItem(storageKey);
+      const stored = storage.getItem(storageKey);
       
       if (!stored) {
         return [];

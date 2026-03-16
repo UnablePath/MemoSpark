@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTwitter, FaFacebook, FaLinkedin, FaWhatsapp, FaCopy, FaDownload, FaShare } from 'react-icons/fa';
 import { Button } from '@/components/ui/button';
@@ -36,7 +37,7 @@ export const AchievementSharing: React.FC<AchievementSharingProps> = ({
     hashtags: ['MemoSpark', 'Achievement', 'Learning', 'Productivity']
   };
 
-  const generateShareText = (platform: string = 'generic') => {
+  const generateShareText = (platform = 'generic') => {
     const baseText = `🎉 Just unlocked "${achievement.name}" on MemoSpark! ${achievement.description}`;
     const statsText = userStats ? `\n\n📊 My Stats:\n🏆 Level ${userStats.level}\n⭐ ${userStats.totalPoints} points\n🔥 ${userStats.currentStreak} day streak` : '';
     const urlText = `\n\n🚀 Join me on MemoSpark: ${shareData.url}`;

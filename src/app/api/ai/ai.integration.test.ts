@@ -1,4 +1,4 @@
-import { AITestUtils, TestUser } from '@/lib/testing/ai-test-utils';
+import { AITestUtils, type TestUser } from '@/lib/testing/ai-test-utils';
 import { AISuggestion, ExtendedTask, SuggestionContext } from '@/types/ai';
 
 describe('Super Intelligent AI - Integration Tests', () => {

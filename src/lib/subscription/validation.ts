@@ -212,7 +212,7 @@ export async function getUserAIUsage(clerkUserId: string, date: Date = new Date(
 export async function incrementAIUsage(
   clerkUserId: string,
   featureType: string,
-  incrementBy: number = 1
+  incrementBy = 1
 ) {
   const supabase = getSupabaseClient();
   const today = new Date().toISOString().split('T')[0];

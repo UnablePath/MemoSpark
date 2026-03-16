@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { ArrowLeft, Crown, CreditCard, ChevronDown, ChevronUp, Palette, Bell, Globe, Shield, Zap, Trash2, Download } from 'lucide-react';

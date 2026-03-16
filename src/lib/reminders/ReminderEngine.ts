@@ -318,7 +318,7 @@ export class ReminderEngine {
   /**
    * Handle snooze action from notification
    */
-  async snoozeReminder(taskId: string, userId: string, snoozeMinutes: number = 15): Promise<boolean> {
+  async snoozeReminder(taskId: string, userId: string, snoozeMinutes = 15): Promise<boolean> {
     try {
       console.log(`😴 Snoozing reminder for task ${taskId} by ${snoozeMinutes} minutes`);
 
@@ -455,8 +455,8 @@ export class ReminderEngine {
    */
   async scheduleDailyStreakReminder(
     userId: string,
-    currentStreak: number = 0,
-    timeOfDay: string = '20:00', // 8PM default
+    currentStreak = 0,
+    timeOfDay = '20:00', // 8PM default
     timezone?: string
   ): Promise<boolean> {
     try {

@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import React, { CSSProperties } from "react";
+import type React from "react";
+import { CSSProperties } from "react";
 
 interface AnimatedShinyTextProps {
   children: React.ReactNode;

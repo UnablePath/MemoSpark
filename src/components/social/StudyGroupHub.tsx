@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import type React from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth, useUser } from '@clerk/nextjs';
-import { StudyGroupManager, StudyGroup, StudyGroupMember, StudyGroupResource } from '@/lib/social/StudyGroupManager';
+import { StudyGroupManager, type StudyGroup, type StudyGroupMember, type StudyGroupResource } from '@/lib/social/StudyGroupManager';
 import { MessagingService } from '@/lib/messaging/MessagingService';
 import { useStudySessions, useCreateSession, useSessionParticipants, useJoinSession, useLeaveSession, useGroupCategories, useDiscoverGroups } from '@/hooks/useStudyGroupQueries';
 import { StudySessionManager } from '@/lib/social/StudySessionManager';

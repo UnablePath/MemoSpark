@@ -9,7 +9,7 @@ import { StreakTracker } from '@/lib/gamification/StreakTracker';
  * Automatically marks daily completion when user visits the app
  * Runs once per day per user to maintain streaks without manual interaction
  */
-export const useAutoStreak = (enabled: boolean = true) => {
+export const useAutoStreak = (enabled = true) => {
   const { user, isLoaded } = useUser();
   const streakTracker = useRef(new StreakTracker());
   const hasCheckedIn = useRef(false);

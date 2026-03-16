@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import type React from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { StuLottieAnimation } from './StuLottieAnimation';
 import { InteractiveStu } from './InteractiveStu';
 import type { CelebrationConfig } from '@/lib/stu/StuCelebration';

@@ -80,8 +80,8 @@ export class TaskReminderService {
       if (reminderOffset > 30 && this.isInQuietHours(reminderTime, settings)) {
         console.log(`🔇 Adjusting for quiet hours (reminder offset > 30 minutes)`);
         // Adjust to end of quiet hours
-        reminderTime.setHours(parseInt(settings.quietHoursEnd!.split(':')[0]));
-        reminderTime.setMinutes(parseInt(settings.quietHoursEnd!.split(':')[1]));
+        reminderTime.setHours(Number.parseInt(settings.quietHoursEnd!.split(':')[0]));
+        reminderTime.setMinutes(Number.parseInt(settings.quietHoursEnd!.split(':')[1]));
         console.log(`🔇 Adjusted reminder time: ${reminderTime.toISOString()}`);
       } else if (reminderOffset > 0 && reminderOffset <= 30) {
         console.log(`⚡ Short reminder (${reminderOffset} min) - skipping quiet hours adjustment`);

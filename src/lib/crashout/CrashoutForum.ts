@@ -1,5 +1,5 @@
 import { supabase, createAuthenticatedSupabaseClient } from '@/lib/supabase/client';
-import { CrashoutPost, CrashoutPostInput } from '@/lib/supabase/crashoutApi';
+import { type CrashoutPost, CrashoutPostInput } from '@/lib/supabase/crashoutApi';
 
 export interface ForumCategory {
   id: string;
@@ -105,7 +105,7 @@ export class CrashoutForum {
   async getForumPosts(
     filter: 'latest' | 'popular' | 'top' | 'trending' = 'latest',
     category?: string,
-    limit: number = 20
+    limit = 20
   ): Promise<CrashoutPost[]> {
     let query = this.client
       .from('crashout_posts')
@@ -237,7 +237,7 @@ export class CrashoutForum {
   }
 
   // Search Functionality
-  async searchPosts(query: string, limit: number = 20): Promise<ForumSearchResult[]> {
+  async searchPosts(query: string, limit = 20): Promise<ForumSearchResult[]> {
     const { data, error } = await this.client.rpc('search_forum_posts', {
       search_query: query,
       limit_param: limit
@@ -426,7 +426,7 @@ export class CrashoutForum {
   }
 
   // Get trending topics based on recent activity
-  async getTrendingTopics(limit: number = 10): Promise<{ tag: string; count: number; growth: number }[]> {
+  async getTrendingTopics(limit = 10): Promise<{ tag: string; count: number; growth: number }[]> {
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
 

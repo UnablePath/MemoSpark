@@ -1,39 +1,32 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import { SignUpButton } from '@clerk/nextjs';
-import AnimatedShinyText from "@/components/ui/animated-shiny-text";
+import { Button } from '@/components/ui/button';
 import { useConversionTracking } from '@/lib/analytics/conversionTracking';
+import { useExperiment } from '@/lib/analytics/useExperiment';
 
 interface CTAVariant {
   id: string;
   text: string;
-  icon?: string;
   className?: string;
 }
 
-const CTA_VARIANTS: CTAVariant[] = [
-  {
-    id: 'sign-up-free',
-    text: '✨ Sign Up Free',
-    className: 'bg-primary text-primary-foreground',
-  },
-  {
-    id: 'start-learning',
-    text: '🚀 Start Learning Now',
-    className: 'bg-green-600 text-white hover:bg-green-700',
-  },
-  {
-    id: 'join-memospark',
-    text: '🎯 Join MemoSpark',
-    className: 'bg-blue-600 text-white hover:bg-blue-700',
-  },
-  {
-    id: 'get-started',
-    text: '⚡ Get Started Today',
-    className: 'bg-purple-600 text-white hover:bg-purple-700',
-  },
-];
+const DEFAULT_VARIANT: CTAVariant = {
+  id: 'control',
+  text: 'Create free account',
+  className: 'bg-primary text-primary-foreground hover:bg-primary/90',
+};
+
+const HOMEPAGE_EXPERIMENT_KEY = 'homepage_pricing_cta_v1';
+
+const VARIANT_CLASS_MAP: Record<string, string> = {
+  control: 'bg-primary text-primary-foreground hover:bg-primary/90',
+  speed: 'bg-[#1b222d] text-white border border-white/15 hover:bg-[#232b38]',
+  value: 'bg-[#121920] text-white border border-emerald-300/40 hover:bg-[#18212b]',
+  urgency: 'bg-[#1f1820] text-white border border-white/15 hover:bg-[#2a2030]',
+};
 
 interface ABTestCTAProps {
   className?: string;
@@ -44,74 +37,62 @@ export const ABTestCTA: React.FC<ABTestCTAProps> = ({
   className,
   onVariantSelected 
 }) => {
-  const [selectedVariant, setSelectedVariant] = useState<CTAVariant | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<CTAVariant>(DEFAULT_VARIANT);
   const conversionTracker = useConversionTracking();
+  const { ready, variant, config, trackExposure, trackConversion } = useExperiment(HOMEPAGE_EXPERIMENT_KEY);
 
   useEffect(() => {
-    // Get or set variant from localStorage for consistent experience
-    const storedVariantId = localStorage.getItem('cta_variant');
-    
-    let variant: CTAVariant;
-    
-    if (storedVariantId) {
-      // Use stored variant if it exists
-      variant = CTA_VARIANTS.find(v => v.id === storedVariantId) || CTA_VARIANTS[0];
+    if (!ready) return;
+
+    if (variant) {
+      const resolvedVariant: CTAVariant = {
+        id: variant.key,
+        text:
+          (typeof config.ctaText === 'string' && config.ctaText.trim().length > 0
+            ? config.ctaText
+            : variant.name) || DEFAULT_VARIANT.text,
+        className:
+          VARIANT_CLASS_MAP[variant.key] ||
+          (typeof config.ctaClass === 'string' && config.ctaClass.trim().length > 0
+            ? config.ctaClass
+            : DEFAULT_VARIANT.className),
+      };
+      setSelectedVariant(resolvedVariant);
+      onVariantSelected?.(resolvedVariant.id);
+
+      trackExposure(window.location.pathname, {
+        placement: 'homepage_hero_primary_cta',
+      });
     } else {
-      // Randomly select a variant for new users
-      const randomIndex = Math.floor(Math.random() * CTA_VARIANTS.length);
-      variant = CTA_VARIANTS[randomIndex];
-      
-      // Store the selected variant
-      localStorage.setItem('cta_variant', variant.id);
-      
-      // Track the variant selection for analytics
-      if (typeof window !== 'undefined' && window.gtag) {
-        window.gtag('event', 'ab_test_variant_assigned', {
-          variant_id: variant.id,
-          variant_text: variant.text,
-          test_name: 'landing_page_cta',
-        });
-      }
+      setSelectedVariant(DEFAULT_VARIANT);
+      onVariantSelected?.(DEFAULT_VARIANT.id);
     }
-    
-    setSelectedVariant(variant);
-    onVariantSelected?.(variant.id);
-  }, [onVariantSelected]);
+  }, [ready, variant, config, onVariantSelected, trackExposure]);
 
   const handleClick = () => {
-    if (selectedVariant) {
-      // Track sign-up started
-      conversionTracker.trackSignUpStarted();
-      
-      // Track CTA click with variant info
-      if (typeof window !== 'undefined' && window.gtag) {
-        window.gtag('event', 'cta_click', {
-          variant_id: selectedVariant.id,
-          variant_text: selectedVariant.text,
-          test_name: 'landing_page_cta',
-        });
-      }
-      
-      // Track conversion event
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('cta_clicked', {
-          detail: {
-            variantId: selectedVariant.id,
-            variantText: selectedVariant.text,
-          }
-        }));
-      }
-    }
+    conversionTracker.trackSignUpStarted();
+    conversionTracker.trackEvent('cta_click', {
+      conversion_stage: 'interest',
+      test_name: HOMEPAGE_EXPERIMENT_KEY,
+      variant_id: selectedVariant.id,
+      variant_text: selectedVariant.text,
+    });
+
+    trackConversion('sign_up_started', {
+      metadata: {
+        placement: 'homepage_hero_primary_cta',
+        variant_id: selectedVariant.id,
+      },
+    });
   };
 
-  if (!selectedVariant) {
-    // Fallback while loading
+  if (!ready) {
     return (
       <SignUpButton mode="modal">
         <div className={`z-10 flex items-center justify-center ${className}`}>
-          <AnimatedShinyText className="inline-flex items-center justify-center rounded-lg border border-border bg-primary text-primary-foreground px-6 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background">
-            <span>✨ Sign Up Free</span>
-          </AnimatedShinyText>
+          <Button size="lg" className={DEFAULT_VARIANT.className}>
+            {DEFAULT_VARIANT.text}
+          </Button>
         </div>
       </SignUpButton>
     );
@@ -123,11 +104,9 @@ export const ABTestCTA: React.FC<ABTestCTAProps> = ({
         className={`z-10 flex items-center justify-center ${className}`}
         onClick={handleClick}
       >
-        <AnimatedShinyText 
-          className={`inline-flex items-center justify-center rounded-lg border border-border px-6 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background ${selectedVariant.className || 'bg-primary text-primary-foreground'}`}
-        >
-          <span>{selectedVariant.text}</span>
-        </AnimatedShinyText>
+        <Button size="lg" className={selectedVariant.className || DEFAULT_VARIANT.className}>
+          {selectedVariant.text}
+        </Button>
       </div>
     </SignUpButton>
   );
@@ -135,12 +114,6 @@ export const ABTestCTA: React.FC<ABTestCTAProps> = ({
 
 // Hook to get current variant info
 export const useABTestVariant = () => {
-  const [variant, setVariant] = useState<string | null>(null);
-
-  useEffect(() => {
-    const storedVariant = localStorage.getItem('cta_variant');
-    setVariant(storedVariant);
-  }, []);
-
-  return variant;
+  const { variant } = useExperiment(HOMEPAGE_EXPERIMENT_KEY);
+  return variant?.key || DEFAULT_VARIANT.id;
 };

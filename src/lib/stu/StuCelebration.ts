@@ -31,7 +31,7 @@ export interface CelebrationSound {
 
 export class StuCelebration {
   private static instance: StuCelebration;
-  private isPlaying: boolean = false;
+  private isPlaying = false;
   private currentCelebration: CelebrationConfig | null = null;
   private celebrationQueue: CelebrationConfig[] = [];
   private audioContext: AudioContext | null = null;

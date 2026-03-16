@@ -42,3 +42,4 @@ yarn-error.log*
 next-env.d.ts
 SECURE_ANALYTICS_SETUP.md
 ww.cjs
+.env*.local

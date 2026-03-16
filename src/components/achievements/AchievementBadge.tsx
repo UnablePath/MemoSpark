@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import type React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTrophy, FaStar, FaFire, FaClock, FaUsers, FaHeart, FaGraduationCap, FaMedal } from 'react-icons/fa';
 import { cn } from '@/lib/utils';

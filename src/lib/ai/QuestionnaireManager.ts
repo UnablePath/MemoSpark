@@ -400,7 +400,7 @@ export class QuestionnaireManager {
     }
     
     if (responses.study_duration) {
-      patterns.attention_span = parseInt(responses.study_duration);
+      patterns.attention_span = Number.parseInt(responses.study_duration);
     }
     
     if (responses.learning_style) {
@@ -622,7 +622,7 @@ export class QuestionnaireManager {
 
   private calculateProductivityPeaks(wakeTime: string, sleepTime: string): string[] {
     // Simple algorithm to determine productivity peaks based on sleep schedule
-    const wake = parseInt(wakeTime.split(':')[0]);
+    const wake = Number.parseInt(wakeTime.split(':')[0]);
     const peaks: string[] = [];
     
     // Morning peak (2-4 hours after waking)

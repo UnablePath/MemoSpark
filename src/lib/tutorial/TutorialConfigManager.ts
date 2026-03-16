@@ -1,8 +1,8 @@
 import { 
-  TutorialStepConfig, 
-  TutorialConfig, 
+  type TutorialStepConfig, 
+  type TutorialConfig, 
   DEFAULT_TUTORIAL_CONFIG,
-  TutorialStep,
+  type TutorialStep,
   StuAnimationState,
   TutorialActionDetectionConfig
 } from './types';

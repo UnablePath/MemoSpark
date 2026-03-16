@@ -129,21 +129,21 @@ export default function PWADebugPage() {
             <a 
               href="/manifest.webmanifest" 
               target="_blank"
-              className="block text-blue-600 underline"
+              className="block text-blue-600 underline" rel="noreferrer"
             >
               Direct Manifest Link
             </a>
             <a 
               href="/sw.js" 
               target="_blank"
-              className="block text-blue-600 underline"
+              className="block text-blue-600 underline" rel="noreferrer"
             >
               Service Worker Link
             </a>
             <a 
               href="/api/test-manifest" 
               target="_blank"
-              className="block text-blue-600 underline"
+              className="block text-blue-600 underline" rel="noreferrer"
             >
               API Test Route
             </a>

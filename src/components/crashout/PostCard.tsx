@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, Eye, Lock, Trash2, Clock, ThumbsUp } from 'lucide-react';
-import { CrashoutPost, addReaction, getUserVote, addVote, removeVote, getUserReaction, removeReaction } from '@/lib/supabase/crashoutApi';
+import { type CrashoutPost, addReaction, getUserVote, addVote, removeVote, getUserReaction, removeReaction } from '@/lib/supabase/crashoutApi';
 import { useAuth } from '@clerk/nextjs';
 import { CommentSystem } from './CommentSystem';
 import { BorderBeam } from '@/components/ui/border-beam';

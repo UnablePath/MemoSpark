@@ -842,7 +842,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                           </FormLabel>
                           <Select 
                             value={field.value?.toString() || "15"} 
-                            onValueChange={(value) => field.onChange(parseInt(value))}
+                            onValueChange={(value) => field.onChange(Number.parseInt(value))}
                             disabled={isLoading}
                           >
                             <FormControl>
