@@ -1,105 +1,84 @@
-'use client';
-
-import { HomepageNavbar } from "@/components/layout/HomepageNavbar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { useState } from "react";
-import { PageSeo } from '@/components/seo/PageSeo';
-import { pageSeoConfigs } from '@/lib/seo/seoConfig';
 import { AIStructuredData } from '@/components/seo/AIOptimizedMeta';
 import { organizationSchema } from '@/lib/seo/structuredData';
+import { HomepageNavbar } from '@/components/layout/HomepageNavbar';
+import { ContactForm } from '@/components/contact/ContactForm';
+import type { Metadata } from 'next';
+
+const SUPPORT_EMAIL = 'support@memospark.app';
+
+export const metadata: Metadata = {
+  title: 'Contact | MemoSpark',
+  description:
+    'Questions or feedback? Reach the MemoSpark team by email and we’ll get back to you.',
+  alternates: { canonical: '/contact' },
+};
 
 export default function ContactPage() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    console.log("Contact form submission:", { name, email, message });
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    setIsSubmitting(false);
-    toast.success("Message Sent!", {
-      description: "Thank you for contacting us. We'll get back to you soon.",
-    });
-    setName('');
-    setEmail('');
-    setMessage('');
-  };
-
-  // Generate structured data for contact page - focus on organization and contact info
   const structuredDataSchemas = [organizationSchema];
 
   return (
     <>
-      <PageSeo
-        title={pageSeoConfigs.contact.title}
-        description={pageSeoConfigs.contact.description}
-        canonical={pageSeoConfigs.contact.canonical}
-      />
       <AIStructuredData schemas={structuredDataSchemas} />
-      <HomepageNavbar />
-      <main className="pt-16 min-h-screen">
-        <div className="container mx-auto px-4 py-8 md:py-12">
-          <h1 className="text-3xl md:text-4xl font-bold mb-8 text-primary text-center">Contact Us</h1>
-          <div className="max-w-xl mx-auto bg-card p-6 sm:p-8 rounded-xl shadow-xl border border-border/60">
-            <p className="text-muted-foreground mb-6 text-center">
-              Have questions, feedback, or suggestions? We'd love to hear from you! Fill out the form below, and our team will get back to you as soon as possible.
-            </p>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <Label htmlFor="name" className="text-base">Full Name</Label>
-                <Input 
-                  id="name" 
-                  type="text" 
-                  placeholder="Your Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required 
-                  className="h-11 text-base mt-1.5"
-                />
+      <div className="app-container min-h-screen w-full bg-[#0c0e13] text-white">
+        <HomepageNavbar />
+        <main className="pt-16">
+          <section className="w-full bg-[#0c0e13] py-16 md:py-20">
+            <div className="responsive-container">
+              <div className="mb-10 flex flex-col gap-4 border-b border-white/[0.06] pb-7 md:flex-row md:items-end md:justify-between">
+                <div className="max-w-2xl">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/30">
+                    Contact
+                  </p>
+                  <h1 className="text-3xl font-black tracking-tighter text-white md:text-4xl">
+                    Talk to the team.
+                  </h1>
+                  <p className="mt-3 text-sm leading-relaxed text-white/55 md:text-base">
+                    If something feels off, you have feedback, or you want to partner with MemoSpark,
+                    send a note. We read everything.
+                  </p>
+                </div>
+                <div className="text-xs text-white/35">
+                  Typical response: <span className="text-white/60">within 24–72 hours</span>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="email" className="text-base">Email Address</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required 
-                  className="h-11 text-base mt-1.5"
-                />
+
+              <div className="grid gap-6 lg:grid-cols-12">
+                <div className="rounded-3xl border border-white/[0.08] bg-[#0a0c10] p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.03)] md:p-8 lg:col-span-7">
+                  <ContactForm supportEmail={SUPPORT_EMAIL} />
+                </div>
+
+                <aside className="rounded-3xl border border-white/[0.08] bg-[#0a0c10] p-6 md:p-8 lg:col-span-5">
+                  <h2 className="text-lg font-semibold text-white">What’s best to include</h2>
+                  <ul className="mt-4 space-y-3 text-sm text-white/55">
+                    <li>
+                      <span className="text-white/70">Account email</span> (if it’s about a login or billing issue)
+                    </li>
+                    <li>
+                      <span className="text-white/70">What you were trying to do</span> and what happened instead
+                    </li>
+                    <li>
+                      <span className="text-white/70">Screenshots</span> if it’s a UI bug
+                    </li>
+                  </ul>
+
+                  <div className="mt-6 rounded-2xl border border-white/[0.08] bg-black/20 p-4">
+                    <p className="text-xs text-white/45">
+                      Prefer email? Write us at{' '}
+                      <a
+                        className="text-white/70 underline-offset-4 hover:underline"
+                        href={`mailto:${SUPPORT_EMAIL}`}
+                      >
+                        {SUPPORT_EMAIL}
+                      </a>
+                      .
+                    </p>
+                  </div>
+                </aside>
               </div>
-              <div>
-                <Label htmlFor="message" className="text-base">Message</Label>
-                <Textarea 
-                  id="message" 
-                  placeholder="How can we help you?"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  required 
-                  className="min-h-[120px] text-base resize-none mt-1.5"
-                />
-              </div>
-              <Button 
-                type="submit" 
-                className="w-full h-11 text-base"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Sending...' : 'Send Message'}
-              </Button>
-            </form>
-          </div>
-        </div>
-      </main>
+            </div>
+          </section>
+        </main>
+      </div>
     </>
   );
 } 

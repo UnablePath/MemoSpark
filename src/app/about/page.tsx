@@ -1,59 +1,82 @@
-'use client';
-
-import { HomepageNavbar } from "@/components/layout/HomepageNavbar";
-import { PageSeo } from '@/components/seo/PageSeo';
-import { pageSeoConfigs } from '@/lib/seo/seoConfig';
 import { AIStructuredData } from '@/components/seo/AIOptimizedMeta';
 import { generatePageStructuredData } from '@/lib/seo/structuredData';
+import { HomepageNavbar } from '@/components/layout/HomepageNavbar';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'About | MemoSpark',
+  description:
+    'MemoSpark is built for real student life: coursework, people in your classes, and support for the harder weeks.',
+  alternates: { canonical: '/about' },
+};
 
 export default function AboutPage() {
-  // Generate structured data for about page
   const structuredDataSchemas = generatePageStructuredData('about');
 
   return (
     <>
-      <PageSeo
-        title={pageSeoConfigs.about.title}
-        description={pageSeoConfigs.about.description}
-        canonical={pageSeoConfigs.about.canonical}
-      />
       <AIStructuredData schemas={structuredDataSchemas} />
-      <div className="app-container">
+      <div className="app-container min-h-screen w-full bg-[#0c0e13] text-white">
         <HomepageNavbar />
-        <main className="pt-16 min-h-screen">
-          <div className="responsive-container py-8 md:py-12">
-            <h1 className="text-3xl md:text-4xl font-bold mb-6 text-primary text-constrain">About MemoSpark</h1>
-            <div className="prose lg:prose-xl dark:prose-invert max-w-none safe-scroll-area">
-              <p className="text-constrain">
-                Welcome to MemoSpark, your ultimate study companion designed to revolutionize the way you learn and manage your academic life.
-              </p>
-              <p className="text-constrain">
-                Our mission is to empower students of all levels by providing an innovative platform that combines smart task management, 
-                collaborative features, and engaging gamified reminders. We believe that learning should be an enjoyable and rewarding 
-                experience, and MemoSpark is built to make that a reality.
-              </p>
-              <h2 className="text-2xl font-semibold mt-8 mb-4 text-constrain">Our Vision</h2>
-              <p className="text-constrain">
-                We envision a world where every student has the tools and motivation to achieve their full academic potential. 
-                MemoSpark aims to be at the forefront of educational technology, continuously evolving to meet the dynamic needs of learners.
-              </p>
-              <h2 className="text-2xl font-semibold mt-8 mb-4 text-constrain">Why MemoSpark?</h2>
-              <ul className="space-y-3">
-                <li className="text-constrain"><strong>Gamified Learning:</strong> Earn points, unlock achievements, and stay motivated on your study journey.</li>
-                <li className="text-constrain"><strong>Smart Scheduling:</strong> Plan your study sessions effectively with intelligent tools and personalized recommendations.</li>
-                <li className="text-constrain"><strong>Progress Tracking:</strong> Monitor your academic progress, identify strengths, and pinpoint areas for improvement.</li>
-                <li className="text-constrain"><strong>Collaborative Study:</strong> Connect with peers, form study groups, and learn together in a supportive environment. (Coming Soon!)</li>
-                <li className="text-constrain"><strong>Personalized Reminders:</strong> Stay on top of your tasks with customizable reminders that fit your unique study habits.</li>
-              </ul>
-              <p className="mt-6 text-constrain">
-                MemoSpark is more than just an app; it's a partner in your educational journey. We are committed to helping you spark your curiosity, 
-                ignite your passion for learning, and achieve academic excellence.
-              </p>
-              <p className="mt-4 text-constrain">
-                Thank you for choosing MemoSpark. Let's make learning an adventure!
-              </p>
+        <main className="pt-16">
+          <section className="w-full bg-[#0c0e13] py-16 md:py-20">
+            <div className="responsive-container">
+              <div className="mb-10 max-w-3xl border-b border-white/[0.06] pb-7">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/30">
+                  About
+                </p>
+                <h1 className="text-3xl font-black tracking-tighter text-white md:text-4xl">
+                  Built for student life.
+                </h1>
+                <p className="mt-3 text-sm leading-relaxed text-white/55 md:text-base">
+                  MemoSpark helps you stay on top of coursework, connect with people in your classes,
+                  and keep your head above water when the week gets heavy.
+                </p>
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-12">
+                <div className="rounded-3xl border border-white/[0.08] bg-[#0a0c10] p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.03)] md:p-8 lg:col-span-7">
+                  <h2 className="text-lg font-semibold text-white">What we’re building</h2>
+                  <p className="mt-3 text-sm leading-relaxed text-white/55">
+                    A single place students can organize deadlines, find their people, and get support
+                    without needing five different apps to make it work.
+                  </p>
+
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    {[
+                      { title: 'Coursework, made manageable', body: 'Plans, tasks, and weekly structure you can actually follow.' },
+                      { title: 'Connections that help', body: 'Meet classmates, join groups, and study with people in your lane.' },
+                      { title: 'Crashout + private journaling', body: 'A place to vent, reflect, and reset when things are a lot.' },
+                      { title: 'Streaks, achievements, and momentum', body: 'Light gamification that keeps you moving.' },
+                    ].map((card) => (
+                      <div
+                        key={card.title}
+                        className="rounded-2xl border border-white/[0.08] bg-black/20 p-4"
+                      >
+                        <p className="text-sm font-semibold text-white">{card.title}</p>
+                        <p className="mt-1 text-xs leading-relaxed text-white/45">{card.body}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <aside className="rounded-3xl border border-white/[0.08] bg-[#0a0c10] p-6 md:p-8 lg:col-span-5">
+                  <h2 className="text-lg font-semibold text-white">Principles</h2>
+                  <ul className="mt-4 space-y-3 text-sm text-white/55">
+                    <li>
+                      <span className="text-white/70">Practical over perfect.</span> Useful defaults beat complicated systems.
+                    </li>
+                    <li>
+                      <span className="text-white/70">Private by default.</span> You choose what’s shared and what stays personal.
+                    </li>
+                    <li>
+                      <span className="text-white/70">Built with students.</span> The details come from real schedules and real weeks.
+                    </li>
+                  </ul>
+                </aside>
+              </div>
             </div>
-          </div>
+          </section>
         </main>
       </div>
     </>

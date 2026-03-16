@@ -122,13 +122,15 @@ export const pageSeoConfigs = {
   
   about: {
     title: 'About MemoSpark',
-    description: 'Learn about MemoSpark\'s mission to revolutionize education through AI-powered study tools and personalized learning experiences.',
+    description:
+      'MemoSpark is built for real student life: coursework, people in your classes, and support for the harder weeks.',
     canonical: getCanonicalUrl('about'),
   },
   
   contact: {
     title: 'Contact Us',
-    description: 'Get in touch with the MemoSpark team. We\'re here to help you succeed in your learning journey.',
+    description:
+      'Questions or feedback? Reach the MemoSpark team by email and we’ll get back to you.',
     canonical: getCanonicalUrl('contact'),
   },
   
