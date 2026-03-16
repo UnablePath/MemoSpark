@@ -30,7 +30,6 @@ export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({ onMatch, onSwipe
   const [swipedUsers, setSwipedUsers] = useState<string[]>([]);
 
   const studentDiscoveryMemo = useMemo(() => {
-    if (!getToken) return null;
     return new StudentDiscovery(getToken);
   }, [getToken]);
 
