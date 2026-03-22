@@ -116,7 +116,7 @@ export class ReminderEngine {
     if (!this.supabaseService) {
       console.warn('⚠️ Service role client not available. Using regular client with limited permissions.');
       console.warn('📋 To fix: Add SUPABASE_SERVICE_ROLE_KEY to your .env.local file');
-      console.warn('🔑 Get the key from: https://supabase.com/dashboard/project/onfnehxkglmvrorcvqcx/settings/api');
+      console.warn('🔑 Get the key from: https://supabase.com/dashboard/project/pexqavlkabbguaqjdfce/settings/api');
     }
   }
 

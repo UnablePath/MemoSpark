@@ -5,7 +5,7 @@ import { ScheduleManager } from '@/lib/ai/ScheduleManager';
 import { createClient } from '@/lib/supabase/server';
 
 // Get Supabase configuration
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://onfnehxkglmvrorcvqcx.supabase.co';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://pexqavlkabbguaqjdfce.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 import { auth } from '@clerk/nextjs/server';
 import type { ExtendedTask, Priority, TaskType, UserPreferences, PatternData, ScheduleMetadata } from '@/types/ai';
