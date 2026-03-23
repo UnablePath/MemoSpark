@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Edit, Save, Sparkles } from 'lucide-react';
@@ -22,9 +22,12 @@ import { ProfileSync } from '@/components/profile/ProfileSync';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 import { AuthAwareSeo } from '@/components/seo/AuthAwareSeo';
+import { cn } from '@/lib/utils';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isEmbed = searchParams.get('embed') === '1';
   const { user, isLoaded } = useUser();
   const { profile, isLoading: profileLoading, error: profileError, refetch, updateProfile } = useUserProfile();
   const { triggerAchievement } = useDebouncedAchievementTrigger();
@@ -50,7 +53,6 @@ export default function ProfilePage() {
     }
   }, [profile]);
 
-  // Trigger achievement on page load
   useEffect(() => {
     triggerAchievement('profile_opened');
   }, [triggerAchievement]);
@@ -121,15 +123,23 @@ export default function ProfilePage() {
   if (!isLoaded || profileLoading) {
     return (
       <>
-        <AuthAwareSeo
-          pageKey="profile"
-          publicTitle="User Profiles"
-          publicDescription="Create and customize your MemoSpark profile to personalize your learning experience. Join thousands of students optimizing their study habits with AI."
-          privateTitle="Your Profile"
-          privateDescription="Manage your MemoSpark profile, learning preferences, and AI personalization settings."
-          forceNoindex={true}
-        />
-        <div className="container mx-auto max-w-2xl py-8 px-4">
+        {!isEmbed && (
+          <AuthAwareSeo
+            pageKey="profile"
+            publicTitle="User Profiles"
+            publicDescription="Create and customize your MemoSpark profile to personalize your learning experience. Join thousands of students optimizing their study habits with AI."
+            privateTitle="Your Profile"
+            privateDescription="Manage your MemoSpark profile, learning preferences, and AI personalization settings."
+            forceNoindex={true}
+          />
+        )}
+        <div
+          className={cn(
+            isEmbed
+              ? 'mx-auto w-full max-w-full min-w-0 overflow-x-hidden px-3 py-4'
+              : 'container mx-auto max-w-2xl py-8 px-4',
+          )}
+        >
           <a href="#main-profile-content" className="sr-only focus:not-sr-only absolute top-2 left-2 z-50 bg-primary text-primary-foreground px-4 py-2 rounded focus:outline-dashed focus:outline-2 focus:outline-offset-2">Skip to main content</a>
           <Skeleton className="h-10 w-40 mb-6" />
           <Skeleton className="h-64 w-full" />
@@ -140,7 +150,13 @@ export default function ProfilePage() {
 
   if (!user || !profile) {
     return (
-      <div className="container mx-auto max-w-2xl py-8 px-4">
+      <div
+        className={cn(
+          isEmbed
+            ? 'mx-auto w-full max-w-full min-w-0 overflow-x-hidden px-3 py-8'
+            : 'container mx-auto max-w-2xl py-8 px-4',
+        )}
+      >
         <div className="text-center">
           <p>Please sign in to view your profile.</p>
           <Button onClick={() => router.push('/sign-in')} className="mt-4">
@@ -153,21 +169,31 @@ export default function ProfilePage() {
 
   return (
     <>
-      <AuthAwareSeo
-        pageKey="profile"
-        publicTitle="User Profiles"
-        publicDescription="Create and customize your MemoSpark profile to personalize your learning experience. Join thousands of students optimizing their study habits with AI."
-        privateTitle="Your Profile"
-        privateDescription="Manage your MemoSpark profile, learning preferences, and AI personalization settings."
-        forceNoindex={true}
-      />
-      <div className="container mx-auto max-w-2xl py-8 px-4">
+      {!isEmbed && (
+        <AuthAwareSeo
+          pageKey="profile"
+          publicTitle="User Profiles"
+          publicDescription="Create and customize your MemoSpark profile to personalize your learning experience. Join thousands of students optimizing their study habits with AI."
+          privateTitle="Your Profile"
+          privateDescription="Manage your MemoSpark profile, learning preferences, and AI personalization settings."
+          forceNoindex={true}
+        />
+      )}
+      <div
+        className={cn(
+          isEmbed
+            ? 'mx-auto w-full max-w-full min-w-0 overflow-x-hidden px-3 py-4'
+            : 'container mx-auto max-w-2xl py-8 px-4',
+        )}
+      >
         <a href="#main-profile-content" className="sr-only focus:not-sr-only absolute top-2 left-2 z-50 bg-primary text-primary-foreground px-4 py-2 rounded focus:outline-dashed focus:outline-2 focus:outline-offset-2">Skip to main content</a>
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center">
-            <Button variant="ghost" size="icon" className="mr-2 focus:outline-dashed focus:outline-2 focus:outline-offset-2" onClick={() => router.back()} aria-label="Go back">
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            </Button>
+            {!isEmbed && (
+              <Button variant="ghost" size="icon" className="mr-2 focus:outline-dashed focus:outline-2 focus:outline-offset-2" onClick={() => router.back()} aria-label="Go back">
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            )}
             <h1 id="main-profile-content" className="text-2xl font-bold focus:outline-dashed focus:outline-2" role="heading" aria-level={1} tabIndex={-1}>Your Profile</h1>
           </div>
           <Button variant="outline" size="icon" onClick={isEditing ? handleSave : handleEditToggle} className="focus:outline-dashed focus:outline-2 focus:outline-offset-2" disabled={isSaving}>

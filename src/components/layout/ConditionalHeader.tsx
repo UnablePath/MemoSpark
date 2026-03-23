@@ -1,11 +1,11 @@
 'use client'; // Mark as a Client Component
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Show, UserButton } from "@clerk/nextjs";
 import { User as UserIcon, Settings as SettingsIcon } from 'lucide-react';
 import { MemoSparkLogoSvg } from '@/components/ui/MemoSparkLogoSvg';
 import Link from 'next/link';
-// Link component might not be needed here if UserButton.UserProfileLink handles navigation
+import { UserAccountHubPanel } from '@/components/clerk/UserAccountHubPanels';
 
 export function ConditionalHeader() {
   const pathname = usePathname();
@@ -28,18 +28,33 @@ export function ConditionalHeader() {
       </div>
       
       <Show when="signed-in">
-        <UserButton fallbackRedirectUrl="/">
-          {/* Check Clerk docs for the exact prop name if /user-profile is the default manage account page */}
-          {/* UserButton.UserProfilePage might be for overriding the entire page, 
-             UserButton.User членыПрофиляLink is for adding links. 
-             Clerk's default "Manage Account" might already be there or accessible via UserProfilePage if not customized deeply.
-          */}
-          <UserButton.UserProfileLink label="My Profile & Progress" url="/profile" labelIcon={<UserIcon className="h-4 w-4" />} />
-          <UserButton.UserProfileLink label="Settings" url="/settings" labelIcon={<SettingsIcon className="h-4 w-4" />} />
-          {/* Clerk typically adds a "Manage account" and "Sign out" by default. 
-              If you use UserProfilePage, it might replace these. 
-              If you only add UserProfileLinks, they are added to the existing menu. 
-          */}
+        <UserButton userProfileMode="modal">
+          <UserButton.UserProfilePage
+            label="Profile & progress"
+            url="memospark-profile"
+            labelIcon={<UserIcon className="size-4 shrink-0 text-foreground" strokeWidth={2} aria-hidden />}
+          >
+            <UserAccountHubPanel
+              title="Profile & progress"
+              body="Your streaks, achievements, and profile details. Edit here, or open the full page when you want more room."
+              href="/profile"
+              linkLabel="Open full profile"
+              iframeTitle="MemoSpark profile"
+            />
+          </UserButton.UserProfilePage>
+          <UserButton.UserProfilePage
+            label="App settings"
+            url="memospark-settings"
+            labelIcon={<SettingsIcon className="h-4 w-4" aria-hidden />}
+          >
+            <UserAccountHubPanel
+              title="App settings"
+              body="Theme, notifications, and preferences: the same as your full settings page, right in this panel."
+              href="/settings"
+              linkLabel="Open full settings"
+              iframeTitle="MemoSpark settings"
+            />
+          </UserButton.UserProfilePage>
         </UserButton>
       </Show>
       {/* 

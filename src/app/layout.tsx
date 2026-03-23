@@ -7,7 +7,6 @@ import { UserProvider } from "@/lib/user-context";
 import { AIProvider } from "@/lib/ai/aiContext";
 import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 import { ThemeAwareClerkProvider } from "@/components/providers/clerk-theme-provider";
-import { ConditionalHeader } from "@/components/layout/ConditionalHeader";
 import ClientBody from "@/app/ClientBody";
 import { PwaInstaller } from "@/components/pwa/PwaInstaller";
 import { Toaster } from "@/components/ui/sonner";

@@ -1,611 +1,592 @@
-import type { Appearance } from '@clerk/types';
+import type { ClerkProvider } from '@clerk/nextjs';
+import type { ComponentProps } from 'react';
 
-// Shared Clerk appearance configuration with improved contrast and MemoSpark branding
-export const memoSparkClerkAppearance: Appearance = {
-  variables: {
-    colorPrimary: 'hsl(142, 76%, 36%)', // MemoSpark green
-    colorText: 'hsl(0, 0%, 5%)', // Very dark text for maximum contrast
-    colorTextSecondary: 'hsl(0, 0%, 20%)', // Secondary text
-    colorBackground: 'rgba(255, 255, 255, 0.7)', // Translucent white glass
-    colorInputBackground: 'rgba(255, 255, 255, 0.8)', // Slightly more opaque for inputs
-    colorInputText: 'hsl(0, 0%, 5%)', // Very dark text for inputs
-    colorShimmer: 'hsl(142, 76%, 36%)', // MemoSpark green shimmer
-    borderRadius: '0.5rem',
-    fontFamily: '"Inter", system-ui, sans-serif',
-    fontSize: '0.875rem',
+type ClerkThemeAppearance = NonNullable<ComponentProps<typeof ClerkProvider>['appearance']>;
+
+/** Align Clerk light/dark surfaces with `next-themes` (incl. `theme-*-light` variants). */
+export function isMemoSparkDarkTheme(theme: string | undefined): boolean {
+  if (theme == null || theme === '') return true;
+  if (theme === 'light') return false;
+  if (theme === 'dark') return true;
+  if (theme.endsWith('-light')) return false;
+  return true;
+}
+
+/**
+ * MemoSpark + Clerk theming
+ *
+ * - Uses Clerk’s current `variables` API (avoid deprecated colorText / colorInputBackground, etc.).
+ * - **Account modal (UserProfile):** solid panel + readable backdrop — avoids “broken glass”
+ *   where translucent layers and the page background fight each other.
+ * - **Sign-in / Sign-up:** outer page already wraps the component in a `card`; inner `rootBox`
+ *   stays transparent so we don’t double-stack panels.
+ */
+
+const PRIMARY = 'hsl(142 76% 36%)';
+const PRIMARY_HOVER = 'hsl(142 76% 32%)';
+
+const lightVariables = {
+  colorPrimary: PRIMARY,
+  colorDanger: 'hsl(0 72% 45%)',
+  colorSuccess: 'hsl(142 76% 32%)',
+  colorWarning: 'hsl(38 92% 45%)',
+  colorForeground: 'hsl(222 47% 11%)',
+  colorMutedForeground: 'hsl(215 16% 35%)',
+  colorBackground: 'hsl(210 40% 99%)',
+  colorMuted: 'hsl(210 35% 96%)',
+  colorInput: 'hsl(0 0% 100%)',
+  colorInputForeground: 'hsl(222 47% 11%)',
+  colorBorder: 'hsl(214 32% 88%)',
+  colorRing: PRIMARY,
+  colorNeutral: 'hsl(215 16% 47%)',
+  colorModalBackdrop: 'rgba(15, 23, 42, 0.58)',
+  colorShadow: 'rgba(15, 23, 42, 0.12)',
+  borderRadius: '0.75rem',
+  fontFamily: '"Inter", system-ui, sans-serif',
+  fontSize: {
+    xs: '0.75rem',
+    sm: '0.8125rem',
+    md: '0.875rem',
+    lg: '1rem',
+    xl: '1.125rem',
   },
-  elements: {
-    // Root container - glassy translucent effect
-    rootBox: {
-      boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
-      border: '1px solid rgba(255, 255, 255, 0.18)',
-      padding: '1.5rem',
-      backgroundColor: 'rgba(255, 255, 255, 0.25)', // Translucent glass
-      backdropFilter: 'blur(10px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(10px) saturate(180%)',
-      color: 'hsl(0, 0%, 5%)', // Very dark text for contrast
+} satisfies NonNullable<ClerkThemeAppearance['variables']>;
+
+const darkVariables = {
+  colorPrimary: PRIMARY,
+  colorDanger: 'hsl(0 72% 58%)',
+  colorSuccess: 'hsl(142 76% 42%)',
+  colorWarning: 'hsl(38 92% 55%)',
+  colorForeground: 'hsl(210 40% 98%)',
+  colorMutedForeground: 'hsl(215 20% 72%)',
+  colorBackground: 'hsl(222 47% 9%)',
+  colorMuted: 'hsl(217 33% 14%)',
+  colorInput: 'hsl(217 33% 12%)',
+  colorInputForeground: 'hsl(210 40% 98%)',
+  colorBorder: 'hsl(217 33% 22%)',
+  colorRing: PRIMARY,
+  colorNeutral: 'hsl(215 20% 55%)',
+  colorModalBackdrop: 'rgba(0, 0, 0, 0.78)',
+  colorShadow: 'rgba(0, 0, 0, 0.45)',
+  borderRadius: '0.75rem',
+  fontFamily: '"Inter", system-ui, sans-serif',
+  fontSize: {
+    xs: '0.75rem',
+    sm: '0.8125rem',
+    md: '0.875rem',
+    lg: '1rem',
+    xl: '1.125rem',
+  },
+} satisfies NonNullable<ClerkThemeAppearance['variables']>;
+
+const lightElements = {
+  /* Embedded SignIn/SignUp — page supplies the outer card */
+  rootBox: {
+    width: '100%',
+    backgroundColor: 'transparent',
+    boxShadow: 'none',
+    border: 'none',
+    padding: 0,
+    backdropFilter: 'none',
+    WebkitBackdropFilter: 'none',
+  },
+  card: {
+    backgroundColor: 'transparent',
+    boxShadow: 'none',
+    border: 'none',
+  },
+  cardBox: {
+    backgroundColor: 'transparent',
+    boxShadow: 'none',
+    border: 'none',
+  },
+  headerTitle: {
+    color: 'hsl(222 47% 11%)',
+    fontSize: '1.375rem',
+    fontWeight: 700,
+    letterSpacing: '-0.02em',
+  },
+  headerSubtitle: {
+    color: 'hsl(215 16% 38%)',
+    fontSize: '0.875rem',
+    lineHeight: 1.5,
+  },
+  /* Account modal — solid surfaces */
+  modalBackdrop: {
+    backgroundColor: 'rgba(15, 23, 42, 0.58)',
+    backdropFilter: 'blur(10px) saturate(140%)',
+    WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+  },
+  modalContent: {
+    backgroundColor: 'hsl(210 40% 99%)',
+    color: 'hsl(222 47% 11%)',
+    borderRadius: '0.75rem',
+    border: '1px solid hsl(214 32% 88%)',
+    boxShadow: '0 24px 48px -12px rgba(15, 23, 42, 0.25)',
+    overflow: 'hidden',
+  },
+  userProfileRoot: {
+    backgroundColor: 'hsl(210 40% 99%)',
+    color: 'hsl(222 47% 11%)',
+    borderRadius: '0.75rem',
+  },
+  /**
+   * UserProfile uses a **vertical** left rail — use a trailing border + column layout.
+   * (borderBottom was wrong here and made the rail feel broken / “empty”.)
+   */
+  navbar: {
+    backgroundColor: 'hsl(210 35% 97%)',
+    borderBottom: 'none',
+    borderRight: '1px solid hsl(214 32% 90%)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    justifyContent: 'flex-start',
+    gap: '0.375rem',
+    padding: '1rem 0.75rem',
+    boxSizing: 'border-box',
+    minWidth: '15.5rem',
+    minHeight: '100%',
+  },
+  navbarButton: {
+    color: 'hsl(222 47% 11%)',
+    fontWeight: 600,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: '0.5rem',
+    width: '100%',
+    minHeight: '2.75rem',
+    padding: '0.5rem 0.75rem',
+    borderRadius: '0.5rem',
+    textAlign: 'left',
+    lineHeight: 1.35,
+    '&:hover': {
+      backgroundColor: 'hsl(210 35% 94%)',
     },
-    // Card and container elements
-    card: {
-      backgroundColor: 'rgba(255, 255, 255, 0.4)',
-      color: 'hsl(0, 0%, 5%)',
-      border: '1px solid rgba(255, 255, 255, 0.3)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
+  },
+  navbarButtonText: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    lineHeight: 1.35,
+    textAlign: 'left',
+    flex: '1 1 auto',
+  },
+  /** Keeps Clerk + custom UserProfilePage label icons visible (not squashed to 0) */
+  navbarButtonIcon: {
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '1.25rem',
+    height: '1.25rem',
+    color: 'inherit',
+    overflow: 'visible',
+  },
+  scrollBox: {
+    backgroundColor: 'hsl(210 40% 99%)',
+  },
+  pageScrollBox: {
+    backgroundColor: 'hsl(210 40% 99%)',
+  },
+  profileSectionTitle: {
+    fontSize: '1.0625rem',
+    fontWeight: 700,
+    color: 'hsl(222 47% 11%)',
+  },
+  profileSectionSubtitle: {
+    color: 'hsl(215 16% 38%)',
+    fontWeight: 500,
+  },
+  formFieldLabel: {
+    fontWeight: 600,
+    color: 'hsl(222 47% 18%)',
+  },
+  formFieldInput: {
+    borderRadius: '0.5rem',
+    border: '1px solid hsl(214 32% 88%)',
+    backgroundColor: 'hsl(0 0% 100%)',
+    color: 'hsl(222 47% 11%)',
+    '&:focus': {
+      borderColor: PRIMARY,
+      boxShadow: `0 0 0 2px hsl(142 76% 36% / 0.25)`,
     },
-    cardBox: {
-      backgroundColor: 'rgba(255, 255, 255, 0.4)',
-      color: 'hsl(0, 0%, 5%)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
+  },
+  formButtonPrimary: {
+    backgroundColor: PRIMARY,
+    color: 'hsl(0 0% 100%)',
+    fontWeight: 600,
+    borderRadius: '0.5rem',
+    '&:hover': {
+      backgroundColor: PRIMARY_HOVER,
     },
-    // Navigation and sidebar elements
-    navbar: {
-      backgroundColor: 'rgba(255, 255, 255, 0.4)',
-      color: 'hsl(0, 0%, 5%)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
+  },
+  socialButtonsBlockButton: {
+    borderRadius: '0.5rem',
+    border: '1px solid hsl(214 32% 88%)',
+    backgroundColor: 'hsl(0 0% 100%)',
+    color: 'hsl(222 47% 11%)',
+    fontWeight: 600,
+    '&:hover': {
+      backgroundColor: 'hsl(210 35% 97%)',
+      borderColor: PRIMARY,
     },
-    navbarButton: {
-      color: 'hsl(0, 0%, 5%)',
-      fontWeight: '600',
-      '&:hover': {
-        backgroundColor: 'rgba(0, 0, 0, 0.05)',
-        color: 'hsl(0, 0%, 0%)',
-      },
+  },
+  footerActionLink: {
+    color: 'hsl(142 76% 30%)',
+    fontWeight: 600,
+    '&:hover': {
+      color: PRIMARY_HOVER,
     },
-    navbarMobileMenuButton: {
-      color: 'hsl(0, 0%, 5%)',
+  },
+  userButtonTrigger: {
+    backgroundColor: 'transparent !important',
+    backdropFilter: 'none !important',
+    WebkitBackdropFilter: 'none !important',
+    boxShadow: 'none !important',
+    border: 'none !important',
+    padding: '0 !important',
+    width: '28px !important',
+    height: '28px !important',
+    '&:hover': { backgroundColor: 'transparent !important' },
+    '&:focus': { backgroundColor: 'transparent !important', boxShadow: 'none !important' },
+  },
+  userButtonBox: {
+    backgroundColor: 'transparent !important',
+    backdropFilter: 'none !important',
+    WebkitBackdropFilter: 'none !important',
+    boxShadow: 'none !important',
+    border: 'none !important',
+  },
+  userButtonOuterBox: {
+    backgroundColor: 'transparent !important',
+    backdropFilter: 'none !important',
+    WebkitBackdropFilter: 'none !important',
+    boxShadow: 'none !important',
+    border: 'none !important',
+  },
+  userButtonAvatarBox: {
+    backgroundColor: 'transparent !important',
+    boxShadow: 'none !important',
+    border: 'none !important',
+    width: '28px !important',
+    height: '28px !important',
+  },
+  avatarBox: {
+    backgroundColor: 'transparent !important',
+    backdropFilter: 'none !important',
+    WebkitBackdropFilter: 'none !important',
+    boxShadow: 'none !important',
+    border: 'none !important',
+  },
+  userButtonPopoverCard: {
+    backgroundColor: 'hsl(210 40% 99%)',
+    color: 'hsl(222 47% 11%)',
+    border: '1px solid hsl(214 32% 88%)',
+    borderRadius: '0.75rem',
+    boxShadow: '0 12px 24px -8px rgba(15, 23, 42, 0.22)',
+    backdropFilter: 'none',
+    WebkitBackdropFilter: 'none',
+  },
+  userButtonPopoverActionButton: {
+    color: 'hsl(222 47% 11%)',
+    fontWeight: 500,
+    '&:hover': {
+      backgroundColor: 'hsl(210 35% 96%)',
     },
-    // Sidebar and page navigation
-    sidebar: {
-      backgroundColor: 'rgba(255, 255, 255, 0.4)',
-      color: 'hsl(0, 0%, 5%)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
+  },
+} as ClerkThemeAppearance['elements'];
+
+const darkElements = {
+  rootBox: {
+    width: '100%',
+    backgroundColor: 'transparent',
+    boxShadow: 'none',
+    border: 'none',
+    padding: 0,
+    backdropFilter: 'none',
+    WebkitBackdropFilter: 'none',
+  },
+  card: {
+    backgroundColor: 'transparent',
+    boxShadow: 'none',
+    border: 'none',
+  },
+  cardBox: {
+    backgroundColor: 'transparent',
+    boxShadow: 'none',
+    border: 'none',
+  },
+  headerTitle: {
+    color: 'hsl(210 40% 98%)',
+    fontSize: '1.375rem',
+    fontWeight: 700,
+    letterSpacing: '-0.02em',
+  },
+  headerSubtitle: {
+    color: 'hsl(215 20% 72%)',
+    fontSize: '0.875rem',
+    lineHeight: 1.5,
+  },
+  modalBackdrop: {
+    backgroundColor: 'rgba(0, 0, 0, 0.78)',
+    backdropFilter: 'blur(12px) saturate(140%)',
+    WebkitBackdropFilter: 'blur(12px) saturate(140%)',
+  },
+  modalContent: {
+    backgroundColor: 'hsl(222 47% 9%)',
+    color: 'hsl(210 40% 98%)',
+    borderRadius: '0.75rem',
+    border: '1px solid hsl(217 33% 22%)',
+    boxShadow: '0 24px 48px -12px rgba(0, 0, 0, 0.55)',
+    overflow: 'hidden',
+  },
+  userProfileRoot: {
+    backgroundColor: 'hsl(222 47% 9%)',
+    color: 'hsl(210 40% 98%)',
+    borderRadius: '0.75rem',
+  },
+  navbar: {
+    backgroundColor: 'hsl(217 33% 11%)',
+    borderBottom: 'none',
+    borderRight: '1px solid hsl(217 33% 22%)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    justifyContent: 'flex-start',
+    gap: '0.375rem',
+    padding: '1rem 0.75rem',
+    boxSizing: 'border-box',
+    minWidth: '15.5rem',
+    minHeight: '100%',
+  },
+  navbarButton: {
+    color: 'hsl(210 40% 98%)',
+    fontWeight: 600,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: '0.5rem',
+    width: '100%',
+    minHeight: '2.75rem',
+    padding: '0.5rem 0.75rem',
+    borderRadius: '0.5rem',
+    textAlign: 'left',
+    lineHeight: 1.35,
+    '&:hover': {
+      backgroundColor: 'hsl(217 33% 16%)',
     },
-    pageScrollBox: {
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-      color: 'hsl(0, 0%, 5%)',
+  },
+  navbarButtonText: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    lineHeight: 1.35,
+    textAlign: 'left',
+    flex: '1 1 auto',
+  },
+  navbarButtonIcon: {
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '1.25rem',
+    height: '1.25rem',
+    color: 'inherit',
+    overflow: 'visible',
+  },
+  scrollBox: {
+    backgroundColor: 'hsl(222 47% 9%)',
+  },
+  pageScrollBox: {
+    backgroundColor: 'hsl(222 47% 9%)',
+  },
+  profileSectionTitle: {
+    fontSize: '1.0625rem',
+    fontWeight: 700,
+    color: 'hsl(210 40% 98%)',
+  },
+  profileSectionSubtitle: {
+    color: 'hsl(215 20% 72%)',
+    fontWeight: 500,
+  },
+  formFieldLabel: {
+    fontWeight: 600,
+    color: 'hsl(210 40% 95%)',
+  },
+  formFieldInput: {
+    borderRadius: '0.5rem',
+    border: '1px solid hsl(217 33% 24%)',
+    backgroundColor: 'hsl(217 33% 12%)',
+    color: 'hsl(210 40% 98%)',
+    '&:focus': {
+      borderColor: PRIMARY,
+      boxShadow: `0 0 0 2px hsl(142 76% 36% / 0.35)`,
     },
-    // Profile section elements
-    profileSection: {
-      color: 'hsl(0, 0%, 5%)',
+  },
+  formButtonPrimary: {
+    backgroundColor: PRIMARY,
+    color: 'hsl(0 0% 100%)',
+    fontWeight: 600,
+    borderRadius: '0.5rem',
+    '&:hover': {
+      backgroundColor: 'hsl(142 76% 40%)',
     },
-    profileSectionPrimaryButton: {
-      backgroundColor: 'hsl(142, 76%, 36%)',
-      color: 'hsl(0, 0%, 100%)',
+  },
+  socialButtonsBlockButton: {
+    borderRadius: '0.5rem',
+    border: '1px solid hsl(217 33% 24%)',
+    backgroundColor: 'hsl(217 33% 12%)',
+    color: 'hsl(210 40% 98%)',
+    fontWeight: 600,
+    '&:hover': {
+      backgroundColor: 'hsl(217 33% 16%)',
+      borderColor: PRIMARY,
     },
-    profileSectionTitle: {
-      color: 'hsl(0, 0%, 5%)',
-      fontSize: '1.125rem',
-      fontWeight: '700',
+  },
+  footerActionLink: {
+    color: 'hsl(142 76% 50%)',
+    fontWeight: 600,
+    '&:hover': {
+      color: 'hsl(142 76% 58%)',
     },
-    profileSectionSubtitle: {
-      color: 'hsl(0, 0%, 20%)',
-      fontSize: '0.875rem',
-      fontWeight: '500',
+  },
+  userButtonTrigger: {
+    backgroundColor: 'transparent !important',
+    backdropFilter: 'none !important',
+    WebkitBackdropFilter: 'none !important',
+    boxShadow: 'none !important',
+    border: 'none !important',
+    padding: '0 !important',
+    width: '28px !important',
+    height: '28px !important',
+    '&:hover': { backgroundColor: 'transparent !important' },
+    '&:focus': { backgroundColor: 'transparent !important', boxShadow: 'none !important' },
+  },
+  userButtonBox: {
+    backgroundColor: 'transparent !important',
+    backdropFilter: 'none !important',
+    WebkitBackdropFilter: 'none !important',
+    boxShadow: 'none !important',
+    border: 'none !important',
+  },
+  userButtonOuterBox: {
+    backgroundColor: 'transparent !important',
+    backdropFilter: 'none !important',
+    WebkitBackdropFilter: 'none !important',
+    boxShadow: 'none !important',
+    border: 'none !important',
+  },
+  userButtonAvatarBox: {
+    backgroundColor: 'transparent !important',
+    boxShadow: 'none !important',
+    border: 'none !important',
+    width: '28px !important',
+    height: '28px !important',
+  },
+  avatarBox: {
+    backgroundColor: 'transparent !important',
+    backdropFilter: 'none !important',
+    WebkitBackdropFilter: 'none !important',
+    boxShadow: 'none !important',
+    border: 'none !important',
+  },
+  userButtonPopoverCard: {
+    backgroundColor: 'hsl(222 47% 9%)',
+    color: 'hsl(210 40% 98%)',
+    border: '1px solid hsl(217 33% 22%)',
+    borderRadius: '0.75rem',
+    boxShadow: '0 12px 24px -8px rgba(0, 0, 0, 0.45)',
+    backdropFilter: 'none',
+    WebkitBackdropFilter: 'none',
+  },
+  userButtonPopoverActionButton: {
+    color: 'hsl(210 40% 98%)',
+    fontWeight: 500,
+    '&:hover': {
+      backgroundColor: 'hsl(217 33% 16%)',
     },
-    profileSectionContent: {
-      color: 'hsl(0, 0%, 10%)',
-    },
-    // Text elements
-    text: {
-      color: 'hsl(0, 0%, 5%)',
-    },
-    textPrimary: {
-      color: 'hsl(0, 0%, 5%)',
-      fontWeight: '600',
-    },
-    textSecondary: {
-      color: 'hsl(0, 0%, 20%)',
-    },
-    // Primary form button
-    formButtonPrimary: {
-      backgroundColor: 'hsl(142, 76%, 36%)',
-      color: 'hsl(0, 0%, 100%)',
-      border: 'none',
-      borderRadius: '0.5rem',
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      height: '2.5rem',
-      padding: '0 1rem',
-      transition: 'all 0.2s ease-in-out',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-      '&:hover': {
-        backgroundColor: 'hsl(142, 76%, 32%)',
-        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
-      },
-      '&:focus': {
-        outline: '2px solid hsl(142, 76%, 36%)',
-        outlineOffset: '2px',
-      },
-    },
-    // Form input fields - glassy with dark text
-    formFieldInput: {
-      height: '2.5rem',
-      borderRadius: '0.5rem',
-      border: '1px solid rgba(255, 255, 255, 0.3)',
-      backgroundColor: 'rgba(255, 255, 255, 0.6)', // Translucent white
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-      padding: '0 0.75rem',
-      fontSize: '0.875rem',
-      color: 'hsl(0, 0%, 5%)', // Very dark text for contrast
-      transition: 'all 0.2s ease-in-out',
-      '&::placeholder': {
-        color: 'hsl(0, 0%, 50%)', // Medium gray placeholder
-      },
-      '&:hover': {
-        borderColor: 'hsl(142, 76%, 36%)',
-        backgroundColor: 'rgba(255, 255, 255, 0.7)',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
-      },
-      '&:focus': {
-        outline: '2px solid hsl(142, 76%, 36%)',
-        borderColor: 'hsl(142, 76%, 36%)',
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-      },
-    },
-    // Form field labels
-    formFieldLabel: {
-      color: 'hsl(0, 0%, 10%)',
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      marginBottom: '0.5rem',
-    },
-    // Footer action links
-    footerActionLink: {
-      color: 'hsl(142, 76%, 30%)',
-      textDecoration: 'underline',
-      textUnderlineOffset: '4px',
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      '&:hover': {
-        color: 'hsl(142, 76%, 25%)',
-      },
-    },
-    // Social login buttons - glassy effect
-    socialButtonsBlockButton: {
-      width: '100%',
-      border: '1px solid rgba(255, 255, 255, 0.3)',
-      backgroundColor: 'rgba(255, 255, 255, 0.5)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-      color: 'hsl(0, 0%, 5%)', // Very dark text
-      borderRadius: '0.5rem',
-      height: '2.75rem',
-      padding: '0 1rem',
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      transition: 'all 0.2s ease-in-out',
-      '&:hover': {
-        backgroundColor: 'rgba(255, 255, 255, 0.7)',
-        borderColor: 'hsl(142, 76%, 36%)',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      },
-    },
-    // Header and title text
-    headerTitle: {
-      color: 'hsl(0, 0%, 5%)',
-      fontSize: '1.5rem',
-      fontWeight: '700',
-    },
-    headerSubtitle: {
-      color: 'hsl(0, 0%, 20%)',
-      fontSize: '0.875rem',
-      fontWeight: '500',
-    },
-    // Error and warning text
-    formFieldWarningText: {
-      color: 'hsl(0, 84%, 35%)',
-      fontSize: '0.75rem',
-      fontWeight: '500',
-      marginTop: '0.25rem',
-    },
-    formFieldErrorText: {
-      color: 'hsl(0, 84%, 35%)',
-      fontSize: '0.75rem',
-      fontWeight: '500',
-      marginTop: '0.25rem',
-    },
-    // Additional elements for complete coverage
-    button: {
-      color: 'hsl(0, 0%, 5%)',
-      fontWeight: '600',
-    },
-    link: {
-      color: 'hsl(142, 76%, 30%)',
-      fontWeight: '600',
-    },
-    menuButton: {
-      color: 'hsl(0, 0%, 5%)',
-      fontWeight: '600',
-      '&:hover': {
-        backgroundColor: 'rgba(0, 0, 0, 0.05)',
-      },
-    },
-    menuItem: {
-      color: 'hsl(0, 0%, 5%)',
-      fontWeight: '500',
-      '&:hover': {
-        backgroundColor: 'rgba(0, 0, 0, 0.05)',
-      },
-    },
-    menuList: {
-      backgroundColor: 'rgba(255, 255, 255, 0.4)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-    },
-    badge: {
-      color: 'hsl(0, 0%, 5%)',
-    },
-    alert: {
-      color: 'hsl(0, 0%, 5%)',
-    },
-    // UserButton specific overrides - remove all backgrounds and make smaller
-    userButtonTrigger: {
-      backgroundColor: 'transparent !important',
-      backdropFilter: 'none !important',
-      WebkitBackdropFilter: 'none !important',
-      boxShadow: 'none !important',
-      border: 'none !important',
-      padding: '0 !important',
-      width: '28px !important',
-      height: '28px !important',
-      '&:hover': {
-        backgroundColor: 'transparent !important',
-      },
-      '&:focus': {
-        backgroundColor: 'transparent !important',
-        boxShadow: 'none !important',
-      },
-    },
-    userButtonBox: {
-      backgroundColor: 'transparent !important',
-      backdropFilter: 'none !important',
-      WebkitBackdropFilter: 'none !important',
-      boxShadow: 'none !important',
-      border: 'none !important',
-    },
-    userButtonOuterBox: {
-      backgroundColor: 'transparent !important',
-      backdropFilter: 'none !important',
-      WebkitBackdropFilter: 'none !important',
-      boxShadow: 'none !important',
-      border: 'none !important',
-    },
-    userButtonAvatarBox: {
-      backgroundColor: 'transparent !important',
-      boxShadow: 'none !important',
-      border: 'none !important',
-      width: '28px !important',
-      height: '28px !important',
-    },
-    avatarBox: {
-      backgroundColor: 'transparent !important',
-      backdropFilter: 'none !important',
-      WebkitBackdropFilter: 'none !important',
-      boxShadow: 'none !important',
-      border: 'none !important',
-    },
-  } as any,
+  },
+} as ClerkThemeAppearance['elements'];
+
+/** Light — used when app theme resolves to light */
+export const memoSparkClerkAppearance: ClerkThemeAppearance = {
+  variables: lightVariables,
+  elements: lightElements,
   layout: {
-    logoPlacement: 'none' as const,
-    socialButtonsPlacement: 'bottom' as const,
-    socialButtonsVariant: 'blockButton' as const,
-  }
+    logoPlacement: 'none',
+    socialButtonsPlacement: 'bottom',
+    socialButtonsVariant: 'blockButton',
+  },
 } as const;
 
-// Dark theme variant with glassy effect and white text
-export const memoSparkClerkAppearanceDark: Appearance = {
-  variables: {
-    colorPrimary: 'hsl(142, 76%, 36%)', // MemoSpark green
-    colorText: 'hsl(0, 0%, 98%)', // Near-white text for dark translucent background
-    colorTextSecondary: 'hsl(0, 0%, 85%)', // Secondary text
-    colorBackground: 'rgba(20, 20, 20, 0.7)', // Translucent dark glass
-    colorInputBackground: 'rgba(30, 30, 30, 0.8)', // Slightly more opaque for inputs
-    colorInputText: 'hsl(0, 0%, 98%)', // Near-white text for inputs
-    colorShimmer: 'hsl(142, 76%, 36%)', // MemoSpark green shimmer
-    borderRadius: '0.5rem',
-    fontFamily: '"Inter", system-ui, sans-serif',
-    fontSize: '0.875rem',
-  },
-  elements: {
-    // Root container - glassy translucent effect
-    rootBox: {
-      boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.5)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      padding: '1.5rem',
-      backgroundColor: 'rgba(20, 20, 20, 0.3)', // Translucent dark glass
-      backdropFilter: 'blur(10px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(10px) saturate(180%)',
-      color: 'hsl(0, 0%, 98%)', // Near-white text for contrast
-    },
-    // Card and container elements
-    card: {
-      backgroundColor: 'rgba(30, 30, 30, 0.4)',
-      color: 'hsl(0, 0%, 98%)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-    },
-    cardBox: {
-      backgroundColor: 'rgba(30, 30, 30, 0.4)',
-      color: 'hsl(0, 0%, 98%)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-    },
-    // Navigation and sidebar elements
-    navbar: {
-      backgroundColor: 'rgba(30, 30, 30, 0.4)',
-      color: 'hsl(0, 0%, 98%)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-    },
-    navbarButton: {
-      color: 'hsl(0, 0%, 98%)',
-      fontWeight: '600',
-      '&:hover': {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        color: 'hsl(0, 0%, 100%)',
-      },
-    },
-    navbarMobileMenuButton: {
-      color: 'hsl(0, 0%, 98%)',
-    },
-    // Sidebar and page navigation
-    sidebar: {
-      backgroundColor: 'rgba(30, 30, 30, 0.4)',
-      color: 'hsl(0, 0%, 98%)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-    },
-    pageScrollBox: {
-      backgroundColor: 'rgba(20, 20, 20, 0.2)',
-      color: 'hsl(0, 0%, 98%)',
-    },
-    // Profile section elements
-    profileSection: {
-      color: 'hsl(0, 0%, 98%)',
-    },
-    profileSectionPrimaryButton: {
-      backgroundColor: 'hsl(142, 76%, 36%)',
-      color: 'hsl(0, 0%, 100%)',
-    },
-    profileSectionTitle: {
-      color: 'hsl(0, 0%, 98%)',
-      fontSize: '1.125rem',
-      fontWeight: '700',
-    },
-    profileSectionSubtitle: {
-      color: 'hsl(0, 0%, 85%)',
-      fontSize: '0.875rem',
-      fontWeight: '500',
-    },
-    profileSectionContent: {
-      color: 'hsl(0, 0%, 95%)',
-    },
-    // Text elements
-    text: {
-      color: 'hsl(0, 0%, 98%)',
-    },
-    textPrimary: {
-      color: 'hsl(0, 0%, 98%)',
-      fontWeight: '600',
-    },
-    textSecondary: {
-      color: 'hsl(0, 0%, 85%)',
-    },
-    // Primary form button
-    formButtonPrimary: {
-      backgroundColor: 'hsl(142, 76%, 36%)',
-      color: 'hsl(0, 0%, 100%)',
-      border: 'none',
-      borderRadius: '0.5rem',
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      height: '2.5rem',
-      padding: '0 1rem',
-      transition: 'all 0.2s ease-in-out',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
-      '&:hover': {
-        backgroundColor: 'hsl(142, 76%, 40%)',
-        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.4)',
-      },
-      '&:focus': {
-        outline: '2px solid hsl(142, 76%, 36%)',
-        outlineOffset: '2px',
-      },
-    },
-    // Form input fields - glassy with white text
-    formFieldInput: {
-      height: '2.5rem',
-      borderRadius: '0.5rem',
-      border: '1px solid rgba(255, 255, 255, 0.15)',
-      backgroundColor: 'rgba(40, 40, 40, 0.6)', // Translucent dark
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-      padding: '0 0.75rem',
-      fontSize: '0.875rem',
-      color: 'hsl(0, 0%, 98%)', // Near-white text for contrast
-      transition: 'all 0.2s ease-in-out',
-      '&::placeholder': {
-        color: 'hsl(0, 0%, 60%)', // Light gray placeholder
-      },
-      '&:hover': {
-        borderColor: 'hsl(142, 76%, 36%)',
-        backgroundColor: 'rgba(40, 40, 40, 0.7)',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-      },
-      '&:focus': {
-        outline: '2px solid hsl(142, 76%, 36%)',
-        borderColor: 'hsl(142, 76%, 36%)',
-        backgroundColor: 'rgba(40, 40, 40, 0.8)',
-      },
-    },
-    // Form field labels
-    formFieldLabel: {
-      color: 'hsl(0, 0%, 95%)',
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      marginBottom: '0.5rem',
-    },
-    // Footer action links
-    footerActionLink: {
-      color: 'hsl(142, 76%, 50%)',
-      textDecoration: 'underline',
-      textUnderlineOffset: '4px',
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      '&:hover': {
-        color: 'hsl(142, 76%, 60%)',
-      },
-    },
-    // Social login buttons - glassy effect
-    socialButtonsBlockButton: {
-      width: '100%',
-      border: '1px solid rgba(255, 255, 255, 0.15)',
-      backgroundColor: 'rgba(50, 50, 50, 0.5)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-      color: 'hsl(0, 0%, 98%)', // Near-white text
-      borderRadius: '0.5rem',
-      height: '2.75rem',
-      padding: '0 1rem',
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      transition: 'all 0.2s ease-in-out',
-      '&:hover': {
-        backgroundColor: 'rgba(50, 50, 50, 0.7)',
-        borderColor: 'hsl(142, 76%, 36%)',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-      },
-    },
-    // Header and title text
-    headerTitle: {
-      color: 'hsl(0, 0%, 98%)',
-      fontSize: '1.5rem',
-      fontWeight: '700',
-    },
-    headerSubtitle: {
-      color: 'hsl(0, 0%, 85%)',
-      fontSize: '0.875rem',
-      fontWeight: '500',
-    },
-    // Error and warning text
-    formFieldWarningText: {
-      color: 'hsl(0, 84%, 65%)',
-      fontSize: '0.75rem',
-      fontWeight: '500',
-      marginTop: '0.25rem',
-    },
-    formFieldErrorText: {
-      color: 'hsl(0, 84%, 65%)',
-      fontSize: '0.75rem',
-      fontWeight: '500',
-      marginTop: '0.25rem',
-    },
-    // Additional elements for complete coverage
-    button: {
-      color: 'hsl(0, 0%, 98%)',
-      fontWeight: '600',
-    },
-    link: {
-      color: 'hsl(142, 76%, 50%)',
-      fontWeight: '600',
-    },
-    menuButton: {
-      color: 'hsl(0, 0%, 98%)',
-      fontWeight: '600',
-      '&:hover': {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      },
-    },
-    menuItem: {
-      color: 'hsl(0, 0%, 98%)',
-      fontWeight: '500',
-      '&:hover': {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      },
-    },
-    menuList: {
-      backgroundColor: 'rgba(30, 30, 30, 0.4)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-    },
-    badge: {
-      color: 'hsl(0, 0%, 98%)',
-    },
-    alert: {
-      color: 'hsl(0, 0%, 98%)',
-    },
-    // UserButton specific overrides - remove all backgrounds and make smaller
-    userButtonTrigger: {
-      backgroundColor: 'transparent !important',
-      backdropFilter: 'none !important',
-      WebkitBackdropFilter: 'none !important',
-      boxShadow: 'none !important',
-      border: 'none !important',
-      padding: '0 !important',
-      width: '28px !important',
-      height: '28px !important',
-      '&:hover': {
-        backgroundColor: 'transparent !important',
-      },
-      '&:focus': {
-        backgroundColor: 'transparent !important',
-        boxShadow: 'none !important',
-      },
-    },
-    userButtonBox: {
-      backgroundColor: 'transparent !important',
-      backdropFilter: 'none !important',
-      WebkitBackdropFilter: 'none !important',
-      boxShadow: 'none !important',
-      border: 'none !important',
-    },
-    userButtonOuterBox: {
-      backgroundColor: 'transparent !important',
-      backdropFilter: 'none !important',
-      WebkitBackdropFilter: 'none !important',
-      boxShadow: 'none !important',
-      border: 'none !important',
-    },
-    userButtonAvatarBox: {
-      backgroundColor: 'transparent !important',
-      boxShadow: 'none !important',
-      border: 'none !important',
-      width: '28px !important',
-      height: '28px !important',
-    },
-    avatarBox: {
-      backgroundColor: 'transparent !important',
-      backdropFilter: 'none !important',
-      WebkitBackdropFilter: 'none !important',
-      boxShadow: 'none !important',
-      border: 'none !important',
-    },
-  } as any,
+/** Dark — used when app theme resolves to dark / dark variants */
+export const memoSparkClerkAppearanceDark: ClerkThemeAppearance = {
+  variables: darkVariables,
+  elements: darkElements,
   layout: {
-    logoPlacement: 'none' as const,
-    socialButtonsPlacement: 'bottom' as const,
-    socialButtonsVariant: 'blockButton' as const,
-  }
+    logoPlacement: 'none',
+    socialButtonsPlacement: 'bottom',
+    socialButtonsVariant: 'blockButton',
+  },
 } as const;
 
-export const clerkAppearance: Appearance = {
-  // baseTheme: 'light',
-  variables: {
-    colorPrimary: '#3B82F6',
-    colorBackground: '#ffffff',
-    colorInputBackground: '#ffffff',
-    colorInputText: '#1f2937',
-    borderRadius: '8px',
-  },
-  elements: {
-    card: 'shadow-lg border border-gray-200',
-    headerTitle: 'text-lg font-semibold text-gray-900',
-    headerSubtitle: 'text-sm text-gray-600',
-  },
-};
+/**
+ * Dashboard `<UserButton />` — responsive avatar sizes + same modal / popover theming as the app.
+ */
+export function getMemoSparkDashboardUserButtonAppearance(
+  isDark: boolean
+): Pick<ClerkThemeAppearance, 'variables' | 'elements'> {
+  const base = isDark ? darkElements : lightElements;
+  const responsiveTrigger = {
+    ...base.userButtonTrigger,
+    width: '20px !important',
+    height: '20px !important',
+    '@media (min-width: 640px)': {
+      width: '24px !important',
+      height: '24px !important',
+    },
+    '@media (min-width: 1024px)': {
+      width: '28px !important',
+      height: '28px !important',
+    },
+  };
+  const responsiveAvatar = {
+    ...base.userButtonAvatarBox,
+    width: '20px !important',
+    height: '20px !important',
+    '@media (min-width: 640px)': {
+      width: '24px !important',
+      height: '24px !important',
+    },
+    '@media (min-width: 1024px)': {
+      width: '28px !important',
+      height: '28px !important',
+    },
+  };
+  return {
+    variables: isDark
+      ? {
+          colorPrimary: PRIMARY,
+          colorForeground: darkVariables.colorForeground,
+          colorMutedForeground: darkVariables.colorMutedForeground,
+          colorBackground: darkVariables.colorBackground,
+          colorInput: darkVariables.colorInput,
+          colorInputForeground: darkVariables.colorInputForeground,
+          borderRadius: '0.5rem',
+        }
+      : {
+          colorPrimary: PRIMARY,
+          colorForeground: lightVariables.colorForeground,
+          colorMutedForeground: lightVariables.colorMutedForeground,
+          colorBackground: lightVariables.colorBackground,
+          colorInput: lightVariables.colorInput,
+          colorInputForeground: lightVariables.colorInputForeground,
+          borderRadius: '0.5rem',
+        },
+    elements: {
+      ...base,
+      userButtonTrigger: responsiveTrigger,
+      userButtonAvatarBox: responsiveAvatar,
+    } as ClerkThemeAppearance['elements'],
+  } satisfies Pick<ClerkThemeAppearance, 'variables' | 'elements'>;
+}

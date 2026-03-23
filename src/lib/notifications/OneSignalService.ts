@@ -1,12 +1,12 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase/client';
+import { tryGetSupabaseUrl, tryGetSupabaseAnonKey } from '@/lib/supabase/env';
 
-// Global OneSignal interface for TypeScript
 declare global {
   interface Window {
     OneSignal?: any;
   }
 }
-import { supabase } from '@/lib/supabase/client';
 
 interface OneSignalNotification {
   app_id: string;
@@ -63,20 +63,27 @@ interface OneSignalResponse {
 
 export class OneSignalService {
   private static instance: OneSignalService;
-  private supabase;
+  private _supabase: SupabaseClient | null = null;
   private appId: string;
   private restApiKey: string;
   private apiUrl = 'https://onesignal.com/api/v1';
   private isInitialized = false;
 
+  private get supabase(): SupabaseClient {
+    if (!this._supabase) {
+      const url = tryGetSupabaseUrl();
+      const key = tryGetSupabaseAnonKey();
+      if (!url || !key) throw new Error('Supabase env vars missing');
+      this._supabase = createClient(url, key, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+    }
+    return this._supabase;
+  }
+
   constructor() {
-    this.supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-    
-    this.appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!;
-    this.restApiKey = process.env.ONESIGNAL_REST_API_KEY!;
+    this.appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID ?? '';
+    this.restApiKey = process.env.ONESIGNAL_REST_API_KEY ?? '';
 
     if (!this.appId || !this.restApiKey) {
       console.warn('OneSignal credentials not properly configured');

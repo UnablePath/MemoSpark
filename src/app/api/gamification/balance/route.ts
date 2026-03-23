@@ -1,17 +1,15 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseServerAdmin } from '@/lib/supabase/server';
 import { coinEconomy } from '@/lib/gamification/CoinEconomy';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
+
+const supabase = getSupabaseAdmin()!;
 
 // Force dynamic rendering since we use auth() which requires headers
 export const dynamic = 'force-dynamic';
 
 // Enable Next.js edge caching for GET requests (1 minute for balance - changes often)
 export const revalidate = 60;
-
-// This would be your actual Supabase client
-// import { createClient } from '@supabase/supabase-js';
-// const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +18,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!supabaseServerAdmin) {
+    if (!supabase) {
       return NextResponse.json({ error: 'Database not available' }, { status: 500 });
     }
 
@@ -41,13 +39,13 @@ export async function GET(request: NextRequest) {
       console.warn('CoinEconomy method failed, falling back to manual calculation:', coinEconomyError);
       
       // Fallback: Calculate from transactions directly (existing logic)
-      const { data: earnedTransactions } = await supabaseServerAdmin
+      const { data: earnedTransactions } = await supabase
         .from('coin_transactions')
         .select('amount')
         .eq('user_id', userId)
         .eq('transaction_type', 'earned');
 
-      const { data: spentTransactions } = await supabaseServerAdmin
+      const { data: spentTransactions } = await supabase
         .from('coin_transactions')
         .select('amount')
         .eq('user_id', userId)
@@ -59,7 +57,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get recent transactions for context
-    const { data: recentTransactions } = await supabaseServerAdmin
+    const { data: recentTransactions } = await supabase
       .from('coin_transactions')
       .select('*')
       .eq('user_id', userId)

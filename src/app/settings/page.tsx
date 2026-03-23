@@ -2,7 +2,7 @@
 
 import type React from 'react';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { ArrowLeft, Crown, CreditCard, ChevronDown, ChevronUp, Palette, Bell, Globe, Shield, Zap, Trash2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementT
 import { useTieredAI } from '@/hooks/useTieredAI';
 import { toast } from 'sonner';
 import { AuthAwareSeo } from '@/components/seo/AuthAwareSeo';
+import { cn } from '@/lib/utils';
 
 // interface SettingsPageProps {} // Add if props are needed
 
@@ -28,6 +29,16 @@ type SettingsSection = 'theme' | 'notifications' | 'accessibility' | 'privacy' |
 
 const SettingsPage: React.FC = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isEmbed = searchParams.get('embed') === '1';
+  /** Full-bleed inside Clerk iframe — drop max-width containers */
+  const embedOuterClass = isEmbed
+    ? 'mx-auto w-full max-w-full min-w-0 overflow-x-hidden py-6 px-3 sm:px-3'
+    : 'container mx-auto max-w-4xl py-8 px-4';
+  const embedMainWrapClass = isEmbed
+    ? 'w-full min-w-0 max-w-full overflow-x-hidden px-2 sm:px-3'
+    : 'w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8';
+  const embedStackClass = isEmbed ? 'space-y-6 w-full min-w-0 max-w-full' : 'space-y-6 max-w-4xl';
   const { user, isLoaded } = useUser();
   const { userTier, isLoading: tierLoading } = useTieredAI();
   const { triggerAchievement } = useDebouncedAchievementTrigger();
@@ -92,41 +103,45 @@ const SettingsPage: React.FC = () => {
   if (!isLoaded || tierLoading) {
     return (
       <>
-        <AuthAwareSeo
-          pageKey="settings"
-          publicTitle="App Settings"
-          publicDescription="Customize your MemoSpark experience with theme settings, notification preferences, and accessibility options. Sign in to access your personal settings."
-          privateTitle="Settings"
-          privateDescription="Customize your MemoSpark experience with notification preferences, theme settings, subscription management, and accessibility options."
-          forceNoindex={true}
-        />
-        <div className="container mx-auto max-w-4xl py-8 px-4">
+        {!isEmbed && (
+          <AuthAwareSeo
+            pageKey="settings"
+            publicTitle="App Settings"
+            publicDescription="Customize your MemoSpark experience with theme settings, notification preferences, and accessibility options. Sign in to access your personal settings."
+            privateTitle="Settings"
+            privateDescription="Customize your MemoSpark experience with notification preferences, theme settings, subscription management, and accessibility options."
+            forceNoindex={true}
+          />
+        )}
+        <div className={embedOuterClass}>
           {/* Navigation Header */}
-          <div className="sticky top-0 z-10 bg-background border-b border-border">
-            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-4 py-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBack}
-                className="h-8 w-8 p-0 hover:bg-muted min-h-[44px] min-w-[44px] flex items-center justify-center"
-                aria-label="Go back"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <h1 className="text-xl font-semibold text-foreground">Settings</h1>
+          {!isEmbed && (
+            <div className="sticky top-0 z-10 bg-background border-b border-border">
+              <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-4 py-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBack}
+                  className="h-8 w-8 p-0 hover:bg-muted min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  aria-label="Go back"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <h1 className="text-xl font-semibold text-foreground">Settings</h1>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Main Content */}
           <div 
-            className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
+            className={cn('w-full py-6', embedMainWrapClass)}
             style={{
               overflowY: 'visible',
               touchAction: 'pan-y',
             }}
           >
             <div 
-              className="space-y-6 max-w-4xl"
+              className={embedStackClass}
               style={{
                 touchAction: 'pan-y',
               }}
@@ -253,7 +268,7 @@ const SettingsPage: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen bg-background"
+      className={isEmbed ? 'min-h-0 bg-background' : 'min-h-screen bg-background'}
       style={{
         overflowY: 'auto',
         overflowX: 'hidden',
@@ -261,40 +276,44 @@ const SettingsPage: React.FC = () => {
         touchAction: 'pan-y',
       }}
     >
-      <AuthAwareSeo
-        pageKey="settings"
-        publicTitle="App Settings"
-        publicDescription="Customize your MemoSpark experience with theme settings, notification preferences, and accessibility options. Sign in to access your personal settings."
-        privateTitle="Settings"
-        privateDescription="Customize your MemoSpark experience with notification preferences, theme settings, subscription management, and accessibility options."
-        forceNoindex={true}
-      />
+      {!isEmbed && (
+        <AuthAwareSeo
+          pageKey="settings"
+          publicTitle="App Settings"
+          publicDescription="Customize your MemoSpark experience with theme settings, notification preferences, and accessibility options. Sign in to access your personal settings."
+          privateTitle="Settings"
+          privateDescription="Customize your MemoSpark experience with notification preferences, theme settings, subscription management, and accessibility options."
+          forceNoindex={true}
+        />
+      )}
       {/* Navigation Header */}
-      <div className="sticky top-0 z-10 bg-background border-b border-border">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-4 py-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleBack}
-            className="h-8 w-8 p-0 hover:bg-muted min-h-[44px] min-w-[44px] flex items-center justify-center"
-            aria-label="Go back"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-xl font-semibold text-foreground">Settings</h1>
+      {!isEmbed && (
+        <div className="sticky top-0 z-10 bg-background border-b border-border">
+          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-4 py-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBack}
+              className="h-8 w-8 p-0 hover:bg-muted min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Go back"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-xl font-semibold text-foreground">Settings</h1>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Content */}
       <div 
-        className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
+        className={cn('w-full py-6', embedMainWrapClass)}
         style={{
           overflowY: 'visible',
           touchAction: 'pan-y',
         }}
       >
         <div 
-          className="space-y-6 max-w-4xl"
+          className={embedStackClass}
           style={{
             touchAction: 'pan-y',
           }}

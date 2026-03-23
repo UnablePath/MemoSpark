@@ -34,7 +34,6 @@ import {
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { useAuth } from '@clerk/nextjs';
 import { useFetchTasks } from "@/hooks/useTaskQueries";
 import { ICalImportExport } from "@/components/calendar/ICalImportExport";
 import {
@@ -228,13 +227,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
   className,
 }) => {
   // Authentication hook for Clerk integration
-  const { getToken } = useAuth();
   const { toast } = useToast();
-  
-  // Create token provider function for Supabase integration
-  const getTokenForSupabase = useCallback(() => 
-    getToken({ template: 'supabase-integration' }), [getToken]
-  );
 
   // State management with better organization
   const [currentView, setCurrentView] = useState<CalendarView>("dayGridMonth");
@@ -257,7 +250,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
     isLoading,
     error: fetchError,
     refetch,
-  } = useFetchTasks(undefined, getTokenForSupabase);
+  } = useFetchTasks();
 
   // Enhanced mobile detection with cleanup
   useEffect(() => {

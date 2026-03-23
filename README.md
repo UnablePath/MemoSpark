@@ -40,7 +40,8 @@ MemoSpark is a mobile and web-based platform designed to combat student forgetfu
 
 ### Prerequisites
 
-- Node.js 18+ or Bun 1.0+
+- Node.js 18+
+- **pnpm** (recommended) or **Bun** — this repo ships `pnpm-lock.yaml` and `bun.lock`, not `package-lock.json`
 - Git
 
 ### Installation
@@ -51,17 +52,50 @@ git clone https://github.com/yourusername/memospark.git
 cd memospark
 ```
 
-2. Install dependencies:
+2. Install dependencies (pick one):
+
 ```bash
+# Recommended — matches pnpm-lock.yaml
+corepack enable
+corepack prepare pnpm@9.15.9 --activate
+pnpm install
+```
+
+```bash
+# Alternative
 bun install
 ```
 
+**Do not use `npm install` as your only tool** on this project: npm resolves a different tree than pnpm and can fail with `EUNSUPPORTEDPROTOCOL` / `workspace:*` when a dependency expects a workspace-aware client. If you already ran `npm install`, delete `node_modules` and install again with **pnpm** or **bun**.
+
 3. Start the development server:
 ```bash
-bun run dev
+pnpm dev
+# or: bun run dev
 ```
 
 4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### E2E tests (Playwright)
+
+```bash
+pnpm exec playwright install
+pnpm run test:e2e
+```
+
+With the dev server already running: `set PLAYWRIGHT_NO_SERVER=1` (Windows) or `PLAYWRIGHT_NO_SERVER=1` (Unix) so Playwright does not try to start a second server.
+
+**Onboarding wizard tests** (`e2e/onboarding.spec.ts`) exercise validation and navigation when you’re signed in with **incomplete** onboarding. Anonymous runs skip those cases. To run them locally, sign in once and save storage, then:
+
+```bash
+set E2E_STORAGE_STATE=e2e\auth.json
+set PLAYWRIGHT_NO_SERVER=1
+pnpm exec playwright test e2e/onboarding.spec.ts
+```
+
+(Create `e2e/auth.json` with `pnpm exec playwright codegen http://localhost:3000` → sign in → save storage, or use Clerk’s testing helpers.)
+
+**Full submit to `/questionnaire`:** set `E2E_ONBOARDING_FULL=1` (still needs a user that can complete onboarding and working backend).
 
 ## Project Structure
 

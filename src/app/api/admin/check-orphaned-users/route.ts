@@ -1,8 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { clerkClient } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
 import type { User } from '@clerk/nextjs/server';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
+
+const supabase = getSupabaseAdmin()!;
 
 // This endpoint helps identify users who exist in Clerk but not in Supabase
 // Useful for monitoring webhook issues and data sync problems
@@ -22,10 +24,6 @@ export async function GET(request: NextRequest) {
     const clerkUsers: User[] = clerkUsersResponse.data;
 
     // Get all profiles from Supabase
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select('clerk_user_id, email, full_name');

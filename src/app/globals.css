@@ -1,4 +1,4 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -49,16 +49,7 @@
   [data-radix-select-trigger]:not([data-disabled]) {
     opacity: 1 !important;
   }
-  
-  /* Debug styles for Select components */
-  [data-radix-select-trigger] {
-    outline: 1px solid red !important;
-  }
-  
-  [data-radix-select-content] {
-    outline: 2px solid blue !important;
-  }
-  
+
   /* Optimize form inputs for mobile */
   input, 
   textarea, 
@@ -1588,6 +1579,617 @@ div[data-clerk-component] .cl-userButtonAvatarBox,
   border: none !important;
   width: 28px !important;
   height: 28px !important;
+}
+
+/*
+ * Clerk UserProfile modal — nav rail (scoped to .cl-userProfile-root).
+ * Prefer appearance in src/lib/clerk-appearance.ts; @clerk/ui on ClerkProvider pins DOM for fewer breaks.
+ */
+.cl-modalContent .cl-userProfile-root .cl-navbar {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 0.375rem !important;
+  padding: 1rem 0.75rem !important;
+  border-bottom: none !important;
+  border-inline-end: 1px solid hsl(var(--border)) !important;
+  min-width: 15.5rem !important;
+  min-height: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.cl-modalContent .cl-userProfile-root .cl-navbarButton {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 0.5rem !important;
+  width: 100% !important;
+  min-height: 2.75rem !important;
+  padding: 0.5rem 0.75rem !important;
+  text-align: start !important;
+  line-height: 1.35 !important;
+}
+
+.cl-modalContent .cl-userProfile-root .cl-navbarButtonText {
+  display: inline-flex !important;
+  align-items: center !important;
+  line-height: 1.35 !important;
+  text-align: start !important;
+  flex: 1 1 auto !important;
+}
+
+.cl-modalContent .cl-userProfile-root .cl-navbarButtonIcon {
+  display: flex !important;
+  flex-shrink: 0 !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 1.125rem !important;
+  min-height: 1.125rem !important;
+}
+
+/*
+ * Custom UserProfile tabs (labelIcon / ExternalElementMounter).
+ * Style the root svg only: per-path stroke overrides can break Lucide (stroke-dasharray, fills).
+ */
+.cl-modalContent .cl-userProfile-root .cl-navbarButton .cl-navbarButtonIcon {
+  color: hsl(var(--foreground)) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  overflow: visible !important;
+}
+
+.cl-modalContent .cl-userProfile-root .cl-navbarButton[data-active='true'] .cl-navbarButtonIcon,
+.cl-modalContent .cl-userProfile-root .cl-navbarButton.cl-active .cl-navbarButtonIcon {
+  color: hsl(var(--foreground)) !important;
+  opacity: 1 !important;
+}
+
+.cl-modalContent .cl-userProfile-root .cl-navbarButtonIcon svg {
+  width: 1.125rem !important;
+  height: 1.125rem !important;
+  min-width: 1.125rem !important;
+  min-height: 1.125rem !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+  color: hsl(var(--foreground)) !important;
+  stroke: currentColor !important;
+  stroke-width: 2px !important;
+  fill: none !important;
+  opacity: 1 !important;
+  overflow: visible !important;
+}
+
+/*
+ * Custom UserProfilePage tabs: labelIcon often mounts an empty .cl-navbarButtonIcon (ExternalElementMounter).
+ * Collapse empty icon slot; paint fallback icons from /public SVG masks (solid white for contrast on all themes).
+ */
+.cl-modalContent .cl-userProfile-root .cl-navbarButton[class*='custom-page'] .cl-navbarButtonIcon:not(:has(svg)) {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.cl-modalContent .cl-userProfile-root .cl-navbarButton[class*='custom-page'] > .cl-navbarButtonText {
+  display: inline-flex !important;
+  align-items: center !important;
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  clip: auto !important;
+  white-space: normal !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.35 !important;
+}
+
+.cl-modalContent .cl-userProfile-root .cl-navbarButton[class*='custom-page'] .cl-navbarButtonIcon svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+.cl-modalContent .cl-userProfile-root .cl-navbarButton[class*='custom-page'] {
+  gap: 0.5rem !important;
+}
+
+.cl-modalContent .cl-userProfile-root .cl-navbarButton[class*='custom-page-0']:not(:has(.cl-navbarButtonIcon svg))::before {
+  content: '' !important;
+  display: block !important;
+  width: 1.125rem !important;
+  height: 1.125rem !important;
+  flex-shrink: 0 !important;
+  background-color: #ffffff !important;
+  -webkit-mask: url('/memospark-clerk-tab-user.svg') center / contain no-repeat !important;
+  mask: url('/memospark-clerk-tab-user.svg') center / contain no-repeat !important;
+}
+
+.cl-modalContent .cl-userProfile-root .cl-navbarButton[class*='custom-page-1']:not(:has(.cl-navbarButtonIcon svg))::before {
+  content: '' !important;
+  display: block !important;
+  width: 1.125rem !important;
+  height: 1.125rem !important;
+  flex-shrink: 0 !important;
+  background-color: #ffffff !important;
+  -webkit-mask: url('/memospark-clerk-tab-settings.svg') center / contain no-repeat !important;
+  mask: url('/memospark-clerk-tab-settings.svg') center / contain no-repeat !important;
+}
+
+/*
+ * Narrow viewports: full-viewport account modal + horizontal icon strip.
+ * Covers up to 770px — between 640–770px Clerk’s desktop sidebar rules alone break layout (tablet / small laptop).
+ */
+@media (max-width: 770px) {
+  /* 100% (not 100vw) avoids horizontal chop when scrollbars / mobile UI shift layout */
+  .cl-modalBackdrop:has(.cl-userProfile-root) {
+    align-items: stretch !important;
+    justify-content: stretch !important;
+    overflow-x: hidden !important;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+      env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px) !important;
+  }
+
+  .cl-modalContent:has(.cl-userProfile-root) {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+    height: 100dvh !important;
+    margin: 0 auto !important;
+    border-radius: 0 !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .cl-modalContent .cl-userProfile-root {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .cl-modalContent .cl-userProfile-root .cl-cardBox {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  /*
+   * Mobile account modal: column layout — header block, then a single horizontal tab strip.
+   * (Row layout put the tab picker beside the header and forced icons into a vertical column.)
+   */
+  .cl-modalContent .cl-userProfile-root .cl-navbar {
+    flex: 0 0 auto !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    align-self: stretch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 0.35rem 0.5rem 0.45rem !important;
+    border-inline-end: none !important;
+    border-bottom: 1px solid hsl(var(--border)) !important;
+    gap: 0.35rem !important;
+    overflow: visible !important;
+    position: relative !important;
+    inset: auto !important;
+  }
+
+  /* Clerk wraps header + tab list — stack full-width; kill phantom min-height that creates ~240px dead air */
+  .cl-modalContent .cl-userProfile-root .cl-navbar > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    flex: 0 0 auto !important;
+    gap: 0.25rem !important;
+    position: relative !important;
+    inset: auto !important;
+  }
+
+  .cl-modalContent .cl-userProfile-root .cl-navbar > div[class*='cl-internal'] {
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  /* Tab picker: one horizontal, scrollable row (fixes detached / vertical icon column) */
+  .cl-modalContent .cl-userProfile-root .cl-navbar .cl-navbarButtons {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 0.35rem !important;
+    align-self: stretch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 2.5rem !important;
+    padding: 0.1rem 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-x: contain !important;
+    touch-action: pan-x !important;
+    position: relative !important;
+    inset: auto !important;
+    flex: 0 0 auto !important;
+    scrollbar-width: thin !important;
+  }
+
+  .cl-modalContent .cl-userProfile-root .cl-navbarButton {
+    position: relative !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 2.75rem !important;
+    max-width: none !important;
+    min-height: 2.5rem !important;
+    padding: 0.35rem 0.5rem !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 0.25rem !important;
+    color: hsl(var(--foreground)) !important;
+    overflow: visible !important;
+  }
+
+  /*
+   * Visually hide tab labels on mobile (icon-only strip) for default Clerk tabs only.
+   * MemoSpark custom tabs (custom-page-*) keep visible labels + white icons.
+   */
+  .cl-modalContent
+    .cl-userProfile-root
+    .cl-navbarButton:not([class*='custom-page'])
+    > .cl-navbarButtonText:not(:has(.cl-navbarButtonIcon)) {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+
+  .cl-modalContent .cl-userProfile-root .cl-navbarButton > .cl-navbarButtonText:has(.cl-navbarButtonIcon) {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    clip: auto !important;
+  }
+
+  .cl-modalContent .cl-userProfile-root .cl-navbarButton > .cl-navbarButtonText:has(.cl-navbarButtonIcon) svg {
+    width: 1.125rem !important;
+    height: 1.125rem !important;
+  }
+
+  .cl-modalContent .cl-userProfile-root .cl-navbarButtonIcon {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    min-width: 1.25rem !important;
+    min-height: 1.25rem !important;
+    overflow: visible !important;
+  }
+
+  .cl-modalContent .cl-userProfile-root .cl-navbarButtonIcon svg {
+    display: block !important;
+    width: 1.125rem !important;
+    height: 1.125rem !important;
+    min-width: 1.125rem !important;
+    min-height: 1.125rem !important;
+    flex-shrink: 0 !important;
+    opacity: 1 !important;
+    color: hsl(var(--foreground)) !important;
+    stroke: currentColor !important;
+    stroke-width: 2px !important;
+    fill: none !important;
+  }
+
+  .cl-modalContent .cl-userProfile-root .cl-navbarButton[class*='custom-page'] .cl-navbarButtonIcon svg {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+  }
+
+  .cl-modalContent .cl-userProfile-root .cl-navbarButton[class*='custom-page'] > .cl-navbarButtonText {
+    font-size: 0.7rem !important;
+    line-height: 1.25 !important;
+    white-space: nowrap !important;
+  }
+
+  .cl-modalContent .cl-userProfile-root .cl-navbar .cl-profileSectionTitle,
+  .cl-modalContent .cl-userProfile-root .cl-navbar .cl-profileSectionSubtitle {
+    display: none !important;
+  }
+
+  /* Compact header row — keep one line + subtitle, avoid 200px+ dead air */
+  .cl-modalContent .cl-userProfile-root .cl-navbar .cl-headerTitle {
+    display: block !important;
+    font-size: 0.9375rem !important;
+    line-height: 1.25 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-weight: 600 !important;
+  }
+
+  .cl-modalContent .cl-userProfile-root .cl-navbar .cl-headerSubtitle {
+    display: block !important;
+    font-size: 0.6875rem !important;
+    line-height: 1.25 !important;
+    margin: 0.125rem 0 0 !important;
+    padding: 0 !important;
+    opacity: 0.85 !important;
+  }
+
+  .cl-modalContent .cl-userProfile-root .cl-navbar .cl-header {
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    gap: 0.125rem !important;
+  }
+
+  .cl-modalContent .cl-userProfile-root .cl-scrollBox,
+  .cl-modalContent .cl-userProfile-root .cl-pageScrollBox {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* UserButton account popover — full-width actions; label visually centered */
+.cl-userButtonPopoverMain {
+  align-items: stretch !important;
+  width: 100% !important;
+}
+
+.cl-userButtonPopoverActions,
+.cl-userButtonPopoverActionsBox {
+  width: 100% !important;
+  align-items: stretch !important;
+}
+
+.cl-userButtonPopoverActionButton {
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+  gap: 0.5rem !important;
+}
+
+/* Backdrop: give modal a definite block so % / flex heights resolve (desktop hub iframe). */
+.cl-modalBackdrop:has([data-memospark-hub-panel]) {
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0.75rem !important;
+  box-sizing: border-box !important;
+}
+
+/* MemoSpark hub iframe — fill the UserProfile content column (flex chain + explicit modal height) */
+.cl-modalContent:has([data-memospark-hub-panel]) {
+  width: min(96vw, 1100px) !important;
+  max-width: min(96vw, 1100px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: min(92dvh, 900px) !important;
+  max-height: min(92dvh, 900px) !important;
+  min-height: min(92dvh, 900px) !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.cl-modalContent:has([data-memospark-hub-panel]) .cl-userProfile-root {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.cl-modalContent:has([data-memospark-hub-panel]) .cl-cardBox {
+  display: flex !important;
+  flex-direction: row !important;
+  flex: 1 1 0% !important;
+  align-items: stretch !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+.cl-modalContent:has([data-memospark-hub-panel]) .cl-scrollBox,
+.cl-modalContent:has([data-memospark-hub-panel]) .cl-pageScrollBox {
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Hub: Clerk page wrappers must flex so [data-memospark-hub-panel] + iframe get real height */
+.cl-modalContent:has([data-memospark-hub-panel]) .cl-page {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+.cl-modalContent:has([data-memospark-hub-panel]) .cl-profilePage {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  align-items: stretch !important;
+  align-content: stretch !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+/*
+ * Clerk injects a wrapper div between .cl-profilePage and custom content — without this it stays
+ * content-sized (~250px) while .cl-profilePage is ~700px+, leaving a huge void under the hub.
+ */
+.cl-modalContent:has([data-memospark-hub-panel]) .cl-profilePage > * {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  align-self: stretch !important;
+  overflow: hidden !important;
+}
+
+/* Direct child of scroll region (Clerk page shell) — stretch hub to full column */
+.cl-modalContent:has([data-memospark-hub-panel]) .cl-pageScrollBox > * {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+.cl-modalContent:has([data-memospark-hub-panel]) [data-memospark-hub-panel] {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  align-self: stretch !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.cl-modalContent:has([data-memospark-hub-panel]) [data-memospark-hub-iframe-wrap] {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  max-height: 100% !important;
+}
+
+.cl-modalContent:has([data-memospark-hub-panel]) [data-memospark-hub-iframe-wrap] iframe {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* Desktop: flex % heights sometimes still collapse — floor without exceeding short modals */
+@media (min-width: 771px) {
+  .cl-modalContent:has([data-memospark-hub-panel]) [data-memospark-hub-iframe-wrap] {
+    min-height: min(58dvh, 560px) !important;
+  }
+
+  .cl-modalContent:has([data-memospark-hub-panel]) [data-memospark-hub-iframe-wrap] iframe {
+    min-height: min(58dvh, 560px) !important;
+  }
+}
+
+@media (max-width: 770px) {
+  /* Hub: same full-screen + column as general UserProfile mobile (override desktop row rules) */
+  .cl-modalContent:has([data-memospark-hub-panel]) {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+    height: 100dvh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .cl-modalContent:has([data-memospark-hub-panel]) .cl-userProfile-root {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    align-items: stretch !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .cl-modalContent:has([data-memospark-hub-panel]) .cl-cardBox {
+    flex-direction: column !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    height: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .cl-modalContent:has([data-memospark-hub-panel]) .cl-scrollBox,
+  .cl-modalContent:has([data-memospark-hub-panel]) .cl-pageScrollBox {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-width: 100% !important;
+  }
 }
 
 /* Custom Volume Slider Styling for Relaxation Audio */

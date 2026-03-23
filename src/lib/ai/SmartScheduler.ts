@@ -8,12 +8,9 @@ import {
   type Priority,
   TaskType
 } from '@/types/ai';
-import { createClient } from '@/lib/supabase/client';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { addDays, addHours, format, isAfter, isBefore, isWithinInterval, parseISO, startOfDay, endOfDay } from 'date-fns';
-
-// Get Supabase configuration
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://pexqavlkabbguaqjdfce.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+import { tryGetSupabaseUrl, tryGetSupabaseAnonKey } from '@/lib/supabase/env';
 
 interface CalendarEvent {
   id: string;
@@ -42,7 +39,19 @@ export class SmartScheduler {
   private existingEvents: CalendarEvent[];
   private userPreferences: UserPreferences;
   private taskHistory: ExtendedTask[];
-  private supabase = createClient(supabaseUrl, supabaseAnonKey);
+  private _supabase: SupabaseClient | null = null;
+
+  private get supabase(): SupabaseClient {
+    if (!this._supabase) {
+      const url = tryGetSupabaseUrl();
+      const key = tryGetSupabaseAnonKey();
+      if (!url || !key) throw new Error('Supabase env vars missing');
+      this._supabase = createClient(url, key, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+    }
+    return this._supabase;
+  }
 
   constructor(
     tasks: ExtendedTask[],

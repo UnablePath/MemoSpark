@@ -1,13 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { SmartScheduler } from '@/lib/ai/SmartScheduler';
 import { PatternAnalyzer } from '@/lib/ai/PatternAnalyzer';
 import { ScheduleManager } from '@/lib/ai/ScheduleManager';
-import { createClient } from '@/lib/supabase/server';
-
-// Get Supabase configuration
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://pexqavlkabbguaqjdfce.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-import { auth } from '@clerk/nextjs/server';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import type { ExtendedTask, Priority, TaskType, UserPreferences, PatternData, ScheduleMetadata } from '@/types/ai';
 import type { Task, TimetableEntry } from '@/types/taskTypes';
 
@@ -32,7 +28,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = getSupabaseAdmin();
     const body: ScheduleRequest = await request.json();
     const { preferences: requestPreferences, existingEvents = [], scheduleHorizon = 7, forceRefresh = false } = body;
 
@@ -259,7 +255,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = getSupabaseAdmin();
     const { searchParams } = new URL(request.url);
     const includeHistory = searchParams.get('includeHistory') === 'true';
 

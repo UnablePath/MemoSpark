@@ -1,10 +1,11 @@
 import { PaystackService } from './PaystackService';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const getSupabase = () => {
+  const client = getSupabaseAdmin();
+  if (!client) throw new Error('Supabase admin client unavailable');
+  return client;
+};
 
 interface MoMoSubscription {
   id: string;
@@ -45,7 +46,7 @@ export class SimpleMoMoRecurring {
   }> {
     try {
       // Create subscription record
-      const { data: subscription, error } = await supabase
+      const { data: subscription, error } = await getSupabase()
         .from('momo_recurring_subscriptions')
         .insert({
           clerk_user_id: params.clerkUserId,
@@ -112,7 +113,7 @@ export class SimpleMoMoRecurring {
   }> {
     try {
       // Get user's active subscription
-      const { data: subscription, error } = await supabase
+      const { data: subscription, error } = await getSupabase()
         .from('momo_recurring_subscriptions')
         .select('*')
         .eq('clerk_user_id', clerkUserId)
@@ -190,7 +191,7 @@ export class SimpleMoMoRecurring {
       }
 
       // Update subscription with new payment date
-      await supabase
+      await getSupabase()
         .from('momo_recurring_subscriptions')
         .update({
           last_payment_date: new Date().toISOString(),
@@ -209,7 +210,7 @@ export class SimpleMoMoRecurring {
         periodEnd.setMonth(periodEnd.getMonth() + 1);
       }
 
-      await supabase
+      await getSupabase()
         .from('user_subscriptions')
         .upsert({
           clerk_user_id: transactionData.metadata.clerk_user_id,
@@ -232,7 +233,7 @@ export class SimpleMoMoRecurring {
    */
   async cancelSubscription(subscriptionId: string, clerkUserId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const { error } = await getSupabase()
         .from('momo_recurring_subscriptions')
         .update({
           status: 'cancelled',
@@ -257,7 +258,7 @@ export class SimpleMoMoRecurring {
    */
   async getUserSubscription(clerkUserId: string): Promise<MoMoSubscription | null> {
     try {
-      const { data: subscription, error } = await supabase
+      const { data: subscription, error } = await getSupabase()
         .from('momo_recurring_subscriptions')
         .select('*')
         .eq('clerk_user_id', clerkUserId)

@@ -1,11 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseServerAdmin } from '@/lib/supabase/server';
 import { coinEconomy } from '@/lib/gamification/CoinEconomy';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
 
-// This would be your actual Supabase client
-// import { createClient } from '@supabase/supabase-js';
-// const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+const supabase = getSupabaseAdmin()!;
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,7 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!supabaseServerAdmin) {
+    if (!supabase) {
       return NextResponse.json({ error: 'Database not available' }, { status: 500 });
     }
 
@@ -28,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch the item from coin_spending_categories
-    const { data: item, error: itemError } = await supabaseServerAdmin
+    const { data: item, error: itemError } = await supabase
       .from('coin_spending_categories')
       .select('*')
       .eq('id', itemId)
@@ -52,7 +50,7 @@ export async function POST(request: NextRequest) {
     // Check if this is a theme purchase and if user already owns it
     const isTheme = item.metadata?.type === 'theme';
     if (isTheme && item.metadata?.theme_id) {
-      const { data: existingPurchase } = await supabaseServerAdmin
+      const { data: existingPurchase } = await supabase
         .from('user_purchased_themes')
         .select('id')
         .eq('clerk_user_id', userId)
@@ -89,7 +87,7 @@ export async function POST(request: NextRequest) {
 
       // If this is a theme purchase, record it in user_purchased_themes
       if (isTheme && item.metadata?.theme_id) {
-        const { error: themeError } = await supabaseServerAdmin
+        const { error: themeError } = await supabase
           .from('user_purchased_themes')
           .insert({
             clerk_user_id: userId,

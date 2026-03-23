@@ -1,9 +1,14 @@
 'use client';
 
 import { ClerkProvider } from '@clerk/nextjs';
+import { ui } from '@clerk/ui';
 import { useTheme } from 'next-themes';
 import { useEffect, useState, useMemo } from 'react';
-import { memoSparkClerkAppearance, memoSparkClerkAppearanceDark } from '@/lib/clerk-appearance';
+import {
+  isMemoSparkDarkTheme,
+  memoSparkClerkAppearance,
+  memoSparkClerkAppearanceDark,
+} from '@/lib/clerk-appearance';
 import type { ReactNode } from 'react';
 
 interface ThemeAwareClerkProviderProps {
@@ -19,15 +24,9 @@ export function ThemeAwareClerkProvider({ children }: ThemeAwareClerkProviderPro
     setMounted(true);
   }, []);
 
-  // Memoized theme detection for better performance
   const isDarkTheme = useMemo(() => {
-    if (!mounted) return true; // Default to dark during SSR
-    
-    const currentTheme = theme || resolvedTheme;
-    
-    // Check if the current theme is dark or any dark variant
-    return currentTheme === 'dark' || 
-           (currentTheme?.includes('theme-') && !currentTheme?.includes('-light'));
+    if (!mounted) return true;
+    return isMemoSparkDarkTheme(theme ?? resolvedTheme);
   }, [theme, resolvedTheme, mounted]);
 
   // Memoized appearance selection to prevent unnecessary re-renders
@@ -35,10 +34,23 @@ export function ThemeAwareClerkProvider({ children }: ThemeAwareClerkProviderPro
     return isDarkTheme ? memoSparkClerkAppearanceDark : memoSparkClerkAppearance;
   }, [isDarkTheme]);
 
+  /** Wording that fits MemoSpark: Clerk’s default “Manage account” opens email/password/security, not app profile. */
+  const clerkLocalization = useMemo(
+    () => ({
+      userButton: {
+        action__manageAccount: 'Account & security',
+      },
+    }),
+    [],
+  );
+
   return (
-    <ClerkProvider 
+    <ClerkProvider
+      ui={ui}
       appearance={clerkAppearance}
+      localization={clerkLocalization}
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      afterSignOutUrl="/"
     >
       {children}
     </ClerkProvider>

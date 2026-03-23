@@ -1,11 +1,21 @@
-import { createClient } from '@/lib/supabase/client';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { ScheduledTask, ScheduleMetadata } from '@/types/ai';
+import { tryGetSupabaseUrl, tryGetSupabaseAnonKey } from '@/lib/supabase/env';
 
 export class ScheduleManager {
-  private supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  private _supabase: SupabaseClient | null = null;
+
+  private get supabase(): SupabaseClient {
+    if (!this._supabase) {
+      const url = tryGetSupabaseUrl();
+      const key = tryGetSupabaseAnonKey();
+      if (!url || !key) throw new Error('Supabase env vars missing');
+      this._supabase = createClient(url, key, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+    }
+    return this._supabase;
+  }
 
   /**
    * Save a generated schedule to the database for tracking and learning

@@ -13,7 +13,6 @@ import { CalendarViewEnhanced } from './CalendarViewEnhanced';
 import { TimetableView } from './TimetableView';
 import { TaskForm } from './TaskForm';
 import { TimetableEntryForm } from './TimetableEntryForm';
-import { useAuth } from '@clerk/nextjs';
 import { useFetchTasks, useDeleteTask, useCreateTask, useToggleTaskCompletion } from '@/hooks/useTaskQueries';
 import { useToast } from '@/components/ui/use-toast';
 import { ShimmerButton } from '@/components/ui/shimmer-button';
@@ -162,7 +161,6 @@ interface TaskEventHubProps {
 
 export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list' }) => {
   const { user } = useUser();
-  const { getToken } = useAuth();
   const [currentView, setCurrentView] = useState<ViewType>(initialView);
   const [isTaskFormOpen, setTaskFormOpen] = useState(false);
   const [isTimetableFormOpen, setTimetableFormOpen] = useState(false);
@@ -176,16 +174,11 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
   );
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
-  // Create token provider function for Supabase integration
-  const getTokenForSupabase = useCallback(() => 
-    getToken({ template: 'supabase-integration' }), [getToken]
-  );
-
-  // Use proper database hooks instead of local store
-  const { data: tasks = [], isLoading: isLoadingTasks, error: tasksError, refetch: refetchTasks } = useFetchTasks(undefined, getTokenForSupabase);
-  const deleteTaskMutation = useDeleteTask(getTokenForSupabase);
-  const createTaskMutation = useCreateTask(getTokenForSupabase);
-  const toggleTaskCompletionMutation = useToggleTaskCompletion(getTokenForSupabase);
+  // Task hooks use Clerk Supabase JWT templates by default (see useTaskQueries / clerkSupabaseToken)
+  const { data: tasks = [], isLoading: isLoadingTasks, error: tasksError, refetch: refetchTasks } = useFetchTasks();
+  const deleteTaskMutation = useDeleteTask();
+  const createTaskMutation = useCreateTask();
+  const toggleTaskCompletionMutation = useToggleTaskCompletion();
   const { toast } = useToast();
   
   // Tier-aware AI integration with backwards compatibility

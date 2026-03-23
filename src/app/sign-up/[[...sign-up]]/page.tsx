@@ -1,6 +1,5 @@
 import { SignUp } from "@clerk/nextjs";
 import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
-import { memoSparkClerkAppearance } from "@/lib/clerk-appearance";
 
 export default function Page() {
   return (
@@ -10,10 +9,7 @@ export default function Page() {
           <div className="mx-auto mb-6 text-[hsl(var(--primary))]">
             <MemoSparkLogoSvg height={50} />
           </div>
-          <SignUp 
-            path="/sign-up" 
-            appearance={memoSparkClerkAppearance} 
-          />
+          <SignUp path="/sign-up" />
         </div>
       </div>
     </div>

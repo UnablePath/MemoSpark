@@ -1,6 +1,8 @@
 import { auth } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
+
+const supabase = getSupabaseAdmin()!;
 
 export async function GET() {
   try {
@@ -10,21 +12,6 @@ export async function GET() {
     if (!userId) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
-
-    // Create Supabase client with native Clerk integration
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-      accessToken: async () => {
-        const token = await getToken();
-        return token;
-      },
-    });
 
     // Test 1: Check if we can get user info
     const clerkInfo = {

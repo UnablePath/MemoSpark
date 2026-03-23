@@ -1,4 +1,9 @@
-import { supabase, supabaseHelpers, createAuthenticatedSupabaseClient } from './client';
+import {
+  supabase,
+  supabaseHelpers,
+  createAuthenticatedSupabaseClient,
+  createClient as createSupabaseJsClient,
+} from './client';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import type {
   Achievement,
@@ -12,15 +17,26 @@ import { SupabaseApiError, handleSupabaseError, getAuthenticatedClient } from '.
 // ACHIEVEMENTS API FUNCTIONS
 // ========================================
 
+function getAchievementsReadClient() {
+  if (supabase) return supabase;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  if (!url || !key) return null;
+  return createSupabaseJsClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
 /**
  * Fetch all available achievements
  */
 export const fetchAllAchievements = async (): Promise<Achievement[]> => {
-  if (!supabase) {
+  const client = getAchievementsReadClient();
+  if (!client) {
     return handleSupabaseError({ message: 'Supabase client not initialized' }, 'fetch all achievements');
   }
   try {
-    const { data, error } = await supabase.from('achievements').select('*');
+    const { data, error } = await client.from('achievements').select('*');
     if (error) handleSupabaseError(error, 'fetch all achievements');
     return data || [];
   } catch (error) {

@@ -11,10 +11,10 @@ export * from './gamificationApi';
 // Export createClient for use in other modules
 export { createClient };
 
-// Supabase configuration for AI features
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Supabase configuration — trim to guard against trailing newlines from env pipelines
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 
 // Default AI configuration
 const DEFAULT_AI_CONFIG: SupabaseAIConfig = {
@@ -74,27 +74,19 @@ export function createServiceRoleClient() {
   });
 }
 
-// Cache for authenticated clients to prevent multiple instances
-const authenticatedClients = new Map<string, any>();
-
 /**
- * Create authenticated Supabase client using Clerk session tokens
- * Follows official Supabase-Clerk integration pattern with singleton pattern
+ * Create authenticated Supabase client using Clerk session tokens.
+ *
+ * **Do not cache** instances keyed by `getToken.toString()` — every
+ * `() => getClerkSupabaseJwt(getToken)` has the same string form, so a singleton
+ * would pin the first session's closure and break auth (401 / PGRST301) for
+ * other users or after sign-in/out. Creating a client per call is cheap.
  */
 export function createAuthenticatedSupabaseClient(getToken?: () => Promise<string | null>) {
   if (!supabaseUrl || !supabaseAnonKey) {
     return null;
   }
 
-  // Create a cache key based on the token function
-  const cacheKey = getToken?.toString() || 'default';
-  
-  // Return cached client if exists
-  if (authenticatedClients.has(cacheKey)) {
-    return authenticatedClients.get(cacheKey);
-  }
-
-  // Create new client
   const client = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: false, // Clerk handles session persistence
@@ -125,9 +117,6 @@ export function createAuthenticatedSupabaseClient(getToken?: () => Promise<strin
     },
   });
 
-  // Cache the client
-  authenticatedClients.set(cacheKey, client);
-  
   return client;
 }
 

@@ -1,7 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { HuggingFaceService } from '@/lib/ai/HuggingFaceService';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
+
+const supabase = getSupabaseAdmin()!;
 
 export async function GET(request: NextRequest) {
   try {
@@ -63,10 +65,6 @@ export async function GET(request: NextRequest) {
 
     // Test Supabase Connection
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
       // Test basic connection
       const { data, error } = await supabase
         .from('profiles')

@@ -1,6 +1,5 @@
 import { SignIn } from "@clerk/nextjs";
 import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
-import { memoSparkClerkAppearance } from "@/lib/clerk-appearance";
 
 export default function Page() {
   return (
@@ -14,7 +13,6 @@ export default function Page() {
           </div>
           <SignIn
             path="/sign-in"
-            appearance={memoSparkClerkAppearance}
           />
         </div>
       </div>

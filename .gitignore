@@ -12,6 +12,11 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/playwright/.cache/
+# Playwright saved session (local E2E only — never commit)
+/e2e/auth.json
 
 # next.js
 /.next/

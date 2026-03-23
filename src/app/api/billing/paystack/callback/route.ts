@@ -1,11 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { PaystackService } from '@/lib/payments/PaystackService';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = getSupabaseAdmin()!;
 
 export async function GET(request: NextRequest) {
   try {

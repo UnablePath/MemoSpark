@@ -7,11 +7,8 @@ import DashboardSwipeTabs from './DashboardSwipeTabs';
 import { Show, UserButton, useUser } from "@clerk/nextjs";
 import { User as UserIcon, Settings as SettingsIcon, Crown, Sparkles } from 'lucide-react';
 import { useTieredAI } from '@/hooks/useTieredAI';
-import { Button } from '@/components/ui/button';
-import { InteractiveStu } from '@/components/stu/InteractiveStu';
 import { TutorialTrigger } from '@/components/tutorial';
 import { useTheme } from 'next-themes';
-import { DraggableWidget } from "@/components/widgets/DraggableWidget";
 // Import achievement system
 import { AchievementNotificationSystem } from '@/components/achievements/AchievementNotificationSystem';
 import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
@@ -19,10 +16,13 @@ import { useFetchAchievements } from '@/hooks/useAchievementQueries';
 import { AuthAwareSeo } from '@/components/seo/AuthAwareSeo';
 import { WelcomeFlow } from '@/components/onboarding/WelcomeFlow';
 import { useConversionTracking } from '@/lib/analytics/conversionTracking';
+import {
+  getMemoSparkDashboardUserButtonAppearance,
+  isMemoSparkDarkTheme,
+} from '@/lib/clerk-appearance';
+import { UserAccountHubPanel } from '@/components/clerk/UserAccountHubPanels';
 
 export default function DashboardPage() {
-  // Widget settings
-  const [isWidgetEnabled] = useState(true); // Enable widget for better UX
   const [achievementsInitialized, setAchievementsInitialized] = useState(false);
   const [showWelcomeFlow, setShowWelcomeFlow] = useState(false);
   const constraintsRef = useRef<HTMLDivElement>(null);
@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const conversionTracker = useConversionTracking();
   
   // Tier-aware dashboard features
-  const { userTier, usage, isLoading, tierLimits } = useTieredAI();
+  const { userTier, usage, isLoading } = useTieredAI();
   
   // Check if user is new (from onboarding or first visit)
   useEffect(() => {
@@ -100,17 +100,7 @@ export default function DashboardPage() {
     }
   };
 
-  // Determine if current theme is dark
-  const isDarkTheme = theme === 'dark' || 
-                     theme?.includes('amoled') || 
-                     theme?.includes('sea-blue') ||
-                     theme?.includes('hello-kitty-pink') ||
-                     theme?.includes('hacker-green') ||
-                     theme?.includes('void-purple') ||
-                     theme?.includes('sunset-orange') ||
-                     theme?.includes('midnight-blue') ||
-                     theme?.includes('cherry-blossom') ||
-                     theme?.includes('carbon');
+  const isDarkTheme = isMemoSparkDarkTheme(theme);
 
   return (
     <>
@@ -130,8 +120,8 @@ export default function DashboardPage() {
           position="top-right"
         />
         
-        {/* ConditionalHeader is now disabled for /dashboard */}
-        {/* Integrated header elements for dashboard: Logo, Tier Info, and UserButton */}
+        {/* ConditionalHeader is disabled for /dashboard.
+            Hub pattern: tier + usage + tutorial (quick action) + UserButton. Profile/Settings live in the avatar menu + Manage account modal only (no duplicate header icons). */}
         <div className="flex items-center justify-between px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 md:py-3 lg:py-4 xl:py-6 border-b border-border bg-background flex-shrink-0 pt-safe-top">
           <Link href="/" aria-label="MemoSpark Homepage" className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md">
             <MemoSparkLogoSvg height={28} className="sm:h-8 md:h-9 lg:h-10 xl:h-11" /> 
@@ -158,160 +148,43 @@ export default function DashboardPage() {
                 </div>
               </>
             )}
-            
-            {/* Profile Button */}
-            <Button 
-              asChild 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 p-0"
-              onClick={() => triggerAchievement('tutorial_step', { action: 'profile_opened' })}
-            >
-              <Link href="/profile" aria-label="Profile">
-                <UserIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 lg:h-4 lg:w-4" />
-              </Link>
-            </Button>
-            
-            {/* Settings Button */}
-            <Button 
-              asChild 
-              variant="ghost" 
-              size="sm" 
-              className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 p-0"
-              onClick={() => triggerAchievement('tutorial_step', { action: 'settings_opened' })}
-            >
-              <Link href="/settings" aria-label="Settings">
-                <SettingsIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 lg:h-4 lg:w-4" />
-              </Link>
-            </Button>
-            
-            {/* Tutorial Trigger */}
+
+            {/* Quick action: tutorial. Profile & app settings: avatar → Manage account modal (in-modal pages + links to full routes). */}
             <TutorialTrigger variant="icon" />
             
-            {/* Clerk User Button - simple black/white theme */}
             <Show when="signed-in">
               <div className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 flex items-center justify-center">
-                <UserButton 
-                  fallbackRedirectUrl="/"
-                  appearance={{
-                    variables: {
-                      colorPrimary: '#22c55e',
-                      colorText: isDarkTheme ? '#ffffff' : '#000000',
-                      colorTextSecondary: isDarkTheme ? '#a1a1aa' : '#666666',
-                      colorBackground: isDarkTheme ? '#1f2937' : '#ffffff',
-                      colorInputBackground: isDarkTheme ? '#1f2937' : '#ffffff',
-                      colorInputText: isDarkTheme ? '#ffffff' : '#000000',
-                      borderRadius: '0.5rem',
-                    },
-                    elements: {
-                      // Kill ALL backgrounds and glass effects
-                      userButtonTrigger: {
-                        backgroundColor: 'transparent !important',
-                        backdropFilter: 'none !important',
-                        WebkitBackdropFilter: 'none !important',
-                        boxShadow: 'none !important',
-                        border: 'none !important',
-                        width: '20px !important',
-                        height: '20px !important',
-                        '@media (min-width: 640px)': {
-                          width: '24px !important',
-                          height: '24px !important',
-                        },
-                        '@media (min-width: 1024px)': {
-                          width: '28px !important',
-                          height: '28px !important',
-                        },
-                        padding: '0 !important',
-                        '&:hover': {
-                          backgroundColor: 'transparent !important',
-                          backdropFilter: 'none !important',
-                          WebkitBackdropFilter: 'none !important',
-                        },
-                        '&:focus': {
-                          backgroundColor: 'transparent !important',
-                          boxShadow: 'none !important',
-                        },
-                      },
-                      userButtonBox: {
-                        backgroundColor: 'transparent !important',
-                        backdropFilter: 'none !important',
-                        WebkitBackdropFilter: 'none !important',
-                        boxShadow: 'none !important',
-                        border: 'none !important',
-                      },
-                      userButtonOuterBox: {
-                        backgroundColor: 'transparent !important',
-                        backdropFilter: 'none !important',
-                        WebkitBackdropFilter: 'none !important',
-                        boxShadow: 'none !important',
-                        border: 'none !important',
-                      },
-                      userButtonAvatarBox: {
-                        backgroundColor: 'transparent !important',
-                        backdropFilter: 'none !important',
-                        WebkitBackdropFilter: 'none !important',
-                        boxShadow: 'none !important',
-                        border: 'none !important',
-                        width: '20px !important',
-                        height: '20px !important',
-                        '@media (min-width: 640px)': {
-                          width: '24px !important',
-                          height: '24px !important',
-                        },
-                        '@media (min-width: 1024px)': {
-                          width: '28px !important',
-                          height: '28px !important',
-                        },
-                      },
-                      avatarBox: {
-                        backgroundColor: 'transparent !important',
-                        backdropFilter: 'none !important',
-                        WebkitBackdropFilter: 'none !important',
-                        boxShadow: 'none !important',
-                        border: 'none !important',
-                      },
-                      // Also target other potential containers
-                      rootBox: {
-                        backgroundColor: 'transparent !important',
-                        backdropFilter: 'none !important',
-                        WebkitBackdropFilter: 'none !important',
-                        boxShadow: 'none !important',
-                        border: 'none !important',
-                      },
-                      card: {
-                        backgroundColor: 'transparent !important',
-                        backdropFilter: 'none !important',
-                        WebkitBackdropFilter: 'none !important',
-                        boxShadow: 'none !important',
-                        border: 'none !important',
-                      },
-                      cardBox: {
-                        backgroundColor: 'transparent !important',
-                        backdropFilter: 'none !important',
-                        WebkitBackdropFilter: 'none !important',
-                        boxShadow: 'none !important',
-                        border: 'none !important',
-                      },
-                      // Popover card with proper theme colors (but no glass effect)
-                      userButtonPopoverCard: {
-                        backgroundColor: isDarkTheme ? '#1f2937' : '#ffffff',
-                        color: isDarkTheme ? '#ffffff' : '#000000',
-                        border: isDarkTheme ? '1px solid #374151' : '1px solid #e5e7eb',
-                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                        backdropFilter: 'none !important',
-                        WebkitBackdropFilter: 'none !important',
-                      },
-                      userButtonPopoverActionButton: {
-                        color: isDarkTheme ? '#ffffff' : '#000000',
-                        '&:hover': {
-                          backgroundColor: isDarkTheme ? '#374151' : '#f3f4f6',
-                          color: isDarkTheme ? '#ffffff' : '#000000',
-                        },
-                      },
-                    }
-                  }}
+                <UserButton
                   userProfileMode="modal"
-                />
+                  appearance={getMemoSparkDashboardUserButtonAppearance(isDarkTheme)}
+                >
+                  <UserButton.UserProfilePage
+                    label="Profile & progress"
+                    url="memospark-profile"
+                    labelIcon={<UserIcon className="size-4 shrink-0 text-foreground" strokeWidth={2} aria-hidden />}
+                  >
+                    <UserAccountHubPanel
+                      title="Profile & progress"
+                      body="Your streaks, achievements, and profile details. Edit here, or open the full page when you want more room."
+                      href="/profile"
+                      linkLabel="Open full profile"
+                      iframeTitle="MemoSpark profile"
+                    />
+                  </UserButton.UserProfilePage>
+                  <UserButton.UserProfilePage
+                    label="App settings"
+                    url="memospark-settings"
+                    labelIcon={<SettingsIcon className="size-4 shrink-0 text-foreground" strokeWidth={2} aria-hidden />}
+                  >
+                    <UserAccountHubPanel
+                      title="App settings"
+                      body="Theme, notifications, and preferences: the same as your full settings page, right in this panel."
+                      href="/settings"
+                      linkLabel="Open full settings"
+                      iframeTitle="MemoSpark settings"
+                    />
+                  </UserButton.UserProfilePage>
+                </UserButton>
               </div>
             </Show>
           </div>

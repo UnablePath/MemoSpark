@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
+import { wrapClerkTokenForSupabase } from '@/lib/clerk/clerkSupabaseToken';
 import {
   fetchTasks,
   getTaskById,
@@ -19,6 +21,19 @@ import type {
   TasksResponse,
 } from '@/types/taskTypes';
 import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
+
+/**
+ * Resolves Clerk → Supabase JWT via {@link wrapClerkTokenForSupabase}
+ * (templates `supabase-integration` / `supabase`, then session JWT as fallback).
+ */
+function useResolvedSupabaseToken(getTokenOverride?: () => Promise<string | null>) {
+  const { getToken } = useAuth();
+  const defaultWrapped = useMemo(() => wrapClerkTokenForSupabase(getToken), [getToken]);
+  return useMemo(
+    () => getTokenOverride ?? defaultWrapped,
+    [getTokenOverride, defaultWrapped]
+  );
+}
 
 // ========================================
 // QUERY KEYS
@@ -44,9 +59,10 @@ export const taskKeys = {
  * Now uses Clerk authentication automatically
  */
 export const useFetchTasks = (filters?: TaskFilters, getToken?: () => Promise<string | null>) => {
+  const resolvedToken = useResolvedSupabaseToken(getToken);
   return useQuery({
     queryKey: taskKeys.list(filters),
-    queryFn: () => fetchTasks(filters, getToken),
+    queryFn: () => fetchTasks(filters, resolvedToken),
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 10, // 10 minutes (formerly cacheTime)
     retry: (failureCount, error) => {
@@ -63,9 +79,10 @@ export const useFetchTasks = (filters?: TaskFilters, getToken?: () => Promise<st
  * Hook to get a specific task by ID
  */
 export const useGetTask = (id: string, enabled = true, getToken?: () => Promise<string | null>) => {
+  const resolvedToken = useResolvedSupabaseToken(getToken);
   return useQuery({
     queryKey: taskKeys.detail(id),
-    queryFn: () => getTaskById(id, getToken),
+    queryFn: () => getTaskById(id, resolvedToken),
     enabled: enabled && Boolean(id),
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 10, // 10 minutes
@@ -87,9 +104,10 @@ export const useFetchTasksPaginated = (
   filters?: TaskFilters,
   getToken?: () => Promise<string | null>
 ) => {
+  const resolvedToken = useResolvedSupabaseToken(getToken);
   return useQuery({
     queryKey: taskKeys.paginated(page, limit, filters),
-    queryFn: () => fetchTasksPaginated(page, limit, filters, getToken),
+    queryFn: () => fetchTasksPaginated(page, limit, filters, resolvedToken),
     staleTime: 1000 * 60 * 3, // 3 minutes for paginated data
     gcTime: 1000 * 60 * 8, // 8 minutes
     placeholderData: (previousData) => previousData, // Keep previous data while fetching new page
@@ -106,9 +124,10 @@ export const useFetchTasksPaginated = (
  * Hook to get dashboard counts
  */
 export const useDashboardCounts = (getToken?: () => Promise<string | null>) => {
+  const resolvedToken = useResolvedSupabaseToken(getToken);
   return useQuery({
     queryKey: taskKeys.dashboard(),
-    queryFn: () => getDashboardCounts(getToken),
+    queryFn: () => getDashboardCounts(resolvedToken),
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 15, // 15 minutes
     retry: 2,
@@ -127,9 +146,10 @@ export const useDashboardCounts = (getToken?: () => Promise<string | null>) => {
 export const useCreateTask = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
   const { triggerTaskCompleted } = useDebouncedAchievementTrigger();
+  const resolvedToken = useResolvedSupabaseToken(getToken);
 
   return useMutation({
-    mutationFn: (taskData: Omit<TaskInsert, 'user_id'>) => createTask(taskData, getToken),
+    mutationFn: (taskData: Omit<TaskInsert, 'user_id'>) => createTask(taskData, resolvedToken),
     onMutate: async (newTaskData) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: taskKeys.lists() });
@@ -238,10 +258,11 @@ export const useCreateTask = (getToken?: () => Promise<string | null>) => {
 export const useUpdateTask = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
   const { triggerAchievement } = useDebouncedAchievementTrigger();
+  const resolvedToken = useResolvedSupabaseToken(getToken);
 
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: TaskUpdate }) =>
-      updateTask(id, updates, getToken),
+      updateTask(id, updates, resolvedToken),
     onMutate: async ({ id, updates }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: taskKeys.detail(id) });
@@ -355,9 +376,10 @@ export const useUpdateTask = (getToken?: () => Promise<string | null>) => {
  */
 export const useDeleteTask = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
+  const resolvedToken = useResolvedSupabaseToken(getToken);
 
   return useMutation({
-    mutationFn: (id: string) => deleteTask(id, getToken),
+    mutationFn: (id: string) => deleteTask(id, resolvedToken),
     onMutate: async (id) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: taskKeys.lists() });
@@ -414,9 +436,10 @@ export const useDeleteTask = (getToken?: () => Promise<string | null>) => {
  */
 export const useToggleTaskCompletion = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
+  const resolvedToken = useResolvedSupabaseToken(getToken);
 
   return useMutation({
-    mutationFn: (id: string) => toggleTaskCompletion(id, getToken),
+    mutationFn: (id: string) => toggleTaskCompletion(id, resolvedToken),
     onMutate: async (id) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: taskKeys.detail(id) });
@@ -531,18 +554,19 @@ export const useInvalidateTaskQueries = () => {
  */
 export const usePrefetchTask = (getToken?: () => Promise<string | null>) => {
   const queryClient = useQueryClient();
+  const resolvedToken = useResolvedSupabaseToken(getToken);
 
   return {
     prefetchTask: (id: string) =>
       queryClient.prefetchQuery({
         queryKey: taskKeys.detail(id),
-        queryFn: () => getTaskById(id, getToken),
+        queryFn: () => getTaskById(id, resolvedToken),
         staleTime: 1000 * 60 * 5,
       }),
     prefetchTasks: (filters?: TaskFilters) =>
       queryClient.prefetchQuery({
         queryKey: taskKeys.list(filters),
-        queryFn: () => fetchTasks(filters, getToken),
+        queryFn: () => fetchTasks(filters, resolvedToken),
         staleTime: 1000 * 60 * 5,
       }),
   };

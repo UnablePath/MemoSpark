@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { tryGetSupabaseUrl, tryGetSupabaseAnonKey } from '@/lib/supabase/env';
 
 interface ValidationResult {
   isValid: boolean;
@@ -14,14 +15,16 @@ interface ValidationResult {
 }
 
 function getSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://pexqavlkabbguaqjdfce.supabase.co';
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase configuration');
+  const url = tryGetSupabaseUrl();
+  const key = tryGetSupabaseAnonKey();
+
+  if (!url || !key) {
+    throw new Error('Missing Supabase configuration: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY required');
   }
-  
-  return createClient(supabaseUrl, supabaseAnonKey);
+
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 export async function validateSubscriptionSchema(): Promise<ValidationResult> {

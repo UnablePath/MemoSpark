@@ -28,6 +28,7 @@ import { StudyGroupHub } from './StudyGroupHub';
 import { ActivityFeed } from './ActivityFeed';
 import { ConnectionManager } from './ConnectionManager';
 import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
+import { wrapClerkTokenForSupabase } from '@/lib/clerk/clerkSupabaseToken';
 import { StudyGroupErrorBoundary } from '@/components/error-boundaries/StudyGroupErrorBoundary';
 
 interface ConnectionInterfaceProps {
@@ -39,8 +40,10 @@ export const ConnectionInterface: React.FC<ConnectionInterfaceProps> = ({ onSwip
   const { user } = useUser();
   const { triggerAchievement } = useDebouncedAchievementTrigger();
 
-  const studentDiscovery = useMemo(() => new StudentDiscovery(getToken), [getToken]);
-  const studyGroupManager = useMemo(() => new StudyGroupManager(getToken), [getToken]);
+  const getSupabaseToken = useMemo(() => wrapClerkTokenForSupabase(getToken), [getToken]);
+
+  const studentDiscovery = useMemo(() => new StudentDiscovery(getSupabaseToken), [getSupabaseToken]);
+  const studyGroupManager = useMemo(() => new StudyGroupManager(getSupabaseToken), [getSupabaseToken]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);

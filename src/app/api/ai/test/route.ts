@@ -1,7 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { HuggingFaceService } from '@/lib/ai/HuggingFaceService';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
+
+const supabase = getSupabaseAdmin()!;
 
 export async function POST(request: NextRequest) {
   try {
@@ -83,10 +85,6 @@ export async function POST(request: NextRequest) {
     // Test 2: Supabase Edge Function
     console.log('🚀 Testing Supabase ML Edge Function...');
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
       const testRequest = {
         userVector: Array.from({ length: 24 }, () => Math.random()),
         contextData: {

@@ -15,7 +15,6 @@ import { Calendar, Clock, AlertTriangle, RefreshCw, CheckCircle2, Settings, Save
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { useUpdateTask, useCreateTask, useFetchTasks } from '@/hooks/useTaskQueries';
-import { useAuth } from '@clerk/nextjs';
 
 interface ScheduledTask {
   id: string;
@@ -59,10 +58,9 @@ export const SmartScheduleView: React.FC<SmartScheduleViewProps> = ({ className 
   const [showEmptyStateDialog, setShowEmptyStateDialog] = useState(false);
   const [metadata, setMetadata] = useState<any>(null);
   const { toast } = useToast();
-  const { getToken } = useAuth();
-  const updateTaskMutation = useUpdateTask(getToken);
-  const createTaskMutation = useCreateTask(getToken);
-  const { data: existingTasks, refetch: refetchTasks } = useFetchTasks(undefined, getToken);
+  const updateTaskMutation = useUpdateTask();
+  const createTaskMutation = useCreateTask();
+  const { data: existingTasks, refetch: refetchTasks } = useFetchTasks();
 
   const [preferences, setPreferences] = useState<UserPreferences>({
     studyTimePreference: 'morning',

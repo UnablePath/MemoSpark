@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { getSupabaseAnonKey, getSupabaseUrl } from '@/lib/supabase/env';
 import { 
   type AIUsageTracking, 
   AIFeatureUsage, 
@@ -13,8 +14,8 @@ export class AIUsageTracker {
 
   constructor(supabaseClient?: SupabaseClient) {
     this.supabase = supabaseClient || createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      getSupabaseUrl(),
+      getSupabaseAnonKey()
     );
     this.subscriptionManager = new SubscriptionTierManager(this.supabase);
   }

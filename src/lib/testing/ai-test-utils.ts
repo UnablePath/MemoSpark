@@ -3,6 +3,7 @@ import { SubscriptionTierManager } from '@/lib/subscription/SubscriptionTierMana
 import { createClient } from '@supabase/supabase-js';
 import { type ExtendedTask, type SuggestionContext, AIFeatureType } from '@/types/ai';
 import type { SubscriptionTier } from '@/types/subscription';
+import { getSupabaseAnonKey, getSupabaseUrl } from '@/lib/supabase/env';
 
 export interface TestUser {
   id: string;
@@ -27,8 +28,8 @@ export class AITestUtils {
     this.tieredAI = consolidatedAIService;
     
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      getSupabaseUrl(),
+      getSupabaseAnonKey()
     );
     this.subscriptionManager = new SubscriptionTierManager(supabase);
   }
