@@ -16,7 +16,10 @@ export default function AboutPage() {
   return (
     <>
       <AIStructuredData schemas={structuredDataSchemas} />
-      <div className="app-container min-h-screen w-full bg-[#0c0e13] text-white">
+      <div
+        className="app-container min-h-screen w-full bg-[#0c0e13] text-white"
+        data-marketing-home
+      >
         <HomepageNavbar />
         <main className="pt-16">
           <section className="w-full bg-[#0c0e13] py-16 md:py-20">

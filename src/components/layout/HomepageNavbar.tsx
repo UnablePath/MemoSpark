@@ -25,15 +25,15 @@ export function HomepageNavbar() {
   ];
 
   return (
-    <nav className="bg-background/90 backdrop-blur-lg fixed top-0 left-0 right-0 z-50 border-b border-border/40 shadow-sm">
+    <nav className="fixed left-0 right-0 top-0 z-50 border-b border-white/[0.08] bg-[#0c0e13]/90 shadow-sm backdrop-blur-lg">
       <div className="container mx-auto px-3 sm:px-4 lg:px-6 flex items-center justify-between h-12 sm:h-14 md:h-16">
         <div className="flex items-center gap-1 sm:gap-2">
-          <Link href="/" className="flex items-center gap-1 sm:gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md" aria-label="MemoSpark Home">
-            <MemoSparkLogoSvg height={23} darkBackground={false} className="sm:h-6 md:h-7" />
+          <Link href="/" className="flex items-center gap-1 sm:gap-2 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0e13]" aria-label="MemoSpark Home">
+            <MemoSparkLogoSvg height={23} darkBackground className="sm:h-6 md:h-7" />
           </Link>
           <Link
             href="/coming-soon"
-            className="text-[10px] sm:text-xs text-muted-foreground hover:text-primary transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background rounded-sm"
+            className="rounded-sm text-[10px] text-white/45 transition-colors hover:text-emerald-400/90 focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-1 focus-visible:ring-offset-[#0c0e13] sm:text-xs"
             aria-label="Learn more about PromptU, the creators of MemoSpark (Coming Soon)"
           >
             by PromptU
@@ -49,8 +49,8 @@ export function HomepageNavbar() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "px-2 py-1.5 lg:px-3 lg:py-2 rounded-md text-xs lg:text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                  pathname === link.href && "text-primary bg-primary/10"
+                  "rounded-md px-2 py-1.5 text-xs font-medium text-white/50 transition-all duration-150 hover:bg-emerald-500/10 hover:text-emerald-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0e13] lg:px-3 lg:py-2 lg:text-sm",
+                  pathname === link.href && "bg-emerald-500/15 text-emerald-300"
                 )}
               >
                 {link.label}
@@ -62,16 +62,16 @@ export function HomepageNavbar() {
           <div className="flex items-center space-x-2">
             <Show when="signed-out">
               <SignInButton mode="modal">
-                <Button variant="ghost" size="sm" className="text-xs lg:text-sm font-medium hover:bg-primary/10 text-foreground hover:text-primary">Sign In</Button>
+                <Button variant="ghost" size="sm" className="text-xs font-medium text-white/70 hover:bg-emerald-500/10 hover:text-emerald-200 lg:text-sm">Sign In</Button>
               </SignInButton>
               <SignUpButton mode="modal">
-                <Button size="sm" className="text-xs lg:text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90">Sign Up Free</Button>
+                <Button size="sm" className="bg-emerald-600 text-xs font-medium text-white hover:bg-emerald-500 lg:text-sm">Sign Up Free</Button>
               </SignUpButton>
             </Show>
             <Show when="signed-in">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full hover:bg-primary/10">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full hover:bg-emerald-500/10">
                   <span className="sr-only">Open account menu</span>
                     <User className="h-4 w-4" />
                   </Button>
@@ -100,7 +100,7 @@ export function HomepageNavbar() {
           <Show when="signed-in">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full hover:bg-primary/10 bg-muted/50">
+                <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full bg-white/[0.06] hover:bg-emerald-500/10">
                   <span className="sr-only">Open account menu</span>
                   <User className="h-4 w-4 text-foreground" />
                 </Button>
@@ -127,7 +127,7 @@ export function HomepageNavbar() {
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
             aria-expanded={isMobileMenuOpen}
-            className="h-8 w-8 hover:bg-primary/10 bg-muted/50 text-foreground"
+            className="h-8 w-8 bg-white/[0.06] text-white hover:bg-emerald-500/10"
           >
             {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </Button>
@@ -136,7 +136,7 @@ export function HomepageNavbar() {
 
       {/* Mobile Menu Panel */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-background border-t border-border/40 shadow-lg">
+        <div className="border-t border-white/[0.08] bg-[#0c0e13] shadow-lg md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             {navLinks.map((link) => (
               <Link
@@ -144,8 +144,8 @@ export function HomepageNavbar() {
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={cn(
-                  "block px-3 py-2 rounded-md text-sm font-medium text-foreground hover:text-primary hover:bg-primary/10 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background",
-                  pathname === link.href && "text-primary bg-primary/10"
+                  "block rounded-md px-3 py-2 text-sm font-medium text-white/80 transition-all duration-150 hover:bg-emerald-500/10 hover:text-emerald-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-1 focus-visible:ring-offset-[#0c0e13]",
+                  pathname === link.href && "bg-emerald-500/15 text-emerald-200"
                 )}
               >
                 {link.label}
@@ -154,19 +154,19 @@ export function HomepageNavbar() {
             <Link
               href="/coming-soon"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+              className="block rounded-md px-3 py-2 text-sm font-medium text-white/45 transition-all duration-150 hover:bg-emerald-500/10 hover:text-emerald-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-1 focus-visible:ring-offset-[#0c0e13]"
               aria-label="Learn more about PromptU, the creators of MemoSpark (Coming Soon)"
             >
               by PromptU
             </Link>
           </div>
-          <div className="px-2 pb-3 pt-2 border-t border-border/40">
+          <div className="border-t border-white/[0.08] px-2 pb-3 pt-2">
             <Show when="signed-out">
               <SignInButton mode="modal">
-                <Button variant="outline" size="sm" className="w-full mb-2 font-medium bg-background text-foreground border-border hover:bg-muted/50 hover:text-primary">Sign In</Button>
+                <Button variant="outline" size="sm" className="mb-2 w-full border-white/15 bg-transparent font-medium text-white hover:bg-emerald-500/10 hover:text-emerald-200">Sign In</Button>
               </SignInButton>
               <SignUpButton mode="modal">
-                <Button size="sm" className="w-full font-medium bg-primary text-primary-foreground hover:bg-primary/90">Sign Up Free</Button>
+                <Button size="sm" className="w-full bg-emerald-600 font-medium text-white hover:bg-emerald-500">Sign Up Free</Button>
               </SignUpButton>
             </Show>
             <Show when="signed-in">
@@ -174,7 +174,7 @@ export function HomepageNavbar() {
                 asChild
                 variant="outline"
                 size="sm"
-                className="mb-2 w-full font-medium bg-background text-foreground border-border hover:bg-muted/50 hover:text-primary"
+                className="mb-2 w-full border-white/15 bg-transparent font-medium text-white hover:bg-emerald-500/10 hover:text-emerald-200"
               >
                 <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
                   Dashboard

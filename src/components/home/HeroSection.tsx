@@ -26,16 +26,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLearnMoreClick }) =>
 
   return (
     <section className="relative isolate overflow-hidden border-b border-white/[0.06] bg-[#0c0e13] pt-28 pb-20 md:pt-40 md:pb-28">
-      {/* Subtle dot grid texture */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.025]"
-        style={{
-          backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)',
-          backgroundSize: '28px 28px',
-        }}
-      />
-
       <motion.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
@@ -152,18 +142,18 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLearnMoreClick }) =>
 
               {/* Middle card: Connection notification */}
               <div
-                className="relative z-20 -mb-10 rounded-2xl border border-blue-400/[0.1] bg-[#0d1020] px-5 py-4 shadow-xl"
+                className="relative z-20 -mb-10 rounded-2xl border border-teal-400/15 bg-[#0d1816] px-5 py-4 shadow-xl"
                 style={{ transform: 'rotate(0.8deg)' }}
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-xs font-bold text-blue-300">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-500/20 text-xs font-bold text-teal-200">
                     K
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-white">Kofi wants to connect</p>
                     <p className="text-xs text-white/35">Business Admin · 3 shared classes</p>
                   </div>
-                  <span className="shrink-0 rounded-lg bg-blue-500/20 px-3 py-1.5 text-xs font-medium text-blue-300">
+                  <span className="shrink-0 rounded-lg bg-teal-500/20 px-3 py-1.5 text-xs font-medium text-teal-200">
                     Accept
                   </span>
                 </div>

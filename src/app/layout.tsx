@@ -1,6 +1,6 @@
 import "@/app/globals.css";
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { UserProvider } from "@/lib/user-context";
@@ -22,6 +22,14 @@ const inter = Inter({
   subsets: ["latin"],
   display: 'swap', // Optimize font loading for better LCP
   preload: true,
+});
+
+/** Display font for headings; paired with Inter body via `[data-marketing-home]` in globals.css */
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-display",
+  weight: ["500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -151,7 +159,7 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#fadbdb" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
-      <body className={`${inter.className} max-w-full overflow-x-hidden`}>
+      <body className={`${inter.className} ${plusJakartaSans.variable} max-w-full overflow-x-hidden`}>
         <ThemeAwareClerkProvider>
           <ThemeProvider>
             <ProfileSyncProvider>

@@ -20,14 +20,14 @@ interface BentoFeature {
 const features: BentoFeature[] = [
   {
     id: 'connect',
-    icon: <Users className="h-5 w-5 text-blue-400" />,
-    iconBg: 'bg-blue-500/15',
+    icon: <Users className="h-5 w-5 text-teal-300" />,
+    iconBg: 'bg-teal-500/15',
     label: 'Student network',
     title: 'Find your study people',
     body: 'See students in your courses, connect, and message without leaving the app.',
-    accent: 'text-blue-400',
-    bg: 'bg-[#0e1320]',
-    border: 'border-blue-400/[0.08]',
+    accent: 'text-teal-300',
+    bg: 'bg-[#0d1816]',
+    border: 'border-teal-400/12',
     colClass: 'md:col-span-7',
     preview: (
       <div className="flex items-center gap-2 pt-1">
@@ -37,7 +37,7 @@ const features: BentoFeature[] = [
               key={letter}
               className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#0e1320] text-xs font-bold ${
                 i === 0
-                  ? 'bg-blue-500/30 text-blue-300'
+                  ? 'bg-teal-500/30 text-teal-200'
                   : i === 1
                     ? 'bg-purple-500/30 text-purple-300'
                     : i === 2
@@ -97,7 +97,7 @@ const features: BentoFeature[] = [
         ].map((item) => (
           <div
             key={item.label}
-            className="rounded-xl border border-white/[0.06] bg-[#111620] py-2 text-center"
+            className="rounded-xl border border-white/[0.06] bg-[#111620] py-2 text-start ps-3 pe-3"
           >
             <p className={`text-base font-bold ${item.color}`}>{item.val}</p>
             <p className="text-[10px] text-white/30">{item.label}</p>

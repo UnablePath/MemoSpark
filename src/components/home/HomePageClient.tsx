@@ -23,7 +23,10 @@ export function HomePageClient() {
   }, [conversionTracker]);
 
   return (
-    <div className="app-container min-h-screen w-full bg-[#0c0e13] text-white">
+    <div
+      className="app-container min-h-screen w-full bg-[#0c0e13] text-white"
+      data-marketing-home
+    >
       <HomepageNavbar />
       <main>
         <HeroSection onLearnMoreClick={scrollToLearnMore} />
@@ -61,7 +64,7 @@ export function HomePageClient() {
       </main>
 
       <footer className="border-t border-white/[0.05] bg-[#0a0c10] py-8">
-        <div className="responsive-container text-center md:text-left">
+        <div className="responsive-container text-left">
           <p className="text-xs text-white/25">
             &copy; {new Date().getFullYear()} MemoSpark by PromptU. All Rights Reserved.
           </p>

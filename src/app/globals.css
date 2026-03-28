@@ -110,6 +110,14 @@
   color-scheme: dark light;
 }
 
+/* Marketing homepage: heading/body font pairing (Plus Jakarta Sans + Inter) */
+[data-marketing-home] h1,
+[data-marketing-home] h2,
+[data-marketing-home] h3,
+[data-marketing-home] .font-display {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+}
+
 html {
   /* Ensure immediate theme application */
   transition: none !important;
