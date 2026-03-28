@@ -10,7 +10,7 @@ import { Check } from 'lucide-react';
 const premiumFeatures = [
   'Student connections',
   'Crashout room',
-  'Advanced AI + voice',
+  'Voice input + deeper insights',
   'Full gamification',
   'Analytics',
   'Study groups',

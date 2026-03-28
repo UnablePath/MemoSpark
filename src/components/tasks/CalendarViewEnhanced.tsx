@@ -554,7 +554,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
               )}
             </DialogTitle>
             <DialogDescription id="task-dialog-description">
-              {isScheduledTask ? 'AI-optimized task schedule' : 'Task details and information'}
+              {isScheduledTask ? 'Optimized task schedule' : 'Task details and information'}
             </DialogDescription>
           </DialogHeader>
 
@@ -625,7 +625,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
             {isScheduledTask && (selectedTask as ScheduledTask).reasoning && (
               <div>
                 <h4 className="text-sm font-medium text-foreground mb-2">
-                  AI Reasoning
+                  Why this slot
                 </h4>
                 <p className="text-sm text-muted-foreground bg-purple-50 p-3 rounded-md border border-purple-200">
                   <Sparkles className="h-4 w-4 inline mr-2" />
@@ -781,7 +781,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
             <div>
               <h4 className="text-sm font-medium">Smart Schedule View</h4>
               <p className="text-xs text-muted-foreground">
-                Show AI-optimized task schedule
+                Show optimized suggested schedule
               </p>
             </div>
             <Switch
@@ -947,7 +947,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
                  htmlFor="show-smart-schedule"
                  className="text-sm text-muted-foreground cursor-pointer"
                >
-                 AI View
+                 Suggested view
                </label>
              </div>
 

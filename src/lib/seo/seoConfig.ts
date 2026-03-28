@@ -104,19 +104,19 @@ export const defaultSeoConfig: DefaultSeoProps = {
 export const pageSeoConfigs = {
   home: {
     title: 'Student life, in one place',
-    description: 'MemoSpark helps students keep up with coursework, meet people in their classes, vent when the week gets rough, and stay on track with AI support.',
+    description: 'MemoSpark helps students keep up with coursework, meet people in their classes, vent when the week gets rough, and stay on track.',
     canonical: getCanonicalUrl(),
   },
   
   dashboard: {
     title: 'Dashboard',
-    description: 'Your personalized study dashboard with AI-powered insights, task management, and progress tracking.',
+    description: 'Your personalized study dashboard with tasks, progress tracking, and scheduling tailored to you.',
     canonical: getCanonicalUrl('dashboard'),
   },
   
   pricing: {
     title: 'Pricing Plans',
-    description: 'Choose the perfect MemoSpark plan for your learning needs. Free and premium options available with AI-powered features.',
+    description: 'Choose the perfect MemoSpark plan for your learning needs. Free and premium options with extra tools for serious weeks.',
     canonical: getCanonicalUrl('pricing'),
   },
   
@@ -136,7 +136,7 @@ export const pageSeoConfigs = {
   
   profile: {
     title: 'Your Profile',
-    description: 'Manage your MemoSpark profile, learning preferences, and AI personalization settings. Customize your study experience and track your academic progress.',
+    description: 'Manage your MemoSpark profile, learning preferences, and personalization. Customize your study experience and track your academic progress.',
     canonical: getCanonicalUrl('profile'),
   },
   
@@ -154,19 +154,19 @@ export const pageSeoConfigs = {
   
   'premium-demo': {
     title: 'Premium Features Demo',
-    description: 'Explore MemoSpark\'s premium features including advanced AI insights, unlimited task management, and enhanced study planning tools.',
+    description: 'Explore MemoSpark\'s premium features including deeper insights, unlimited task management, and enhanced study planning tools.',
     canonical: getCanonicalUrl('premium-demo'),
   },
   
   onboarding: {
     title: 'Welcome to MemoSpark',
-    description: 'Get started with MemoSpark! Complete your setup, personalize your learning experience, and discover how AI can transform your study habits.',
+    description: 'Get started with MemoSpark! Complete your setup and personalize your learning experience.',
     canonical: getCanonicalUrl('onboarding'),
   },
   
   questionnaire: {
-    title: 'AI Learning Assessment',
-    description: 'Complete your personalized AI learning assessment to help MemoSpark understand your study habits, preferences, and goals for optimal recommendations.',
+    title: 'Learning preferences',
+    description: 'Tell MemoSpark about your study habits, preferences, and goals so recommendations fit you better.',
     canonical: getCanonicalUrl('questionnaire'),
   },
 } as const;

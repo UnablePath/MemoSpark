@@ -208,7 +208,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
     { id: 'list', label: 'List View', icon: LayoutList, description: 'View tasks in a sequential, organized list.' },
     { id: 'calendar', label: 'Calendar', icon: Calendar, description: 'View and manage tasks in a calendar format.' },
     { id: 'timetable', label: 'Timetable', icon: Grid3X3, description: 'View and manage your class schedule.' },
-    { id: 'smart-schedule', label: 'Smart Schedule', icon: BrainCircuit, description: 'AI-powered intelligent task scheduling.' },
+    { id: 'smart-schedule', label: 'Suggested schedule', icon: BrainCircuit, description: 'Time blocks suggested from your tasks and habits.' },
   ], []);
 
   // Tier-aware AI suggestions generation
@@ -348,7 +348,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
       );
 
       toast({ 
-        title: 'Task created from AI suggestion', 
+        title: 'Task created from suggestion', 
         description: `"${suggestion.title}" has been added to your tasks.` 
       });
     } catch (error) {
@@ -376,7 +376,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
     setTimeout(() => {
       setAISuggestions(getTaskCreationSuggestions());
       setIsLoadingSuggestions(false);
-      toast({ title: 'AI suggestions refreshed' });
+      toast({ title: 'Suggestions refreshed' });
     }, 1000);
   }, [toast]);
 
@@ -495,14 +495,14 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
               showAISuggestions && "bg-primary hover:bg-primary/90 text-primary-foreground",
               userTier === 'premium' && "border-amber-300"
             )}
-            aria-label={`Toggle AI Suggestions - ${userTier} tier (${usage.requestsRemaining} remaining)`}
+            aria-label={`Toggle task suggestions — ${userTier} tier (${usage.requestsRemaining} remaining)`}
           >
             <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
             {userTier !== 'free' && (
               <Crown className="h-2.5 w-2.5 sm:h-3 sm:w-3 ml-0.5 sm:ml-1 flex-shrink-0" />
             )}
             <span className="hidden sm:inline ml-1 sm:ml-2 text-xs sm:text-sm">
-              {showAISuggestions ? 'Hide AI' : 'AI Suggestions'}
+              {showAISuggestions ? 'Hide suggestions' : 'Suggestions'}
             </span>
             {/* Usage indicator */}
             <div className="absolute -top-1 -right-1 bg-muted text-muted-foreground text-xs px-1 rounded-full min-w-[1.25rem] h-5 flex items-center justify-center">
@@ -536,7 +536,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
               <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-card px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
                 <span className="text-xs">⌃</span>I
               </kbd>
-              <span className="text-xs ml-1">AI</span>
+              <span className="text-xs ml-1">Tips</span>
             </span>
           </div>
 
@@ -624,7 +624,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
           </motion.div>
         </AnimatePresence>
 
-        {/* AI Suggestions Sidebar */}
+        {/* Suggestions sidebar */}
         <AnimatePresence>
           {showAISuggestions && (
             <motion.div
@@ -639,7 +639,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold text-lg flex items-center gap-2">
                       <Brain className="h-5 w-5 text-primary" />
-                      AI Suggestions
+                      Suggestions
                       {userTier !== 'free' && (
                         <Crown className="h-4 w-4 text-amber-500" />
                       )}
@@ -687,7 +687,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
           )}
         </AnimatePresence>
 
-        {/* Mobile AI Suggestions Overlay */}
+        {/* Mobile suggestions overlay */}
         {showAISuggestions && (
           <div className="lg:hidden fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-end">
             <motion.div
@@ -701,7 +701,7 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-lg flex items-center gap-2">
                     <Brain className="h-5 w-5 text-primary" />
-                    AI Suggestions
+                    Suggestions
                   </h3>
                   <Button
                     variant="ghost"

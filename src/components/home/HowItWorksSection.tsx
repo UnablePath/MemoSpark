@@ -107,12 +107,12 @@ const features: BentoFeature[] = [
     ),
   },
   {
-    id: 'ai',
+    id: 'patterns',
     icon: <Brain className="h-5 w-5 text-purple-400" />,
     iconBg: 'bg-purple-500/15',
-    label: 'AI system',
-    title: 'AI that knows your patterns',
-    body: "Stu watches your patterns and helps place work when you're most likely to get it done.",
+    label: 'Your rhythm',
+    title: 'Scheduling that fits how you work',
+    body: "MemoSpark learns when you actually get things done and nudges heavy work into those windows.",
     accent: 'text-purple-400',
     bg: 'bg-[#0f0d15]',
     border: 'border-purple-400/[0.08]',
@@ -121,7 +121,7 @@ const features: BentoFeature[] = [
       <div className="flex items-start gap-3 rounded-xl border border-purple-400/15 bg-purple-500/[0.07] px-4 py-3 pt-1 mt-1">
         <Zap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-purple-400" />
         <p className="text-xs leading-relaxed text-purple-200/65">
-          "You work best between 8–10 pm. I've moved your heavy sessions there."
+          Heavy sessions moved to 8–10 pm — your most focused hours this week.
         </p>
       </div>
     ),
@@ -213,7 +213,7 @@ export const HowItWorksSection: React.FC = () => {
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-white/25">
               <span>Voice input</span>
               <span className="text-white/10">·</span>
-              <span>Smart reminders</span>
+              <span>Timed reminders</span>
               <span className="text-white/10">·</span>
               <span>Relaxation audio</span>
               <span className="text-white/10">·</span>

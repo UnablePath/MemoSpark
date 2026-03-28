@@ -127,9 +127,9 @@ export default function ProfilePage() {
           <AuthAwareSeo
             pageKey="profile"
             publicTitle="User Profiles"
-            publicDescription="Create and customize your MemoSpark profile to personalize your learning experience. Join thousands of students optimizing their study habits with AI."
+            publicDescription="Create and customize your MemoSpark profile to personalize your learning experience. Join thousands of students building better study habits."
             privateTitle="Your Profile"
-            privateDescription="Manage your MemoSpark profile, learning preferences, and AI personalization settings."
+            privateDescription="Manage your MemoSpark profile, learning preferences, and personalization."
             forceNoindex={true}
           />
         )}
@@ -173,9 +173,9 @@ export default function ProfilePage() {
         <AuthAwareSeo
           pageKey="profile"
           publicTitle="User Profiles"
-          publicDescription="Create and customize your MemoSpark profile to personalize your learning experience. Join thousands of students optimizing their study habits with AI."
+          publicDescription="Create and customize your MemoSpark profile to personalize your learning experience. Join thousands of students building better study habits."
           privateTitle="Your Profile"
-          privateDescription="Manage your MemoSpark profile, learning preferences, and AI personalization settings."
+          privateDescription="Manage your MemoSpark profile, learning preferences, and personalization."
           forceNoindex={true}
         />
       )}
@@ -329,7 +329,7 @@ export default function ProfilePage() {
             <Separator />
 
             <div>
-              <h3 className="text-lg font-semibold mb-4">AI Personalization</h3>
+              <h3 className="text-lg font-semibold mb-4">Learning preferences</h3>
               {profile.onboarding_completed ? (
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
@@ -337,7 +337,7 @@ export default function ProfilePage() {
                     <span className="font-semibold text-green-800 dark:text-green-200">✅ Profile Complete</span>
                   </div>
                   <p className="text-sm text-green-600 dark:text-green-300 mb-3">
-                    Your AI learning profile is active. You can retake the assessment at any time to recalibrate your suggestions.
+                    Your learning profile is active. You can retake the assessment anytime to refresh your suggestions.
                   </p>
                   <Button 
                     onClick={() => router.push('/questionnaire')} 
@@ -345,17 +345,17 @@ export default function ProfilePage() {
                     size="sm"
                     className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-600 dark:text-green-300 dark:hover:bg-green-900/30"
                   >
-                    Retake AI Assessment
+                    Retake assessment
                   </Button>
                 </div>
               ) : (
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-center">
                   <h4 className="font-semibold text-blue-800 dark:text-blue-200">Unlock Personalized Insights</h4>
                   <p className="text-sm text-blue-600 dark:text-blue-300 mt-1 mb-3">
-                    Complete our quick assessment to help Stu understand your unique learning style.
+                    Complete our quick assessment so reminders and suggestions match how you study.
                   </p>
                   <Button onClick={() => router.push('/questionnaire')} size="sm">
-                    Start AI Assessment
+                    Start assessment
                   </Button>
                 </div>
               )}

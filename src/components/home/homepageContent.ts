@@ -11,7 +11,7 @@ export const pricingStrip = {
   eyebrow: 'Premium',
   title: 'Upgrade for the full MemoSpark experience.',
   subtitle:
-    'The free plan covers the basics. Premium adds student connections, Crashout, voice input, stronger AI tools, study groups, and deeper stats for 20 GHS a month.',
+    'The free plan covers the basics. Premium adds student connections, Crashout, voice input, personalized scheduling and insights, study groups, and deeper stats for 20 GHS a month.',
   signedOutCta: 'Start free today',
   signedInCta: 'See subscription options',
 };

@@ -222,9 +222,9 @@ export const useCreateTask = (getToken?: () => Promise<string | null>) => {
           const smartReminderScheduled = await reminderEngine.scheduleSmartReminder(taskForSmartReminder);
           
           if (smartReminderScheduled) {
-            console.log(`✅ AI-powered smart reminders scheduled for task: ${data.title}`);
+            console.log(`✅ Smart reminders scheduled for task: ${data.title}`);
             toast.success('Smart reminders activated!', {
-              description: `AI will optimize reminder timing based on your patterns and task importance.`
+              description: `Follow-up timing is tuned using your patterns and this task's priority.`
             });
           } else {
             console.warn(`⚠️ Failed to schedule smart reminders for task: ${data.title}`);
@@ -340,7 +340,7 @@ export const useUpdateTask = (getToken?: () => Promise<string | null>) => {
           if (smartReminderScheduled) {
             console.log(`✅ Smart reminders updated for task: ${data.title}`);
             toast.success('Smart reminders updated!', {
-              description: `AI will adjust reminder timing based on your updated task settings.`
+              description: `Follow-up timing was refreshed from your updated task settings.`
             });
           }
         } catch (error) {

@@ -97,7 +97,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLearnMoreClick }) =>
               <span className="text-white/10">·</span>
               <span>Coins</span>
               <span className="text-white/10">·</span>
-              <span>Stu</span>
+              <span>Insights</span>
             </div>
 
             <button

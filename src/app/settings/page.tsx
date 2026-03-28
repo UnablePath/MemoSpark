@@ -195,7 +195,7 @@ const SettingsPage: React.FC = () => {
                         🔔 Proactive Reminder Settings
                       </CardTitle>
                       <CardDescription>
-                        Advanced AI-powered reminder customization and timing
+                        Fine-tune when and how MemoSpark nudges you
                       </CardDescription>
                     </div>
                     {isReminderSettingsOpen ? (
@@ -367,7 +367,7 @@ const SettingsPage: React.FC = () => {
                     🔔 Proactive Reminder Settings
                   </CardTitle>
                   <CardDescription>
-                    Advanced AI-powered reminder customization and timing
+                    Fine-tune when and how MemoSpark nudges you
                   </CardDescription>
                 </div>
                 {isReminderSettingsOpen ? (

@@ -229,10 +229,10 @@ const RemindersTab = () => {
                     
                     if (aiReminderSuccess) {
                         const timeMessage = isToday ? 'today' : `on ${dueDateTime.toLocaleDateString()}`;
-                        toast.success('AI-powered reminder created!', {
-                            description: `Smart reminders scheduled for ${timeMessage}. You'll get optimized notifications based on your patterns.`
+                        toast.success('Reminder created with smart timing', {
+                            description: `Follow-up nudges scheduled for ${timeMessage}, based on your usual rhythm.`
                         });
-                        showStuMessage("Great choice! I'll help you stay on track with smart reminders!", "excited");
+                        showStuMessage("Great choice — I'll help you stay on track.", "excited");
                     } else {
                         // AI failed but basic reminder still exists
                         toast.warning('Reminder created!', {
@@ -244,7 +244,7 @@ const RemindersTab = () => {
                     console.error('AI reminder scheduling failed:', aiError);
                     // AI failed but basic reminder still exists
                     toast.warning('Reminder created!', {
-                        description: 'Basic reminder saved, but AI optimization failed.'
+                        description: 'Basic reminder saved, but smart timing could not be applied.'
                     });
                     showStuMessage("Nice! I'll remind you when it's time!", "talking");
                 }
@@ -661,10 +661,10 @@ const RemindersTab = () => {
                     <DialogHeader>
                         <DialogTitle className="flex items-center text-lg sm:text-xl">
                             <FaPlus className="mr-2 text-green-500" />
-                            Create Smart Reminder
+                            Create reminder
                         </DialogTitle>
                         <DialogDescription>
-                            Set up a smart reminder with AI-powered scheduling and personalized notifications.
+                            Set up a reminder with optional smart timing and follow-up nudges.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 sm:space-y-6">
@@ -792,7 +792,7 @@ const RemindersTab = () => {
                             </div>
                         )}
 
-                        {/* AI Toggle */}
+                        {/* Smart timing toggle */}
                         <div className="flex items-center space-x-3 p-3 sm:p-4 bg-muted/30 rounded-lg">
                             <div className="flex items-center space-x-2">
                                 <input
@@ -804,7 +804,7 @@ const RemindersTab = () => {
                                 />
                                 <Label htmlFor="useAI" className="flex items-center cursor-pointer text-sm sm:text-base">
                                     <FaBrain className="mr-2 text-purple-500" />
-                                    Enable AI-Powered Smart Reminders
+                                    Use smart timing for follow-ups
                                 </Label>
                             </div>
                         </div>
@@ -812,8 +812,7 @@ const RemindersTab = () => {
                         {reminderForm.useAI && (
                             <div className="text-xs sm:text-sm text-muted-foreground bg-blue-50 border border-blue-200 rounded-lg p-3">
                                 <FaInfoCircle className="inline mr-2 text-blue-500" />
-                                AI will optimize reminder timing based on your patterns, task priority, and preferences. 
-                                You'll receive multiple adaptive reminders at the most effective times.
+                                We space follow-ups using your patterns, priority, and preferences so nudges land when they help most.
                             </div>
                         )}
                     </div>
@@ -831,7 +830,7 @@ const RemindersTab = () => {
                             ) : (
                                 <FaPlus className="mr-2" />
                             )}
-                            {reminderForm.useAI ? 'Create Smart Reminder' : 'Create Reminder'}
+                            {reminderForm.useAI ? 'Create with smart timing' : 'Create Reminder'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

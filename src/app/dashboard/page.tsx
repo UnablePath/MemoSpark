@@ -107,9 +107,9 @@ export default function DashboardPage() {
       <AuthAwareSeo
         pageKey="dashboard"
         publicTitle="Student Dashboard"
-        publicDescription="Access your personalized study dashboard with AI-powered insights, task management, and progress tracking. Sign in to unlock your full learning potential."
+        publicDescription="Access your personalized study dashboard with tasks, progress tracking, and scheduling. Sign in to unlock your full learning potential."
         privateTitle="Your Dashboard"
-        privateDescription="Your personalized study dashboard with AI-powered insights, task management, and progress tracking."
+        privateDescription="Your personalized study dashboard with tasks, progress tracking, and scheduling tailored to you."
         forceNoindex={true}
       />
       <div ref={constraintsRef} className="dashboard-container bg-background">

@@ -95,7 +95,7 @@ export const useTieredAI = () => {
         return { 
           canProceed: false, 
           upgradeRequired: false, 
-          message: 'Unable to connect to AI service. Please check your internet connection.' 
+          message: 'Unable to connect to suggestion service. Please check your internet connection.' 
         };
       }
       

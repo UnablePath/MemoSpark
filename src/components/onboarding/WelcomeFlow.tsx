@@ -14,7 +14,7 @@ interface WelcomeFlowProps {
   onComplete: () => void;
 }
 
-interface AIsuggestion {
+interface PersonalizedSuggestion {
   id: string;
   type: 'task' | 'schedule' | 'tip';
   title: string;
@@ -29,18 +29,17 @@ export const WelcomeFlow: React.FC<WelcomeFlowProps> = ({
   onComplete
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [suggestions, setSuggestions] = useState<AIsuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<PersonalizedSuggestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(true);
 
-  // Generate personalized AI suggestions based on user data
+  // Generate personalized starter suggestions from onboarding data
   useEffect(() => {
     const generateSuggestions = async () => {
       setIsGenerating(true);
       
-      // Simulate AI processing time (but keep it short for immediate value)
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      const personalizedSuggestions: AIsuggestion[] = [
+      const personalizedSuggestions: PersonalizedSuggestion[] = [
         {
           id: '1',
           type: 'task',
@@ -85,13 +84,13 @@ export const WelcomeFlow: React.FC<WelcomeFlowProps> = ({
             <InteractiveStu size={96} />
           </div>
           <p className="text-muted-foreground">
-            I'm Stu, your AI study companion! I'm already analyzing your preferences to create personalized recommendations.
+            I&apos;m Stu, your study sidekick. I&apos;ll use what you told us to suggest a few sensible next steps.
           </p>
         </div>
       )
     },
     {
-      title: 'Your Personalized AI Suggestions',
+      title: 'Suggestions to start with',
       content: (
         <div className="space-y-4">
           {isGenerating ? (

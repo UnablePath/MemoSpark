@@ -24,7 +24,7 @@ export default function GamifiedReminderTab() {
       <div className="mt-8">
         <KoalaMascot size="xl" className="mx-auto" />
         {/* TODO: Adapt mascotState logic if needed for KoalaMascot props */}
-        <p className="text-center mt-2 text-muted-foreground text-sm">Stu is here to help!</p>
+        <p className="text-center mt-2 text-muted-foreground text-sm">Need a nudge? Stu can help.</p>
       </div>
 
       {/* Streak Tracker */}
