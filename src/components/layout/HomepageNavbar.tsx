@@ -95,31 +95,21 @@ export function HomepageNavbar() {
           </div>
         </div>
 
-        {/* Mobile Menu Button and Profile for authenticated users */}
+        {/* Mobile Menu Button and profile (use Clerk UserButton like dashboard) */}
         <div className="md:hidden flex items-center space-x-2">
           <Show when="signed-in">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full bg-white/[0.06] hover:bg-emerald-500/10">
-                  <span className="sr-only">Open account menu</span>
-                  <User className="h-4 w-4 text-foreground" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem asChild>
-                  <Link href="/profile">
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/settings">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="h-8 w-8 rounded-full bg-white/[0.06] p-0.5">
+              <UserButton
+                afterSignOutUrl="/"
+                appearance={{
+                  elements: {
+                    userButtonTrigger: 'h-full w-full rounded-full',
+                    userButtonAvatarBox: 'h-full w-full rounded-full',
+                    userButtonAvatarImage: 'h-full w-full rounded-full',
+                  },
+                }}
+              />
+            </div>
           </Show>
           <Button 
             variant="ghost" 

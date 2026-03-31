@@ -11,6 +11,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { mergeLayeredAiPreferences } from "@/lib/ai/profileAiPreferencesContract";
 import { toast } from "sonner";
 
 /**
@@ -141,6 +142,11 @@ function mapClerkToProfile(
     typeof m?.birthDate === "string" ? m.birthDate : null;
   const bio = typeof m?.bio === "string" ? m.bio : "";
 
+  const clerkAiPrefs =
+    m?.aiPreferences && typeof m.aiPreferences === "object"
+      ? (m.aiPreferences as Partial<UserAIPreferences>)
+      : undefined;
+
   return {
     name,
     email,
@@ -151,7 +157,7 @@ function mapClerkToProfile(
     birthDate,
     bio,
     onboardingCompleted: m?.onboardingComplete === true,
-    aiPreferences: aiPrefs.aiPreferences ?? defaultAIPreferences,
+    aiPreferences: mergeLayeredAiPreferences(clerkAiPrefs, aiPrefs.aiPreferences),
     aiEnabled: aiPrefs.aiEnabled ?? false,
     lastAIInteraction: aiPrefs.lastAIInteraction,
   };

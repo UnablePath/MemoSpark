@@ -1,56 +1,417 @@
 "use client";
 
 import type React from 'react';
+
 import {
-  AlertTriangle,
-  ArrowRight,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Command,
-  CreditCard,
-  File,
-  FileText,
-  HelpCircle,
-  Image,
-  Laptop,
-  Loader2,
-  Moon,
-  MoreVertical,
-  Pizza,
-  Plus,
-  Settings,
-  SunMedium,
-  Trash,
-  User as LucideUser,
-  X,
-  type LucideIcon,
-} from 'lucide-react';
+  ArrowsOut as PhExpand,
+  ArrowArcLeft as PhUndo,
+  ArrowClockwise as PhRefreshCw,
+  ArrowCounterClockwise as PhRotateCcw,
+  ArrowDown as PhArrowDown,
+  ArrowDownLeft as PhArrowDownLeft,
+  ArrowDownRight as PhArrowDownRight,
+  ArrowLeft as PhArrowLeft,
+  ArrowRight as PhArrowRight,
+  ArrowSquareDown as PhArrowDownToLine,
+  ArrowSquareUp as PhArrowUpToLine,
+  ArrowUp as PhArrowUp,
+  ArrowUpLeft as PhArrowUpLeft,
+  ArrowUpRight as PhArrowUpRight,
+  At as PhAtSign,
+  Atom as PhAtom,
+  Backpack as PhPackage,
+  Barbell as PhDumbbell,
+  Bell as PhBell,
+  BellSlash as PhBellOff,
+  Book as PhBook,
+  BookOpen as PhBookOpen,
+  BookOpenText as PhBookText,
+  Brain as PhBrain,
+  Briefcase as PhBriefcase,
+  CalendarBlank as PhCalendar,
+  Camera as PhCamera,
+  CaretCircleDown as PhChevronDown,
+  CaretCircleLeft as PhChevronLeft,
+  CaretCircleRight as PhChevronRight,
+  CaretCircleUp as PhChevronUp,
+  ChartPie as PhPieChart,
+  Check as PhCheck,
+  CheckCircle as PhCheckCircle,
+  Checks as PhCheckCheck,
+  CircleNotch as PhLoader2,
+  Clock as PhClock,
+  ClockCounterClockwise as PhHistory,
+  Code as PhCode,
+  Coffee as PhCoffee,
+  Copy as PhCopy,
+  Coins as PhCoins,
+  Command as PhCommand,
+  CreditCard as PhCreditCard,
+  Crown as PhCrown,
+  Database as PhDatabase,
+  DeviceMobile as PhSmartphone,
+  Download as PhDownload,
+  DotsThree as PhMoreHorizontal,
+  DotsThreeVertical as PhMoreVertical,
+  EnvelopeSimple as PhMail,
+  Eye as PhEye,
+  EyeSlash as PhEyeOff,
+  File as PhFile,
+  FileArrowDown as PhFileDown,
+  FileText as PhFileText,
+  FilmSlate as PhFilm,
+  Fire as PhFlame,
+  Flag as PhFlag,
+  FloppyDisk as PhSave,
+  Funnel as PhFilter,
+  GameController as PhGamepad2,
+  Gauge as PhGauge,
+  Gift as PhGift,
+  Globe as PhGlobe,
+  GraduationCap as PhGraduationCap,
+  Hash as PhTag,
+  Headphones as PhMusic,
+  Heart as PhHeart,
+  House as PhHome,
+  Image as PhImage,
+  Info as PhInfo,
+  Keyboard as PhKeyboard,
+  Laptop as PhLaptop,
+  Leaf as PhLeaf,
+  Lightning as PhZap,
+  Lightbulb as PhLightbulb,
+  Link as PhLink,
+  List as PhList,
+  ListBullets as PhLayoutList,
+  ListChecks as PhListTodo,
+  Lock as PhLock,
+  LockKeyOpen as PhUnlock,
+  MagicWand as PhWand2,
+  MagnifyingGlass as PhSearch,
+  MapTrifold as PhMap,
+  MapPin as PhMapPin,
+  Medal as PhMedal,
+  Microphone as PhMic,
+  MicrophoneSlash as PhMicOff,
+  Monitor as PhMonitor,
+  Moon as PhMoon,
+  MusicNotesSimple as PhVolume2,
+  NavigationArrow as PhSend,
+  PaperPlaneRight as PhReply,
+  Paperclip as PhPaperclip,
+  Pause as PhPause,
+  Pencil as PhPencil,
+  Pizza as PhPizza,
+  Play as PhPlay,
+  Plus as PhPlus,
+  PlusCircle as PhPlusCircle,
+  PresentationChart as PhPresentation,
+  Prohibit as PhBan,
+  Pulse as PhActivity,
+  Question as PhHelpCircle,
+  Repeat as PhRepeat,
+  RepeatOnce as PhRepeat2,
+  RocketLaunch as PhRocket,
+  Rss as PhRss,
+  Share as PhShare,
+  ShieldCheck as PhShield,
+  ShoppingCartSimple as PhShoppingCart,
+  SignOut as PhLogOut,
+  SkipForward as PhSkipForward,
+  Smiley as PhSmile,
+  SortAscending as PhSortAsc,
+  SquaresFour as PhGrid3X3,
+  Star as PhStar,
+  Sun as PhSun,
+  Table as PhTable,
+  Target as PhTarget,
+  TestTube as PhTestTube,
+  ThumbsDown as PhThumbsDown,
+  ThumbsUp as PhThumbsUp,
+  Timer as PhTimer,
+  Trash as PhTrash,
+  Trophy as PhTrophy,
+  Upload as PhUpload,
+  User as PhUser,
+  UserMinus as PhUserMinus,
+  UserPlus as PhUserPlus,
+  Users as PhUsers,
+  VideoCamera as PhVideo,
+  Warning as PhAlertTriangle,
+  WarningCircle as PhAlertCircle,
+  WarningOctagon as PhAlert,
+  WifiHigh as PhWifi,
+  WifiSlash as PhWifiOff,
+  Wind as PhWind,
+  Wrench as PhSettings,
+  X as PhX,
+  XCircle as PhXCircle,
+  type IconProps as PhosphorIconProps,
+} from "@phosphor-icons/react";
 
-export type Icon = LucideIcon;
+import {
+  IconBrandFacebook,
+  IconBrandLinkedin,
+  IconBrandTwitter,
+  IconBrandWhatsapp,
+  IconChartBar,
+  IconChartLine,
+  IconCircle,
+  IconMessage,
+  IconMessageCircle,
+  IconPalette,
+  IconShare2,
+  IconShoppingCart,
+  IconSquare,
+  IconVolumeOff,
+} from "@tabler/icons-react";
+import type { IconProps as TablerIconProps } from "@tabler/icons-react";
 
-export const Logo = Command;
-export const Spinner = Loader2;
-export const Close = X;
-export const Add = Plus;
-export const TrashIcon = Trash;
-export const CheckIcon = Check;
-export const Sun = SunMedium;
-export const MoonIcon = Moon;
-export const LaptopIcon = Laptop;
-export const UserIcon = LucideUser;
-export const ArrowRightIcon = ArrowRight;
-export const ChevronLeftIcon = ChevronLeft;
-export const ChevronRightIcon = ChevronRight;
-export const Help = HelpCircle;
-export const PizzaIcon = Pizza;
-export const SettingsIcon = Settings;
-export const Warning = AlertTriangle;
-export const More = MoreVertical;
-export const CreditCardIcon = CreditCard;
-export const FileIcon = File;
-export const FileTextIcon = FileText;
-export const ImageIcon = Image;
+import { DollarCircle as IoDollarSign } from "iconoir-react";
+import { ArrowTrendingDownIcon, ArrowTrendingUpIcon } from "@heroicons/react/24/outline";
+import { SparklesIcon } from "hugeicons-react";
+import type { HugeiconsIconProps } from "@hugeicons/react";
+
+export type Icon = React.ComponentType<PhosphorIconProps>;
+export type LucideIcon = Icon;
+
+function withPhosphorDefaults(Comp: React.ComponentType<PhosphorIconProps>): Icon {
+  const Wrapped = (props: PhosphorIconProps) => <Comp weight="duotone" {...props} />;
+  Wrapped.displayName = `PhosphorIcon(${Comp.displayName ?? Comp.name ?? "Icon"})`;
+  return Wrapped;
+}
+
+function withTablerDefaults(Comp: React.ComponentType<TablerIconProps>): Icon {
+  const Wrapped = (props: PhosphorIconProps) => (
+    <Comp stroke={1.9} {...(props as unknown as TablerIconProps)} />
+  );
+  Wrapped.displayName = `TablerIcon(${Comp.displayName ?? Comp.name ?? "Icon"})`;
+  return Wrapped;
+}
+
+function withHugeIcon(Comp: React.ComponentType<Omit<HugeiconsIconProps, "icon">>): Icon {
+  const Wrapped = (props: PhosphorIconProps) => <Comp {...(props as unknown as Omit<HugeiconsIconProps, "icon">)} />;
+  Wrapped.displayName = `HugeIcon(${Comp.displayName ?? "Icon"})`;
+  return Wrapped;
+}
+
+function withHeroOutline(
+  Comp: React.ComponentType<React.ComponentProps<typeof ArrowTrendingUpIcon>>,
+): Icon {
+  const Wrapped = (props: PhosphorIconProps) => (
+    <Comp {...(props as unknown as React.ComponentProps<typeof ArrowTrendingUpIcon>)} />
+  );
+  Wrapped.displayName = `HeroOutline(${Comp.displayName ?? "Icon"})`;
+  return Wrapped;
+}
+
+export const ICON_CLASSNAMES = {
+  sm: 'h-4 w-4 shrink-0',
+  md: 'h-5 w-5 shrink-0',
+  lg: 'h-6 w-6 shrink-0',
+} as const;
+
+export function iconClassName(
+  size: keyof typeof ICON_CLASSNAMES = 'md',
+  className?: string,
+) {
+  return className ? `${ICON_CLASSNAMES[size]} ${className}` : ICON_CLASSNAMES[size];
+}
+
+// Canonical MemoSpark icon exports (keep these stable; swap internals freely).
+export const Logo = withPhosphorDefaults(PhCommand);
+export const Spinner = withPhosphorDefaults(PhLoader2);
+export const Close = withPhosphorDefaults(PhX);
+export const Add = withPhosphorDefaults(PhPlus);
+export const TrashIcon = withPhosphorDefaults(PhTrash);
+export const CheckIcon = withPhosphorDefaults(PhCheck);
+export const Sun = withPhosphorDefaults(PhSun);
+export const MoonIcon = withPhosphorDefaults(PhMoon);
+export const LaptopIcon = withPhosphorDefaults(PhLaptop);
+export const UserIcon = withPhosphorDefaults(PhUser);
+export const ArrowRightIcon = withPhosphorDefaults(PhArrowRight);
+export const ChevronLeftIcon = withPhosphorDefaults(PhChevronLeft);
+export const ChevronRightIcon = withPhosphorDefaults(PhChevronRight);
+export const Help = withPhosphorDefaults(PhHelpCircle);
+export const PizzaIcon = withPhosphorDefaults(PhPizza);
+export const SettingsIcon = withPhosphorDefaults(PhSettings);
+export const Warning = withPhosphorDefaults(PhAlertTriangle);
+export const More = withPhosphorDefaults(PhMoreVertical);
+export const CreditCardIcon = withPhosphorDefaults(PhCreditCard);
+export const FileIcon = withPhosphorDefaults(PhFile);
+export const FileTextIcon = withPhosphorDefaults(PhFileText);
+export const ImageIcon = withPhosphorDefaults(PhImage);
+
+// Lucide compatibility layer (so we can swap imports repo-wide without touching JSX usage).
+export const Activity = withPhosphorDefaults(PhActivity);
+export const Alert = withPhosphorDefaults(PhAlert);
+export const AlertCircle = withPhosphorDefaults(PhAlertCircle);
+export const AlertTriangle = withPhosphorDefaults(PhAlertTriangle);
+export const ArrowDown = withPhosphorDefaults(PhArrowDown);
+export const ArrowLeft = withPhosphorDefaults(PhArrowLeft);
+export const ArrowRight = withPhosphorDefaults(PhArrowRight);
+export const ArrowUp = withPhosphorDefaults(PhArrowUp);
+export const ArrowDownToLine = withPhosphorDefaults(PhArrowDownToLine);
+export const ArrowUpToLine = withPhosphorDefaults(PhArrowUpToLine);
+export const AtSign = withPhosphorDefaults(PhAtSign);
+export const Atom = withPhosphorDefaults(PhAtom);
+export const Award = withPhosphorDefaults(PhMedal);
+export const Ban = withPhosphorDefaults(PhBan);
+export const BarChart3 = withTablerDefaults(IconChartBar);
+export const Bell = withPhosphorDefaults(PhBell);
+export const BellOff = withPhosphorDefaults(PhBellOff);
+export const Book = withPhosphorDefaults(PhBook);
+export const BookOpen = withPhosphorDefaults(PhBookOpen);
+export const BookText = withPhosphorDefaults(PhBookText);
+export const Brain = withPhosphorDefaults(PhBrain);
+export const BrainCircuit = withPhosphorDefaults(PhBrain);
+export const Briefcase = withPhosphorDefaults(PhBriefcase);
+export const Calendar = withPhosphorDefaults(PhCalendar);
+export const CalendarIcon = withPhosphorDefaults(PhCalendar);
+export const Camera = withPhosphorDefaults(PhCamera);
+export const Check = withPhosphorDefaults(PhCheck);
+export const CheckCircle = withPhosphorDefaults(PhCheckCircle);
+export const CheckCircle2 = withPhosphorDefaults(PhCheckCircle);
+export const CheckCheck = withPhosphorDefaults(PhCheckCheck);
+export const ChevronDown = withPhosphorDefaults(PhChevronDown);
+export const ChevronLeft = withPhosphorDefaults(PhChevronLeft);
+export const ChevronRight = withPhosphorDefaults(PhChevronRight);
+export const ChevronUp = withPhosphorDefaults(PhChevronUp);
+export const Circle = withTablerDefaults(IconCircle);
+export const Clock = withPhosphorDefaults(PhClock);
+export const Code = withPhosphorDefaults(PhCode);
+export const Coffee = withPhosphorDefaults(PhCoffee);
+export const Coins = withPhosphorDefaults(PhCoins);
+export const Copy = withPhosphorDefaults(PhCopy);
+export const Command = withPhosphorDefaults(PhCommand);
+export const CreditCard = withPhosphorDefaults(PhCreditCard);
+export const Crown = withPhosphorDefaults(PhCrown);
+export const Database = withPhosphorDefaults(PhDatabase);
+export const DollarSign = (props: React.SVGProps<SVGSVGElement>) => <IoDollarSign {...props} />;
+export const Download = withPhosphorDefaults(PhDownload);
+export const Dumbbell = withPhosphorDefaults(PhDumbbell);
+export const Edit = withPhosphorDefaults(PhPencil);
+export const Edit2 = withPhosphorDefaults(PhPencil);
+export const Edit3 = withPhosphorDefaults(PhPencil);
+export const Expand = withPhosphorDefaults(PhExpand);
+export const Film = withPhosphorDefaults(PhFilm);
+export const ExternalLink = withPhosphorDefaults(PhLink);
+export const Eye = withPhosphorDefaults(PhEye);
+export const EyeOff = withPhosphorDefaults(PhEyeOff);
+export const File = withPhosphorDefaults(PhFile);
+export const FileDown = withPhosphorDefaults(PhFileDown);
+export const FileText = withPhosphorDefaults(PhFileText);
+export const Filter = withPhosphorDefaults(PhFilter);
+export const Flag = withPhosphorDefaults(PhFlag);
+export const Flame = withPhosphorDefaults(PhFlame);
+export const Gamepad2 = withPhosphorDefaults(PhGamepad2);
+export const Gauge = withPhosphorDefaults(PhGauge);
+export const Gift = withPhosphorDefaults(PhGift);
+export const Globe = withPhosphorDefaults(PhGlobe);
+export const GraduationCap = withPhosphorDefaults(PhGraduationCap);
+export const Grid3X3 = withPhosphorDefaults(PhGrid3X3);
+export const Heart = withPhosphorDefaults(PhHeart);
+export const HelpCircle = withPhosphorDefaults(PhHelpCircle);
+export const History = withPhosphorDefaults(PhHistory);
+export const Home = withPhosphorDefaults(PhHome);
+export const Image = withPhosphorDefaults(PhImage);
+export const Info = withPhosphorDefaults(PhInfo);
+export const Keyboard = withPhosphorDefaults(PhKeyboard);
+export const Laptop = withPhosphorDefaults(PhLaptop);
+export const LayoutList = withPhosphorDefaults(PhLayoutList);
+export const Leaf = withPhosphorDefaults(PhLeaf);
+export const Lightbulb = withPhosphorDefaults(PhLightbulb);
+export const LineChart = withTablerDefaults(IconChartLine);
+export const Link = withPhosphorDefaults(PhLink);
+export const List = withPhosphorDefaults(PhList);
+export const ListTodo = withPhosphorDefaults(PhListTodo);
+export const Loader2 = withPhosphorDefaults(PhLoader2);
+export const LogOut = withPhosphorDefaults(PhLogOut);
+export const Lock = withPhosphorDefaults(PhLock);
+export const Mail = withPhosphorDefaults(PhMail);
+// biome-ignore lint/suspicious/noShadowRestrictedNames: Lucide `Map` icon name (compat layer)
+export const Map = withPhosphorDefaults(PhMap);
+export const MapPin = withPhosphorDefaults(PhMapPin);
+export const Medal = withPhosphorDefaults(PhMedal);
+export const Menu = withPhosphorDefaults(PhList);
+export const MessageCircle = withTablerDefaults(IconMessageCircle);
+export const MessageSquare = withTablerDefaults(IconMessage);
+export const Mic = withPhosphorDefaults(PhMic);
+export const MicOff = withPhosphorDefaults(PhMicOff);
+export const Monitor = withPhosphorDefaults(PhMonitor);
+export const Moon = withPhosphorDefaults(PhMoon);
+export const MoreHorizontal = withPhosphorDefaults(PhMoreHorizontal);
+export const MoreVertical = withPhosphorDefaults(PhMoreVertical);
+export const Music = withPhosphorDefaults(PhMusic);
+export const Package = withPhosphorDefaults(PhPackage);
+export const Palette = withTablerDefaults(IconPalette);
+export const Paperclip = withPhosphorDefaults(PhPaperclip);
+export const Pause = withPhosphorDefaults(PhPause);
+export const Pencil = withPhosphorDefaults(PhPencil);
+export const PieChart = withPhosphorDefaults(PhPieChart);
+export const Pizza = withPhosphorDefaults(PhPizza);
+export const Play = withPhosphorDefaults(PhPlay);
+export const Plus = withPhosphorDefaults(PhPlus);
+export const PlusCircle = withPhosphorDefaults(PhPlusCircle);
+export const Presentation = withPhosphorDefaults(PhPresentation);
+export const RefreshCw = withPhosphorDefaults(PhRefreshCw);
+export const Repeat = withPhosphorDefaults(PhRepeat);
+export const Repeat2 = withPhosphorDefaults(PhRepeat2);
+export const Reply = withPhosphorDefaults(PhReply);
+export const Rocket = withPhosphorDefaults(PhRocket);
+export const RotateCcw = withPhosphorDefaults(PhRotateCcw);
+export const Rss = withPhosphorDefaults(PhRss);
+export const Save = withPhosphorDefaults(PhSave);
+export const Search = withPhosphorDefaults(PhSearch);
+export const Send = withPhosphorDefaults(PhSend);
+export const Settings = withPhosphorDefaults(PhSettings);
+export const Share = withPhosphorDefaults(PhShare);
+export const Share2 = withTablerDefaults(IconShare2);
+export const Shield = withPhosphorDefaults(PhShield);
+export const ShoppingCart = withTablerDefaults(IconShoppingCart);
+export const SkipForward = withPhosphorDefaults(PhSkipForward);
+export const Smartphone = withPhosphorDefaults(PhSmartphone);
+export const Smile = withPhosphorDefaults(PhSmile);
+export const SortAsc = withPhosphorDefaults(PhSortAsc);
+export const Sparkles = withHugeIcon(SparklesIcon);
+export const Square = withTablerDefaults(IconSquare);
+export const Star = withPhosphorDefaults(PhStar);
+export const SunMedium = withPhosphorDefaults(PhSun);
+export const Table = withPhosphorDefaults(PhTable);
+export const Tag = withPhosphorDefaults(PhTag);
+export const Target = withPhosphorDefaults(PhTarget);
+export const TestTube = withPhosphorDefaults(PhTestTube);
+export const ThumbsDown = withPhosphorDefaults(PhThumbsDown);
+export const ThumbsUp = withPhosphorDefaults(PhThumbsUp);
+export const Timer = withPhosphorDefaults(PhTimer);
+export const Trash = withPhosphorDefaults(PhTrash);
+export const Trash2 = withPhosphorDefaults(PhTrash);
+export const TrendingDown = withHeroOutline(ArrowTrendingDownIcon);
+export const TrendingUp = withHeroOutline(ArrowTrendingUpIcon);
+export const TriangleAlert = withPhosphorDefaults(PhAlertTriangle);
+export const Trophy = withPhosphorDefaults(PhTrophy);
+export const Undo = withPhosphorDefaults(PhUndo);
+export const Unlock = withPhosphorDefaults(PhUnlock);
+export const Upload = withPhosphorDefaults(PhUpload);
+export const User = withPhosphorDefaults(PhUser);
+export const UserMinus = withPhosphorDefaults(PhUserMinus);
+export const UserPlus = withPhosphorDefaults(PhUserPlus);
+export const Users = withPhosphorDefaults(PhUsers);
+export const Video = withPhosphorDefaults(PhVideo);
+export const Wand2 = withPhosphorDefaults(PhWand2);
+export const Volume2 = withPhosphorDefaults(PhVolume2);
+export const VolumeX = withTablerDefaults(IconVolumeOff);
+export const Wifi = withPhosphorDefaults(PhWifi);
+export const WifiOff = withPhosphorDefaults(PhWifiOff);
+export const Wind = withPhosphorDefaults(PhWind);
+export const X = withPhosphorDefaults(PhX);
+export const XCircle = withPhosphorDefaults(PhXCircle);
+export const Zap = withPhosphorDefaults(PhZap);
+
+export const Twitter = withTablerDefaults(IconBrandTwitter);
+export const Facebook = withTablerDefaults(IconBrandFacebook);
+export const Linkedin = withTablerDefaults(IconBrandLinkedin);
+export const Whatsapp = withTablerDefaults(IconBrandWhatsapp);
 
 export const Google = ({ ...props }: React.SVGProps<SVGSVGElement>) => (
     <svg

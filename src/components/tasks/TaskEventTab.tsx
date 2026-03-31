@@ -96,21 +96,26 @@ import {
 import {
   AlertCircle,
   AlertTriangle,
+  Bell,
   BookOpen,
+  Calendar,
   CheckCircle2,
   ChevronDown,
   Circle,
   Clock,
-  Download,
   Edit,
+  FileDown,
   Filter,
   Grid3X3,
   List,
+  ListTodo,
   Plus,
+  Pencil,
   Repeat,
   Repeat2,
   Settings,
   SortAsc,
+  Table,
   Target,
   Trash2,
   User,
@@ -120,15 +125,6 @@ import { AnimatePresence, motion } from "motion/react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Calendar from "react-calendar";
-import {
-  FaCalendarAlt,
-  FaClock,
-  FaFileExport,
-  FaPlus,
-  FaTable,
-  FaTasks,
-  FaPencilAlt as Pencil,
-} from "react-icons/fa";
 import { v4 as uuidv4 } from "uuid";
 import "react-calendar/dist/Calendar.css";
 
@@ -137,7 +133,6 @@ import { useAuth } from '@clerk/nextjs';
 import { useFetchTimetableEntries, useDeleteTimetableEntry } from '@/hooks/useTimetableQueries';
 import { useToast } from '@/components/ui/use-toast';
 import { NotificationPrompt } from '@/components/notifications/NotificationPrompt';
-import { Bell } from 'lucide-react';
 
 // Timetable Types
 // Exporting these types and constants for use in TimetableGrid.tsx
@@ -460,7 +455,7 @@ const Countdown: React.FC<CountdownProps> = ({ dueDateString }) => {
     <span
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold shadow-sm border ${isPastDue ? "bg-red-100 text-red-700 border-red-200" : "bg-blue-100 text-blue-700 border-blue-200"} ${pulseAnimation} ml-2`}
     >
-      <FaClock className="h-3 w-3 mr-1" aria-hidden="true" />
+      <Clock className="h-3 w-3 mr-1" aria-hidden="true" />
       {timeRemaining}
     </span>
   );
@@ -1256,7 +1251,7 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                   : "Switch to list view"
               }
             >
-              <FaTasks className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
+              <ListTodo className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
               <span className="hidden xs:inline text-[10px] xs:text-xs sm:text-sm">List</span>
             </button>
             <button
@@ -1277,7 +1272,7 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                   : "Switch to calendar view"
               }
             >
-              <FaCalendarAlt className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
+              <Calendar className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
               <span className="hidden xs:inline text-[10px] xs:text-xs sm:text-sm">Cal</span>
             </button>
             <button
@@ -1298,7 +1293,7 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                   : "Switch to timetable view"
               }
             >
-              <FaTable className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
+              <Table className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
               <span className="hidden xs:inline text-[10px] xs:text-xs sm:text-sm">Table</span>
             </button>
           </div>
@@ -1402,7 +1397,7 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                                       </span>
                                     )}
                                     <span className="flex items-center whitespace-nowrap">
-                                      <FaClock
+                                      <Clock
                                         className="mr-1 h-3 w-3"
                                         aria-hidden="true"
                                       />
@@ -1489,7 +1484,7 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                   size="sm"
                   aria-label="Add new class to timetable"
                 >
-                  <FaPlus className="mr-2 h-4 w-4" aria-hidden="true" /> Add
+                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" /> Add
                   Class
                 </Button>
                 <Button
@@ -1498,7 +1493,7 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                   variant="outline"
                   aria-label="Export timetable to calendar file"
                 >
-                  <FaFileExport className="mr-2 h-4 w-4" aria-hidden="true" />{" "}
+                  <FileDown className="mr-2 h-4 w-4" aria-hidden="true" />{" "}
                   Export iCal
                 </Button>
               </div>
@@ -1615,7 +1610,7 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                                 </span>
                               )}
                               <span className="flex items-center whitespace-nowrap">
-                                <FaCalendarAlt
+                                <Calendar
                                   className="mr-1 h-3 w-3"
                                   aria-hidden="true"
                                 />

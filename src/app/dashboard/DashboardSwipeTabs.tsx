@@ -12,12 +12,18 @@ const TaskEventHub = lazy(() => import('@/components/tasks/TaskEventHub').then(m
 const RemindersTab = lazy(() => import('@/components/reminders/RemindersTab'));
 const CrashoutTab = lazy(() => import('@/components/dashboard/CrashoutTab'));
 const GamificationHub = lazy(() => import('@/components/gamification/GamificationHub'));
-import { FaUserFriends, FaCalendarAlt, FaBell, FaSpa, FaGamepad } from 'react-icons/fa';
+import {
+  Bell,
+  Calendar,
+  Crown,
+  Gamepad2,
+  Leaf,
+  Users,
+} from 'lucide-react';
 import { useLocalStorageState } from '@/hooks/useStudentConnection';
 import { useTieredAI } from '@/hooks/useTieredAI';
 import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 import { usePremiumPopup } from '@/components/providers/premium-popup-provider';
-import { Crown } from 'lucide-react';
 import { TabLoadingSpinner } from '@/components/ui/TabLoadingSpinner';
 
 // Toggle this to test - set to true to show debug component instead of actual connections tab
@@ -31,12 +37,12 @@ const TABS_CONFIG = [
   { 
     key: 'connections', 
     component: USE_DEBUG_COMPONENT ? ConnectionsDebug : ConnectionInterface, 
-    icon: FaUserFriends 
+    icon: Users 
   },
-  { key: 'tasks', component: TaskEventHub, icon: FaCalendarAlt },
-  { key: 'reminders', component: RemindersTab, icon: FaBell },
-  { key: 'crashout', component: CrashoutTab, icon: FaSpa },
-  { key: 'gamification', component: GamificationHub, icon: FaGamepad },
+  { key: 'tasks', component: TaskEventHub, icon: Calendar },
+  { key: 'reminders', component: RemindersTab, icon: Bell },
+  { key: 'crashout', component: CrashoutTab, icon: Leaf },
+  { key: 'gamification', component: GamificationHub, icon: Gamepad2 },
 ];
 
 export function DashboardSwipeTabs() {

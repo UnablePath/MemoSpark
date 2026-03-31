@@ -510,8 +510,8 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
             </div>
           </Button>
 
-          {/* Desktop view switcher */}
-          <div className="hidden md:flex items-center gap-1 rounded-md bg-muted p-1 group">
+          {/* Desktop view switcher (no horizontal scroll on desktop widths) */}
+          <div className="hidden md:grid min-w-0 max-w-full grid-cols-4 items-stretch gap-1 rounded-md bg-muted p-1">
             {viewOptions.map((option) => (
               <button
                 key={option.id}
@@ -520,24 +520,21 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
                   viewTabVariants({
                     state: currentView === option.id ? "active" : "inactive",
                   }),
-                  // More reasonable sizing - slightly larger but not overly scaled
-                  "px-3 py-2.5 md:px-4 md:py-3 lg:px-5 lg:py-3.5 xl:px-6 xl:py-4"
+                  "w-full min-w-0 px-2 py-2.5 lg:px-3 lg:py-3 flex items-center justify-center gap-2"
                 )}
               >
-                <option.icon className="h-4 w-4 md:h-5 md:w-5 lg:h-5 lg:w-5" />
-                <span className="hidden lg:inline text-sm md:text-base lg:text-base ml-1.5 md:ml-2">{option.label}</span>
+                <option.icon className="h-4 w-4 md:h-5 md:w-5 shrink-0" />
+                <span className="min-w-0 truncate text-xs md:text-sm">
+                  <span className="xl:hidden">
+                    {option.id === 'smart-schedule' ? 'Smart' :
+                     option.id === 'timetable' ? 'Time' :
+                     option.id === 'calendar' ? 'Cal' :
+                     'List'}
+                  </span>
+                  <span className="hidden xl:inline">{option.label}</span>
+                </span>
               </button>
             ))}
-            <span className="text-sm text-muted-foreground pl-2 pr-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-card px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-                <span className="text-xs">⌘</span>K
-              </kbd>
-              <span className="mx-1 text-xs">•</span>
-              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-card px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-                <span className="text-xs">⌃</span>I
-              </kbd>
-              <span className="text-xs ml-1">Tips</span>
-            </span>
           </div>
 
           {/* Mobile view switcher - optimized for better balance */}

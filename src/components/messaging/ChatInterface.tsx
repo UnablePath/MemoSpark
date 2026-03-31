@@ -9,18 +9,6 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { 
-  FaTimes, 
-  FaPaperPlane, 
-  FaSmile, 
-  FaReply, 
-  FaEdit, 
-  FaTrash,
-  FaEllipsisV,
-  FaCheck,
-  FaCheckDouble,
-  FaPaperclip
-} from "react-icons/fa";
 import { useAuth, useUser } from '@clerk/nextjs';
 import { useMessagingService } from '@/lib/messaging/MessagingService';
 import type { 
@@ -41,14 +29,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  Check,
+  CheckCheck,
+  Edit2,
+  MoreVertical,
+  Paperclip,
+  Reply,
   Send,
   Smile,
-  Paperclip,
-  MoreVertical,
-  Edit2,
   Trash2,
-  Reply,
-  Users
+  Users,
 } from 'lucide-react';
 
 interface ChatInterfaceProps {
@@ -96,11 +86,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
   const getDeliveryIcon = () => {
     switch (message.delivery_status) {
       case 'sent':
-        return <FaCheck className="w-3 h-3 text-gray-400" />;
+        return <Check className="w-3 h-3 text-gray-400" />;
       case 'delivered':
-        return <FaCheckDouble className="w-3 h-3 text-gray-400" />;
+        return <CheckCheck className="w-3 h-3 text-gray-400" />;
       case 'read':
-        return <FaCheckDouble className="w-3 h-3 text-blue-500" />;
+        return <CheckCheck className="w-3 h-3 text-blue-500" />;
       default:
         return null;
     }
@@ -174,7 +164,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
                         className="w-6 h-6 p-0"
                         onClick={() => setShowReactions(!showReactions)}
                       >
-                        <FaSmile className="w-3 h-3" />
+                        <Smile className="w-3 h-3" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Add reaction</TooltipContent>
@@ -188,7 +178,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
                         className="w-6 h-6 p-0"
                         onClick={() => onReply(message)}
                       >
-                        <FaReply className="w-3 h-3" />
+                        <Reply className="w-3 h-3" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Reply</TooltipContent>
@@ -204,7 +194,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
                             className="w-6 h-6 p-0"
                             onClick={() => onEdit(message)}
                           >
-                            <FaEdit className="w-3 h-3" />
+                            <Edit2 className="w-3 h-3" />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>Edit</TooltipContent>
@@ -218,7 +208,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
                             className="w-6 h-6 p-0 text-red-500 hover:text-red-600"
                             onClick={() => onDelete(message.id)}
                           >
-                            <FaTrash className="w-3 h-3" />
+                            <Trash2 className="w-3 h-3" />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>Delete</TooltipContent>

@@ -13,10 +13,12 @@ import { Toaster } from "@/components/ui/sonner";
 import { OneSignalProvider } from '@/components/providers/onesignal-provider';
 import { NotificationPrompt } from '@/components/notifications/NotificationPrompt';
 import { ProfileSyncProvider } from "@/components/providers/ProfileSyncProvider";
+import { PatternCacheHydration } from "@/components/providers/pattern-cache-hydration";
 import { ServiceWorkerUpdater } from "@/components/pwa/ServiceWorkerUpdater";
 import { PremiumPopupProvider } from "@/components/providers/premium-popup-provider";
 import { NetworkErrorBoundary } from "@/components/ui/NetworkErrorBoundary";
 import { BASE_URL } from "@/lib/seo/seoConfig";
+import { TexturaPretextProvider } from "@/components/providers/textura-pretext-provider";
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -163,26 +165,29 @@ export default function RootLayout({
         <ThemeAwareClerkProvider>
           <ThemeProvider>
             <ProfileSyncProvider>
+              <PatternCacheHydration />
               <QueryProvider>
-                <UserProvider>
-                  <AIProvider>
-                    <TutorialProvider>
-                      <OneSignalProvider>
-                        <PremiumPopupProvider>
-                          <NetworkErrorBoundary>
-                            <ClientBody>
-                              {children}
-                              <PwaInstaller />
-                              <ServiceWorkerUpdater />
-                              <NotificationPrompt />
-                              <Toaster />
-                            </ClientBody>
-                          </NetworkErrorBoundary>
-                        </PremiumPopupProvider>
-                      </OneSignalProvider>
-                    </TutorialProvider>
-                  </AIProvider>
-                </UserProvider>
+                <TexturaPretextProvider>
+                  <UserProvider>
+                    <AIProvider>
+                      <TutorialProvider>
+                        <OneSignalProvider>
+                          <PremiumPopupProvider>
+                            <NetworkErrorBoundary>
+                              <ClientBody>
+                                {children}
+                                <PwaInstaller />
+                                <ServiceWorkerUpdater />
+                                <NotificationPrompt />
+                                <Toaster />
+                              </ClientBody>
+                            </NetworkErrorBoundary>
+                          </PremiumPopupProvider>
+                        </OneSignalProvider>
+                      </TutorialProvider>
+                    </AIProvider>
+                  </UserProvider>
+                </TexturaPretextProvider>
               </QueryProvider>
             </ProfileSyncProvider>
           </ThemeProvider>

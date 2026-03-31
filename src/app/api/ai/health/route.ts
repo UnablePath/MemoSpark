@@ -7,7 +7,19 @@ const supabase = getSupabaseAdmin()!;
 
 export async function GET(request: NextRequest) {
   try {
-    // Basic auth check
+    // In production we don't expose per-user health details.
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        {
+          success: true,
+          health: { isHealthy: true },
+          timestamp: new Date().toISOString(),
+        },
+        { status: 200 },
+      );
+    }
+
+    // Dev-only detailed health (requires auth so it isn't a public env leak)
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

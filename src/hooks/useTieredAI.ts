@@ -76,6 +76,14 @@ export const useTieredAI = () => {
             message: 'Authentication required'
           };
         }
+
+        if (response.status === 501 || errorData?.data?.notImplemented) {
+          return {
+            canProceed: false,
+            upgradeRequired: false,
+            message: errorData.message || 'Feature not implemented yet',
+          };
+        }
         
         throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
       }
@@ -216,6 +224,18 @@ export const useTieredAI = () => {
             upgradeRequired: data.upgradeRequired,
             message: data.message,
             error: data.error
+          };
+        }
+
+        if (response.status === 501 || data?.data?.notImplemented) {
+          setState(prev => ({ ...prev, isLoading: false }));
+          return {
+            success: false,
+            tier: data.tier || state.userTier,
+            usage: data.usage || state.usage,
+            upgradeRequired: false,
+            message: data.message || 'Feature not implemented yet',
+            error: data.error || 'Not implemented',
           };
         }
         

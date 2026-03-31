@@ -18,6 +18,8 @@ import type {
 } from '@/types/ai';
 import type { UserAIPreferences as AIContextUserPreferences } from './aiContext'; // Import UserAIPreferences from aiContext
 import type { SupabaseClient } from '@supabase/supabase-js'; // Import SupabaseClient type
+import { patternDataFromStoredRow } from '@/lib/ai/userAiPatternsToPatternData';
+import { userPreferencesFromAiPatternsRow } from '@/lib/ai/userAiPatternsPreferences';
 
 // Re-export the types needed by index.ts
 export type { 
@@ -589,7 +591,9 @@ export class PatternRecognitionEngine {
     this.savePatterns(patterns);
 
     const endTime = Date.now();
-    console.log(`Enhanced pattern analysis completed in ${endTime - startTime}ms`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Enhanced pattern analysis completed in ${endTime - startTime}ms`);
+    }
 
     return patterns;
   }
@@ -1030,6 +1034,18 @@ export class PatternRecognitionEngine {
     console.log(`PatternRecognitionEngine: Feedback for suggestion ${suggestionId} - ${accepted ? 'Accepted' : 'Rejected'}.`);
     // TODO: Implement feedback storage (e.g., to Supabase or local analytics)
     // This could influence future pattern analysis or suggestion weighting.
+  }
+
+  /**
+   * Dual-layer sync: Postgres `user_ai_patterns` is authoritative; this updates the in-memory
+   * and localStorage cache so client-only flows match the server after questionnaire/schedule writes.
+   */
+  public hydrateFromDatabaseRow(userId: string, row: Record<string, unknown>): void {
+    const pd = patternDataFromStoredRow(row, userId);
+    this.patterns = pd;
+    this.savePatterns(pd);
+    const prefs = userPreferencesFromAiPatternsRow(row);
+    if (prefs) this.saveUserPreferences(prefs);
   }
 
   /**

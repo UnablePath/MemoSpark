@@ -3,7 +3,7 @@
 import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FaExclamationTriangle, FaRedo } from "react-icons/fa";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 
 interface Props {
   children: ReactNode;
@@ -49,7 +49,7 @@ class ConnectionsErrorBoundary extends Component<Props, State> {
           <Card className="p-6 text-center border-destructive">
             <CardHeader>
               <CardTitle className="flex items-center justify-center gap-2 text-destructive">
-                <FaExclamationTriangle className="h-5 w-5" />
+                <AlertTriangle className="h-5 w-5" />
                 Connections Tab Error
               </CardTitle>
             </CardHeader>
@@ -64,7 +64,7 @@ class ConnectionsErrorBoundary extends Component<Props, State> {
               </ul>
               <div className="flex flex-col sm:flex-row gap-2 justify-center">
                 <Button onClick={this.handleReset} variant="outline" className="flex items-center gap-2">
-                  <FaRedo className="h-4 w-4" />
+                  <RefreshCw className="h-4 w-4" />
                   Try Again
                 </Button>
                 <Button 

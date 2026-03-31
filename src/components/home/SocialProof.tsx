@@ -160,7 +160,7 @@ export const SocialProof: React.FC = () => {
                 className={cn(
                   'rounded-2xl',
                   stat.highlight
-                    ? 'col-span-2 border-y border-r border-white/[0.06] border-l-4 border-l-emerald-500 bg-emerald-950/30 md:col-span-1'
+                    ? 'col-span-2 border border-white/[0.07] bg-gradient-to-b from-emerald-950/25 to-[#111620] md:col-span-1'
                     : 'border border-white/[0.06] bg-[#111620]'
                 )}
               >

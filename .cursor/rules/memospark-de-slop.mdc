@@ -23,6 +23,12 @@ Never rely on training memory for API shapes, hook signatures, or config options
 
 **Trigger:** Any import statement involving node_modules.
 
+## SUPABASE MCP — Apply migrations to the hosted project
+
+When SQL in `supabase/migrations/` must run on the remote database (not only local `supabase db`), use the **Supabase MCP**: `list_migrations` (see what is applied), then `apply_migration` with a snake_case `name` and the migration `query` (DDL). Resolve `project_id` via `list_projects` or the project linked in docs (MemoSpark: `pexqavlkabbguaqjdfce`). Prefer this for applying migrations the user expects on staging/production without asking them to run CLI steps manually.
+
+**Trigger:** New or updated migration files, schema drift, or “apply this to Supabase.”
+
 ## DESIGN-INSPIRATION — Use before touching any UI
 
 This MCP searches Dribbble, Behance, Awwwards, Mobbin, and Pinterest for real reference designs. It also extracts actual design tokens (colors, fonts, spacing, border-radius values) from any live website URL via headless browser.

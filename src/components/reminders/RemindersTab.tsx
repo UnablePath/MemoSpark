@@ -12,8 +12,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, isPast, isToday, addDays, isWithinInterval, subDays } from "date-fns";
-import { FaCalendarAlt, FaCheckCircle, FaStar, FaInfoCircle, FaPlus, FaCog, FaClock, FaBrain, FaCoins, FaFilter, FaEye, FaEyeSlash } from "react-icons/fa";
-import { CalendarIcon } from "lucide-react";
+import {
+  Brain,
+  Calendar as CalendarIcon,
+  CheckCircle,
+  Clock,
+  Coins,
+  Eye,
+  EyeOff,
+  Filter,
+  Info,
+  Plus,
+  Settings,
+  Star,
+} from "lucide-react";
 import { toast } from "sonner";
 import { KoalaMascot } from "@/components/ui/koala-mascot";
 import { cn } from "@/lib/utils";
@@ -330,7 +342,7 @@ const RemindersTab = () => {
     };
     
     if (loading) return <RemindersSkeleton />;
-    if (error) return <div className="flex items-center justify-center h-full text-red-500"><FaInfoCircle className="mr-4"/>Error: {error.message}</div>;
+    if (error) return <div className="flex items-center justify-center h-full text-red-500"><Info className="mr-4"/>Error: {error.message}</div>;
 
     return (
         <div className="h-full overflow-y-auto overflow-x-hidden">
@@ -351,10 +363,10 @@ const RemindersTab = () => {
                         <h1 className="text-2xl font-bold">Your Reminders</h1>
                         <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:gap-2">
                             <Button variant="outline" onClick={() => setShowReminderSettings(true)} size="sm" className="w-full sm:w-auto">
-                                <FaCog className="mr-2"/> Settings
+                                <Settings className="mr-2"/> Settings
                             </Button>
                             <Button onClick={() => setShowAddReminder(true)} size="sm" className="w-full sm:w-auto">
-                                <FaPlus className="mr-2"/> Add Reminder
+                                <Plus className="mr-2"/> Add Reminder
                             </Button>
                         </div>
                     </div>
@@ -362,7 +374,7 @@ const RemindersTab = () => {
                         {/* Filter Controls */}
                         <div className="flex flex-col sm:flex-row gap-3 p-3 bg-muted/20 rounded-lg border">
                             <div className="flex items-center gap-2">
-                                <FaFilter className="text-muted-foreground" />
+                                <Filter className="text-muted-foreground" />
                                 <span className="text-sm font-medium">View:</span>
                                 <Select value={reminderFilter} onValueChange={(value: 'active' | 'completed' | 'all') => setReminderFilter(value)}>
                                     <SelectTrigger className="w-32 h-8">
@@ -384,7 +396,7 @@ const RemindersTab = () => {
                                         onClick={() => setShowCompletedFromLast7Days(!showCompletedFromLast7Days)}
                                         className="h-8 text-xs"
                                     >
-                                        {showCompletedFromLast7Days ? <FaEye className="mr-1" /> : <FaEyeSlash className="mr-1" />}
+                                        {showCompletedFromLast7Days ? <Eye className="mr-1" /> : <EyeOff className="mr-1" />}
                                         {showCompletedFromLast7Days ? 'Hide' : 'Show'} recent completed
                                     </Button>
                                 </div>
@@ -413,7 +425,7 @@ const RemindersTab = () => {
                                 {organizedReminders.overdue.length > 0 && (
                                     <div>
                                         <h3 className="text-lg font-semibold text-red-600 mb-3 flex items-center gap-2">
-                                            <FaClock className="text-red-500" />
+                                            <Clock className="text-red-500" />
                                             Overdue ({organizedReminders.overdue.length})
                                         </h3>
                                         <div className="space-y-3">
@@ -430,7 +442,7 @@ const RemindersTab = () => {
                                 {organizedReminders.today.length > 0 && (
                                     <div>
                                         <h3 className="text-lg font-semibold text-blue-600 mb-3 flex items-center gap-2">
-                                            <FaCalendarAlt className="text-blue-500" />
+                                            <CalendarIcon className="text-blue-500" />
                                             Due Today ({organizedReminders.today.length})
                                         </h3>
                                         <div className="space-y-3">
@@ -447,7 +459,7 @@ const RemindersTab = () => {
                                 {organizedReminders.upcoming.length > 0 && (
                                     <div>
                                         <h3 className="text-lg font-semibold text-green-600 mb-3 flex items-center gap-2">
-                                            <FaCalendarAlt className="text-green-500" />
+                                            <CalendarIcon className="text-green-500" />
                                             Upcoming ({organizedReminders.upcoming.length})
                                         </h3>
                                         <div className="space-y-3">
@@ -464,7 +476,7 @@ const RemindersTab = () => {
                                 {organizedReminders.completed.length > 0 && reminderFilter !== 'active' && (
                                     <div>
                                         <h3 className="text-lg font-semibold text-gray-600 mb-3 flex items-center gap-2">
-                                            <FaCheckCircle className="text-green-500" />
+                                            <CheckCircle className="text-green-500" />
                                             Completed ({organizedReminders.completed.length})
                                         </h3>
                                         <div className="space-y-3">
@@ -483,7 +495,7 @@ const RemindersTab = () => {
                                 {organizedReminders.completed.length > 0 && reminderFilter === 'active' && showCompletedFromLast7Days && (
                                     <div>
                                         <h3 className="text-lg font-semibold text-gray-500 mb-3 flex items-center gap-2">
-                                            <FaCheckCircle className="text-green-400" />
+                                            <CheckCircle className="text-green-400" />
                                             Recently Completed ({organizedReminders.completed.length})
                                             <span className="text-xs text-muted-foreground font-normal">(last 7 days)</span>
                                         </h3>
@@ -546,10 +558,10 @@ const RemindersTab = () => {
                             <div className="flex justify-between"><span>Total Points:</span> <span className="font-bold text-primary">{userStats?.total_points || 0}</span></div>
                             <div className="flex justify-between"><span>Current Streak:</span> <span className="font-bold text-green-600">{userStats?.current_streak || 0} Days</span></div>
                             <div className="flex justify-between"><span>Level:</span> <span className="font-bold text-purple-600">{userStats?.level || 1}</span></div>
-                            <div className="flex justify-between"><span>Coins:</span> <span className="font-bold text-yellow-600 flex items-center gap-1"><FaCoins className="text-yellow-500"/>{coinBalance}</span></div>
+                            <div className="flex justify-between"><span>Coins:</span> <span className="font-bold text-yellow-600 flex items-center gap-1"><Coins className="text-yellow-500"/>{coinBalance}</span></div>
                             <div className="space-y-2">
-                                <Button className="w-full" onClick={() => setShowAchievementsDialog(true)}><FaStar className="mr-2"/>View Achievements</Button>
-                                <Button className="w-full" variant="outline" onClick={() => setShowCoinShop(true)}><FaCoins className="mr-2 text-yellow-500"/>View Coin Shop</Button>
+                                <Button className="w-full" onClick={() => setShowAchievementsDialog(true)}><Star className="mr-2"/>View Achievements</Button>
+                                <Button className="w-full" variant="outline" onClick={() => setShowCoinShop(true)}><Coins className="mr-2 text-yellow-500"/>View Coin Shop</Button>
                             </div>
                         </CardContent>
                     </Card>
@@ -560,7 +572,7 @@ const RemindersTab = () => {
                 <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="flex items-center">
-                            <FaStar className="mr-2 text-amber-500" />
+                            <Star className="mr-2 text-amber-500" />
                             Your Achievements
                         </DialogTitle>
                     </DialogHeader>
@@ -607,7 +619,7 @@ const RemindersTab = () => {
                             </div>
                         ) : (
                             <div className="text-center py-8">
-                                <FaStar className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
+                                <Star className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
                                 <h3 className="text-lg font-medium text-muted-foreground mb-2">No achievements yet</h3>
                                 <p className="text-sm text-muted-foreground">
                                     Complete reminders and maintain streaks to unlock your first achievements!
@@ -626,7 +638,7 @@ const RemindersTab = () => {
                                     console.log('Navigate to Gamification Hub');
                                 }}
                             >
-                                <FaStar className="mr-2" />
+                                <Star className="mr-2" />
                                 View Full Gamification Hub
                             </Button>
                         </div>
@@ -642,7 +654,7 @@ const RemindersTab = () => {
                 <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="flex items-center">
-                            <FaCog className="mr-2 text-blue-500" />
+                            <Settings className="mr-2 text-blue-500" />
                             Proactive Reminder Settings
                         </DialogTitle>
                     </DialogHeader>
@@ -660,7 +672,7 @@ const RemindersTab = () => {
                 <DialogContent className="w-full max-w-[95vw] sm:max-w-md md:max-w-lg lg:max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="flex items-center text-lg sm:text-xl">
-                            <FaPlus className="mr-2 text-green-500" />
+                            <Plus className="mr-2 text-green-500" />
                             Create reminder
                         </DialogTitle>
                         <DialogDescription>
@@ -803,7 +815,7 @@ const RemindersTab = () => {
                                     className="w-4 h-4"
                                 />
                                 <Label htmlFor="useAI" className="flex items-center cursor-pointer text-sm sm:text-base">
-                                    <FaBrain className="mr-2 text-purple-500" />
+                                    <Brain className="mr-2 text-purple-500" />
                                     Use smart timing for follow-ups
                                 </Label>
                             </div>
@@ -811,7 +823,7 @@ const RemindersTab = () => {
                         
                         {reminderForm.useAI && (
                             <div className="text-xs sm:text-sm text-muted-foreground bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                <FaInfoCircle className="inline mr-2 text-blue-500" />
+                                <Info className="inline mr-2 text-blue-500" />
                                 We space follow-ups using your patterns, priority, and preferences so nudges land when they help most.
                             </div>
                         )}
@@ -826,9 +838,9 @@ const RemindersTab = () => {
                             className="w-full sm:w-auto"
                         >
                             {isSubmittingReminder ? (
-                                <FaClock className="mr-2 animate-spin" />
+                                <Clock className="mr-2 animate-spin" />
                             ) : (
-                                <FaPlus className="mr-2" />
+                                <Plus className="mr-2" />
                             )}
                             {reminderForm.useAI ? 'Create with smart timing' : 'Create Reminder'}
                         </Button>
@@ -853,14 +865,14 @@ const ReminderCard = ({ reminder, onComplete }: { reminder: Reminder; onComplete
         <motion.div layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -50 }}>
             <Card className={cn("mb-3 transition-all", reminder.completed && "bg-muted/50 opacity-50")}>
                 <CardContent className="p-4 flex items-center gap-4">
-                    <FaCheckCircle
+                    <CheckCircle
                         className={cn("w-7 h-7 cursor-pointer transition-colors", reminder.completed ? "text-green-500" : "text-gray-300 hover:text-green-400")}
                         onClick={() => !reminder.completed && onComplete(reminder)}
                     />
                     <div className="flex-1">
                         <p className={cn("font-semibold text-lg", reminder.completed && "line-through")}>{reminder.title}</p>
                         <div className={cn("flex items-center gap-2 text-sm", isOverdue ? "text-red-500 font-semibold" : "text-muted-foreground")}>
-                            <FaCalendarAlt />
+                            <CalendarIcon />
                             <span>{format(new Date(reminder.due_date), "PPp")}</span>
                             {isOverdue && <span>(Overdue)</span>}
                         </div>

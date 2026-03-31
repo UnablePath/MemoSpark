@@ -38,9 +38,7 @@ export function TabContainer({
 
   const changeTab = useCallback((newDirection: number) => {
     const nextIndex = (currentIndex + newDirection + tabs.length) % tabs.length;
-    
-    console.log(`Changing tab from ${currentIndex} to ${nextIndex} (direction: ${newDirection})`);
-    
+
     if (controlledIndex !== undefined) {
         onTabChange?.(nextIndex);
     } else {

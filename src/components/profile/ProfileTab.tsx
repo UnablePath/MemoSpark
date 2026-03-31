@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FaGraduationCap, FaBook, FaHeart } from "react-icons/fa";
+import { BookOpen, GraduationCap, Heart } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUserProfile";
 
 /**
@@ -92,7 +92,7 @@ const ProfileTab = () => {
         <CardContent className="space-y-6 pb-6">
           <div className="space-y-1">
             <div className="flex items-center text-muted-foreground">
-              <FaGraduationCap className="mr-2 h-4 w-4" />
+              <GraduationCap className="mr-2 h-4 w-4" />
               <span>Year of study</span>
             </div>
             <p className="font-medium">
@@ -102,7 +102,7 @@ const ProfileTab = () => {
 
           <div className="space-y-2">
             <div className="flex items-center text-muted-foreground">
-              <FaBook className="mr-2 h-4 w-4" />
+              <BookOpen className="mr-2 h-4 w-4" />
               <span>Subjects</span>
             </div>
             {profile?.subjects && profile.subjects.length > 0 ? (
@@ -123,7 +123,7 @@ const ProfileTab = () => {
 
           <div className="space-y-2">
             <div className="flex items-center text-muted-foreground">
-              <FaHeart className="mr-2 h-4 w-4" />
+              <Heart className="mr-2 h-4 w-4" />
               <span>Interests</span>
             </div>
             {profile?.interests && profile.interests.length > 0 ? (

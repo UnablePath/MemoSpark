@@ -122,8 +122,8 @@ export const ConnectionInterface: React.FC<ConnectionInterfaceProps> = ({ onSwip
     <div className="p-4 sm:p-6 space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-green-500">Connect & Collaborate</h1>
-        <div className="flex items-center gap-4">
-          <div className="relative w-full sm:w-64">
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-4">
+          <div className="relative w-full min-w-0 sm:w-64">
             <Input 
               placeholder="Search students by name..."
               value={searchTerm}
@@ -134,7 +134,7 @@ export const ConnectionInterface: React.FC<ConnectionInterfaceProps> = ({ onSwip
               <Search className="h-4 w-4"/>
             </Button>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <List className="h-5 w-5 text-muted-foreground"/>
             <Switch
                 checked={isSwipeMode}

@@ -1,12 +1,14 @@
 'use client';
 
 import type React from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { CheckCircle, XCircle, Clock, Star, Info, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { AISuggestion } from '@/types/ai';
+import { useTexturaPretext } from '@/components/providers/textura-pretext-provider';
 
 const suggestionCardVariants = cva(
   "relative overflow-hidden transition-all duration-300 hover:shadow-lg group",
@@ -92,6 +94,40 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({
   type,
   className
 }) => {
+  const { measureText } = useTexturaPretext();
+  const descriptionRef = useRef<HTMLParagraphElement | null>(null);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [shouldClampDescription, setShouldClampDescription] = useState(false);
+
+  useEffect(() => {
+    const el = descriptionRef.current;
+    if (!el) return;
+
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      const width = Math.max(0, Math.floor(entry.contentRect.width));
+      if (!width) return;
+
+      // Tailwind `text-sm` ~= 14px, Inter is loaded globally in app layout.
+      // `leading-relaxed` is ~1.625; we use 22px as a stable, close line height.
+      const { lineCount } = measureText({
+        text: suggestion.description,
+        font: '400 14px Inter',
+        width,
+        lineHeight: 22,
+      });
+
+      setShouldClampDescription(compact && lineCount > 2);
+    });
+
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [compact, measureText, suggestion.description]);
+
+  useEffect(() => {
+    if (!compact) setIsDescriptionExpanded(false);
+  }, [compact]);
+
   // Determine confidence level from suggestion
   const currentConfidence = typeof suggestion.confidence === 'number' ? suggestion.confidence : 0;
   const suggestionConfidence = confidence || 
@@ -241,12 +277,29 @@ export const SuggestionCard: React.FC<SuggestionCardProps> = ({
       </CardHeader>
 
       <CardContent className="pb-4">
-        <p 
+        <p
           id={`suggestion-description-${suggestion.id}`}
-          className="text-sm text-muted-foreground leading-relaxed"
+          ref={descriptionRef}
+          className={cn(
+            "text-sm text-muted-foreground leading-relaxed",
+            shouldClampDescription && !isDescriptionExpanded && "line-clamp-2",
+          )}
         >
           {suggestion.description}
         </p>
+
+        {shouldClampDescription ? (
+          <Button
+            type="button"
+            variant="link"
+            className="h-auto px-0 py-1 text-sm"
+            onClick={() => setIsDescriptionExpanded((v) => !v)}
+            aria-expanded={isDescriptionExpanded}
+            aria-controls={`suggestion-description-${suggestion.id}`}
+          >
+            {isDescriptionExpanded ? 'Show less' : 'Show more'}
+          </Button>
+        ) : null}
 
         {showReasoning && suggestion.reasoning && (
           <div className="mt-3 p-3 bg-muted/30 rounded-lg">

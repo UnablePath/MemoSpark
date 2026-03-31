@@ -7,6 +7,10 @@ const supabase = getSupabaseAdmin()!;
 
 export async function POST(request: NextRequest) {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
     // Auth check
     const { userId } = await auth();
     if (!userId) {

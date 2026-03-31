@@ -14,6 +14,13 @@ import QuestionnaireManager, {
   type QuestionnaireQuestion,
   type QuestionnaireResponse,
 } from "@/lib/ai/QuestionnaireManager";
+import {
+  buildDraftFile,
+  legacyAnswersToDraft,
+  mergeDraftWithServerResponses,
+  parseQuestionnaireDraft,
+} from "@/lib/ai/questionnaireDraftStorage";
+import { trackQuestionnaireEvent } from "@/lib/ai/questionnaireClientAnalytics";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -33,6 +40,10 @@ interface AIQuestionnaireProps {
   onComplete?: (patterns: any) => void;
   className?: string;
 }
+
+const qDevLog = (...args: unknown[]) => {
+  if (process.env.NODE_ENV === "development") console.log(...args);
+};
 
 const categoryIcons = {
   onboarding: Sparkles,
@@ -109,36 +120,32 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
     }
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!user?.id || !currentTemplate?.questions?.length) return;
+    trackQuestionnaireEvent({
+      templateId: currentTemplate.id,
+      eventType: "step_view",
+      payload: {
+        questionIndex: currentQuestionIndex,
+        questionId: currentTemplate.questions[currentQuestionIndex]?.id,
+      },
+    });
+  }, [user?.id, currentTemplate, currentQuestionIndex]);
+
   // Local storage key per user to prevent transient resets between renders/navigation
   const localStorageKey = user?.id
     ? `questionnaire_answers_${user.id}`
     : undefined;
 
-  // Merge locally cached answers on mount/template change (does not override server data)
-  useEffect(() => {
-    if (!localStorageKey || !currentTemplate) return;
-    try {
-      const raw = localStorage.getItem(localStorageKey);
-      if (!raw) return;
-      const cached: Record<string, any> = JSON.parse(raw);
-      if (cached && typeof cached === "object") {
-        setAnswers((prev) => ({ ...cached, ...prev }));
-      }
-    } catch {
-      // ignore parse errors
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTemplate?.id, localStorageKey]);
-
   const loadQuestionnaires = async () => {
     try {
       setLoading(true);
-      console.log("Loading questionnaires for user:", user?.id);
+      qDevLog("Loading questionnaires for user:", user?.id);
 
       // Get next recommended questionnaire
       const nextTemplate =
         await questionnaireManager.getNextRecommendedQuestionnaire(user!.id);
-      console.log("Next template found:", nextTemplate);
+      qDevLog("Next template found:", nextTemplate);
 
       if (nextTemplate) {
         setCurrentTemplate(nextTemplate);
@@ -148,14 +155,24 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
           user!.id,
           nextTemplate.id,
         );
-        console.log("Existing response:", existingResponse);
+        qDevLog("Existing response:", existingResponse);
 
         if (existingResponse) {
           setCurrentResponse(existingResponse);
-          setAnswers(existingResponse.responses);
+          const rawDraft =
+            localStorageKey && typeof window !== "undefined"
+              ? localStorage.getItem(localStorageKey)
+              : null;
+          const merged = mergeDraftWithServerResponses(
+            existingResponse.responses || {},
+            legacyAnswersToDraft(nextTemplate.id, rawDraft) ??
+              parseQuestionnaireDraft(rawDraft),
+            nextTemplate.id,
+          );
+          setAnswers(merged);
 
           // Find current question index based on responses - but don't go backwards
-          const answeredQuestions = Object.keys(existingResponse.responses);
+          const answeredQuestions = Object.keys(merged);
           const nextQuestionIndex = nextTemplate.questions.findIndex(
             (q) => !answeredQuestions.includes(q.id),
           );
@@ -176,19 +193,30 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
           }
         } else {
           // Start new questionnaire
-          console.log("Starting new questionnaire...");
+          qDevLog("Starting new questionnaire...");
           const newResponse = await questionnaireManager.startQuestionnaire(
             user!.id,
             nextTemplate.id,
           );
-          console.log("New response created:", newResponse);
+          qDevLog("New response created:", newResponse);
           setCurrentResponse(newResponse);
+          const rawDraft =
+            localStorageKey && typeof window !== "undefined"
+              ? localStorage.getItem(localStorageKey)
+              : null;
+          const merged = mergeDraftWithServerResponses(
+            newResponse?.responses || {},
+            legacyAnswersToDraft(nextTemplate.id, rawDraft) ??
+              parseQuestionnaireDraft(rawDraft),
+            nextTemplate.id,
+          );
+          setAnswers(merged);
           setCurrentQuestionIndex(0); // Always start at beginning for new questionnaire
         }
 
         // Set initial Stu message
         setStuMessage(
-          `Hi! I'm Stu, and I'm here to help learn about your study habits. Let's start with "${nextTemplate.title}". Ready?`,
+          `Hi, I’m Stu. I’ll ask a few questions about how you study — starting with “${nextTemplate.title}”.`,
         );
         setStuState("talking");
       } else {
@@ -241,8 +269,11 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
 
       // Persist immediately to localStorage to avoid any UI-driven resets
       try {
-        if (localStorageKey) {
-          localStorage.setItem(localStorageKey, JSON.stringify(updatedAnswers));
+        if (localStorageKey && currentTemplate) {
+          localStorage.setItem(
+            localStorageKey,
+            JSON.stringify(buildDraftFile(currentTemplate.id, updatedAnswers)),
+          );
         }
       } catch {}
 
@@ -287,8 +318,11 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
 
       // Persist to local cache immediately
       try {
-        if (localStorageKey) {
-          localStorage.setItem(localStorageKey, JSON.stringify(updatedAnswers));
+        if (localStorageKey && currentTemplate) {
+          localStorage.setItem(
+            localStorageKey,
+            JSON.stringify(buildDraftFile(currentTemplate.id, updatedAnswers)),
+          );
         }
       } catch {}
 
@@ -336,8 +370,26 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
         "Amazing! You've completed this questionnaire. Let me analyze your responses...",
       );
 
-      // Analyze patterns
-      const patterns = await questionnaireManager.analyzeUserPatterns(user.id);
+      // Persist final answers and let the server-side completion path run analysis once.
+      // (QuestionnaireManager.updateResponse triggers analyze + metadata when 100% complete.)
+      try {
+        await questionnaireManager.updateResponse(
+          user.id,
+          currentTemplate!.id,
+          answers,
+        );
+      } catch (firstErr) {
+        qDevLog("updateResponse retry after:", firstErr);
+        await new Promise((r) => setTimeout(r, 900));
+        await questionnaireManager.updateResponse(user.id, currentTemplate!.id, answers);
+      }
+
+      const patterns = await questionnaireManager.getUserPatterns(user.id);
+
+      trackQuestionnaireEvent({
+        eventType: "patterns_analyzed",
+        payload: { ok: true },
+      });
 
       // Check for next questionnaire
       const nextTemplate =
@@ -357,7 +409,17 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
           );
           setCurrentTemplate(nextTemplate);
           setCurrentResponse(newResponse);
-          setAnswers(newResponse?.responses || {});
+          const rawDraft =
+            localStorageKey && typeof window !== "undefined"
+              ? localStorage.getItem(localStorageKey)
+              : null;
+          const mergedNext = mergeDraftWithServerResponses(
+            newResponse?.responses || {},
+            legacyAnswersToDraft(nextTemplate.id, rawDraft) ??
+              parseQuestionnaireDraft(rawDraft),
+            nextTemplate.id,
+          );
+          setAnswers(mergedNext);
           setCurrentQuestionIndex(0);
           setStuState("excited");
         } catch (e) {
@@ -382,8 +444,12 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
         code: err.code,
         fullError: err,
       });
+      trackQuestionnaireEvent({
+        eventType: "patterns_analyze_failed",
+        payload: { message: String(err?.message ?? err) },
+      });
       setStuMessage(
-        "I had trouble analyzing your responses, but don't worry - we can continue!",
+        "I couldn’t finish analyzing your answers. Your responses are saved — try again in a moment from the questionnaire page.",
       );
       setStuState("thinking");
     } finally {
@@ -399,7 +465,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
     if (!user?.id) return;
 
     try {
-      console.log("Resetting questionnaires for user:", user.id);
+      qDevLog("Resetting questionnaires for user:", user.id);
 
       // Delete all user responses to reset questionnaires
       const supabaseClient = (questionnaireManager as any).supabase;
@@ -662,7 +728,11 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
 
   if (loading) {
     return (
-      <div className={`${styles.shell} ${className}`}>
+      <div
+        className={`${styles.shell} ${className}`}
+        data-testid="ai-questionnaire-root"
+        data-state="loading"
+      >
         <div className={styles.loadingWrap}>
           <div className={styles.loadingInner}>
             <InteractiveStu size="lg" />
@@ -677,7 +747,11 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
 
   if (completed) {
     return (
-      <div className={`${styles.shell} max-w-2xl ${className}`}>
+      <div
+        className={`${styles.shell} max-w-2xl ${className}`}
+        data-testid="ai-questionnaire-root"
+        data-state="completed"
+      >
         <div className={`${styles.panel} ${styles.panelPadLg}`}>
           <div className="text-center space-y-6">
             <InteractiveStu size="lg" />
@@ -722,7 +796,11 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
 
   if (!currentTemplate) {
     return (
-      <div className={`${styles.shell} max-w-2xl ${className}`}>
+      <div
+        className={`${styles.shell} max-w-2xl ${className}`}
+        data-testid="ai-questionnaire-root"
+        data-state="idle"
+      >
         <div className={`${styles.panel} ${styles.panelPadLg}`}>
           <div className="text-center space-y-6">
             <InteractiveStu size="lg" />
@@ -765,7 +843,11 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
     Sparkles;
 
   return (
-    <div className={`${styles.shell} ${className}`}>
+    <div
+      className={`${styles.shell} ${className}`}
+      data-testid="ai-questionnaire-root"
+      data-state="in-progress"
+    >
       <div className={`${styles.panel} ${styles.panelPad}`}>
         <div className={styles.headerRow}>
           <div
@@ -811,6 +893,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -50 }}
           transition={{ duration: 0.3 }}
+          data-testid="ai-questionnaire-question"
         >
           <div
             className={`${styles.panel} ${styles.panelPad} ${styles.focusWithin}`}

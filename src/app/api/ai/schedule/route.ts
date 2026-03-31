@@ -3,6 +3,8 @@ import { auth } from '@clerk/nextjs/server';
 import { SmartScheduler } from '@/lib/ai/SmartScheduler';
 import { PatternAnalyzer } from '@/lib/ai/PatternAnalyzer';
 import { ScheduleManager } from '@/lib/ai/ScheduleManager';
+import { mergeScheduleIntoUserAiPatterns } from '@/lib/ai/userAiPatternsMerge';
+import { patternDataFromStoredRow } from '@/lib/ai/userAiPatternsToPatternData';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import type { ExtendedTask, Priority, TaskType, UserPreferences, PatternData, ScheduleMetadata } from '@/types/ai';
 import type { Task, TimetableEntry } from '@/types/taskTypes';
@@ -177,8 +179,8 @@ export async function POST(request: NextRequest) {
         dataQuality: 0.7
       };
       
-      // Save updated patterns to database
-      await saveUserPatterns(supabase, userId, patterns, userPreferences);
+      // Save updated patterns to database (questionnaire-primary merge when row exists)
+      await saveUserPatterns(supabase, userId, patterns, userPreferences, existingPatterns ?? null);
     } else {
       // Use existing patterns
       patterns = transformStoredPatterns(existingPatterns);
@@ -372,61 +374,43 @@ async function saveUserPatterns(
   supabase: any,
   userId: string,
   patterns: PatternData,
-  preferences: UserPreferences
+  preferences: UserPreferences,
+  existingRow: Record<string, unknown> | null,
 ): Promise<void> {
   try {
-    await supabase
-      .from('user_ai_patterns')
-      .upsert({
-        user_id: userId,
-        preferred_study_times: preferences.availableStudyHours,
-        productivity_peaks: patterns.timePattern?.mostProductiveHours || [],
-        learning_style: preferences.difficultyComfort,
-        attention_span: patterns.timePattern?.preferredStudyDuration || 45,
-        difficulty_preference: preferences.difficultyComfort,
-        break_preferences: {
-          frequency: preferences.breakFrequency,
-          duration: patterns.timePattern?.averageBreakTime || 15
-        },
-        pattern_confidence: {
-          time_pattern: patterns.timePattern?.consistencyScore || 0.5,
-          difficulty_profile: patterns.difficultyProfile?.adaptationRate || 0.5,
-          subject_insights: patterns.dataQuality || 0.5
-        },
-        last_analyzed_at: new Date().toISOString(),
-        data_sources: ['task_history', 'user_preferences', 'timetable'],
-        analysis_version: 2
-      });
+    const schedulePatch: Record<string, unknown> = {
+      user_id: userId,
+      preferred_study_times: preferences.availableStudyHours,
+      productivity_peaks: patterns.timePattern?.mostProductiveHours || [],
+      learning_style: preferences.difficultyComfort,
+      attention_span: patterns.timePattern?.preferredStudyDuration || 45,
+      difficulty_preference: preferences.difficultyComfort,
+      break_preferences: {
+        frequency: preferences.breakFrequency,
+        duration: patterns.timePattern?.averageBreakTime || 15,
+      },
+      pattern_confidence: {
+        time_pattern: patterns.timePattern?.consistencyScore ?? 0.5,
+        difficulty_profile: patterns.difficultyProfile?.adaptationRate ?? 0.5,
+        subject_insights: patterns.dataQuality ?? 0.5,
+      },
+      last_analyzed_at: new Date().toISOString(),
+      data_sources: ['task_history', 'user_preferences', 'timetable'],
+      analysis_version: 2,
+    };
+
+    const merged = mergeScheduleIntoUserAiPatterns(existingRow, schedulePatch);
+
+    await supabase.from('user_ai_patterns').upsert(merged, {
+      onConflict: 'user_id',
+    });
   } catch (error) {
     console.error('Error saving user patterns:', error);
   }
 }
 
-function transformStoredPatterns(storedPatterns: any): PatternData {
-  return {
-    userId: storedPatterns.user_id,
-    lastAnalyzed: storedPatterns.last_analyzed_at,
-    timePattern: {
-      mostProductiveHours: storedPatterns.productivity_peaks || [],
-      preferredStudyDuration: storedPatterns.attention_span || 45,
-      averageBreakTime: storedPatterns.break_preferences?.duration || 15,
-      peakPerformanceDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-      consistencyScore: storedPatterns.pattern_confidence?.time_pattern || 0.5
-    },
-    difficultyProfile: {
-      averageTaskDifficulty: 5,
-      difficultyTrend: 'stable',
-      subjectDifficultyMap: {},
-      adaptationRate: storedPatterns.pattern_confidence?.difficulty_profile || 0.5
-    },
-    subjectInsights: {
-      preferredSubjects: [],
-      strugglingSubjects: [],
-      subjectPerformance: {}
-    },
-    totalTasksAnalyzed: 0,
-    dataQuality: storedPatterns.pattern_confidence?.subject_insights || 0.5
-  };
+function transformStoredPatterns(storedPatterns: Record<string, unknown>): PatternData {
+  return patternDataFromStoredRow(storedPatterns, String(storedPatterns.user_id ?? ''));
 }
 
 function generateTimetableEvents(

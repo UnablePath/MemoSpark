@@ -34,6 +34,8 @@ import {
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { useAuth } from "@clerk/nextjs";
+import { hydratePatternEngineCacheForUser } from "@/lib/ai/patternEngineHydration";
 import { useFetchTasks } from "@/hooks/useTaskQueries";
 import { ICalImportExport } from "@/components/calendar/ICalImportExport";
 import {
@@ -226,7 +228,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
   onEditTask,
   className,
 }) => {
-  // Authentication hook for Clerk integration
+  const { userId, getToken } = useAuth();
   const { toast } = useToast();
 
   // State management with better organization
@@ -466,6 +468,10 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
         description: `Successfully scheduled ${data.metadata?.scheduledTasks || 0} tasks with ${Math.round((data.metadata?.efficiency || 0) * 100)}% efficiency.`,
       });
 
+      if (userId) {
+        void hydratePatternEngineCacheForUser(userId, getToken);
+      }
+
     } catch (error) {
       console.error('Failed to generate smart schedule:', error);
       toast({
@@ -476,13 +482,13 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
     } finally {
       setIsGeneratingSchedule(false);
     }
-  }, [toast]);
+  }, [toast, userId, getToken]);
 
   // Early return for loading state
   if (isLoading) {
     return (
       <div
-        className={cn("space-y-4", className)}
+        className={cn("space-y-4 min-w-0 max-w-full", className)}
         role="main"
         aria-label="Calendar Loading"
       >
@@ -503,7 +509,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
   if (fetchError) {
     return (
       <div
-        className={cn("space-y-4", className)}
+        className={cn("space-y-4 min-w-0 max-w-full", className)}
         role="main"
         aria-label="Calendar Error"
       >
