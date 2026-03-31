@@ -3,7 +3,7 @@
 import type React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { FaPencilAlt, FaTrashAlt } from "react-icons/fa";
+import { Pencil, Trash2 } from "lucide-react";
 import type { TimetableEntry, DayOfWeek } from "@/types/taskTypes";
 
 interface TimetableGridProps {
@@ -197,7 +197,7 @@ export const TimetableGrid: React.FC<TimetableGridProps> = ({
                             }}
                             aria-label={`Edit ${entry.course_name}`}
                           >
-                            <FaPencilAlt className="h-3 w-3" />
+                            <Pencil className="h-3 w-3" />
                           </Button>
                         )}
                         {onDeleteEntry && (
@@ -211,7 +211,7 @@ export const TimetableGrid: React.FC<TimetableGridProps> = ({
                             }}
                             aria-label={`Delete ${entry.course_name}`}
                           >
-                            <FaTrashAlt className="h-3 w-3" />
+                            <Trash2 className="h-3 w-3" />
                           </Button>
                         )}
                       </div>

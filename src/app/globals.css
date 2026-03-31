@@ -116,9 +116,9 @@
   }
 }
 
-/* Theme optimization - Prevent flash of unstyled content */
+/* Dark-first: match system UI until theme script runs */
 :root {
-  color-scheme: dark light;
+  color-scheme: dark;
 }
 
 /* Marketing homepage: heading/body font pairing (Plus Jakarta Sans + Inter) */
@@ -163,69 +163,73 @@ html[class*="theme-"]:not([class*="-light"]) {
 }
 
 @layer base {
-  :root {
-    --background: 0 0% 100%; /* Pure white for maximum contrast */
-    --foreground: 0 0% 6%; /* Darker text for better readability - improved contrast */
-    --card: 0 0% 100%; /* Keep card white for contrast */
-    --card-foreground: 0 0% 6%; /* Match foreground */
-    --popover: 0 0% 100%; /* Keep popover white */
-    --popover-foreground: 0 0% 6%; /* Improved contrast for dialog text */
-    --primary: 142 76% 36%; /* Enhanced green with better contrast */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 88%; /* Darker secondary background for better contrast */
-    --secondary-foreground: 0 0% 6%;
-    --muted: 210 40% 92%; /* Slightly darker muted background */
-    --muted-foreground: 0 0% 30%; /* Much darker muted text for better contrast */
-    --accent: 210 40% 88%;
-    --accent-foreground: 0 0% 6%;
-    --destructive: 0 84.2% 60.2%;
+  /*
+   * MemoSpark default = dark (editorial slate + jade accent).
+   * Light mode overrides via .light only — avoids generic “mint SaaS” wash.
+   */
+  :root,
+  .dark {
+    --background: 220 16% 7%;
+    --foreground: 210 18% 93%;
+    --card: 220 14% 10%;
+    --card-foreground: 210 18% 93%;
+    --popover: 220 14% 10%;
+    --popover-foreground: 210 18% 93%;
+    --primary: 158 48% 42%;
+    --primary-foreground: 210 30% 98%;
+    --secondary: 220 12% 14%;
+    --secondary-foreground: 210 14% 88%;
+    --muted: 220 12% 14%;
+    --muted-foreground: 215 12% 58%;
+    --accent: 220 12% 16%;
+    --accent-foreground: 210 16% 90%;
+    --destructive: 0 62% 48%;
     --destructive-foreground: 0 0% 98%;
-    --border: 214 32% 86%; /* Darker border for better visibility */
-    --input: 214 32% 88%; /* Darker input border for better visibility */
-    --ring: 142 76% 36%; /* Match enhanced primary */
-    --radius: 1rem; /* Rounded corners for MemoSpark style */
-    --chart-1: 142 60% 45%;
-    --chart-2: 40 38% 83%;
-    --chart-3: 0 0% 0%;
-    --chart-4: 0 0% 100%;
-    --chart-5: 142 60% 35%;
-    
-    /* Add safe area variables for mobile devices */
+    --border: 220 10% 20%;
+    --input: 220 12% 14%;
+    --ring: 158 48% 42%;
+    --radius: 0.5rem;
+    --chart-1: 158 48% 42%;
+    --chart-2: 215 16% 55%;
+    --chart-3: 200 18% 48%;
+    --chart-4: 35 30% 52%;
+    --chart-5: 175 22% 45%;
+
     --safe-area-inset-top: env(safe-area-inset-top);
     --safe-area-inset-right: env(safe-area-inset-right);
     --safe-area-inset-bottom: env(safe-area-inset-bottom);
     --safe-area-inset-left: env(safe-area-inset-left);
-    
-    /* Mobile navigation height for consistent spacing */
+
     --bottom-nav-height: 68px;
     --header-height: 64px;
   }
 
-  .dark {
-    --background: 0 0% 8%; /* Slightly darker background for better contrast */
-    --foreground: 0 0% 98%; /* Enhanced text brightness for better visibility */
-    --card: 0 0% 12%; /* Darker cards for better contrast */
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 12%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 142 60% 50%; /* Brighter primary green for better contrast */
-    --primary-foreground: 0 0% 8%; /* Dark text on bright primary */
-    --secondary: 0 0% 18%; /* Darker secondary for better contrast */
-    --secondary-foreground: 0 0% 92%; /* Lighter text on dark secondary */
-    --muted: 0 0% 15%; /* Darker muted background */
-    --muted-foreground: 0 0% 75%; /* Enhanced muted text brightness */
-    --accent: 0 0% 18%; /* Darker accent for better contrast */
-    --accent-foreground: 0 0% 92%;
-    --destructive: 0 70% 55%;
+  .light {
+    color-scheme: light;
+    --background: 40 20% 98%;
+    --foreground: 222 22% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 22% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 22% 12%;
+    --primary: 158 50% 32%;
+    --primary-foreground: 210 30% 98%;
+    --secondary: 220 14% 94%;
+    --secondary-foreground: 222 18% 18%;
+    --muted: 220 14% 94%;
+    --muted-foreground: 215 14% 38%;
+    --accent: 220 14% 94%;
+    --accent-foreground: 222 18% 18%;
+    --destructive: 0 62% 48%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 30%; /* More visible borders */
-    --input: 0 0% 18%; /* Darker input background */
-    --ring: 142 60% 50%; /* Match enhanced primary */
-    --chart-1: 142 60% 50%;
-    --chart-2: 200 50% 60%;
-    --chart-3: 0 0% 98%;
-    --chart-4: 0 0% 12%;
-    --chart-5: 142 50% 40%;
+    --border: 220 14% 88%;
+    --input: 220 14% 92%;
+    --ring: 158 50% 32%;
+    --chart-1: 158 50% 32%;
+    --chart-2: 215 18% 42%;
+    --chart-3: 200 22% 38%;
+    --chart-4: 35 35% 42%;
+    --chart-5: 175 28% 38%;
   }
 
   /* AMOLED Theme - True black with vibrant accents */
@@ -960,35 +964,7 @@ html[class*="theme-"]:not([class*="-light"]) {
   }
 }
 
-/* Light Theme Variants - BOLD & VIBRANT with unique personalities */
-
-/* Default Light Theme - Fresh Mint Garden */
-.light {
-  --background: 142 35% 94%; /* Bold mint green background */
-  --foreground: 142 20% 8%;
-  --card: 142 40% 97%; /* Vibrant mint cards */
-  --card-foreground: 142 20% 10%;
-  --popover: 142 40% 97%;
-  --popover-foreground: 142 20% 10%;
-  --primary: 142 60% 35%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 142 25% 85%; /* Strong mint secondary */
-  --secondary-foreground: 142 20% 10%;
-  --muted: 142 30% 90%; /* Bold mint muted */
-  --muted-foreground: 142 15% 30%;
-  --accent: 142 25% 85%;
-  --accent-foreground: 142 20% 10%;
-  --destructive: 0 70% 55%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 142 30% 75%; /* Strong mint borders */
-  --input: 142 35% 92%; /* Bold mint inputs */
-  --ring: 142 60% 35%;
-  --chart-1: 142 60% 35%;
-  --chart-2: 160 50% 40%;
-  --chart-3: 120 50% 30%;
-  --chart-4: 180 45% 45%;
-  --chart-5: 100 50% 35%;
-}
+/* Light theme alternate palettes (settings). Base light tokens: @layer base .light above. */
 
 /* AMOLED Light Theme - Electric Blue Neon */
 .theme-amoled-light {

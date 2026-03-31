@@ -607,3 +607,37 @@ export function getMemoSparkDashboardUserButtonAppearance(
     } as ClerkThemeAppearance['elements'],
   } satisfies Pick<ClerkThemeAppearance, 'variables' | 'elements'>;
 }
+
+/**
+ * Marketing navbar `<UserButton />` — dashboard-dark avatar sizing + popover that reads as a
+ * continuation of `#0c0e13` chrome (not a generic floating panel).
+ */
+export function getMemoSparkMarketingNavUserButtonAppearance(): Pick<
+  ClerkThemeAppearance,
+  'variables' | 'elements'
+> {
+  const dashboardDark = getMemoSparkDashboardUserButtonAppearance(true);
+  return {
+    variables: dashboardDark.variables,
+    elements: {
+      ...dashboardDark.elements,
+      userButtonPopoverCard: {
+        backgroundColor: '#0c0e13',
+        color: 'hsl(210 40% 98%)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '0.75rem',
+        boxShadow: '0 14px 36px -12px rgba(0, 0, 0, 0.55)',
+        backdropFilter: 'none',
+        WebkitBackdropFilter: 'none',
+      },
+      userButtonPopoverActionButton: {
+        color: 'hsl(210 40% 98%)',
+        fontWeight: 500,
+        borderRadius: '0.5rem',
+        '&:hover': {
+          backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        },
+      },
+    } as ClerkThemeAppearance['elements'],
+  };
+}

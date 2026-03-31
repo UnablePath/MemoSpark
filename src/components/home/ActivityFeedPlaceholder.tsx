@@ -2,14 +2,14 @@
 
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { FaRss, FaUsers } from 'react-icons/fa';
+import { Rss } from 'lucide-react';
 
 export const ActivityFeedPlaceholder = () => {
   return (
     <Card className="mt-6 w-full">
       <CardHeader>
         <CardTitle className="flex items-center text-lg">
-          <FaRss className="mr-2 h-5 w-5 text-primary" />
+          <Rss className="mr-2 h-5 w-5 text-primary" />
           Activity Feed
         </CardTitle>
       </CardHeader>

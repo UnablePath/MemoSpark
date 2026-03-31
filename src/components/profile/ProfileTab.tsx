@@ -1,19 +1,19 @@
 "use client";
 
-import Link from "next/link";
-import { useUser } from "@clerk/nextjs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, GraduationCap, Heart } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useUser } from "@clerk/nextjs";
+import { BookOpen, GraduationCap, Heart } from "lucide-react";
+import Link from "next/link";
 
 /**
  * Read-only summary for embed/side panels. Authoritative edits live on `/profile`
@@ -28,8 +28,7 @@ const ProfileTab = () => {
     user?.fullName ||
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
     "Student";
-  const email =
-    profile?.email || user?.primaryEmailAddress?.emailAddress || "";
+  const email = profile?.email || user?.primaryEmailAddress?.emailAddress || "";
   const avatarUrl = profile?.avatar_url || user?.imageUrl || undefined;
 
   const getInitials = (name: string) => {
@@ -75,9 +74,7 @@ const ProfileTab = () => {
         <CardHeader className="pb-4">
           <div className="flex items-center">
             <Avatar className="mr-4 h-16 w-16">
-              {avatarUrl ? (
-                <AvatarImage src={avatarUrl} alt="" />
-              ) : null}
+              {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
               <AvatarFallback className="bg-primary text-xl text-primary-foreground">
                 {getInitials(displayName)}
               </AvatarFallback>
@@ -151,8 +148,8 @@ const ProfileTab = () => {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Profile details are saved to your account. Use the full profile page
-              to edit name, subjects, interests, and bio.
+              Profile details are saved to your account. Use the full profile
+              page to edit name, subjects, interests, and bio.
             </p>
           </CardContent>
         </Card>

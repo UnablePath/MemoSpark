@@ -3,14 +3,14 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FaUsers, FaPlusCircle, FaSearch } from 'react-icons/fa';
+import { PlusCircle, Search, Users } from 'lucide-react';
 
 export const StudyGroupHubPlaceholder = () => {
   return (
     <Card className="mt-6 mb-6 w-full">
       <CardHeader>
         <CardTitle className="flex items-center text-lg">
-          <FaUsers className="mr-2 h-5 w-5 text-primary" />
+          <Users className="mr-2 h-5 w-5 text-primary" />
           Study Group Hub
         </CardTitle>
       </CardHeader>
@@ -20,10 +20,10 @@ export const StudyGroupHubPlaceholder = () => {
         </p>
         <div className="flex flex-col sm:flex-row gap-3">
           <Button variant="outline" className="flex-1">
-            <FaSearch className="mr-2 h-4 w-4" /> Browse Groups
+            <Search className="mr-2 h-4 w-4" /> Browse Groups
           </Button>
           <Button variant="default" className="flex-1">
-            <FaPlusCircle className="mr-2 h-4 w-4" /> Create New Group
+            <PlusCircle className="mr-2 h-4 w-4" /> Create New Group
           </Button>
         </div>
         {/* Placeholder for list of groups */}

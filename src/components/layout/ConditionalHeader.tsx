@@ -1,38 +1,63 @@
-'use client'; // Mark as a Client Component
+"use client"; // Mark as a Client Component
 
-import { usePathname, useSearchParams } from "next/navigation";
+import { UserAccountHubPanel } from "@/components/clerk/UserAccountHubPanels";
+import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
+import {
+  getMemoSparkDashboardUserButtonAppearance,
+  isMemoSparkDarkTheme,
+} from "@/lib/clerk-appearance";
 import { Show, UserButton } from "@clerk/nextjs";
-import { User as UserIcon, Settings as SettingsIcon } from 'lucide-react';
-import { MemoSparkLogoSvg } from '@/components/ui/MemoSparkLogoSvg';
-import Link from 'next/link';
-import { UserAccountHubPanel } from '@/components/clerk/UserAccountHubPanels';
+import { Settings as SettingsIcon, User as UserIcon } from "lucide-react";
+import { useTheme } from "next-themes";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function ConditionalHeader() {
   const pathname = usePathname();
+  const { theme } = useTheme();
+  const isDarkTheme = isMemoSparkDarkTheme(theme);
 
   // Do not render on homepage, dashboard page, or settings page (has its own header)
-  if (pathname === '/' || pathname === '/dashboard' || pathname === '/settings') {
+  if (
+    pathname === "/" ||
+    pathname === "/dashboard" ||
+    pathname === "/settings"
+  ) {
     return null;
   }
 
   return (
-    <header 
+    <header
       className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-background px-4 py-2 md:px-6 h-14"
       // Reduced height to h-14 (56px) and py to py-2 (8px vertical padding)
     >
       <div className="flex items-center gap-3">
-        <Link href={pathname === '/dashboard' ? "/dashboard" : "/"} aria-label="MemoSpark Home" className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md">
-          <MemoSparkLogoSvg height={27} /> {/* Slightly reduced logo height to fit new header height */}
+        <Link
+          href={pathname === "/dashboard" ? "/dashboard" : "/"}
+          aria-label="MemoSpark Home"
+          className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md"
+        >
+          <MemoSparkLogoSvg height={27} />{" "}
+          {/* Slightly reduced logo height to fit new header height */}
         </Link>
         {/* "Tasks & Events" title removed as per new request */}
       </div>
-      
+
       <Show when="signed-in">
-        <UserButton userProfileMode="modal">
+        <UserButton
+          userProfileMode="modal"
+          appearance={getMemoSparkDashboardUserButtonAppearance(isDarkTheme)}
+        >
           <UserButton.UserProfilePage
             label="Profile & progress"
             url="memospark-profile"
-            labelIcon={<UserIcon className="size-4 shrink-0 text-foreground" strokeWidth={2} aria-hidden />}
+            labelIcon={
+              <UserIcon
+                className="size-4 shrink-0 text-foreground"
+                strokeWidth={2}
+                aria-hidden
+              />
+            }
           >
             <UserAccountHubPanel
               title="Profile & progress"
@@ -65,4 +90,4 @@ export function ConditionalHeader() {
       */}
     </header>
   );
-} 
+}

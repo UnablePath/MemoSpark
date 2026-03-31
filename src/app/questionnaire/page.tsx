@@ -14,10 +14,10 @@ const AIQuestionnaire = lazy(() => import('@/components/ai/AIQuestionnaire').the
 const QuestionnaireLoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-[400px]">
     <div className="flex flex-col items-center gap-4">
-      <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      <div className="text-center">
-        <h3 className="text-lg font-semibold mb-2">Loading AI Questionnaire</h3>
-        <p className="text-sm text-muted-foreground">Preparing your personalized experience...</p>
+      <Loader2 className="h-12 w-12 animate-spin text-emerald-500" aria-hidden />
+      <div className="text-center text-zinc-100">
+        <h3 className="text-lg font-semibold mb-2">Loading questionnaire</h3>
+        <p className="text-sm text-zinc-400">Preparing your study profile…</p>
       </div>
     </div>
   </div>
@@ -41,7 +41,7 @@ function QuestionnairePageContent() {
         {fromOnboarding ? (
           <div className="mb-6 text-right">
             <Link href="/dashboard">
-              <Button variant="ghost" className="text-muted-foreground">
+              <Button variant="ghost" className="text-zinc-400 hover:text-zinc-100">
                 Skip for now
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
@@ -49,7 +49,10 @@ function QuestionnairePageContent() {
           </div>
         ) : (
           <div className="mb-6">
-            <Link href="/dashboard" className="inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center text-sm font-medium text-zinc-400 hover:text-zinc-100 transition-colors"
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Dashboard
             </Link>
@@ -70,7 +73,7 @@ function QuestionnairePageContent() {
 
 export default function QuestionnairePage() {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[#0c0e13] text-zinc-100">
       <Show when="signed-out">
         <RedirectToSignIn />
       </Show>

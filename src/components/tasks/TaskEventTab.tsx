@@ -98,7 +98,7 @@ import {
   AlertTriangle,
   Bell,
   BookOpen,
-  Calendar,
+  Calendar as CalendarIcon,
   CheckCircle2,
   ChevronDown,
   Circle,
@@ -124,7 +124,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Calendar from "react-calendar";
+import ReactCalendar from "react-calendar";
 import { v4 as uuidv4 } from "uuid";
 import "react-calendar/dist/Calendar.css";
 
@@ -1272,7 +1272,7 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                   : "Switch to calendar view"
               }
             >
-              <Calendar className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
+              <CalendarIcon className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
               <span className="hidden xs:inline text-[10px] xs:text-xs sm:text-sm">Cal</span>
             </button>
             <button
@@ -1302,7 +1302,7 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
         <div className="flex-1 overflow-auto p-4">
           {viewMode === "calendar" ? (
             <div className="calendar-container">
-              <Calendar
+              <ReactCalendar
                 onChange={handleDateChange}
                 value={selectedDate}
                 className="w-full rounded-md border shadow-sm"
@@ -1610,7 +1610,7 @@ const TaskEventTab: React.FC<TaskEventTabProps> = ({
                                 </span>
                               )}
                               <span className="flex items-center whitespace-nowrap">
-                                <Calendar
+                                <CalendarIcon
                                   className="mr-1 h-3 w-3"
                                   aria-hidden="true"
                                 />

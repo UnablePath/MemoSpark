@@ -2,7 +2,16 @@
 
 import type React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaTrophy, FaStar, FaFire, FaClock, FaUsers, FaHeart, FaGraduationCap, FaMedal } from 'react-icons/fa';
+import {
+  Clock,
+  Flame,
+  GraduationCap,
+  Heart,
+  Medal,
+  Star,
+  Trophy,
+  Users,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Achievement } from '@/types/achievements';
 
@@ -21,14 +30,14 @@ interface AchievementBadgeProps {
 }
 
 const achievementIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  'trophy': FaTrophy,
-  'star': FaStar,
-  'fire': FaFire,
-  'clock': FaClock,
-  'users': FaUsers,
-  'heart': FaHeart,
-  'graduation': FaGraduationCap,
-  'medal': FaMedal,
+  trophy: Trophy,
+  star: Star,
+  fire: Flame,
+  clock: Clock,
+  users: Users,
+  heart: Heart,
+  graduation: GraduationCap,
+  medal: Medal,
 };
 
 const achievementColors = {
@@ -114,7 +123,7 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
 }) => {
   const colors = achievementColors[achievement.type as keyof typeof achievementColors] || achievementColors.task_completion;
   const sizes = sizeClasses[size];
-  const IconComponent = achievementIcons[achievement.icon || 'trophy'] || FaTrophy;
+  const IconComponent = achievementIcons[achievement.icon || 'trophy'] || Trophy;
 
   const isUnlocked = achievement.unlocked;
   const progress = achievement.userProgress || 0;

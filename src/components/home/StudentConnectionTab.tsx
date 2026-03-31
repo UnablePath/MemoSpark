@@ -4,7 +4,13 @@ import React, { useState, useMemo, useRef, useEffect, Suspense, lazy } from 'rea
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { FaSearch, FaPlus, FaComment, FaTimes, FaUndo } from "react-icons/fa";
+import {
+  MessageCircle,
+  Plus,
+  Search,
+  Undo,
+  X,
+} from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { ActivityFeedPlaceholder } from './ActivityFeedPlaceholder';
 import { StudyGroupHubPlaceholder } from './StudyGroupHubPlaceholder';
@@ -245,7 +251,7 @@ export default function StudentConnectionTab({ onViewModeChange }: StudentConnec
                   className="pl-9 pr-3 py-2 text-sm bg-background border-border placeholder-muted-foreground text-foreground rounded-md focus:ring-primary focus:border-primary"
                   aria-label="Search students"
                 />
-                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
             )}
             <Button
@@ -410,7 +416,7 @@ const SwipeView = React.memo(({
                   </CardHeader>
                   {swipeHistory.length > 0 && (
             <Button onClick={onRewind} variant="outline" className="mt-4">
-                        <FaUndo className="mr-2" /> Rewind Last Swipe
+                        <Undo className="mr-2" /> Rewind Last Swipe
                      </Button>
                   )}
                 </Card>
@@ -426,7 +432,7 @@ const SwipeView = React.memo(({
                   className="bg-red-500 hover:bg-red-600 text-white rounded-full p-3 md:p-4 shadow-md transform transition-transform hover:scale-110"
                   aria-label="Skip student"
                 >
-                  <FaTimes className="h-5 w-5 md:h-6 md:w-6" />
+                  <X className="h-5 w-5 md:h-6 md:w-6" />
                 </Button>
                 <Button
           onClick={() => onOpenChat(availableStudents[0].id)}
@@ -435,7 +441,7 @@ const SwipeView = React.memo(({
                   className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-3 md:p-4 shadow-md transform transition-transform hover:scale-110"
                   aria-label="Chat with student"
                 >
-                  <FaComment className="h-5 w-5 md:h-6 md:w-6" />
+                  <MessageCircle className="h-5 w-5 md:h-6 md:w-6" />
                 </Button>
                 <Button
           onClick={() => onSwipe('right', availableStudents[0])}
@@ -444,7 +450,7 @@ const SwipeView = React.memo(({
                   className="bg-green-500 hover:bg-green-600 text-white rounded-full p-3 md:p-4 shadow-md transform transition-transform hover:scale-110"
                   aria-label="Connect with student"
                 >
-                  <FaPlus className="h-5 w-5 md:h-6 md:w-6" />
+                  <Plus className="h-5 w-5 md:h-6 md:w-6" />
                 </Button>
                 {swipeHistory.length > 0 && (
                    <Button 
@@ -454,7 +460,7 @@ const SwipeView = React.memo(({
             className="bg-muted hover:bg-muted/80 rounded-full p-2 md:p-3 shadow-md transform transition-transform hover:scale-110"
                      aria-label="Rewind last swipe"
                    >
-                     <FaUndo className="h-4 w-4 md:h-5 md:w-5" />
+                     <Undo className="h-4 w-4 md:h-5 md:w-5" />
                    </Button>
                 )}
               </div>

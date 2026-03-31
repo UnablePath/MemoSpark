@@ -22,17 +22,8 @@ import {
 } from "@/lib/ai/questionnaireDraftStorage";
 import { trackQuestionnaireEvent } from "@/lib/ai/questionnaireClientAnalytics";
 import { useAuth, useUser } from "@clerk/nextjs";
-import { AnimatePresence, motion } from "framer-motion";
-import {
-  ArrowRight,
-  Brain,
-  CheckCircle,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Heart,
-  Sparkles,
-} from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, ChevronLeft, ChevronRight, ListTodo } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect, useCallback } from "react";
 
@@ -45,29 +36,17 @@ const qDevLog = (...args: unknown[]) => {
   if (process.env.NODE_ENV === "development") console.log(...args);
 };
 
-const categoryIcons = {
-  onboarding: Sparkles,
-  preferences: Brain,
-  schedule: Clock,
-  habits: CheckCircle,
-  stress: Heart,
+const CATEGORY_LABELS: Record<string, string> = {
+  onboarding: "Getting started",
+  preferences: "Preferences",
+  schedule: "Schedule",
+  habits: "Habits",
+  stress: "Wellbeing",
 };
 
-function questionnaireCategoryClass(category: string): string {
-  switch (category) {
-    case "onboarding":
-      return styles.catOnboarding;
-    case "preferences":
-      return styles.catPreferences;
-    case "schedule":
-      return styles.catSchedule;
-    case "habits":
-      return styles.catHabits;
-    case "stress":
-      return styles.catStress;
-    default:
-      return styles.catDefault;
-  }
+function formatCategoryLabel(category: string): string {
+  if (CATEGORY_LABELS[category]) return CATEGORY_LABELS[category];
+  return category.replace(/_/g, " ");
 }
 
 export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
@@ -77,6 +56,22 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
   const { user } = useUser();
   const { getToken } = useAuth();
   const router = useRouter();
+  const reducedMotion = useReducedMotion();
+  const stepTransition = reducedMotion ? { duration: 0.01 } : { duration: 0.22 };
+  const stepMotion = reducedMotion
+    ? {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+      }
+    : {
+        initial: { opacity: 0, x: 24 },
+        animate: { opacity: 1, x: 0 },
+        exit: { opacity: 0, x: -14 },
+      };
+  const stuMotion = reducedMotion
+    ? { initial: { opacity: 0 }, animate: { opacity: 1 } }
+    : { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 } };
   const getSupabaseJwt = useCallback(
     () => getToken({ template: "supabase-integration" }),
     [getToken],
@@ -722,14 +717,24 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
         );
 
       default:
-        return <div>Unsupported question type</div>;
+        return (
+          <div className={styles.unsupportedWrap} role="alert">
+            <p className={styles.unsupportedTitle}>
+              This question type isn&apos;t available
+            </p>
+            <p className={styles.unsupportedBody}>
+              Refresh the page to reload the questionnaire. If this keeps
+              happening, contact support with the question you were on.
+            </p>
+          </div>
+        );
     }
   };
 
   if (loading) {
     return (
       <div
-        className={`${styles.shell} ${className}`}
+        className={`${styles.shell} dark ${className}`}
         data-testid="ai-questionnaire-root"
         data-state="loading"
       >
@@ -748,7 +753,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
   if (completed) {
     return (
       <div
-        className={`${styles.shell} max-w-2xl ${className}`}
+        className={`${styles.shell} dark max-w-2xl ${className}`}
         data-testid="ai-questionnaire-root"
         data-state="completed"
       >
@@ -756,10 +761,14 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
           <div className="text-center space-y-6">
             <InteractiveStu size="lg" />
             <div className="space-y-4">
-              <h2 className={styles.completeTitle}>Questionnaires complete</h2>
+              <h2 className={styles.completeTitle}>You&apos;re all set</h2>
               <p className={styles.completeBody}>
-                I&apos;ve learned a lot about your study habits and preferences.
-                This will help me give you better personalized suggestions.
+                Your answers shape study suggestions, scheduling hints, and
+                coaching from Stu — tuned to how you actually work.
+              </p>
+              <p className={styles.trustHint}>
+                We use this profile only to personalize your experience in
+                MemoSpark.
               </p>
               {stuMessage && (
                 <div className={styles.stuHighlight}>{stuMessage}</div>
@@ -797,19 +806,21 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
   if (!currentTemplate) {
     return (
       <div
-        className={`${styles.shell} max-w-2xl ${className}`}
+        className={`${styles.shell} dark max-w-2xl ${className}`}
         data-testid="ai-questionnaire-root"
         data-state="idle"
       >
         <div className={`${styles.panel} ${styles.panelPadLg}`}>
-          <div className="text-center space-y-6">
+          <div className="text-center space-y-5">
             <InteractiveStu size="lg" />
-            <div className="space-y-4">
-              <h2 className={styles.title}>Ready to start your assessment?</h2>
+            <div className="space-y-3">
+              <p className={styles.eyebrow}>Study profile</p>
+              <h2 className={styles.idleTitle}>Short questionnaire</h2>
               <p className={styles.completeBody}>
-                I&apos;ll learn your study patterns and preferences so
-                recommendations fit you.
+                Answer at your own pace. There are no wrong answers — we use
+                this to calibrate reminders, focus tips, and your timetable.
               </p>
+              <p className={styles.idleHint}>Usually a few minutes.</p>
               <button
                 type="button"
                 className={`${styles.primaryBtn} w-full sm:w-auto`}
@@ -823,8 +834,8 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4" aria-hidden />
-                    Start assessment
+                    <ListTodo className="w-4 h-4" aria-hidden />
+                    Begin
                   </>
                 )}
               </button>
@@ -838,34 +849,37 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
   const currentQuestion = currentTemplate.questions[currentQuestionIndex];
   const progress =
     ((currentQuestionIndex + 1) / currentTemplate.questions.length) * 100;
-  const IconComponent =
-    categoryIcons[currentTemplate.category as keyof typeof categoryIcons] ??
-    Sparkles;
 
   return (
     <div
-      className={`${styles.shell} ${className}`}
+      className={`${styles.shell} dark ${className}`}
       data-testid="ai-questionnaire-root"
       data-state="in-progress"
     >
       <div className={`${styles.panel} ${styles.panelPad}`}>
-        <div className={styles.headerRow}>
-          <div
-            className={`${styles.categoryIcon} ${questionnaireCategoryClass(currentTemplate.category)}`}
-          >
-            <IconComponent className="h-6 w-6" aria-hidden />
+        <div className={styles.topMeta}>
+          <p className={styles.eyebrow}>Study profile</p>
+          <span className={styles.categoryPill}>
+            {formatCategoryLabel(currentTemplate.category)}
+          </span>
+          <div className={styles.titleRow}>
+            <h1 className={styles.title}>{currentTemplate.title}</h1>
+            <span className={styles.badge}>
+              {currentQuestionIndex + 1} / {currentTemplate.questions.length}
+            </span>
           </div>
-          <div className={styles.titleBlock}>
-            <div className={styles.title}>
-              <span>{currentTemplate.title}</span>
-              <span className={styles.badge}>
-                {currentQuestionIndex + 1} of {currentTemplate.questions.length}
-              </span>
-            </div>
+          {currentTemplate.description ? (
             <p className={styles.description}>{currentTemplate.description}</p>
-          </div>
+          ) : null}
         </div>
-        <div className={styles.progressTrack} aria-hidden>
+        <div
+          className={styles.progressTrack}
+          role="progressbar"
+          aria-valuenow={Math.round(progress)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Questionnaire progress"
+        >
           <div
             className={styles.progressFill}
             style={{ width: `${progress}%` }}
@@ -875,8 +889,9 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
 
       {stuMessage && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={stuMotion.initial}
+          animate={stuMotion.animate}
+          transition={stepTransition}
           className={styles.stuMessage}
         >
           <InteractiveStu size="sm" />
@@ -889,19 +904,19 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
       <AnimatePresence mode="wait">
         <motion.div
           key={currentQuestionIndex}
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -50 }}
-          transition={{ duration: 0.3 }}
+          initial={stepMotion.initial}
+          animate={stepMotion.animate}
+          exit={stepMotion.exit}
+          transition={stepTransition}
           data-testid="ai-questionnaire-question"
         >
           <div
-            className={`${styles.panel} ${styles.panelPad} ${styles.focusWithin}`}
+            className={`${styles.panel} ${styles.panelPad} ${styles.focusWithin} ${styles.questionCard}`}
           >
             <h2 className={styles.questionTitle}>
               {currentQuestion.question}
               {currentQuestion.required && (
-                <span className="ml-1 text-red-400" aria-hidden>
+                <span className={`ml-1 ${styles.requiredMark}`} aria-hidden>
                   *
                 </span>
               )}
