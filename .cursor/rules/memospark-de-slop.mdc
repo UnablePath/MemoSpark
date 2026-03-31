@@ -1,0 +1,394 @@
+---
+description: MemoSpark DE-SLOP master rules — MCP workflow, product context, UX copy, naming, code quality
+alwaysApply: true
+---
+
+# MEMOSPARK DE-SLOP MASTER RULES
+
+memospark.live — live student productivity web app. Ghanaian students. Timetable, Crashout mood journal, Streaks, Stu AI assistant, Social/messaging, Stress game, Voice input. 20 GHS/month premium. Real users. Not a template.
+
+---
+
+# SECTION 1: MCP TOOL RULES — WHEN AND HOW TO USE EACH
+
+## CONTEXT7 — Always use for library documentation
+
+Every time you write code that uses an external library (React, Next.js, Supabase, Tailwind, Framer Motion, Zustand, React Query, Radix, Zod, date-fns, any npm package), you MUST:
+
+1. Call resolve-library-id with the library name
+2. Call get-library-docs with the resolved ID
+3. Only then write code using that library
+
+Never rely on training memory for API shapes, hook signatures, or config options. Libraries change. Training data lies. This is non-negotiable for every external dependency.
+
+**Trigger:** Any import statement involving node_modules.
+
+## DESIGN-INSPIRATION — Use before touching any UI
+
+This MCP searches Dribbble, Behance, Awwwards, Mobbin, and Pinterest for real reference designs. It also extracts actual design tokens (colors, fonts, spacing, border-radius values) from any live website URL via headless browser.
+
+Use it in TWO ways:
+
+### Way 1 — Pull references before redesigning anything
+
+Before touching any UI component, search for what great versions of that component look like in the real world:
+
+- `design_search_images("student productivity app mobile dark")`
+- `design_search_images("mood journal entry card interface")`
+- `design_search_images("streak counter gamification mobile")`
+- `design_search_images("onboarding flow student app minimal")`
+- `design_search_images("achievement unlock notification mobile")`
+- `design_search_styles("fintech dashboard west africa mobile")`
+
+Then describe what you observe in those references before coding. Let the references visibly inform the implementation. Do not ignore them.
+
+### Way 2 — Extract tokens from sites worth emulating
+
+When you find a site whose design language fits MemoSpark, extract its exact tokens:
+
+- `design_extract_tokens("https://example-site.com")`
+
+This returns real hex values, font families, spacing units, and border-radius values. Use these as the foundation for whatever you're building — not guesswork.
+
+**MANDATORY:** For any screen-level component or feature redesign, call design-inspiration BEFORE writing a single line of CSS or Tailwind. No exceptions.
+
+**Suggested extraction targets (run these at session start):**
+
+- `design_extract_tokens("https://duolingo.com")`
+- `design_extract_tokens("https://notion.so")`
+- `design_extract_tokens("https://linear.app")`
+- `design_extract_tokens("https://arc.net")`
+
+## PLAYWRIGHT — Live design mirror and de-slop verifier
+
+Playwright gives you a real browser inside Cursor. Use it to:
+
+### Before de-slopping any feature
+
+- Navigate to production, screenshot — before state.
+
+### After making changes, verify locally
+
+- Navigate to `http://localhost:3000/[route]`, screenshot — compare to before.
+
+### Extract computed CSS from any reference site
+
+Navigate, then evaluate JS to read `getComputedStyle` on a representative element. Real computed values, not guesses.
+
+### Audit heading hierarchy during de-slop
+
+Evaluate: map `h1`–`h4` to tag + truncated text.
+
+### Check colour contrast on any element
+
+Evaluate: return text and background colors from computed style.
+
+**RULE:** Playwright is not just for testing. It is the live visual feedback loop throughout this entire de-slop session.
+
+## SEMGREP — Runs after every file edit, no exceptions
+
+After every file you modify:
+
+1. Call security_check on the modified file
+2. Fix all findings silently before presenting code
+3. Use get_abstract_syntax_tree before modifying any file whose structure you're not certain of — never guess
+
+NEVER present code with unresolved security findings. NEVER add semgrep-ignore without explicit user approval and a written justification in the same line comment.
+
+## ESLINT — Runs after every JS/TS/JSX/TSX edit
+
+After every frontend file edit:
+
+1. Run eslint on the changed file
+2. Errors are blockers — fix before presenting
+3. Warnings are fixed unless explicitly dismissed
+4. Never add eslint-disable without explicit approval
+
+Most common AI code failures eslint catches:
+
+- useEffect with missing dependencies (#1 AI tell)
+- Unused variables and imports left silently
+- Implicit any on API responses
+- Missing return types on async functions
+- No-floating-promises
+
+## GIT — Consult history before changing anything
+
+Before modifying any existing file:
+
+1. Call git_log on that file (last 15 commits minimum)
+2. If a commit mentions a bug fix, read that diff before touching the code it affected
+3. Call git_diff_unstaged before summarising what changed
+
+A strange pattern usually exists for a reason. Check history before removing anything that looks unnecessary.
+
+**Commit message format:**
+
+- Imperative mood, max 72 chars, domain-specific
+
+**BANNED:** "refactor code", "update files", "fix bug", "wip"
+
+**REQUIRED examples:** "fix streak reset on midnight timezone rollover", "replace generic empty state with Crashout copy", "extract useTimetable hook, add error boundary"
+
+## GITHUB — Search before creating anything
+
+Before creating any component, hook, util, or helper:
+
+1. Search the repo for existing implementations
+2. If found: use it, extend via props if needed
+3. If multiple versions exist: consolidate, don't add another
+
+If Button, Modal, Card, Input, Badge, Toast, Spinner already exist in this codebase — USE THEM. Never create ButtonNew, ModalV2, CustomCard, or any fork of an existing component.
+
+---
+
+# SECTION 2: MEMOSPARK PRODUCT CONTEXT
+
+You are working on MemoSpark (memospark.live). It is a live product for real Ghanaian students. Not a template. Not a demo.
+
+Core features — understand these before touching any file:
+
+**TIMETABLE** — Weekly schedule builder. Courses, lecturers, rooms, times. This is the product backbone. Terms: courseSlot, timetableEntry, lecturerId, weeklySchedule, semesterCalendar
+
+**CRASHOUT** — Mood journal. Students log emotional state daily. Can be private or shared to the community. Terms: crashoutEntry, moodScore, emotionTag, journalPost, crashoutFeed
+
+**STREAKS** — Study consistency. Consecutive days → coins → achievements. Breaking resets the counter. Terms: streakCount, streakRecord, coinBalance, coinTransaction, streakDay, streakResetEvent
+
+**STU** — AI study assistant with personality. Stu has a name and voice. Stu "thinks." Stu "suggests." Stu does not "process" or "return results." Terms: stuResponse, stuQuery, stuThinking, stuSuggestion, studyPlan
+
+**SOCIAL** — Messaging and community between students. Terms: studentMessage, conversationThread, communityPost, classroomGroup, peerConnection
+
+**STRESS GAME** — Micro-game for stress relief. Terms: gameSession, stressLevel, gameScore
+
+**VOICE INPUT** — Voice-to-text for tasks and notes. Terms: voiceRecording, transcribedText, voiceNote
+
+**PREMIUM** — 20 GHS/month. Ghanaian pricing. Not USD-first. Terms: subscriptionTier, premiumStatus, paymentRecord, ghsAmount
+
+---
+
+# SECTION 3: DESIGN PHILOSOPHY
+
+## What MemoSpark should feel like
+
+Somewhere between Duolingo's encouragement mechanics, Notion's calm utility, and the visual warmth of apps built for Gen Z. Mobile-first. Lightweight in feel. Warm, not clinical. Gamified in the right places without feeling cheap.
+
+## Typography — how to search for it
+
+Use design_search_images for: editorial sans serif student app, warm geometric typeface mobile UI, duolingo-style friendly typography, calm productivity app type pairing.
+
+Never default to Inter alone. If Inter exists in the codebase, either pair it with something that adds character or replace it. Always search references first, then decide.
+
+## Color — how to think about it
+
+MemoSpark needs:
+
+- A primary that feels encouraging, not demanding (warm — not default purple-600)
+- Surface system supporting long reading sessions (warm off-whites, not pure #FFFFFF)
+- Emotional palette variation: Crashout features can use a different temperature than the streak/achievement system
+
+Before touching any color system, run design_extract_tokens on duolingo.com and notion.so, then compare with MemoSpark's current palette and decide what to keep and what to update.
+
+## Banned UI patterns — remove on sight
+
+These signal "AI wrote this." Find and eliminate them.
+
+- `bg-purple-600 text-white rounded-lg shadow-md p-4` → The default AI card. No intentional decisions here.
+- `flex items-center justify-between` on every card and header → Thoughtless layout.
+- `font-family: Inter` as the only font, no pairing → Lazy default.
+- Pure white backgrounds with purple gradient CTAs → The ur-slop aesthetic.
+- `<Spinner />` with no context label → Generic. Tells the user nothing.
+- "No data available." / "Nothing here yet." → Database errors dressed as UX copy.
+- Cards with identical radius, padding, shadow, and color → Visual monotony.
+- Hover: color changes slightly → Not interaction design.
+
+---
+
+# SECTION 4: NAMING RULES
+
+All names must use MemoSpark domain language. Generic names are rejected without exception.
+
+## Variables
+
+- data → streakRecord, scheduleEntries, moodLog
+- result → updatedStreak, fetchedTimetable, savedCrashout
+- item / items → courseSlot, streakDay, journalEntry, coinTx
+- user → student (MemoSpark users are students)
+- handleClick → handleStreakClaim, handleMoodSubmit, handleStuQuery
+- fetchData → fetchTimetable, fetchStreakHistory, fetchCrashouts
+- isLoading → isStreakLoading, isTimetableFetching, isStuThinking
+- error → streakError, timetableError, stuConnectionError
+- value → moodScore, coinBalance, streakCount, studyMinutes
+- id → studentId, courseId, streakId, achievementId
+- response → stuResponse, timetableResponse, streakResponse
+- callback → onStreakClaimed, onMoodLogged, onCrashoutPosted
+
+## Custom hooks
+
+- useData → useTimetable, useStreak, useCrashouts, useStu
+- useFetch → useStudentSchedule, useStreakHistory
+- useForm → useMoodForm, useCourseForm, useCrashoutForm
+
+## Components
+
+- Card → StreakCard, MoodCard, CourseCard, AchievementCard
+- Modal → StreakResetModal, CrashoutModal, StuSuggestionModal
+- Button → ClaimStreakButton, SubmitMoodButton, AskStuButton
+- List → TimetableList, CrashoutFeed, AchievementGrid
+- Badge → StreakBadge, CoinBadge, AchievementBadge
+- Input → CourseNameInput, MoodScoreInput, VoiceNoteInput
+
+## Service functions
+
+- get → getTimetableForWeek, getStreakForStudent
+- update → updateStreakAfterSession, updateCrashoutEntry
+- create → createCourseSlot, createCrashoutEntry
+- delete → removeCourseFromTimetable, clearStreakRecord
+- submit → submitMoodEntry, submitStuQuery
+
+---
+
+# SECTION 5: ERROR HANDLING
+
+Format every error handler like this:
+
+```ts
+catch (err) {
+  console.error('[feature:action]', err)
+  setError("Human-readable MemoSpark-voiced message.")
+}
+```
+
+Console tag must name feature and action: `[streak:claim]`, `[timetable:fetch]`, `[stu:query]`, `[crashout:submit]`, `[auth:login]`, `[social:send]`
+
+## Required messages by feature
+
+**Streak:** "Couldn't save your streak right now. Check your connection and try again." / "Your streak data is taking a while to load. Pull to refresh."
+
+**Timetable:** "Couldn't load your schedule. Check your connection or try again in a moment." / "This course couldn't be added right now. Try again."
+
+**Stu:** "Stu's having a moment — ask again in a few seconds." / "Stu couldn't connect. Check your data and try again." / "Stu is thinking a bit slower than usual right now."
+
+**Crashout:** "Your mood entry didn't save. Don't worry, try again." / "The Crashout feed isn't loading right now."
+
+**Auth:** "Couldn't sign you in. Double-check your details." / "Sign-up hit a snag. Try again or contact support."
+
+**Social:** "Message couldn't send. Check your connection." / "Couldn't load your conversations right now."
+
+## Banned error patterns
+
+- `catch (e) { console.log(e) }`
+- `setError('Something went wrong')`
+- `setError('An error occurred. Please try again.')`
+- `setError('Error')`
+- `alert(error.message)`
+- Exposing raw API error strings to the UI
+
+---
+
+# SECTION 6: EMPTY STATES
+
+**BANNED:** "No data available." / "No items found." / "Nothing here yet." / "No results." / "This list is empty."
+
+**REQUIRED by feature:**
+
+- No courses: "Add your first course and Stu will help you build a study plan around it."
+- No streak: "Start your first study session today — your streak begins with one day."
+- Broken streak: "Streaks break sometimes. Today is a fresh start."
+- No crashout entries: "No mood entries yet. How are you feeling today?"
+- No achievements: "Your first achievement is closer than you think — keep showing up."
+- No social messages: "No conversations yet. Connect with a classmate to get started."
+- No community posts: "Nothing posted yet. Be the first to share."
+- No Stu suggestions: "Add your courses and Stu will start suggesting study sessions for you."
+- No voice notes: "Nothing recorded yet. Tap the mic to add a voice note."
+- Search empty: "No results for '[query]' — try different words or check the spelling."
+
+---
+
+# SECTION 7: LOADING STATES
+
+**BANNED:** `<Spinner />` alone; "Loading..." as standalone text; pulse over empty div; full-page spinner with no label.
+
+**REQUIRED:** Skeleton loaders matching the exact shape of the real content. Three skeleton items visible while loading.
+
+Loading copy by feature:
+
+- Timetable: "Fetching your schedule..."
+- Streaks: "Getting your streak..."
+- Crashout: "Loading your mood log..."
+- Stu: "Stu is thinking..."
+- Social: "Loading your conversations..."
+- Achievements: "Loading your achievements..."
+
+For Stu specifically: animated typing indicator with name visible. "Stu is thinking..." with three animated dots. Never just a spinner.
+
+---
+
+# SECTION 8: CODE QUALITY
+
+## No placeholder comments in committed code
+
+**BANNED:** `// TODO: implement`, `// Add logic here`, `// Handle this`, `// Coming soon`, `// Fix later`, `// temp solution`
+
+Raise unfinished work explicitly to the user. Never silently leave stubs.
+
+## No premature abstraction
+
+Do not create a util, helper, wrapper, or HOC unless it is called from at least 2 different places. Write directly first.
+
+## useEffect — the #1 AI tell
+
+Every async useEffect must have: (1) a cancelled flag for cleanup, (2) proper error handling in catch, (3) all dependencies listed, (4) loading state set to true before call, (5) loading state reset in finally.
+
+**BANNED:** bare `useEffect(() => { fetchData() }, [])`
+
+**REQUIRED:** cancelled flag pattern with try/catch/finally and domain-specific loading and error state.
+
+## TypeScript
+
+- No implicit any
+- Props must have a named interface or type alias
+- API responses must be typed — no `as any` on fetch
+- Use discriminated unions for async state where appropriate
+
+## Dead code
+
+Flagged by semgrep or eslint → delete it. Do not comment out. Git is the backup.
+
+## Import order
+
+1. React and framework
+2. Third-party libraries
+3. Internal components (absolute paths)
+4. Internal hooks
+5. Internal utils/services
+6. Types
+7. Styles/CSS
+
+---
+
+# SECTION 9: THE DE-SLOP WORKFLOW
+
+Follow this sequence for every file. Do not skip steps.
+
+1. **Capture before state** — Playwright: production URL, screenshot.
+2. **Check history** — git_log on file (15 commits min).
+3. **Understand structure** — semgrep AST if needed.
+4. **Get design references** — design_search_images + design_extract_tokens.
+5. **Audit for slop** — List generic names, placeholder comments, bare useEffect, missing TS, generic errors/empty states, spinners, banned UI, unused imports, dead code, duplicated logic, recreated components. Present the full list before making changes.
+6. **Categorise** — SAFE (rename, retype, copy, cleanup) vs NEEDS APPROVAL (new hooks, structure, API). Apply SAFE immediately; get approval for NEEDS APPROVAL.
+7. **Implement** — Domain names; context7 for library APIs.
+8. **Verify** — eslint + semgrep on modified files.
+9. **Visual check** — localhost route, screenshot.
+10. **Report** — What changed, what was skipped and why, future passes.
+
+---
+
+# SECTION 10: WHAT THIS PRODUCT IS
+
+MemoSpark is memospark.live — a live product used by real students managing real academic pressure in Ghana.
+
+The 20 GHS/month price means these users are paying real money from limited budgets. They deserve code that works properly, UI that doesn't look AI-generated, and a product that feels built for them — not assembled from defaults and shipped.
+
+Every variable name, error message, empty state, loading skeleton, and color choice should feel like it was written by someone who thought about a Ghanaian university student sitting in a lecture hall with one bar of data, checking whether their streak is still intact.
+
+Write like that person exists. Because they do.

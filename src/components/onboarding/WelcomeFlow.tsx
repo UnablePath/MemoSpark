@@ -1,12 +1,18 @@
-'use client';
+"use client";
 
-import type React from 'react';
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, Calendar, Target, ArrowRight, CheckCircle } from 'lucide-react';
-import { InteractiveStu } from '@/components/stu/InteractiveStu';
+import { InteractiveStu } from "@/components/stu/InteractiveStu";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ArrowRight,
+  Calendar,
+  CheckCircle,
+  Sparkles,
+  Target,
+} from "lucide-react";
+import type React from "react";
+import { useEffect, useState } from "react";
+
+import styles from "@/components/onboarding/WelcomeFlow.module.css";
 
 interface WelcomeFlowProps {
   userName?: string;
@@ -16,7 +22,7 @@ interface WelcomeFlowProps {
 
 interface PersonalizedSuggestion {
   id: string;
-  type: 'task' | 'schedule' | 'tip';
+  type: "task" | "schedule" | "tip";
   title: string;
   description: string;
   icon: React.ReactNode;
@@ -26,77 +32,96 @@ interface PersonalizedSuggestion {
 export const WelcomeFlow: React.FC<WelcomeFlowProps> = ({
   userName,
   userSubjects = [],
-  onComplete
+  onComplete,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [suggestions, setSuggestions] = useState<PersonalizedSuggestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(true);
 
-  // Generate personalized starter suggestions from onboarding data
   useEffect(() => {
     const generateSuggestions = async () => {
       setIsGenerating(true);
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       const personalizedSuggestions: PersonalizedSuggestion[] = [
         {
-          id: '1',
-          type: 'task',
-          title: 'Create Your First Study Session',
-          description: userSubjects.length > 0 
-            ? `I've prepared a ${userSubjects[0]} study plan for you!`
-            : 'Let\'s set up your first productive study session.',
-          icon: <Calendar className="h-5 w-5 text-blue-500" />,
-          action: 'Create Session'
+          id: "1",
+          type: "task",
+          title: "Create Your First Study Session",
+          description:
+            userSubjects.length > 0
+              ? `I've prepared a ${userSubjects[0]} study plan for you!`
+              : "Let's set up your first productive study session.",
+          icon: (
+            <Calendar
+              className={styles.iconBlue}
+              size={20}
+              aria-hidden="true"
+            />
+          ),
+          action: "Create Session",
         },
         {
-          id: '2',
-          type: 'schedule',
-          title: 'Optimize Your Study Time',
-          description: 'Based on research, I recommend studying in 25-minute focused blocks.',
-          icon: <Target className="h-5 w-5 text-green-500" />,
-          action: 'Set Schedule'
+          id: "2",
+          type: "schedule",
+          title: "Optimize Your Study Time",
+          description:
+            "Based on research, I recommend studying in 25-minute focused blocks.",
+          icon: (
+            <Target className={styles.iconGreen} size={20} aria-hidden="true" />
+          ),
+          action: "Set Schedule",
         },
         {
-          id: '3',
-          type: 'tip',
-          title: 'Smart Study Tip',
-          description: 'Try the "explain it to someone else" technique to boost retention by 90%!',
-          icon: <Sparkles className="h-5 w-5 text-purple-500" />,
-          action: 'Learn More'
-        }
+          id: "3",
+          type: "tip",
+          title: "Smart Study Tip",
+          description:
+            'Try the "explain it to someone else" technique to boost retention by 90%!',
+          icon: (
+            <Sparkles
+              className={styles.iconPurple}
+              size={20}
+              aria-hidden="true"
+            />
+          ),
+          action: "Learn More",
+        },
       ];
-      
+
       setSuggestions(personalizedSuggestions);
       setIsGenerating(false);
     };
 
-    generateSuggestions();
+    void generateSuggestions();
   }, [userSubjects]);
 
   const steps = [
     {
-      title: `Welcome to MemoSpark${userName ? `, ${userName}` : ''}! 🎉`,
+      title: `Welcome to MemoSpark${userName ? `, ${userName}` : ""}!`,
       content: (
-        <div className="text-center space-y-4">
-          <div className="mx-auto w-24 h-24 mb-4">
+        <div className={styles.center}>
+          <div className={styles.stuWrap}>
             <InteractiveStu size={96} />
           </div>
-          <p className="text-muted-foreground">
-            I&apos;m Stu, your study sidekick. I&apos;ll use what you told us to suggest a few sensible next steps.
+          <p className={styles.muted}>
+            I&apos;m Stu, your study sidekick. I&apos;ll use what you told us to
+            suggest a few sensible next steps.
           </p>
         </div>
-      )
+      ),
     },
     {
-      title: 'Suggestions to start with',
+      title: "Suggestions to start with",
       content: (
-        <div className="space-y-4">
+        <div className={styles.suggestionList}>
           {isGenerating ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Generating your personalized study plan...</p>
+            <div className={styles.loadingBox}>
+              <div className={styles.spinner} aria-hidden="true" />
+              <p className={styles.muted}>
+                Generating your personalized study plan...
+              </p>
             </div>
           ) : (
             <AnimatePresence>
@@ -107,57 +132,54 @@ export const WelcomeFlow: React.FC<WelcomeFlowProps> = ({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.2 }}
                 >
-                  <Card className="border-l-4 border-l-primary">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="mt-1">
-                          {suggestion.icon}
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm mb-1">
-                            {suggestion.title}
-                          </h4>
-                          <p className="text-sm text-muted-foreground mb-3">
-                            {suggestion.description}
-                          </p>
-                          {suggestion.action && (
-                            <Button size="sm" variant="outline" className="text-xs">
-                              {suggestion.action}
-                              <ArrowRight className="ml-1 h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
+                  <div className={styles.suggestionCard}>
+                    <div className={styles.suggestionRow}>
+                      <div>{suggestion.icon}</div>
+                      <div className={styles.suggestionBody}>
+                        <h4 className={styles.suggestionTitle}>
+                          {suggestion.title}
+                        </h4>
+                        <p className={styles.suggestionDesc}>
+                          {suggestion.description}
+                        </p>
+                        {suggestion.action ? (
+                          <button type="button" className={styles.btnSm}>
+                            {suggestion.action}
+                            <ArrowRight size={14} aria-hidden="true" />
+                          </button>
+                        ) : null}
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </motion.div>
               ))}
             </AnimatePresence>
           )}
         </div>
-      )
+      ),
     },
     {
-      title: 'You\'re All Set! 🚀',
+      title: "You're All Set!",
       content: (
-        <div className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4">
-            <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+        <div className={styles.center}>
+          <div className={styles.successIcon}>
+            <CheckCircle size={32} aria-hidden="true" />
           </div>
-          <p className="text-muted-foreground">
-            Your MemoSpark dashboard is ready! I'll continue learning your study patterns and providing smarter suggestions as you use the app.
+          <p className={styles.muted}>
+            Your MemoSpark dashboard is ready! I&apos;ll continue learning your
+            study patterns and providing smarter suggestions as you use the app.
           </p>
-          <div className="bg-muted p-4 rounded-lg">
-            <p className="text-sm font-medium mb-2">Quick Start Tips:</p>
-            <ul className="text-sm text-muted-foreground space-y-1 text-left">
-              <li>• Add your first task in the Tasks tab</li>
-              <li>• Check out the Gamification tab for achievements</li>
-              <li>• Visit the Connections tab to find study partners</li>
+          <div className={styles.tipsBox}>
+            <p className={styles.tipsTitle}>Quick Start Tips:</p>
+            <ul className={styles.tipsList}>
+              <li>Add your first task in the Tasks tab</li>
+              <li>Check out the Gamification tab for achievements</li>
+              <li>Visit the Connections tab to find study partners</li>
             </ul>
           </div>
         </div>
-      )
-    }
+      ),
+    },
   ];
 
   const handleNext = () => {
@@ -173,76 +195,82 @@ export const WelcomeFlow: React.FC<WelcomeFlowProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <dialog
+      className={styles.overlay}
+      open
+      aria-labelledby="welcome-flow-title"
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-lg"
+        className={styles.modal}
       >
-        <Card className="shadow-2xl">
-          <CardHeader className="text-center pb-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex space-x-1">
-                {steps.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`w-2 h-2 rounded-full transition-colors ${
-                      index <= currentStep ? 'bg-primary' : 'bg-muted'
-                    }`}
-                  />
-                ))}
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSkip}
-                className="text-xs text-muted-foreground"
-              >
-                Skip
-              </Button>
+        <div className={styles.header}>
+          <div className={styles.headerTop}>
+            <div className={styles.dots} aria-hidden="true">
+              {steps.map((s, index) => (
+                <div
+                  key={s.title}
+                  className={
+                    index <= currentStep
+                      ? `${styles.dot} ${styles.dotActive}`
+                      : styles.dot
+                  }
+                />
+              ))}
             </div>
-            <CardTitle className="text-xl">
-              {steps[currentStep].title}
-            </CardTitle>
-          </CardHeader>
-          
-          <CardContent className="pb-6">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentStep}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                {steps[currentStep].content}
-              </motion.div>
-            </AnimatePresence>
-            
-            <div className="flex justify-between items-center mt-6">
-              <div className="text-sm text-muted-foreground">
-                {currentStep + 1} of {steps.length}
-              </div>
-              
-              <Button onClick={handleNext} className="flex items-center gap-2">
-                {currentStep === steps.length - 1 ? (
-                  <>
-                    Get Started
-                    <Sparkles className="h-4 w-4" />
-                  </>
-                ) : (
-                  <>
-                    {currentStep === 0 ? 'Show Me!' : 'Continue'}
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </Button>
+            <button
+              type="button"
+              className={styles.btnGhost}
+              onClick={handleSkip}
+            >
+              Skip
+            </button>
+          </div>
+          <h2 id="welcome-flow-title" className={styles.title}>
+            {steps[currentStep].title}
+          </h2>
+        </div>
+
+        <div className={styles.body}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {steps[currentStep].content}
+            </motion.div>
+          </AnimatePresence>
+
+          <div className={styles.footer}>
+            <div className={styles.stepMeta}>
+              {currentStep + 1} of {steps.length}
             </div>
-          </CardContent>
-        </Card>
+
+            <button
+              type="button"
+              className={styles.btnPrimary}
+              onClick={handleNext}
+            >
+              {currentStep === steps.length - 1 ? (
+                <>
+                  Get Started
+                  <Sparkles size={18} aria-hidden="true" />
+                </>
+              ) : (
+                <>
+                  {currentStep === 0 ? "Show Me!" : "Continue"}
+                  <ArrowRight size={18} aria-hidden="true" />
+                </>
+              )}
+            </button>
+          </div>
+        </div>
       </motion.div>
-    </div>
+    </dialog>
   );
 };
-

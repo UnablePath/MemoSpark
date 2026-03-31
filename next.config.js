@@ -83,6 +83,10 @@ const nextConfig = {
   },
   // Enable Turbopack for development (now stable)
   turbopack: {},
+  /** Legacy `/clerk-onboarding` was sunset: no app route; middleware sends incomplete users to `/onboarding`. */
+  async redirects() {
+    return [];
+  },
 };
 
 module.exports = nextConfig;

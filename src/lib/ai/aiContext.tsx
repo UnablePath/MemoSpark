@@ -3,7 +3,6 @@
 import type React from 'react';
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react'
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { useUser } from '../user-context'; 
 import { supabase, supabaseHelpers } from '../supabase/client';
 import { PatternRecognitionEngine } from '../ai/patternEngine'; // Import the main engine
 import type { AISuggestion } from '@/types/ai'; // Import AISuggestion from centralized types
@@ -57,7 +56,6 @@ export const AIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     'memospark_ai_user_profiles', // Changed local storage key to reflect table
     defaultUserAIPreferences
   );
-  // const { profile } = useUser(); // We might not need profile from UserContext if we fetch auth user directly
   const [authUserId, setAuthUserId] = useState<string | undefined>(undefined);
 
   useEffect(() => {

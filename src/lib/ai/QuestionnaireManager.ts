@@ -1,4 +1,4 @@
-import { supabase as supabaseClient, createAuthenticatedSupabaseClient } from '@/lib/supabase/client';
+import { createAuthenticatedSupabaseClient } from '@/lib/supabase/client';
 import { consolidatedAIService } from './ConsolidatedAIService';
 import { patternEngine } from './patternEngine';
 import { updateUserMetadataAction } from '@/app/questionnaire/_actions';
@@ -82,13 +82,11 @@ export interface UserAIPatterns {
 
 export class QuestionnaireManager {
   private supabase: any;
-  private publicSupabase: any;
   private aiService = consolidatedAIService;
   private patternEngine = patternEngine;
 
   constructor(getToken?: () => Promise<string | null>) {
     this.supabase = createAuthenticatedSupabaseClient(getToken);
-    this.publicSupabase = supabaseClient; // For public template queries
   }
 
   /**
@@ -98,12 +96,12 @@ export class QuestionnaireManager {
     try {
       console.log('Fetching active questionnaire templates...');
       
-      if (!this.publicSupabase) {
-        console.error('Public Supabase client not initialized');
+      if (!this.supabase) {
+        console.error('Supabase client not initialized');
         throw new Error('Database connection not available');
       }
 
-      const { data, error } = await this.publicSupabase
+      const { data, error } = await this.supabase
         .from('questionnaire_templates')
         .select('*')
         .eq('is_active', true)
@@ -145,8 +143,7 @@ export class QuestionnaireManager {
    */
   async getTemplate(templateId: string): Promise<QuestionnaireTemplate | null> {
     try {
-      // Use public client for template reads to avoid any RLS restrictions for end users
-      const { data, error } = await this.publicSupabase
+      const { data, error } = await this.supabase
         .from('questionnaire_templates')
         .select('*')
         .eq('id', templateId)

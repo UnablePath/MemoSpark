@@ -72,14 +72,14 @@ File: `src/middleware.ts`
 
 ```typescript
 // Key Logic Verified:
-- Public routes: /, /sign-in(.*), /sign-up(.*), /clerk-onboarding(.*)
-- Onboarding redirection based on sessionClaims.metadata.onboardingComplete
-- Proper route matching and redirects
+- Public routes: /, /sign-in(.*), /sign-up(.*), … (see middleware)
+- Incomplete onboarding: redirect to `/onboarding` (allowlist: /onboarding, sync-profile, analytics/onboarding)
+- Onboarding gate uses sessionClaims.metadata.onboardingComplete
 ```
 
 ### 3.2 Redirection Logic
 - [x] **Unauthenticated users** → Redirected to sign-in ✅
-- [x] **Authenticated users without onboarding** → Redirected to `/clerk-onboarding` ✅
+- [x] **Authenticated users without onboarding** → Redirected to `/onboarding` ✅
 - [x] **Users on onboarding page** → No redirect (allowed to complete) ✅
 - [x] **Authenticated users with onboarding complete** → Access granted ✅
 
@@ -115,7 +115,7 @@ Webhook synchronizes:
 ## ✅ Test 5: Onboarding UI Components
 
 ### 5.1 Component Structure
-File: `src/app/clerk-onboarding/page.tsx` (Task 4)
+File: `src/components/onboarding/OnboardingWizard.tsx` (rendered from `src/app/onboarding/page.tsx`)
 
 - [x] **Step 1**: Name and Email input ✅
 - [x] **Step 2**: Year of Study and Birth Date ✅
@@ -148,7 +148,7 @@ File: `src/app/clerk-onboarding/page.tsx` (Task 4)
 ## ✅ Test 6: Server Action Implementation
 
 ### 6.1 Server Action Structure
-File: `src/app/clerk-onboarding/_actions.ts` (Task 5)
+File: `src/app/onboarding/_actions.ts`
 
 - [x] Zod validation schema ✅
 - [x] Authentication checks ✅

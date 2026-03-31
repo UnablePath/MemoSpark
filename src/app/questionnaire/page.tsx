@@ -28,8 +28,7 @@ function QuestionnairePageContent() {
   const router = useRouter();
   const fromOnboarding = searchParams.get('from') === 'onboarding';
 
-  const handleQuestionnaireComplete = (patterns: any) => {
-    console.log('AI Patterns analyzed:', patterns);
+  const handleQuestionnaireComplete = (_patterns: unknown) => {
     // Redirect to dashboard after completion
     setTimeout(() => {
       router.push('/dashboard');

@@ -11,6 +11,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 
 # Clerk Configuration
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key_here
+CLERK_SECRET_KEY=your_clerk_secret_key_here
+
+# After sign-in / sign-up (use /onboarding so the onboarding gate runs for SSO and email)
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/onboarding
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding
 
 # OneSignal Configuration  
 NEXT_PUBLIC_ONESIGNAL_APP_ID=your_onesignal_app_id_here

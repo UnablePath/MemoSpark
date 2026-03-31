@@ -1,9 +1,11 @@
 'use server'
 
 import { auth, clerkClient } from '@clerk/nextjs/server'
-import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+
+import { createSlidingWindowLimiter } from '@/lib/rate-limit-memory'
+import { createServerSupabaseWithClerkJwt } from '@/lib/supabase/server'
 
 // Zod schema for form validation
 const OnboardingFormSchema = z.object({
@@ -58,6 +60,15 @@ const OnboardingFormSchema = z.object({
 
 type OnboardingFormData = z.infer<typeof OnboardingFormSchema>;
 
+/** Soft cooldown per user to reduce double-submit / scripted bursts (best-effort per runtime). */
+const completionCooldownMs = new Map<string, number>();
+const COMPLETION_COOLDOWN_MS = 4000;
+
+const completionHourlyLimiter = createSlidingWindowLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 15,
+});
+
 // Enhanced response type for better error handling
 type ActionResponse = {
   success?: boolean;
@@ -66,26 +77,11 @@ type ActionResponse = {
   fieldErrors?: Record<string, string[]>;
 };
 
-/**
- * Get authenticated Supabase client for server actions
- * Uses singleton pattern to prevent multiple instances
- */
-function getServerSupabaseClient() {
-  // Import the server-side singleton
-  const { supabaseServer } = require('@/lib/supabase/server');
-  
-  if (!supabaseServer) {
-    throw new Error('Supabase server client not available');
-  }
-  
-  return supabaseServer;
-}
-
 export async function completeUserProfileOnboarding(formData: FormData): Promise<ActionResponse> {
   try {
     // 1. Get authenticated user
     const { userId } = await auth();
-    
+
     if (!userId) {
       return { 
         error: 'Authentication required. Please sign in and try again.',
@@ -106,7 +102,7 @@ export async function completeUserProfileOnboarding(formData: FormData): Promise
     };
 
     const validationResult = OnboardingFormSchema.safeParse(rawFormData);
-    
+
     if (!validationResult.success) {
       const fieldErrors: Record<string, string[]> = {};
       validationResult.error.errors.forEach((error) => {
@@ -126,12 +122,32 @@ export async function completeUserProfileOnboarding(formData: FormData): Promise
 
     const validatedData: OnboardingFormData = validationResult.data;
 
+    const now = Date.now();
+    const last = completionCooldownMs.get(userId);
+    if (last !== undefined && now - last < COMPLETION_COOLDOWN_MS) {
+      return {
+        success: true,
+        message: 'Onboarding is already being saved.',
+      };
+    }
+
+    if (!completionHourlyLimiter.allow(`onboarding-complete:${userId}`)) {
+      return {
+        error: 'Too many completion attempts. Please try again in a little while.',
+        success: false,
+      };
+    }
+    completionCooldownMs.set(userId, now);
+
     try {
       // 3. Update Clerk user metadata first - this drives onboarding completion
       const client = await clerkClient();
       await client.users.updateUser(userId, {
         publicMetadata: {
           onboardingComplete: true,
+          onboardingVersion: 2,
+          onboardingCompletedAt: new Date().toISOString(),
+          email: validatedData.email,
           name: validatedData.name,
           yearOfStudy: validatedData.yearOfStudy,
           birthDate: validatedData.birthDate,
@@ -144,44 +160,46 @@ export async function completeUserProfileOnboarding(formData: FormData): Promise
 
       // 4. Sync profile to Supabase (optional - Clerk is source of truth)
       try {
-        const supabase = getServerSupabaseClient();
-
-        // First check if we can get a valid Clerk token for Supabase auth
         const { getToken } = await auth();
         const clerkToken = await getToken({ template: 'supabase-integration' });
-        
+
         if (!clerkToken) {
           console.warn('No Clerk token available for Supabase - skipping profile sync');
           // Still mark onboarding as complete since Clerk metadata is the source of truth
         } else {
-          // 5. Use upsert to handle both insert and update cases
-          // RLS policies will automatically filter by the authenticated user (Clerk JWT)
-          const profileData = {
-            clerk_user_id: userId,
-            email: validatedData.email,
-            full_name: validatedData.name,
-            year_of_study: validatedData.yearOfStudy,
-            learning_style: validatedData.learningStyle,
-            subjects: validatedData.subjects,
-            interests: validatedData.interests,
-            ai_preferences: validatedData.aiPreferences,
-            onboarding_completed: true,
-            updated_at: new Date().toISOString(),
-          };
-
-          const { error: supabaseError } = await supabase
-            .from('profiles')
-            .upsert(profileData, {
-              onConflict: 'clerk_user_id'
-            });
-
-          if (supabaseError) {
-            console.error("Error syncing profile to Supabase:", supabaseError);
-            // Don't fail the entire operation if Supabase sync fails
-            // The Clerk metadata is the source of truth for onboarding completion
-            console.warn('Profile sync failed, but onboarding marked complete in Clerk');
+          const supabase = createServerSupabaseWithClerkJwt(clerkToken);
+          if (!supabase) {
+            console.warn('Supabase not configured - skipping profile sync');
           } else {
-            console.log('Profile successfully synced to Supabase');
+            // 5. Use upsert to handle both insert and update cases
+            // RLS policies use auth.jwt() ->> 'sub' from the Clerk JWT above
+            const profileData = {
+              clerk_user_id: userId,
+              email: validatedData.email,
+              full_name: validatedData.name,
+              year_of_study: validatedData.yearOfStudy,
+              learning_style: validatedData.learningStyle,
+              subjects: validatedData.subjects,
+              interests: validatedData.interests,
+              ai_preferences: validatedData.aiPreferences,
+              onboarding_completed: true,
+              updated_at: new Date().toISOString(),
+            };
+
+            const { error: supabaseError } = await supabase
+              .from('profiles')
+              .upsert(profileData, {
+                onConflict: 'clerk_user_id'
+              });
+
+            if (supabaseError) {
+              console.error("Error syncing profile to Supabase:", supabaseError);
+              // Don't fail the entire operation if Supabase sync fails
+              // The Clerk metadata is the source of truth for onboarding completion
+              console.warn('Profile sync failed, but onboarding marked complete in Clerk');
+            } else if (process.env.NODE_ENV === 'development') {
+              console.log('[onboarding] profile row upserted');
+            }
           }
         }
       } catch (supabaseError) {
@@ -193,6 +211,7 @@ export async function completeUserProfileOnboarding(formData: FormData): Promise
       revalidatePath('/dashboard');
       revalidatePath('/profile');
       revalidatePath('/');
+      revalidatePath('/onboarding');
 
       return { 
         success: true,

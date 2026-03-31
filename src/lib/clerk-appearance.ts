@@ -212,6 +212,15 @@ const lightElements = {
       boxShadow: `0 0 0 2px hsl(142 76% 36% / 0.25)`,
     },
   },
+  /** PasswordInput uses an absolutely positioned IconButton; avoid clipping and stacking issues */
+  formFieldInputGroup: {
+    overflow: 'visible',
+  },
+  formFieldInputShowPasswordButton: {
+    minHeight: 'unset',
+    minWidth: 'unset',
+    zIndex: 2,
+  },
   formButtonPrimary: {
     backgroundColor: PRIMARY,
     color: 'hsl(0 0% 100%)',
@@ -422,6 +431,14 @@ const darkElements = {
       borderColor: PRIMARY,
       boxShadow: `0 0 0 2px hsl(142 76% 36% / 0.35)`,
     },
+  },
+  formFieldInputGroup: {
+    overflow: 'visible',
+  },
+  formFieldInputShowPasswordButton: {
+    minHeight: 'unset',
+    minWidth: 'unset',
+    zIndex: 2,
   },
   formButtonPrimary: {
     backgroundColor: PRIMARY,

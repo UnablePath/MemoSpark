@@ -50,6 +50,17 @@
     opacity: 1 !important;
   }
 
+  /*
+   * Clerk @clerk/ui (SignIn/SignUp): password visibility uses IconButton with aria-label
+   * "Show password" / "Hide password" (see @clerk/ui PasswordInput). Global 44px min-height
+   * breaks the absolutely positioned control.
+   */
+  [data-clerk-component] button[aria-label="Show password"],
+  [data-clerk-component] button[aria-label="Hide password"] {
+    min-height: unset !important;
+    min-width: unset !important;
+  }
+
   /* Optimize form inputs for mobile */
   input, 
   textarea, 

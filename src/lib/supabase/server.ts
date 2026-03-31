@@ -35,6 +35,25 @@ export const supabaseServerAdmin = (supabaseUrl && supabaseServiceRoleKey)
     })
   : null;
 
+/**
+ * Server-side Supabase client that sends the Clerk JWT Supabase expects.
+ * RLS policies use auth.jwt() ->> 'sub'; the anon singleton has no JWT, so upserts fail with 42501.
+ */
+export function createServerSupabaseWithClerkJwt(clerkJwt: string) {
+  if (!supabaseUrl || !supabaseAnonKey) return null;
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${clerkJwt}`,
+      },
+    },
+  });
+}
+
 // Server-side helper functions using Clerk auth
 export const supabaseServerHelpers = {
   /**

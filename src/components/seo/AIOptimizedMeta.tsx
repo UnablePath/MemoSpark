@@ -72,7 +72,7 @@ export function generateAIOptimizedMetadata({
       
       // User Experience Context
       'ux:primary-actions': 'create-tasks, track-progress, view-insights',
-      'ux:user-journey': 'onboarding -> task-creation -> progress-tracking -> insights',
+      'ux:user-journey': '/onboarding -> questionnaire -> dashboard -> task-creation -> insights',
       'ux:interaction-patterns': 'dashboard, forms, analytics, gamification',
       
       // Business Context for AI Understanding

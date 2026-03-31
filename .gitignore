@@ -49,3 +49,6 @@ SECURE_ANALYTICS_SETUP.md
 ww.cjs
 .env*.local
 supabase-restore-temp/
+
+# Local Cursor MCP (copy from .cursor/mcp.json.example; contains secrets)
+.cursor/mcp.json
