@@ -141,9 +141,9 @@ const EXPLANATION_OPTIONS = [
 ] as const;
 
 const INTERACTION_OPTIONS = [
-  { value: "minimal", label: "Minimal — Only when asked" },
-  { value: "moderate", label: "Moderate — Regular suggestions" },
-  { value: "frequent", label: "Frequent — Proactive assistance" },
+  { value: "minimal", label: "Minimal (only when asked)" },
+  { value: "moderate", label: "Moderate (regular suggestions)" },
+  { value: "frequent", label: "Frequent (more proactive)" },
 ] as const;
 
 function initialBirthDateFromDraft(draft: OnboardingDraftV2): string {
@@ -875,7 +875,7 @@ export function OnboardingWizard() {
 
                 <div className={styles.rangeBlock}>
                   <label htmlFor="difficulty" className={styles.rangeLabel}>
-                    Content Difficulty (1–10)
+                    Content Difficulty (1 to 10)
                   </label>
                   <div className={styles.rangeRow}>
                     <span className={styles.rangeHint}>Easy</span>

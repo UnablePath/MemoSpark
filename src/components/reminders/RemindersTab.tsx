@@ -329,7 +329,7 @@ const RemindersTab = () => {
               description: `Follow-up nudges scheduled for ${timeMessage}, based on your usual rhythm.`,
             });
             showStuMessage(
-              "Great choice — I'll help you stay on track.",
+              "Great choice. I'll help you stay on track.",
               "excited",
             );
           } else {

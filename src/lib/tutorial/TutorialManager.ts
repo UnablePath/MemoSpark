@@ -318,7 +318,6 @@ export class TutorialManager {
           is_skipped: false,
           step_data: {},
           started_at: new Date().toISOString(),
-          error_count: 0
         })
         .select()
         .single();
@@ -542,7 +541,6 @@ export class TutorialManager {
           last_seen_at: new Date().toISOString(),
           is_completed: nextStep === 'completion',
           completed_at: nextStep === 'completion' ? new Date().toISOString() : undefined,
-          error_count: 0 // Reset error count on successful advancement
         })
         .eq('user_id', userId);
 
@@ -676,8 +674,6 @@ export class TutorialManager {
           started_at: new Date().toISOString(),
           completed_at: null,
           last_seen_at: new Date().toISOString(),
-          error_count: 0,
-          last_error: null
         })
         .eq('user_id', userId);
 

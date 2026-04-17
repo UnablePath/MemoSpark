@@ -1,73 +1,74 @@
 'use client'
 
-import { Wifi, RefreshCw, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
+import { WifiOff, RefreshCw, ArrowLeft } from 'lucide-react'
 import { useEffect } from 'react'
+import { Button } from '@/components/ui/button'
 
 export default function OfflinePage() {
-  // Set page title for client component
   useEffect(() => {
     document.title = 'Offline - MemoSpark'
   }, [])
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
-        {/* Offline Icon */}
-        <div className="relative mb-6">
-          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Wifi className="w-10 h-10 text-red-500" />
-            <div className="absolute top-2 right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
-              <AlertCircle className="w-4 h-4 text-white" />
-            </div>
+    <main className="min-h-screen bg-background px-4 py-10 text-foreground">
+      <div className="mx-auto max-w-2xl rounded-3xl border border-border/70 bg-card p-6 shadow-sm md:p-8">
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="text-2xl font-black tracking-tight">You are offline</h1>
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-border/70 bg-muted/40">
+            <WifiOff className="h-5 w-5 text-primary" aria-hidden />
           </div>
         </div>
 
-        {/* Title and Message */}
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">
-          You&apos;re Offline
-        </h1>
-        
-        <p className="text-gray-600 mb-6 leading-relaxed">
-          MemoSpark needs an internet connection to sync your data and provide the best experience. 
-          Please check your connection and try again.
+        <p className="max-w-[70ch] text-sm leading-relaxed text-muted-foreground md:text-base">
+          MemoSpark needs an internet connection to sync your timetable, streaks, and social updates.
+          You can still review recently loaded content while your connection returns.
         </p>
 
-        {/* Features Available Offline */}
-        <div className="bg-blue-50 rounded-lg p-4 mb-6 text-left">
-          <h3 className="font-semibold text-blue-900 mb-2">Available Offline:</h3>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• View cached tasks and progress</li>
-            <li>• Use Stu stress relief animations</li>
-            <li>• Access previously loaded content</li>
-            <li>• Create tasks (will sync when online)</li>
+        <div className="mt-6 rounded-2xl border border-border/70 bg-muted/30 p-4">
+          <h2 className="text-sm font-semibold text-foreground">Available while offline</h2>
+          <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+            <li>Review cached tasks and previous progress snapshots</li>
+            <li>Open stress-relief and previously loaded pages</li>
+            <li>Create notes that can sync once connectivity returns</li>
           </ul>
         </div>
 
-        {/* Action Buttons */}
-        <div className="space-y-3">
-          <button
+        <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          <Button
             onClick={() => window.location.reload()}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+            className="h-11 w-full"
           >
-            <RefreshCw className="w-5 h-5" />
-            Try Again
-          </button>
-          
-          <button
-            onClick={() => window.history.back()}
-            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-lg transition-colors duration-200"
-          >
-            Go Back
-          </button>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Retry connection
+          </Button>
+          <Button asChild variant="outline" className="h-11 w-full">
+            <Link href="/dashboard">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Return to dashboard
+            </Link>
+          </Button>
         </div>
 
-        {/* Connection Status */}
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-            <span>Connection Status: Offline</span>
-          </div>
+        <div className="mt-6 border-t border-border/60 pt-4">
+          <p className="text-sm text-muted-foreground">
+            Status: <span className="font-medium text-foreground">offline</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            If this persists, check mobile data or Wi-Fi and try again.
+          </p>
+        </div>
+
+        <div className="mt-8">
+          <Button
+            variant="ghost"
+            onClick={() => window.history.back()}
+            className="h-11 w-full"
+          >
+            Go back
+          </Button>
         </div>
       </div>
-    </div>
+    </main>
   )
 } 

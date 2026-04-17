@@ -244,7 +244,7 @@ export const TimetableView: React.FC<TimetableViewProps> = ({
           animate={{ opacity: 1, y: 0 }}
           className="mb-3"
         >
-          <Card className="border-dashed border-blue-300 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
+          <Card className="border-dashed border-blue-300 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20">
             <CardContent className="pt-3 pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -256,7 +256,7 @@ export const TimetableView: React.FC<TimetableViewProps> = ({
                 <Button
                   size="sm"
                   onClick={() => showGeneralPopup()}
-                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white text-xs"
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white text-xs"
                 >
                   <Crown className="h-3 w-3 mr-1" />
                   See Premium

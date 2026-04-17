@@ -20,7 +20,7 @@ const CrashoutTab: React.FC = () => {
         <p className="text-lg md:text-xl mb-8">
           This is a safe space to feel, vent, and let go.
           Wanna curse him out? Write it here instead.
-          Everything you type is anonymous. Nothing is saved—except your dignity.
+          Everything you type is anonymous. Nothing is saved, except maybe your dignity.
         </p>
 
         <button 

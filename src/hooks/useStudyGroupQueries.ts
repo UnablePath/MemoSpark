@@ -1,8 +1,10 @@
 import { useEffect, useMemo } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StudySessionManager, type StudySession } from '@/lib/social/StudySessionManager';
 import { StudyGroupManager, type GroupCategory } from '@/lib/social/StudyGroupManager';
-import { supabase } from '@/lib/supabase/client';
+import { createAuthenticatedSupabaseClient, supabase } from '@/lib/supabase/client';
+import { wrapClerkTokenForSupabase } from '@/lib/clerk/clerkSupabaseToken';
 // Ensure non-null supabase client for hooks (env must be configured)
 const sb = supabase as NonNullable<typeof supabase>;
 
@@ -320,9 +322,18 @@ export const useUserInvitations = (inviteeId?: string | null) => {
 // Realtime subscription to keep group management data fresh
 export function useGroupRealtime(groupId: string) {
   const qc = useQueryClient();
+  const { userId, getToken, isLoaded, isSignedIn } = useAuth();
+  const wrappedToken = useMemo(
+    () => wrapClerkTokenForSupabase(getToken),
+    [getToken],
+  );
+
   useEffect(() => {
-    if (!groupId) return;
-    const channel = sb
+    if (!groupId || !isLoaded || !isSignedIn || !userId) return;
+    const client = createAuthenticatedSupabaseClient(wrappedToken);
+    if (!client) return;
+
+    const channel = client
       .channel(`group-realtime-${groupId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'group_invitations', filter: `group_id=eq.${groupId}` }, () => {
         qc.invalidateQueries({ queryKey: studyGroupKeys.groupInvitations(groupId) });
@@ -336,9 +347,9 @@ export function useGroupRealtime(groupId: string) {
       .subscribe();
 
     return () => {
-      try { (sb as any).removeChannel(channel); } catch {}
+      try { client.removeChannel(channel); } catch {}
     };
-  }, [groupId, qc]);
+  }, [groupId, qc, isLoaded, isSignedIn, userId, wrappedToken]);
 }
 
 export const useGroupRoles = () => {

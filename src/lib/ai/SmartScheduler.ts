@@ -126,31 +126,43 @@ export class SmartScheduler {
    */
   private analyzeProductivityWindows(): ProductivityWindow[] {
     const windows: ProductivityWindow[] = [];
-    
-    // Use pattern data if available
+
+    // Only accept integer hours in [0, 23]; non-numeric pattern data would
+    // otherwise produce NaN hours and throw `Invalid time value` in
+    // generateOptimalTimeSlots when Date#toISOString runs.
+    const toValidHour = (h: unknown): number | null => {
+      const n = typeof h === 'number' ? h : Number(h);
+      if (!Number.isFinite(n)) return null;
+      const floored = Math.floor(n);
+      if (floored < 0 || floored > 23) return null;
+      return floored;
+    };
+
     if (this.patterns.timePattern?.mostProductiveHours) {
-      this.patterns.timePattern.mostProductiveHours.forEach(hour => {
+      this.patterns.timePattern.mostProductiveHours.forEach(raw => {
+        const hour = toValidHour(raw);
+        if (hour === null) return;
         windows.push({
           startHour: hour,
-          endHour: hour + 2,
+          endHour: Math.min(hour + 2, 24),
           efficiency: 0.9,
-          dayOfWeek: undefined // All days
+          dayOfWeek: undefined
         });
       });
     }
-    
-    // Analyze historical completion data for more precise windows
+
     if (this.taskHistory.length > 10) {
       const completionAnalysis = this.analyzeHistoricalCompletions();
       windows.push(...completionAnalysis);
     }
-    
-    // Add user preference windows
-    this.userPreferences.availableStudyHours.forEach(hour => {
+
+    this.userPreferences.availableStudyHours.forEach(raw => {
+      const hour = toValidHour(raw);
+      if (hour === null) return;
       if (!windows.some(w => w.startHour === hour)) {
         windows.push({
           startHour: hour,
-          endHour: hour + 1,
+          endHour: Math.min(hour + 1, 24),
           efficiency: 0.7,
           dayOfWeek: undefined
         });

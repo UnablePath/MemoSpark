@@ -23,16 +23,100 @@ interface ScheduleRequest {
   forceRefresh?: boolean; // Force pattern re-analysis
 }
 
+// Parse `preferred_study_times` entries into numeric hours in [0, 23].
+// Accepts numbers, numeric strings, and a few common label shapes produced
+// by the onboarding questionnaire, e.g. "Evening (5-8 PM)", "9 AM", "14:00".
+// Returns a deduplicated, sorted array; invalid entries are dropped.
+function parsePreferredStudyTimes(raw: unknown[]): number[] {
+  const LABEL_MAP: Record<string, number[]> = {
+    'early morning': [6, 7, 8],
+    morning: [9, 10, 11],
+    midday: [12, 13],
+    noon: [12],
+    afternoon: [14, 15, 16],
+    evening: [17, 18, 19, 20],
+    night: [21, 22, 23],
+    'late night': [22, 23],
+  };
+
+  const hours = new Set<number>();
+  for (const entry of raw) {
+    if (typeof entry === 'number' && Number.isFinite(entry) && entry >= 0 && entry <= 23) {
+      hours.add(Math.floor(entry));
+      continue;
+    }
+    if (typeof entry !== 'string') continue;
+    const lower = entry.toLowerCase();
+
+    // Try a "5-8 PM" / "5 PM" / "14:00" range inside the string.
+    const rangeMatch = lower.match(/(\d{1,2})\s*(?::(\d{2}))?\s*(?:-|to|–)\s*(\d{1,2})\s*(?::(\d{2}))?\s*(am|pm)?/);
+    if (rangeMatch) {
+      const suffix = rangeMatch[5];
+      let start = Number.parseInt(rangeMatch[1], 10);
+      let end = Number.parseInt(rangeMatch[3], 10);
+      if (suffix === 'pm' && start < 12) start += 12;
+      if (suffix === 'pm' && end < 12) end += 12;
+      if (suffix === 'am' && start === 12) start = 0;
+      if (Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end <= 23 && start <= end) {
+        for (let h = start; h <= end; h++) hours.add(h);
+        continue;
+      }
+    }
+
+    const singleMatch = lower.match(/(\d{1,2})\s*(?::(\d{2}))?\s*(am|pm)?/);
+    if (singleMatch) {
+      let h = Number.parseInt(singleMatch[1], 10);
+      const suffix = singleMatch[3];
+      if (suffix === 'pm' && h < 12) h += 12;
+      if (suffix === 'am' && h === 12) h = 0;
+      if (Number.isFinite(h) && h >= 0 && h <= 23) {
+        hours.add(h);
+        continue;
+      }
+    }
+
+    for (const [label, mapped] of Object.entries(LABEL_MAP)) {
+      if (lower.includes(label)) {
+        mapped.forEach((h) => hours.add(h));
+        break;
+      }
+    }
+  }
+
+  return Array.from(hours).sort((a, b) => a - b);
+}
+
+// #region agent log
+const dbgLog = (message: string, data: Record<string, unknown>) => {
+  try {
+    fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9092b7' },
+      body: JSON.stringify({
+        sessionId: '9092b7',
+        hypothesisId: 'H-SS',
+        location: 'api/ai/schedule/route.ts',
+        message,
+        data,
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+  } catch {}
+};
+// #endregion
+
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    dbgLog('POST: auth ok', { userId });
 
     const supabase = getSupabaseAdmin();
     const body: ScheduleRequest = await request.json();
     const { preferences: requestPreferences, existingEvents = [], scheduleHorizon = 7, forceRefresh = false } = body;
+    dbgLog('POST: body parsed', { scheduleHorizon, forceRefresh, hasPreferences: !!requestPreferences });
 
     // 1. Fetch user's incomplete tasks from database
     const { data: tasksData, error: tasksError } = await supabase
@@ -44,8 +128,10 @@ export async function POST(request: NextRequest) {
 
     if (tasksError) {
       console.error('Error fetching tasks:', tasksError);
+      dbgLog('tasks fetch FAILED', { error: tasksError.message, code: tasksError.code });
       return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 });
     }
+    dbgLog('tasks fetch ok', { count: tasksData?.length ?? 0 });
 
     // 2. Fetch user's task completion history for pattern analysis
     const { data: taskHistory, error: historyError } = await supabase
@@ -58,23 +144,48 @@ export async function POST(request: NextRequest) {
 
     if (historyError) {
       console.error('Error fetching task history:', historyError);
-      // Don't fail the request, just log the error
+      dbgLog('history fetch FAILED', { error: historyError.message, code: historyError.code });
+    } else {
+      dbgLog('history fetch ok', { count: taskHistory?.length ?? 0 });
     }
 
-    // 3. Fetch user's timetable entries for conflict detection
-    // Note: user_timetables uses user_id that references profiles.id, not clerk_user_id
-    // So we need to join with profiles table to get the correct user_id
-    const { data: timetableEntries, error: timetableError } = await supabase
-      .from('user_timetables')
-      .select(`
-        *,
-        profiles!inner(clerk_user_id)
-      `)
-      .eq('profiles.clerk_user_id', userId);
+    // 3. Fetch user's timetable entries for conflict detection.
+    // `user_timetables.user_id` is a uuid referencing `profiles.id`, but there is
+    // no FK constraint defined, so PostgREST can't embed `profiles!inner`
+    // (PGRST200). Resolve the profile row first, then query by its uuid.
+    const { data: profileRow, error: profileLookupError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('clerk_user_id', userId)
+      .maybeSingle();
 
-    if (timetableError) {
-      console.error('Error fetching timetable:', timetableError);
-      // Don't fail the request, continue without timetable data
+    if (profileLookupError) {
+      dbgLog('profile id lookup FAILED', {
+        error: profileLookupError.message,
+        code: profileLookupError.code,
+      });
+    }
+
+    let timetableEntries: TimetableEntry[] | null = null;
+    if (profileRow?.id) {
+      const { data, error: timetableError } = await supabase
+        .from('user_timetables')
+        .select('*')
+        .eq('user_id', profileRow.id)
+        .eq('is_active', true);
+
+      if (timetableError) {
+        console.error('Error fetching timetable:', timetableError);
+        dbgLog('timetable fetch FAILED', {
+          error: timetableError.message,
+          code: timetableError.code,
+        });
+      } else {
+        timetableEntries = (data ?? []) as TimetableEntry[];
+        dbgLog('timetable fetch ok', { count: timetableEntries.length });
+      }
+    } else {
+      dbgLog('timetable fetch skipped', { reason: 'no profile row' });
     }
 
     // 4. Fetch existing user AI patterns and preferences
@@ -84,8 +195,11 @@ export async function POST(request: NextRequest) {
       .eq('user_id', userId)
       .single();
 
-    if (patternsError && patternsError.code !== 'PGRST116') { // PGRST116 = no rows found
+    if (patternsError && patternsError.code !== 'PGRST116') {
       console.error('Error fetching user patterns:', patternsError);
+      dbgLog('patterns fetch FAILED', { error: patternsError.message, code: patternsError.code });
+    } else {
+      dbgLog('patterns fetch ok', { hasExistingPatterns: !!existingPatterns });
     }
 
     // 5. Fetch user preferences from profiles table
@@ -97,6 +211,9 @@ export async function POST(request: NextRequest) {
 
     if (profileError && profileError.code !== 'PGRST116') {
       console.error('Error fetching user profile:', profileError);
+      dbgLog('profile fetch FAILED', { error: profileError.message, code: profileError.code });
+    } else {
+      dbgLog('profile fetch ok', { hasProfile: !!userProfile });
     }
 
     // 6. Transform database tasks to ExtendedTask format
@@ -151,9 +268,16 @@ export async function POST(request: NextRequest) {
     let patterns: PatternData;
     
     if (forceRefresh || !existingPatterns || shouldRefreshPatterns(existingPatterns)) {
-      // Analyze patterns with historical data and timetable
+      dbgLog('calling PatternAnalyzer.analyze', { historyCount: historyTasks.length });
       const patternAnalyzer = new PatternAnalyzer(userPreferences, historyTasks);
-      const analyzedPatterns = patternAnalyzer.analyze();
+      let analyzedPatterns: Partial<PatternData>;
+      try {
+        analyzedPatterns = patternAnalyzer.analyze();
+        dbgLog('PatternAnalyzer.analyze ok', { keys: Object.keys(analyzedPatterns || {}) });
+      } catch (e) {
+        dbgLog('PatternAnalyzer.analyze THREW', { error: e instanceof Error ? e.message : String(e) });
+        throw e;
+      }
       patterns = {
         userId,
         lastAnalyzed: new Date().toISOString(),
@@ -179,20 +303,35 @@ export async function POST(request: NextRequest) {
         dataQuality: 0.7
       };
       
-      // Save updated patterns to database (questionnaire-primary merge when row exists)
-      await saveUserPatterns(supabase, userId, patterns, userPreferences, existingPatterns ?? null);
+      try {
+        await saveUserPatterns(supabase, userId, patterns, userPreferences, existingPatterns ?? null);
+        dbgLog('saveUserPatterns ok', {});
+      } catch (e) {
+        dbgLog('saveUserPatterns THREW', { error: e instanceof Error ? e.message : String(e) });
+        throw e;
+      }
     } else {
-      // Use existing patterns
-      patterns = transformStoredPatterns(existingPatterns);
+      try {
+        patterns = transformStoredPatterns(existingPatterns);
+        dbgLog('transformStoredPatterns ok', {});
+      } catch (e) {
+        dbgLog('transformStoredPatterns THREW', { error: e instanceof Error ? e.message : String(e) });
+        throw e;
+      }
     }
 
-    // 10. Convert timetable entries to calendar events for conflict detection
-    const calendarEvents: CalendarEvent[] = [
-      ...existingEvents,
-      ...generateTimetableEvents(timetableEntries || [], scheduleHorizon)
-    ];
+    let calendarEvents: CalendarEvent[];
+    try {
+      calendarEvents = [
+        ...existingEvents,
+        ...generateTimetableEvents(timetableEntries || [], scheduleHorizon),
+      ];
+      dbgLog('generateTimetableEvents ok', { count: calendarEvents.length });
+    } catch (e) {
+      dbgLog('generateTimetableEvents THREW', { error: e instanceof Error ? e.message : String(e) });
+      throw e;
+    }
 
-    // 11. Generate smart schedule
     const scheduler = new SmartScheduler(
       aiTasks,
       patterns,
@@ -200,8 +339,18 @@ export async function POST(request: NextRequest) {
       userPreferences,
       historyTasks
     );
-    
-    const scheduleResult = scheduler.generate();
+
+    let scheduleResult: ReturnType<SmartScheduler['generate']>;
+    try {
+      scheduleResult = scheduler.generate();
+      dbgLog('SmartScheduler.generate ok', {
+        scheduled: scheduleResult.metadata?.scheduledTasks,
+        totalTasks: scheduleResult.metadata?.totalTasks,
+      });
+    } catch (e) {
+      dbgLog('SmartScheduler.generate THREW', { error: e instanceof Error ? e.message : String(e) });
+      throw e;
+    }
 
     // 12. Save the generated schedule for tracking and learning
     const scheduleManager = new ScheduleManager();
@@ -215,7 +364,13 @@ export async function POST(request: NextRequest) {
       efficiency: scheduleResult.metadata.efficiency,
       confidence: scheduleResult.metadata.confidence
     };
-    await scheduleManager.saveSchedule(userId, scheduleResult.schedule, scheduleMetadata);
+    try {
+      await scheduleManager.saveSchedule(userId, scheduleResult.schedule, scheduleMetadata);
+      dbgLog('scheduleManager.saveSchedule ok', { count: scheduleResult.schedule.length });
+    } catch (e) {
+      dbgLog('scheduleManager.saveSchedule THREW', { error: e instanceof Error ? e.message : String(e) });
+      throw e;
+    }
 
     // 13. Update user interaction patterns
     await updateUserInteractionPatterns(supabase, userId, {
@@ -240,6 +395,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Schedule generation error:', error);
+    dbgLog('POST: top-level catch', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack?.split('\n').slice(0, 5).join('\n') : undefined,
+    });
     return NextResponse.json(
       { 
         error: 'Failed to generate schedule',
@@ -332,9 +491,20 @@ function buildUserPreferences(
     availableStudyHours: [9, 10, 11, 14, 15, 16, 17, 18, 19, 20]
   };
 
-  // Merge with stored patterns
-  if (existingPatterns?.preferred_study_times) {
-    defaults.availableStudyHours = existingPatterns.preferred_study_times;
+  // Merge with stored patterns. `preferred_study_times` may contain either
+  // numeric hours (legacy) or human-readable labels like "Evening (5-8 PM)"
+  // from the questionnaire. Coerce to numeric hours; fall back to defaults
+  // if nothing parseable is found. Without this guard, non-numeric values
+  // propagate into SmartScheduler and trigger `Invalid time value` via
+  // setHours(NaN) when generating time slots.
+  if (Array.isArray(existingPatterns?.preferred_study_times)) {
+    const parsed = parsePreferredStudyTimes(existingPatterns.preferred_study_times);
+    // #region agent log
+    fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9092b7'},body:JSON.stringify({sessionId:'9092b7',runId:'post-fix',hypothesisId:'H-SS',location:'api/ai/schedule/route.ts:buildUserPreferences',message:'parsePreferredStudyTimes',data:{rawSample:existingPatterns.preferred_study_times.slice(0,5),parsed},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    if (parsed.length > 0) {
+      defaults.availableStudyHours = parsed;
+    }
   }
   
   if (existingPatterns?.learning_style) {

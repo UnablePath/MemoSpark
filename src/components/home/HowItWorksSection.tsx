@@ -87,7 +87,7 @@ const features: BentoFeature[] = [
     iconBg: "bg-primary/15",
     label: "Gamification",
     title: "Earn while you study",
-    body: "Finish work, build streaks, unlock achievements, and use coins on themes or streak recovery.",
+    body: "Finish work, build streaks, earn achievements, and spend coins on themes or streak recovery.",
     accent: "text-primary",
     border: "border-border/80",
     colClass: "md:col-span-5",
@@ -115,7 +115,7 @@ const features: BentoFeature[] = [
     iconBg: "bg-primary/12",
     label: "Your rhythm",
     title: "Scheduling that fits how you work",
-    body: "MemoSpark learns when you actually get things done and nudges heavy work into those windows.",
+    body: "MemoSpark notices when you usually get things done and nudges heavier work into those slots.",
     accent: "text-primary",
     border: "border-border/80",
     colClass: "md:col-span-7",
@@ -123,7 +123,7 @@ const features: BentoFeature[] = [
       <div className="mt-1 flex items-start gap-3 rounded-xl border border-border/60 bg-muted/25 px-4 py-3 pt-1">
         <Zap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Heavy sessions moved to 8–10 pm — your most focused hours this week.
+          Heavy sessions moved to 8 to 10 pm, your most focused hours this week.
         </p>
       </div>
     ),

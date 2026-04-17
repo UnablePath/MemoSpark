@@ -211,7 +211,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
 
         // Set initial Stu message
         setStuMessage(
-          `Hi, I’m Stu. I’ll ask a few questions about how you study — starting with “${nextTemplate.title}”.`,
+          `Hi, I'm Stu. I'll ask a few questions about how you study. First up: "${nextTemplate.title}".`,
         );
         setStuState("talking");
       } else {
@@ -444,7 +444,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
         payload: { message: String(err?.message ?? err) },
       });
       setStuMessage(
-        "I couldn’t finish analyzing your answers. Your responses are saved — try again in a moment from the questionnaire page.",
+        "I couldn't finish analyzing your answers. Your responses are saved. Try again in a moment from the questionnaire page.",
       );
       setStuState("thinking");
     } finally {
@@ -764,7 +764,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
               <h2 className={styles.completeTitle}>You&apos;re all set</h2>
               <p className={styles.completeBody}>
                 Your answers shape study suggestions, scheduling hints, and
-                coaching from Stu — tuned to how you actually work.
+                coaching from Stu so it fits how you actually work.
               </p>
               <p className={styles.trustHint}>
                 We use this profile only to personalize your experience in
@@ -817,8 +817,8 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
               <p className={styles.eyebrow}>Study profile</p>
               <h2 className={styles.idleTitle}>Short questionnaire</h2>
               <p className={styles.completeBody}>
-                Answer at your own pace. There are no wrong answers — we use
-                this to calibrate reminders, focus tips, and your timetable.
+                Answer at your own pace. There are no wrong answers. We use
+                this to tune reminders, focus tips, and your timetable.
               </p>
               <p className={styles.idleHint}>Usually a few minutes.</p>
               <button

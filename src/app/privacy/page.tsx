@@ -1,39 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LegalPageShell } from "@/components/layout/LegalPageShell";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | MemoSpark",
   description:
-    "How MemoSpark collects, uses, and protects information — including account and onboarding data.",
+    "How MemoSpark collects, uses, and protects your information, including account and onboarding data.",
   robots: { index: true, follow: true },
 };
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-12 text-foreground">
-      <p className="text-sm text-muted-foreground">
-        <Link
-          href="/"
-          className="underline underline-offset-4 hover:text-foreground"
-        >
-          Home
-        </Link>
-        {" · "}
-        <Link
-          href="/terms"
-          className="underline underline-offset-4 hover:text-foreground"
-        >
-          Terms of Service
-        </Link>
-      </p>
-      <h1 className="mt-6 text-3xl font-semibold tracking-tight">
-        Privacy Policy
-      </h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Last updated: March 30, 2026
-      </p>
-
-      <div className="prose prose-neutral dark:prose-invert mt-8 max-w-none">
+    <LegalPageShell
+      title="Privacy Policy"
+      subtitle="How MemoSpark collects, uses, and protects your information, including account and onboarding data."
+    >
+      <p className="mt-0 text-sm text-muted-foreground">Last updated: March 30, 2026</p>
+      <div className="mt-6">
         <p>
           This policy describes how MemoSpark handles information when you use
           our website and services. It should be reviewed alongside our{" "}
@@ -48,7 +31,7 @@ export default function PrivacyPolicyPage() {
 
         <h2 className="mt-8 text-xl font-medium">Information we collect</h2>
         <p>
-          We collect information you provide — for example, account details from
+          We collect information you provide. For example, account details from
           our authentication provider, and profile or onboarding information you
           choose to submit (such as name, academic interests, optional date of
           birth for age-appropriate experience, and learning preferences).
@@ -68,7 +51,7 @@ export default function PrivacyPolicyPage() {
         <h2 className="mt-8 text-xl font-medium">Sensitive data</h2>
         <p>
           Where we ask for date of birth or similar fields, it is used for
-          eligibility, age-appropriate defaults, and product safety — not for
+          eligibility, age-appropriate defaults, and product safety. We do not use it for
           advertising. Do not use MemoSpark if you are under the age required in
           your region to consent to data processing, unless a parent or guardian
           has authorized use where applicable.
@@ -99,6 +82,6 @@ export default function PrivacyPolicyPage() {
           .
         </p>
       </div>
-    </main>
+    </LegalPageShell>
   );
 }

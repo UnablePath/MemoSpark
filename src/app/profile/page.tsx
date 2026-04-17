@@ -15,7 +15,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { TextAnimate } from '@/components/ui/text-animate';
-import { AnimatedGradientText } from '@/components/ui/animated-gradient-text';
 import { toast } from 'sonner';
 import { format } from "date-fns";
 import { ProfileSync } from '@/components/profile/ProfileSync';
@@ -231,7 +230,7 @@ export default function ProfilePage() {
             {/* Enhanced Bio Section with Magic UI */}
             <div>
               <Label htmlFor="bio" className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-purple-500" />
+                <Sparkles className="h-5 w-5 text-primary" />
                 Bio
               </Label>
               {isEditing ? (
@@ -244,7 +243,7 @@ export default function ProfilePage() {
                   aria-label="Edit your bio" 
                 />
               ) : (
-                <div className="min-h-[80px] p-4 rounded-lg border bg-gradient-to-r from-purple-50/50 to-blue-50/50 dark:from-purple-900/10 dark:to-blue-900/10">
+                <div className="min-h-[80px] rounded-lg border border-border/60 bg-muted/30 p-4">
                   {bio ? (
                     <TextAnimate 
                       animation="fadeIn" 
@@ -256,9 +255,7 @@ export default function ProfilePage() {
                     </TextAnimate>
                   ) : (
                     <div className="text-center py-6">
-                      <AnimatedGradientText className="text-lg font-medium">
-                        (No bio yet)
-                      </AnimatedGradientText>
+                      <p className="text-lg font-medium text-foreground">(No bio yet)</p>
                       <p className="text-sm text-muted-foreground mt-2">Share something about yourself to make your profile more engaging!</p>
                     </div>
                   )}

@@ -52,7 +52,7 @@ export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({ onMatch, onSwipe
       setRecommendations(filteredRecs);
       setCurrentIndex(0);
     } catch (err) {
-      console.error('Error loading recommendations:', err);
+      console.error('[social:swipe:load-recommendations]', err);
       setError('Failed to load recommendations. Please try again.');
     } finally {
       setLoading(false);
@@ -85,7 +85,7 @@ export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({ onMatch, onSwipe
       try {
         const status = await studentDiscovery?.sendConnectionRequest(user?.id!, userSwiped.clerk_user_id);
         if (status === 'accepted') {
-          toast.success("It's a match! 🎉");
+          toast.success("It's a match.");
           onMatch?.(userSwiped as UserProfile);
           // Optional: fire a lightweight notification to the other user (no-op if not configured)
           try {
@@ -122,7 +122,7 @@ export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({ onMatch, onSwipe
           } catch {}
         }
       } catch (error) {
-        console.error('Error sending connection request:', error);
+        console.error('[social:swipe:send-request]', error);
         toast.error('Failed to send request');
       }
     }

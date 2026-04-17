@@ -51,8 +51,11 @@ export const useTieredAI = () => {
         },
         body: JSON.stringify({
           feature,
-          tasks: [], // Empty tasks array for access check only
-          context: {}
+          tasks: [],
+          context: {},
+          // Read-only tier/usage lookup. The server short-circuits this,
+          // skipping the suggestion pipeline and daily-usage tracking.
+          accessCheck: true,
         })
       });
 

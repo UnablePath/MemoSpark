@@ -81,7 +81,7 @@ const ProfileTab = () => {
             </Avatar>
             <div>
               <CardTitle className="text-2xl">{displayName}</CardTitle>
-              <CardDescription>{email || "—"}</CardDescription>
+              <CardDescription>{email || "Not added"}</CardDescription>
             </div>
           </div>
         </CardHeader>

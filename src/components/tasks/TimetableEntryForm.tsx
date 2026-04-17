@@ -52,7 +52,7 @@ const COLOR_OPTIONS = [
   { value: "#22c55e", label: "Green", class: "bg-green-500" },
   { value: "#06b6d4", label: "Cyan", class: "bg-cyan-500" },
   { value: "#3b82f6", label: "Blue", class: "bg-blue-500" },
-  { value: "#8b5cf6", label: "Purple", class: "bg-purple-500" },
+  { value: "#14b8a6", label: "Teal", class: "bg-teal-500" },
   { value: "#ec4899", label: "Pink", class: "bg-pink-500" },
 ];
 

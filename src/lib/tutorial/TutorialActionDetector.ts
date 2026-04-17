@@ -395,16 +395,24 @@ export class TutorialActionDetector {
   }
 
   /**
-   * Handle errors with recovery strategies
+   * Handle errors with recovery strategies.
+   * Guarded by retryAttempts so a persistent error (e.g. schema mismatch)
+   * cannot loop indefinitely.
    */
   private async handleError(error: any, action: string): Promise<void> {
     try {
+      const retryCount = this.retryAttempts.get(action) || 0;
       const recovery = await this.errorHandler.handleError(error);
-      
-      if (recovery.shouldRecover && recovery.recoveryAction) {
+
+      if (
+        recovery.shouldRecover &&
+        recovery.recoveryAction &&
+        retryCount < this.maxRetries
+      ) {
+        this.retryAttempts.set(action, retryCount + 1);
         const recovered = await recovery.recoveryAction();
-        if (recovered && recovery.shouldRetry) {
-          // Try the action again
+        if (recovered && recovery.shouldRetry && retryCount + 1 < this.maxRetries) {
+          // Try the action again once more; the timeout path also respects maxRetries.
           const currentProgress = await this.tutorialManager.getTutorialProgress(this.userId!);
           if (currentProgress) {
             const stepConfig = this.tutorialManager.getStepConfig(currentProgress.current_step);
@@ -413,9 +421,18 @@ export class TutorialActionDetector {
             }
           }
         }
+      } else if (retryCount >= this.maxRetries) {
+        console.warn(
+          `[tutorial] Giving up on action "${action}" after ${retryCount} attempts; tearing down detector to prevent loop.`,
+        );
+        const listener = this.activeListeners.get(action);
+        if (listener) {
+          listener.cleanup();
+          this.activeListeners.delete(action);
+        }
       }
 
-      // Notify the UI about the error
+      // Notify the UI about the error (once per settled attempt)
       window.dispatchEvent(new CustomEvent('tutorialError', {
         detail: { error, recovery }
       }));

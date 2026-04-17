@@ -43,6 +43,7 @@ import {
   ClockCounterClockwise as PhHistory,
   Code as PhCode,
   Coffee as PhCoffee,
+  CloudRain as PhCloudRain,
   Copy as PhCopy,
   Coins as PhCoins,
   Command as PhCommand,
@@ -72,6 +73,7 @@ import {
   Hash as PhTag,
   Headphones as PhMusic,
   Heart as PhHeart,
+  HandHeart as PhHandHeart,
   House as PhHome,
   Image as PhImage,
   Info as PhInfo,
@@ -131,6 +133,7 @@ import {
   Timer as PhTimer,
   Trash as PhTrash,
   Trophy as PhTrophy,
+  TreeEvergreen as PhTreeEvergreen,
   Upload as PhUpload,
   User as PhUser,
   UserMinus as PhUserMinus,
@@ -142,6 +145,7 @@ import {
   WarningOctagon as PhAlert,
   WifiHigh as PhWifi,
   WifiSlash as PhWifiOff,
+  Waves as PhWaves,
   Wind as PhWind,
   Wrench as PhSettings,
   X as PhX,
@@ -281,6 +285,7 @@ export const Circle = withTablerDefaults(IconCircle);
 export const Clock = withPhosphorDefaults(PhClock);
 export const Code = withPhosphorDefaults(PhCode);
 export const Coffee = withPhosphorDefaults(PhCoffee);
+export const CloudRain = withPhosphorDefaults(PhCloudRain);
 export const Coins = withPhosphorDefaults(PhCoins);
 export const Copy = withPhosphorDefaults(PhCopy);
 export const Command = withPhosphorDefaults(PhCommand);
@@ -310,6 +315,7 @@ export const Gift = withPhosphorDefaults(PhGift);
 export const Globe = withPhosphorDefaults(PhGlobe);
 export const GraduationCap = withPhosphorDefaults(PhGraduationCap);
 export const Grid3X3 = withPhosphorDefaults(PhGrid3X3);
+export const HandHeart = withPhosphorDefaults(PhHandHeart);
 export const Heart = withPhosphorDefaults(PhHeart);
 export const HelpCircle = withPhosphorDefaults(PhHelpCircle);
 export const History = withPhosphorDefaults(PhHistory);
@@ -386,6 +392,7 @@ export const ThumbsUp = withPhosphorDefaults(PhThumbsUp);
 export const Timer = withPhosphorDefaults(PhTimer);
 export const Trash = withPhosphorDefaults(PhTrash);
 export const Trash2 = withPhosphorDefaults(PhTrash);
+export const TreePine = withPhosphorDefaults(PhTreeEvergreen);
 export const TrendingDown = withHeroOutline(ArrowTrendingDownIcon);
 export const TrendingUp = withHeroOutline(ArrowTrendingUpIcon);
 export const TriangleAlert = withPhosphorDefaults(PhAlertTriangle);
@@ -401,6 +408,7 @@ export const Video = withPhosphorDefaults(PhVideo);
 export const Wand2 = withPhosphorDefaults(PhWand2);
 export const Volume2 = withPhosphorDefaults(PhVolume2);
 export const VolumeX = withTablerDefaults(IconVolumeOff);
+export const Waves = withPhosphorDefaults(PhWaves);
 export const Wifi = withPhosphorDefaults(PhWifi);
 export const WifiOff = withPhosphorDefaults(PhWifiOff);
 export const Wind = withPhosphorDefaults(PhWind);

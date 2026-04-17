@@ -47,7 +47,7 @@ function createSupabaseClient() {
     },
     realtime: {
       params: {
-        eventsPerSecond: 2, // Rate limit for real-time updates
+        eventsPerSecond: 10, // Higher throughput for bursty realtime updates
       },
     },
   });
@@ -112,7 +112,7 @@ export function createAuthenticatedSupabaseClient(getToken?: () => Promise<strin
     },
     realtime: {
       params: {
-        eventsPerSecond: 2, // Rate limit for real-time updates
+        eventsPerSecond: 10, // Higher throughput for bursty realtime updates
       },
     },
   });

@@ -253,7 +253,7 @@ function appendWellnessFromRow(row: Record<string, unknown> | null, limit: numbe
       id: `wellness-stress-${Date.now()}`,
       type: 'study_habit_tip',
       title: 'Stress relief from your profile',
-      description: `You mentioned ${String(stress[0])} — short resets can help before deep work.`,
+      description: `You mentioned ${String(stress[0])}. Short resets can help before deep work.`,
       priority: 'medium' as const,
       estimatedTime: 5,
       difficulty: 'easy',
@@ -500,7 +500,7 @@ function stuPersonalityFromContext(args: {
 
   const reliefLine =
     stressRelief.length > 0
-      ? `Quick reset idea: try ${stressRelief[0]} for 3–5 minutes, then start.`
+      ? `Quick reset idea: try ${stressRelief[0]} for 3 to 5 minutes, then start.`
       : 'Quick reset idea: stand up, drink water, and start with a tiny 10-minute win.';
   const motivationLine =
     motivation.length > 0
@@ -512,11 +512,11 @@ function stuPersonalityFromContext(args: {
       ? 'Make it visual: draw a quick diagram before you read.'
       : learningStyle.includes('auditory')
         ? 'Say it out loud: teach the concept to an imaginary class.'
-        : 'Mix it: read → explain → practice one question.';
+        : 'Mix it: read, explain out loud, then do one practice question.';
 
   const message = [
     mood === 'concerned'
-      ? "Hey—I'm here. Your workload looks heavy, but we can make it manageable."
+      ? "Hey, I'm here. Your workload looks heavy, but we can make it manageable."
       : mood === 'celebratory'
         ? "You’re on a roll. Let’s use that momentum and lock in another win."
         : mood === 'encouraging'
@@ -719,10 +719,10 @@ function premiumAnalyticsFromContext(args: {
   const dataQuality = clamp01(merged.dataQuality ?? 0.6);
 
   const insights: string[] = [];
-  if (overdue) insights.push(`You have ${overdue} overdue tasks — clear one today to reduce stress load.`);
-  if (dueSoon) insights.push(`${dueSoon} tasks are due within 48 hours — schedule them into your best hours first.`);
+  if (overdue) insights.push(`You have ${overdue} overdue tasks. Clear one today if you can.`);
+  if (dueSoon) insights.push(`${dueSoon} tasks are due within 48 hours. Put them in your best hours first.`);
   if (weakSubjects.length) insights.push(`Weak-subject focus detected: ${weakSubjects.slice(0, 2).join(', ')}.`);
-  if (consistency < 0.45) insights.push('Consistency looks low — shorter daily blocks will beat one big session.');
+  if (consistency < 0.45) insights.push('Your rhythm looks uneven. Shorter daily blocks often beat one huge session.');
 
   const recommendations: string[] = [];
   const attention = typeof row?.attention_span === 'number' ? row.attention_span : merged.timePattern.preferredStudyDuration;
@@ -758,9 +758,9 @@ function collaborativeFilteringFromContext(args: {
 
   const routines =
     archetype === 'Morning Sprinter'
-      ? ['2× short morning blocks (30–45m) before classes', '5m break, then one practice question']
+      ? ['2 short morning blocks (30 to 45 min) before classes', '5 min break, then one practice question']
       : archetype === 'Steady Marathoner'
-        ? ['1× longer block (60–90m) + structured notes', '15m break + quick recap']
+        ? ['1 longer block (60 to 90 min) plus structured notes', '15 min break plus quick recap']
         : archetype.includes('Deadline')
           ? ['Start earlier with a “minimum viable session” (20m)', 'Use checklists + pre-commit the first task']
           : archetype === 'Balanced Builder'
@@ -907,8 +907,8 @@ export async function generatePostgresBackedSuggestions(
   const optimalHours = merged.timePattern.mostProductiveHours.slice(0, 2);
   const optimalStudyTime =
     optimalHours.length >= 2
-      ? `${String(optimalHours[0]).padStart(2, '0')}:00–${String(optimalHours[1]).padStart(2, '0')}:00`
-      : `${String(optimalHours[0] ?? 9).padStart(2, '0')}:00–11:00`;
+      ? `${String(optimalHours[0]).padStart(2, '0')}:00 to ${String(optimalHours[1]).padStart(2, '0')}:00`
+      : `${String(optimalHours[0] ?? 9).padStart(2, '0')}:00 to 11:00`;
 
   return {
     success: true,

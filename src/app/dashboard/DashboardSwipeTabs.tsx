@@ -3,7 +3,14 @@
 import ConnectionsErrorBoundary from "@/components/home/ConnectionsErrorBoundary";
 import { TabContainer } from "@/components/layout/TabContainer";
 import type React from "react";
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 // Lazy load heavy components for better performance
 const ConnectionInterface = lazy(() =>
@@ -31,7 +38,7 @@ import { TabLoadingSpinner } from "@/components/ui/TabLoadingSpinner";
 import { useDebouncedAchievementTrigger } from "@/hooks/useDebouncedAchievementTrigger";
 import { useLocalStorageState } from "@/hooks/useStudentConnection";
 import { useTieredAI } from "@/hooks/useTieredAI";
-import { Bell, Calendar, Crown, Gamepad2, Leaf, Users } from "lucide-react";
+import { Bell, Calendar, Crown, Gamepad2, Leaf, Rocket, Users } from "lucide-react";
 
 // Toggle this to test - set to true to show debug component instead of actual connections tab
 const USE_DEBUG_COMPONENT = false;
@@ -42,6 +49,8 @@ const isLaunchMode =
   process.env.NEXT_PUBLIC_ENABLE_LAUNCH_MODE === "true";
 
 // Define the order of tabs and their corresponding icons
+const DASHBOARD_TAB_STORAGE_KEY = "dashboard_active_tab";
+
 const TABS_CONFIG = [
   {
     key: "connections",
@@ -54,14 +63,37 @@ const TABS_CONFIG = [
   { key: "gamification", component: GamificationHub, icon: Gamepad2 },
 ];
 
+function readStoredTabIndex(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = localStorage.getItem(DASHBOARD_TAB_STORAGE_KEY);
+    if (raw == null) return 0;
+    const parsed = JSON.parse(raw) as unknown;
+    if (
+      typeof parsed === "number" &&
+      Number.isFinite(parsed) &&
+      parsed >= 0 &&
+      parsed < TABS_CONFIG.length
+    ) {
+      return parsed;
+    }
+  } catch {
+    /* ignore */
+  }
+  return 0;
+}
+
 export function DashboardSwipeTabs() {
-  const [persistentActiveTab, setPersistentActiveTab] =
-    useLocalStorageState<number>("dashboard_active_tab", 0);
-  const [activeTabIndex, setActiveTabIndex] = useState(persistentActiveTab);
+  const [, setPersistentActiveTab] = useLocalStorageState<number>(
+    DASHBOARD_TAB_STORAGE_KEY,
+    0,
+  );
+  // SSR and the first client paint must match (no localStorage on server), so we
+  // cannot render the real tab until after useLayoutEffect reads storage.
+  const [tabsReady, setTabsReady] = useState(false);
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [isTinderModeActive, setIsTinderModeActive] = useState(false);
-  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(
-    new Set(["connections"]),
-  ); // Start with connections as visited
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set());
   const tablistRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -79,6 +111,16 @@ export function DashboardSwipeTabs() {
 
   useEffect(() => {
     tabRefs.current = tabRefs.current.slice(0, TABS_CONFIG.length);
+  }, []);
+
+  useLayoutEffect(() => {
+    const idx = readStoredTabIndex();
+    setActiveTabIndex(idx);
+    setPersistentActiveTab(idx);
+    setVisitedTabs(new Set([TABS_CONFIG[idx]?.key ?? "connections"]));
+    setTabsReady(true);
+    // Mount only: avoid re-running when useLocalStorageState setter identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handler for StudentConnectionTab view mode changes
@@ -156,9 +198,6 @@ export function DashboardSwipeTabs() {
       });
     }
 
-    console.log(
-      `Switching to tab: ${newActiveTabConfig?.key} (index: ${index})`,
-    );
   };
 
   // Listen for tutorial tab change events
@@ -170,7 +209,6 @@ export function DashboardSwipeTabs() {
         tabIndex >= 0 &&
         tabIndex < TABS_CONFIG.length
       ) {
-        console.log(`Tutorial requesting tab change to index: ${tabIndex}`);
         handleTabChange(tabIndex);
       }
     };
@@ -253,12 +291,30 @@ export function DashboardSwipeTabs() {
     }
   };
 
+  if (!tabsReady) {
+    return (
+      <div className="flex h-full min-h-[50vh] flex-1 flex-col">
+        {isLaunchMode && (
+          <div className="bg-green-500/10 border-b border-green-500/20 px-4 py-2 text-center text-sm text-green-600 dark:text-green-400">
+            <Rocket className="mr-2 inline h-4 w-4" />
+            Launch Mode: Experience all premium features for free during our
+            launch period!
+          </div>
+        )}
+        <div className="flex flex-1 flex-col items-center justify-center">
+          <TabLoadingSpinner />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Launch Mode Indicator */}
       {isLaunchMode && (
         <div className="bg-green-500/10 border-b border-green-500/20 px-4 py-2 text-center text-sm text-green-600 dark:text-green-400">
-          🚀 Launch Mode: Experience all premium features for free during our
+          <Rocket className="mr-2 inline h-4 w-4" />
+          Launch Mode: Experience all premium features for free during our
           launch period!
         </div>
       )}

@@ -463,7 +463,7 @@ const OverviewTab: React.FC<{ analytics: UserAnalytics }> = ({ analytics }) => (
         title="Level"
         value={analytics.overview.level.toString()}
         change={5}
-        icon={<Trophy className="h-6 w-6 text-purple-500" />}
+        icon={<Trophy className="h-6 w-6 text-cyan-500" />}
       />
       <OverviewCard
         title="Rank"
@@ -603,8 +603,8 @@ const PerformanceTab: React.FC<{ analytics: UserAnalytics }> = ({ analytics }) =
               <div className="text-sm text-gray-500">Current Streak</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-500">{analytics.performance.streakAnalytics.longestStreak}</div>
-              <div className="text-sm text-gray-500">Longest Streak</div>
+              <div className="text-2xl font-bold text-cyan-500">{analytics.performance.streakAnalytics.longestStreak}</div>
+              <div className="text-sm text-muted-foreground">Longest Streak</div>
             </div>
           </div>
           
@@ -700,9 +700,9 @@ const GamificationTab: React.FC<{ analytics: UserAnalytics }> = ({ analytics }) 
               <span>Streak Rank</span>
               <span className="font-bold text-orange-600">#{analytics.gamification.leaderboardPosition.streak}</span>
             </div>
-            <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+            <div className="flex justify-between items-center p-3 bg-cyan-50 rounded-lg">
               <span>Achievements</span>
-              <span className="font-bold text-purple-600">#{analytics.gamification.leaderboardPosition.achievements}</span>
+              <span className="font-bold text-cyan-600">#{analytics.gamification.leaderboardPosition.achievements}</span>
             </div>
           </div>
         </CardContent>

@@ -114,7 +114,7 @@ interface CalendarEvent {
 type CalendarView = "dayGridMonth" | "timeGridWeek" | "timeGridDay";
 
 interface CalendarViewEnhancedProps {
-  onEditTask?: (taskId: string) => void;
+  onEditTask?: (task: Task) => void;
   className?: string;
 }
 
@@ -127,7 +127,7 @@ const priorityBadgeVariants = cva(
         low: "bg-primary/10 text-primary border border-primary/20",
         medium:
           "bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800",
-        high: "bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800",
+        high: "bg-destructive/10 text-destructive border border-destructive/20",
       },
     },
     defaultVariants: {
@@ -211,16 +211,16 @@ const PRIORITY_COLORS: Record<
 // Utility functions with better type safety
 const getPriorityIcon = (priority: Priority): string => {
   const iconMap: Record<Priority, string> = {
-    high: "🔴",
-    medium: "🟡",
-    low: "🟢",
+    high: "H",
+    medium: "M",
+    low: "L",
   };
-  return iconMap[priority] || "⚪";
+  return iconMap[priority] || "N";
 };
 
 const formatTaskTitle = (task: Task): string => {
   const prefix = task.completed ? "✓ " : "";
-  const recurringIndicator = isRecurringInstance(task) ? " 🔄" : "";
+  const recurringIndicator = isRecurringInstance(task) ? " (Recurring)" : "";
   return `${prefix}${task.title}${recurringIndicator}`;
 };
 
@@ -361,14 +361,14 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
       try {
         const scheduleEvents = smartScheduleData.map((scheduledTask): CalendarEvent => {
           const smartColors = {
-            bg: '#8B5CF6', // Purple for smart scheduled tasks
-            border: '#7C3AED',
+            bg: '#06B6D4',
+            border: '#0891B2',
             text: '#FFFFFF'
           };
 
           return {
             id: `smart-${scheduledTask.id}`,
-            title: `🧠 ${scheduledTask.title}`,
+            title: `${scheduledTask.title}`,
             start: scheduledTask.scheduledStart,
             end: scheduledTask.scheduledEnd,
             allDay: false,
@@ -553,7 +553,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
               <IconComponent className="h-5 w-5 text-primary" />
               {selectedTask.title}
               {isScheduledTask && (
-                <Badge className="bg-purple-100 text-purple-800 border-purple-200">
+                <Badge className="bg-cyan-100 text-cyan-800 border-cyan-200">
                   <Sparkles className="h-3 w-3 mr-1" />
                   Smart Scheduled
                 </Badge>
@@ -633,7 +633,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
                 <h4 className="text-sm font-medium text-foreground mb-2">
                   Why this slot
                 </h4>
-                <p className="text-sm text-muted-foreground bg-purple-50 p-3 rounded-md border border-purple-200">
+                <p className="text-sm text-muted-foreground bg-cyan-50 p-3 rounded-md border border-cyan-200">
                   <Sparkles className="h-4 w-4 inline mr-2" />
                   {(selectedTask as ScheduledTask).reasoning}
                 </p>
@@ -656,7 +656,7 @@ export const CalendarViewEnhanced: React.FC<CalendarViewEnhancedProps> = ({
               <div className="flex gap-2 pt-4">
                 <Button
                   onClick={() => {
-                    onEditTask(selectedTask.id);
+                    onEditTask(selectedTask as Task);
                     setSelectedTask(null);
                   }}
                   className={actionButtonVariants({

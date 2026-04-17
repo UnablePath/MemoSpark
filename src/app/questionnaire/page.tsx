@@ -4,6 +4,7 @@ import React, { lazy, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Show, RedirectToSignIn } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 
@@ -79,7 +80,18 @@ export default function QuestionnairePage() {
       </Show>
       
       <Show when="signed-in">
-        <React.Suspense fallback={<div>Loading...</div>}>
+        <React.Suspense
+          fallback={
+            <div className="container mx-auto max-w-4xl px-4 py-10 md:py-12">
+              <div className="space-y-4 rounded-3xl border border-border/60 bg-card/40 p-6">
+                <Skeleton className="h-6 w-1/2" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-11/12" />
+                <Skeleton className="h-40 w-full" />
+              </div>
+            </div>
+          }
+        >
           <QuestionnairePageContent />
         </React.Suspense>
       </Show>

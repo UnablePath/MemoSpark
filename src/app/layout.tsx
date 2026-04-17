@@ -1,6 +1,6 @@
 import "@/app/globals.css";
 import type { Metadata, Viewport } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Geist, Manrope } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { UserProvider } from "@/lib/user-context";
@@ -20,14 +20,15 @@ import { NetworkErrorBoundary } from "@/components/ui/NetworkErrorBoundary";
 import { BASE_URL } from "@/lib/seo/seoConfig";
 import { TexturaPretextProvider } from "@/components/providers/textura-pretext-provider";
 
-const inter = Inter({ 
+const geist = Geist({
   subsets: ["latin"],
-  display: 'swap', // Optimize font loading for better LCP
+  display: "swap",
   preload: true,
+  variable: "--font-sans",
 });
 
-/** Display font for headings; paired with Inter body via `[data-marketing-home]` in globals.css */
-const plusJakartaSans = Plus_Jakarta_Sans({
+/** Display font for headings; paired with Geist body via `[data-marketing-home]` in globals.css */
+const manrope = Manrope({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-display",
@@ -139,7 +140,7 @@ export default function RootLayout({
                     welcomeNotification: {
                       disable: false,
                       title: 'MemoSpark',
-                      message: 'Thanks for subscribing! 🎉',
+                      message: 'Thanks for subscribing.',
                       url: '/dashboard'
                     }
                   });
@@ -161,7 +162,7 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#fadbdb" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
-      <body className={`${inter.className} ${plusJakartaSans.variable} max-w-full overflow-x-hidden`}>
+      <body className={`${geist.variable} ${manrope.variable} font-sans max-w-full overflow-x-hidden`}>
         <ThemeAwareClerkProvider>
           <ThemeProvider>
             <ProfileSyncProvider>

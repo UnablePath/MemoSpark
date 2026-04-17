@@ -176,10 +176,10 @@ export default function DashboardPage() {
                 <div
                   className={`flex items-center gap-0.5 sm:gap-1 px-1 xs:px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium ${
                     userTier === "free"
-                      ? "bg-gray-100 text-gray-700"
+                      ? "bg-zinc-100 text-zinc-700"
                       : userTier === "premium"
                         ? "bg-amber-100 text-amber-700"
-                        : "bg-purple-100 text-purple-700"
+                        : "bg-cyan-100 text-cyan-700"
                   }`}
                   title={`${userTier} tier`}
                 >

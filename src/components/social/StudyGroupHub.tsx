@@ -377,7 +377,7 @@ export const StudyGroupHub: React.FC = () => {
         // Persist on group (best-effort; ignore UI failure)
         try {
           // TODO: Implement attachConversationId method
-          console.log('Would attach conversation ID:', conversationId, 'to group:', selectedGroup.id);
+          console.info('[social:study-group:attach-conversation]', { conversationId, groupId: selectedGroup.id });
           setSelectedGroup({ ...selectedGroup, conversation_id: conversationId });
         } catch {}
       }
@@ -423,7 +423,7 @@ export const StudyGroupHub: React.FC = () => {
     switch (role) {
       case 'owner': return <Crown className="h-4 w-4 text-yellow-500" />;
       case 'admin': return <Shield className="h-4 w-4 text-blue-500" />;
-      default: return <User className="h-4 w-4 text-gray-500" />;
+      default: return <User className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
@@ -494,7 +494,7 @@ export const StudyGroupHub: React.FC = () => {
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-xl sm:text-2xl">
           <Users className="h-6 w-6 text-primary" />
-          <span className="bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">Study Groups Hub</span>
+          <span className="text-foreground">Study Groups Hub</span>
         </CardTitle>
         <CardDescription className="text-sm">Find, create, and join study groups to collaborate with your peers.</CardDescription>
       </CardHeader>
@@ -525,7 +525,7 @@ export const StudyGroupHub: React.FC = () => {
       <CardFooter className="flex flex-col sm:flex-row gap-2 sm:gap-3 p-4">
         <Dialog open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full sm:w-auto h-10 px-5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow">
+            <Button className="w-full sm:w-auto h-10 px-5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow">
               <Users className="h-4 w-4 mr-2" />
               Browse Groups
             </Button>
@@ -535,7 +535,7 @@ export const StudyGroupHub: React.FC = () => {
             <div className="flex-shrink-0 p-4 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               <div className="flex items-center justify-between">
                 <AnimatedGradientText>
-                  <span className="inline animate-gradient bg-gradient-to-r from-[#ffaa40] via-[#9c40ff] to-[#ffaa40] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent">
+                  <span className="inline animate-gradient bg-gradient-to-r from-[#ffaa40] via-[#22d3ee] to-[#ffaa40] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent">
                     Study Groups Hub
                   </span>
                 </AnimatedGradientText>
@@ -693,7 +693,7 @@ export const StudyGroupHub: React.FC = () => {
                                         {group.description}
                                       </p>
                                       <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
-                                        <span>Last active {group.updated_at ? new Date(group.updated_at).toLocaleDateString() : '—'}</span>
+                                        <span>Last active {group.updated_at ? new Date(group.updated_at).toLocaleDateString() : 'Unknown'}</span>
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2">

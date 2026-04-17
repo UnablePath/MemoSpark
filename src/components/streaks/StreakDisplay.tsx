@@ -75,7 +75,7 @@ export const StreakDisplay: React.FC<StreakDisplayProps> = ({
     try {
       const result = await streakTracker.markDailyCompletion(user.id, 1, 10);
       if (result.success) {
-        toast.success(`Great! Your streak is now ${result.newStreak} days! 🔥`);
+        toast.success(`Great work. Your streak is now ${result.newStreak} days.`);
         if (result.achievementsUnlocked.length > 0) {
           toast.success(`Achievement unlocked: ${result.achievementsUnlocked[0].achievement?.name}`);
         }
@@ -111,11 +111,11 @@ export const StreakDisplay: React.FC<StreakDisplayProps> = ({
       const result = await streakTracker.shareStreak(
         user.id, 
         selectedPlatform, 
-        shareMessage || `I'm on a ${streakData.current_streak}-day streak! 🔥`
+        shareMessage || `I am on a ${streakData.current_streak}-day streak.`
       );
       
       if (result.success) {
-        toast.success('Streak shared successfully! 🎉');
+        toast.success('Streak shared successfully.');
         setIsShareDialogOpen(false);
         setShareMessage('');
       }
@@ -125,21 +125,22 @@ export const StreakDisplay: React.FC<StreakDisplayProps> = ({
     }
   };
 
-  const getStreakEmoji = (streak: number) => {
-    if (streak >= 365) return '🏆';
-    if (streak >= 100) return '💎';
-    if (streak >= 50) return '🌟';
-    if (streak >= 30) return '🔥';
-    if (streak >= 14) return '⚡';
-    if (streak >= 7) return '🎯';
-    return '✨';
+  const getStreakIcon = (streak: number) => {
+    if (streak >= 365) return Trophy;
+    if (streak >= 100) return Award;
+    if (streak >= 30) return Flame;
+    if (streak >= 7) return Target;
+    return Zap;
   };
 
-  const getTrendEmoji = (trend: string) => {
+  const getTrendLabel = (trend: string) => {
     switch (trend) {
-      case 'improving': return '📈';
-      case 'declining': return '📉';
-      default: return '📊';
+      case 'improving':
+        return 'improving';
+      case 'declining':
+        return 'declining';
+      default:
+        return 'steady';
     }
   };
 
@@ -152,9 +153,9 @@ export const StreakDisplay: React.FC<StreakDisplayProps> = ({
       <Card className={className}>
         <CardContent className="p-6">
           <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-16 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-8 rounded bg-muted w-1/3"></div>
+            <div className="h-16 rounded bg-muted"></div>
+            <div className="h-4 rounded bg-muted w-1/2"></div>
           </div>
         </CardContent>
       </Card>
@@ -172,12 +173,15 @@ export const StreakDisplay: React.FC<StreakDisplayProps> = ({
   }
 
   if (compact) {
+    const CompactIcon = getStreakIcon(streakData.current_streak);
     return (
       <Card className={className}>
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="text-2xl">{getStreakEmoji(streakData.current_streak)}</div>
+              <div className="rounded-full bg-primary/10 p-2">
+                <CompactIcon className="h-5 w-5 text-primary" />
+              </div>
               <div>
                 <div className="font-bold text-lg">{streakData.current_streak} days</div>
                 <div className="text-sm text-muted-foreground">Current streak</div>
@@ -193,6 +197,8 @@ export const StreakDisplay: React.FC<StreakDisplayProps> = ({
     );
   }
 
+  const StreakIcon = getStreakIcon(streakData.current_streak);
+
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Main Streak Display */}
@@ -206,7 +212,9 @@ export const StreakDisplay: React.FC<StreakDisplayProps> = ({
         <CardContent className="space-y-6">
           {/* Current Streak */}
           <div className="text-center space-y-2">
-            <div className="text-6xl">{getStreakEmoji(streakData.current_streak)}</div>
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <StreakIcon className="h-9 w-9 text-primary" />
+            </div>
             <div className="text-4xl font-bold text-orange-500">
               {streakData.current_streak}
             </div>
@@ -244,7 +252,7 @@ export const StreakDisplay: React.FC<StreakDisplayProps> = ({
               <div className="text-xs text-muted-foreground">Total Days</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-500">
+              <div className="text-2xl font-bold text-cyan-500">
                 {Math.round(streakData.completion_rate * 100)}%
               </div>
               <div className="text-xs text-muted-foreground">Success Rate</div>
@@ -294,7 +302,7 @@ export const StreakDisplay: React.FC<StreakDisplayProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Recent Trend</span>
                     <Badge variant={streakData.recent_trends === 'improving' ? 'default' : 'secondary'}>
-                      {getTrendEmoji(streakData.recent_trends)} {streakData.recent_trends}
+                      {getTrendLabel(streakData.recent_trends)}
                     </Badge>
                   </div>
                 </div>
@@ -427,7 +435,7 @@ export const StreakDisplay: React.FC<StreakDisplayProps> = ({
                     <div>
                       <label className="text-sm font-medium">Message</label>
                       <Textarea
-                        placeholder={`I'm on a ${streakData.current_streak}-day streak! 🔥`}
+                        placeholder={`I am on a ${streakData.current_streak}-day streak.`}
                         value={shareMessage}
                         onChange={(e) => setShareMessage(e.target.value)}
                         rows={3}

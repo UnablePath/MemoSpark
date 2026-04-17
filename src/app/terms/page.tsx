@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LegalPageShell } from "@/components/layout/LegalPageShell";
 
 export const metadata: Metadata = {
   title: "Terms of Service | MemoSpark",
@@ -9,30 +10,9 @@ export const metadata: Metadata = {
 
 export default function TermsOfServicePage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-12 text-foreground">
-      <p className="text-sm text-muted-foreground">
-        <Link
-          href="/"
-          className="underline underline-offset-4 hover:text-foreground"
-        >
-          Home
-        </Link>
-        {" · "}
-        <Link
-          href="/privacy"
-          className="underline underline-offset-4 hover:text-foreground"
-        >
-          Privacy Policy
-        </Link>
-      </p>
-      <h1 className="mt-6 text-3xl font-semibold tracking-tight">
-        Terms of Service
-      </h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Last updated: March 30, 2026
-      </p>
-
-      <div className="prose prose-neutral dark:prose-invert mt-8 max-w-none">
+    <LegalPageShell title="Terms of Service" subtitle="Terms of Service for MemoSpark.">
+      <p className="mt-0 text-sm text-muted-foreground">Last updated: March 30, 2026</p>
+      <div className="mt-6">
         <p>
           These Terms of Service govern your use of MemoSpark. By creating an
           account or using the service, you agree to these terms and to our{" "}
@@ -73,6 +53,6 @@ export default function TermsOfServicePage() {
           .
         </p>
       </div>
-    </main>
+    </LegalPageShell>
   );
 }

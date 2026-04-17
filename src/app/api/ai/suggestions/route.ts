@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
     }
     
-    const { feature, tasks, context } = body;
+    const { feature, tasks, context, accessCheck } = body;
 
     if (!feature || typeof feature !== 'string' || !isAIFeatureType(feature)) {
       console.log('AI Suggestions API: Invalid feature type:', feature);
@@ -226,7 +226,27 @@ export async function POST(request: Request) {
       }, { status: 403 });
     }
 
-    // Process AI request (basic/advanced load user_ai_patterns + task analysis)
+    // Read-only tier/usage probe: skip the suggestion pipeline and do NOT
+    // increment daily usage. `useTieredAI.refreshUsage` fires on every mount
+    // across multiple components; without this guard each mount consumes
+    // AI quota just to look up tier/usage state.
+    if (accessCheck === true) {
+      return NextResponse.json({
+        success: true,
+        data: null,
+        tier: effectiveTier,
+        subscriptionTier: userTier,
+        launchMode: isLaunchMode,
+        usage: {
+          requestsUsed: requestsToday,
+          requestsRemaining: dailyLimit > 0 ? Math.max(0, dailyLimit - requestsToday) : 9999,
+          featureAvailable: hasRequiredTier,
+        },
+        upgradeRequired: false,
+        message: 'Access check only',
+      });
+    }
+
     const aiResult = await processAIRequest(feature, tasks, userId, context, supabase, effectiveTier);
     
     // Track usage if successful

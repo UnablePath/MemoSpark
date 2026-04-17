@@ -43,7 +43,7 @@ const StreakBadge: React.FC<{ streakData: any }> = ({ streakData }) => {
         </Badge>
       )}
       {longest_streak > 7 && (
-        <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 hover:bg-purple-200">
+        <Badge variant="secondary" className="text-xs bg-cyan-100 text-cyan-700 hover:bg-cyan-200">
           <Trophy className="h-3 w-3 mr-1" />
           {longest_streak}
         </Badge>
@@ -248,7 +248,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ searchTerm
       {searchResults.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg sm:text-xl bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">Search Results</CardTitle>
+            <CardTitle className="text-lg sm:text-xl text-foreground">Search Results</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {searchResults.map((result) => {
@@ -273,7 +273,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({ searchTerm
                   <Button 
                     onClick={() => handleSendRequest(result.clerk_user_id)}
                     disabled={sentRequests.includes(result.clerk_user_id) || loadingRequestId === result.clerk_user_id || outgoingRequests.some(o => o.receiver_id === result.clerk_user_id) || connections.some(c => (c.requester?.clerk_user_id === result.clerk_user_id) || (c.receiver?.clerk_user_id === result.clerk_user_id))}
-                    className="ml-3 shrink-0 h-10 px-5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow"
+                    className="ml-3 shrink-0 h-10 px-5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow"
                   >
                     {loadingRequestId === result.clerk_user_id 
                       ? 'Sending...' 

@@ -4,12 +4,9 @@ import type React from 'react';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
-import { ArrowLeft, Crown, CreditCard, ChevronDown, ChevronUp, Palette, Bell, Globe, Shield, Zap, Trash2, Download } from 'lucide-react';
+import { ArrowLeft, Crown, CreditCard, ChevronDown, ChevronUp, Bell, Settings as SettingsIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import ThemeSettings from '@/components/settings/ThemeSettings';
 import AccessibilitySettings from '@/components/settings/AccessibilitySettings';
 import { NotificationSettings } from '@/components/settings/NotificationSettings';
@@ -18,14 +15,10 @@ import Link from 'next/link';
 import { ReminderSettings } from '@/components/reminders/ReminderSettings';
 import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 import { useTieredAI } from '@/hooks/useTieredAI';
-import { toast } from 'sonner';
 import { AuthAwareSeo } from '@/components/seo/AuthAwareSeo';
 import { cn } from '@/lib/utils';
 
 // interface SettingsPageProps {} // Add if props are needed
-
-// Settings section type for better organization
-type SettingsSection = 'theme' | 'notifications' | 'accessibility' | 'privacy' | 'subscription' | 'data';
 
 const SettingsPage: React.FC = () => {
   const router = useRouter();
@@ -39,10 +32,9 @@ const SettingsPage: React.FC = () => {
     ? 'w-full min-w-0 max-w-full overflow-x-hidden px-2 sm:px-3'
     : 'w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8';
   const embedStackClass = isEmbed ? 'space-y-6 w-full min-w-0 max-w-full' : 'space-y-6 max-w-4xl';
-  const { user, isLoaded } = useUser();
+  const { isLoaded } = useUser();
   const { userTier, isLoading: tierLoading } = useTieredAI();
   const { triggerAchievement } = useDebouncedAchievementTrigger();
-  const [activeSection, setActiveSection] = useState<SettingsSection>('theme');
   const [isReminderSettingsOpen, setIsReminderSettingsOpen] = useState(false);
   const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = useState(false);
 
@@ -53,52 +45,6 @@ const SettingsPage: React.FC = () => {
   const handleBack = () => {
     router.push('/dashboard');
   };
-
-  const handleDataExport = async () => {
-    try {
-      toast.info('Preparing your data export...');
-      // Simulated data export - replace with actual implementation
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Create a dummy export file (in real implementation, fetch from API)
-      const exportData = {
-        profile: {
-          name: user?.fullName,
-          email: user?.primaryEmailAddress?.emailAddress,
-          exportDate: new Date().toISOString()
-        },
-        // Add more data as needed
-      };
-      
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `memospark-data-export-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      toast.success('Data exported successfully!');
-    } catch (error) {
-      console.error('Export failed:', error);
-      toast.error('Failed to export data. Please try again.');
-    }
-  };
-
-  const handleAccountDeletion = () => {
-    toast.error('Account deletion is not available yet. Please contact support if needed.');
-  };
-
-  const settingsSections = [
-    { id: 'theme' as SettingsSection, title: 'Appearance', icon: Palette, description: 'Customize your visual experience' },
-    { id: 'notifications' as SettingsSection, title: 'Notifications', icon: Bell, description: 'Manage your notification preferences' },
-    { id: 'accessibility' as SettingsSection, title: 'Accessibility', icon: Globe, description: 'Improve app accessibility for your needs' },
-    { id: 'privacy' as SettingsSection, title: 'Privacy', icon: Shield, description: 'Control your privacy and data settings' },
-    { id: 'subscription' as SettingsSection, title: 'Subscription', icon: Zap, description: 'Manage your MemoSpark plan' },
-    { id: 'data' as SettingsSection, title: 'Data & Account', icon: Download, description: 'Export data and manage account' },
-  ];
 
   if (!isLoaded || tierLoading) {
     return (
@@ -192,7 +138,8 @@ const SettingsPage: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="flex items-center gap-2">
-                        🔔 Proactive Reminder Settings
+                        <Bell className="h-5 w-5 text-primary" />
+                        Proactive Reminder Settings
                       </CardTitle>
                       <CardDescription>
                         Fine-tune when and how MemoSpark nudges you
@@ -221,7 +168,8 @@ const SettingsPage: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="flex items-center gap-2">
-                        ⚙️ Advanced Settings
+                        <SettingsIcon className="h-5 w-5 text-primary" />
+                        Advanced Settings
                       </CardTitle>
                       <CardDescription>
                         Accessibility options and notification analytics
@@ -364,7 +312,8 @@ const SettingsPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
-                    🔔 Proactive Reminder Settings
+                    <Bell className="h-5 w-5 text-primary" />
+                    Proactive Reminder Settings
                   </CardTitle>
                   <CardDescription>
                     Fine-tune when and how MemoSpark nudges you
@@ -393,7 +342,8 @@ const SettingsPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
-                    ⚙️ Advanced Settings
+                    <SettingsIcon className="h-5 w-5 text-primary" />
+                    Advanced Settings
                   </CardTitle>
                   <CardDescription>
                     Accessibility options and notification analytics

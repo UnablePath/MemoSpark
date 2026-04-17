@@ -4,7 +4,7 @@ import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
 export default function Page() {
   return (
     // This outer div provides the page background and centering, similar to your old login page.
-    <div className="flex min-h-screen w-full max-w-full flex-col items-center justify-center overflow-x-hidden bg-gradient-to-br from-[hsl(var(--primary)/0.1)] via-[hsl(var(--background))] to-[hsl(var(--background))] px-3 py-4 dark:bg-none dark:bg-[#0c0e13] sm:p-4">
+    <div className="flex min-h-[100dvh] w-full max-w-full flex-col items-center justify-center overflow-x-hidden bg-gradient-to-br from-[hsl(var(--primary)/0.1)] via-[hsl(var(--background))] to-[hsl(var(--background))] px-3 py-4 dark:bg-none dark:bg-[#0c0e13] sm:p-4">
       {/* This div acts as the "Card" wrapper from your shadcn UI */}
       <div className="w-full min-w-0 max-w-md overflow-hidden rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))] shadow-xl">
         <div className="flex min-w-0 flex-col items-center p-4 sm:p-6"> {/* Header-like section for the logo */}

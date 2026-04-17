@@ -35,6 +35,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
@@ -46,7 +47,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { SuggestionCard } from '@/components/ai/SuggestionCard';
 import { useTieredAI } from '@/hooks/useTieredAI';
 import type { AISuggestion } from '@/types/ai';
 import type {
@@ -407,7 +407,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       const currentDesc = form.getValues('description') || '';
       const enhancedDesc = currentDesc + 
         (currentDesc ? '\n\n' : '') + 
-        '📚 Include active recall techniques:\n' +
+        'Include active recall techniques:\n' +
         '• Create flashcards for key concepts\n' +
         '• Practice problems without looking at solutions\n' +
         '• Explain concepts out loud';
@@ -419,7 +419,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       const currentDesc = form.getValues('description') || '';
       const enhancedDesc = currentDesc + 
         (currentDesc ? '\n\n' : '') + 
-        '🎯 Project Milestones:\n' +
+        'Project milestones:\n' +
         '• Phase 1: Research and planning\n' +
         '• Phase 2: Initial implementation\n' +
         '• Phase 3: Review and refinement\n' +
@@ -554,9 +554,9 @@ export const TaskForm: React.FC<TaskFormProps> = ({
           <DialogTitle className="text-xl font-semibold">
             {taskId ? 'Edit Task' : 'Create New Task'}
           </DialogTitle>
-          <p className="text-sm text-muted-foreground">
+          <DialogDescription className="text-sm text-muted-foreground">
             {taskId ? 'Update your task details below' : 'Fill in the details to create a new task'}
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -577,7 +577,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm font-medium">
-                        Task Title <span className="text-red-500">*</span>
+                        Task Title <span className="text-destructive">*</span>
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -643,7 +643,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                                 <div
                                   className={cn(
                                     'w-2 h-2 rounded-full',
-                                    priority === 'high' && 'bg-red-500',
+                                    priority === 'high' && 'bg-destructive',
                                     priority === 'medium' && 'bg-yellow-500',
                                     priority === 'low' && 'bg-green-500'
                                   )}
@@ -889,9 +889,9 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="notification">📱 Push notification</SelectItem>
-                              <SelectItem value="email">📧 Email</SelectItem>
-                              <SelectItem value="both">📱📧 Both notification & email</SelectItem>
+                              <SelectItem value="notification">Push notification</SelectItem>
+                              <SelectItem value="email">Email</SelectItem>
+                              <SelectItem value="both">Notification and email</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormDescription className="text-xs text-muted-foreground">
@@ -910,7 +910,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-blue-800 dark:text-blue-200">
-                            📱 Push Notifications Setup Required
+                            Push notifications setup required
                           </p>
                           <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
                             Current reminder: {form.watch('reminder_settings.offset_minutes') || 15} minutes before via {form.watch('reminder_settings.type') || 'notification'}
@@ -919,7 +919,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
                             To receive reminder notifications, enable push notifications in your browser when prompted after creating this task.
                           </p>
                           <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                            ✨ Your reminders will be scheduled with AI-powered smart timing even if notifications aren't enabled yet!
+                            Your reminders will still be scheduled with smart timing even if notifications are enabled later.
                           </p>
                         </div>
                       </div>
