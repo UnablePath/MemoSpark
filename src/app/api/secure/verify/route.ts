@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'crypto';
+import { createHash } from 'node:crypto';
 import { headers } from 'next/headers';
 
 // Ultra-secure configuration - NEVER expose these in client code

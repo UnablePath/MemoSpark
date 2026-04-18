@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`📝 Creating task for user: ${userId}`);
-    console.log(`Task details:`, { title, description, due_date, priority, subject });
+    console.log("Task details:", { title, description, due_date, priority, subject });
 
     // Create the task
     const { data: task, error: taskError } = await supabase
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       task,
-      message: 'Task created successfully' + (due_date ? ' with smart reminders' : '')
+      message: `Task created successfully${due_date ? ' with smart reminders' : ''}`
     });
 
   } catch (error) {

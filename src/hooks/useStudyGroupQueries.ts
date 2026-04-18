@@ -20,7 +20,9 @@ export const studyGroupKeys = {
   userInvitations: () => [...studyGroupKeys.all, 'userInvitations'] as const,
   groupRoles: () => [...studyGroupKeys.all, 'groupRoles'] as const,
   groupAuditLog: (groupId: string) => [...studyGroupKeys.all, 'groupAuditLog', groupId] as const,
-  userGroups: () => [...studyGroupKeys.all, 'userGroups'] as const,
+  userGroups: (userId: string) => [...studyGroupKeys.all, 'userGroups', userId] as const,
+  groupResources: (groupId: string) => [...studyGroupKeys.all, 'groupResources', groupId] as const,
+  groupMembersDetailed: (groupId: string) => [...studyGroupKeys.all, 'groupMembersDetailed', groupId] as const,
 };
 
 export function useStudySessions(getToken: () => Promise<string | null>, groupId: string) {
@@ -57,6 +59,8 @@ export function useDiscoverGroups(getToken: () => Promise<string | null>, filter
   return useQuery({
     queryKey: studyGroupKeys.discovery(filters),
     queryFn: () => manager.searchGroups({ query: filters.q, categoryId: filters.categoryId || undefined, limit: 30, offset: 0 }),
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
   });
 }
 
@@ -150,7 +154,7 @@ export const useRespondToInvitation = () => {
     onSuccess: (_, variables) => {
       // Invalidate user's invitations and relevant group data
       queryClient.invalidateQueries({ queryKey: studyGroupKeys.userInvitations() });
-      queryClient.invalidateQueries({ queryKey: studyGroupKeys.userGroups() });
+      queryClient.invalidateQueries({ queryKey: [...studyGroupKeys.all, 'userGroups'] });
     }
   });
 };
@@ -319,7 +323,39 @@ export const useUserInvitations = (inviteeId?: string | null) => {
   });
 };
 
-// Realtime subscription to keep group management data fresh
+export function useUserStudyGroups(getToken: () => Promise<string | null>, userId: string | undefined) {
+  const manager = useMemo(() => new StudyGroupManager(getToken), [getToken]);
+  return useQuery({
+    queryKey: userId ? studyGroupKeys.userGroups(userId) : [...studyGroupKeys.all, 'userGroups', '__none__'],
+    queryFn: () => manager.getUserGroups(userId!),
+    enabled: Boolean(userId),
+    staleTime: 30_000,
+    gcTime: 5 * 60_000,
+  });
+}
+
+export function useStudyGroupResources(getToken: () => Promise<string | null>, groupId: string) {
+  const manager = useMemo(() => new StudyGroupManager(getToken), [getToken]);
+  return useQuery({
+    queryKey: studyGroupKeys.groupResources(groupId),
+    queryFn: () => manager.getResources(groupId),
+    enabled: Boolean(groupId),
+  });
+}
+
+export function useStudyGroupMembersDetailed(getToken: () => Promise<string | null>, groupId: string) {
+  const manager = useMemo(() => new StudyGroupManager(getToken), [getToken]);
+  return useQuery({
+    queryKey: studyGroupKeys.groupMembersDetailed(groupId),
+    queryFn: async () => {
+      const rows = await manager.getGroupMembersWithNames(groupId);
+      return rows.map((m) => ({ ...m, user_name: m.name || 'Unknown' }));
+    },
+    enabled: Boolean(groupId),
+  });
+}
+
+// Realtime subscription to keep group hub + management data fresh
 export function useGroupRealtime(groupId: string) {
   const qc = useQueryClient();
   const { userId, getToken, isLoaded, isSignedIn } = useAuth();
@@ -340,9 +376,17 @@ export function useGroupRealtime(groupId: string) {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_members', filter: `group_id=eq.${groupId}` }, () => {
         qc.invalidateQueries({ queryKey: studyGroupKeys.groupMembers(groupId) });
+        qc.invalidateQueries({ queryKey: studyGroupKeys.groupMembersDetailed(groupId) });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'group_audit_log', filter: `group_id=eq.${groupId}` }, () => {
         qc.invalidateQueries({ queryKey: studyGroupKeys.groupAuditLog(groupId) });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_groups', filter: `id=eq.${groupId}` }, () => {
+        qc.invalidateQueries({ queryKey: [...studyGroupKeys.all, 'userGroups'] });
+        qc.invalidateQueries({ queryKey: [...studyGroupKeys.all, 'discovery'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_resources', filter: `group_id=eq.${groupId}` }, () => {
+        qc.invalidateQueries({ queryKey: studyGroupKeys.groupResources(groupId) });
       })
       .subscribe();
 
@@ -351,6 +395,9 @@ export function useGroupRealtime(groupId: string) {
     };
   }, [groupId, qc, isLoaded, isSignedIn, userId, wrappedToken]);
 }
+
+/** Alias: subscribe at study group detail level (not only management panel). */
+export const useStudyGroupHubRealtime = useGroupRealtime;
 
 export const useGroupRoles = () => {
   return useQuery({

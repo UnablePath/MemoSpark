@@ -185,14 +185,14 @@ export function BubblePopGame() {
       clearTimeout(bubbleCreationTimeoutId.current);
 
     bubbleCreationTimeoutId.current = setTimeout(() => {
-      const gameAreaWidth = gameAreaRef.current!.offsetWidth;
+      const gameAreaWidth = gameAreaRef.current?.offsetWidth;
       const size = Math.round(Math.random() * 30 + 30);
       setBubbles((prevBubbles) => [
         ...prevBubbles,
         {
           id: nextBubbleId.current++,
           x: Math.random() * (gameAreaWidth - size),
-          y: gameAreaRef.current!.offsetHeight,
+          y: gameAreaRef.current?.offsetHeight,
           size,
           colorIndex: getRandomColorIndex(),
           speed:

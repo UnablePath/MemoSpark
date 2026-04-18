@@ -340,7 +340,7 @@ export const useUpdateTask = (getToken?: () => Promise<string | null>) => {
           if (smartReminderScheduled) {
             console.log(`✅ Smart reminders updated for task: ${data.title}`);
             toast.success('Smart reminders updated!', {
-              description: `Follow-up timing was refreshed from your updated task settings.`
+              description: "Follow-up timing was refreshed from your updated task settings."
             });
           }
         } catch (error) {

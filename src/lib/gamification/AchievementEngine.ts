@@ -57,6 +57,19 @@ export class AchievementEngine {
       await this.initialize();
     }
 
+    const unlockedIds = new Set<string>();
+    try {
+      const response = await fetch('/api/achievements');
+      if (response.ok) {
+        const result = await response.json();
+        for (const a of result.achievements ?? []) {
+          if (a?.id && a.unlocked) unlockedIds.add(a.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error prefetching achievements for check:', error);
+    }
+
     const results: AchievementUnlockResult[] = [];
     const relevantAchievements = this.achievements.filter(
       achievement => achievement.type === data.type
@@ -64,7 +77,12 @@ export class AchievementEngine {
 
     for (const achievement of relevantAchievements) {
       try {
-        const result = await this.evaluateAchievement(achievement, data, getToken);
+        const result = await this.evaluateAchievement(
+          achievement,
+          data,
+          getToken,
+          unlockedIds,
+        );
         if (result) {
           results.push(result);
         }
@@ -82,31 +100,18 @@ export class AchievementEngine {
   private async evaluateAchievement(
     achievement: Achievement,
     data: AchievementCheckData,
-    getToken?: () => Promise<string | null>
+    getToken?: () => Promise<string | null>,
+    unlockedIds?: Set<string>,
   ): Promise<AchievementUnlockResult | null> {
     const userStats = await fetchUserStats(data.userId, getToken);
-    
-    // Check if user already has this achievement using API route
-    try {
-      const response = await fetch('/api/achievements');
-      if (response.ok) {
-        const result = await response.json();
-        const existingAchievement = result.achievements?.find(
-          (a: any) => a.id === achievement.id && a.unlocked
-        );
-        
-        if (existingAchievement) {
-          return {
-            success: false,
-            achievement,
-            isNew: false,
-            message: 'Achievement already unlocked'
-          };
-        }
-      }
-    } catch (error) {
-      console.error('Error checking existing achievements:', error);
-      // Continue with achievement evaluation even if check fails
+
+    if (unlockedIds?.has(achievement.id)) {
+      return {
+        success: false,
+        achievement,
+        isNew: false,
+        message: 'Achievement already unlocked',
+      };
     }
 
     // Evaluate achievement criteria
@@ -237,7 +242,7 @@ export class AchievementEngine {
       try {
         await coinEconomy.awardAchievementCoins(
           userId,
-          'achievement-' + Date.now(), // temporary ID since we don't have achievement ID here
+          `achievement-${Date.now()}`, // temporary ID since we don't have achievement ID here
           points,
           'common', // default rarity
           getToken

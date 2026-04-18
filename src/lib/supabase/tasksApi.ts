@@ -961,12 +961,11 @@ export const updateAISuggestionFeedback = async (
       }
 
       return data;
-    } else {
+    }
       // This case should ideally not be hit if UI triggers update only on existing items.
       // If it can be hit, then an upsert or clear error is needed.
       // For now, erroring out as the original code did.
       throw new SupabaseApiError('Cannot update non-existing feedback. Suggestion or original feedback not found for this user.');
-    }
   } catch (error) {
     if (error instanceof SupabaseApiError) throw error;
     return handleSupabaseError(error, 'update AI suggestion feedback');

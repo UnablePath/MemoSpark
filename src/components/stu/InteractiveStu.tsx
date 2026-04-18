@@ -164,12 +164,12 @@ export const InteractiveStu: React.FC<InteractiveStuProps> = ({
             {currentMessage}
           </div>
           {/* Speech bubble tail */}
-          <div className="absolute bottom-0 left-8 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white dark:border-t-gray-800 transform translate-y-full"></div>
+          <div className="absolute bottom-0 left-8 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white dark:border-t-gray-800 transform translate-y-full" />
           
           {/* Speaking indicator */}
           {currentState === 'speaking' && (
             <div className="absolute -right-2 -top-2 w-4 h-4 bg-green-500 rounded-full animate-pulse">
-              <div className="absolute inset-0 bg-green-500 rounded-full animate-ping"></div>
+              <div className="absolute inset-0 bg-green-500 rounded-full animate-ping" />
             </div>
           )}
         </div>
@@ -213,7 +213,7 @@ export const InteractiveStu: React.FC<InteractiveStuProps> = ({
 
         {/* Interaction hint */}
         {currentState === 'idle' && (
-          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-ping opacity-75"></div>
+          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-ping opacity-75" />
         )}
       </div>
 

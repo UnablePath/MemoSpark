@@ -14,7 +14,6 @@ import {
   useChangeMemberRole,
   useRemoveGroupMember,
   useTransferGroupOwnership,
-  useGroupRealtime
 } from '@/hooks/useStudyGroupQueries';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -76,9 +75,6 @@ export default function GroupManagementPanel({
   const { data: userInvitations, isLoading: userInvitationsLoading } = useUserInvitations(user?.id);
   const { data: roles, isLoading: rolesLoading } = useGroupRoles();
   const { data: auditLog, isLoading: auditLoading } = useGroupAuditLog(groupId);
-
-  // Realtime updates for this group
-  useGroupRealtime(groupId);
 
   // Mutation hooks
   const sendInvitation = useSendGroupInvitation();

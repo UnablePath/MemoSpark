@@ -139,9 +139,9 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
       <Card className={className}>
         <CardContent className="p-4">
           <div className="animate-pulse space-y-3">
-            <div className="h-6 rounded bg-muted w-2/3"></div>
-            <div className="h-8 rounded bg-muted w-1/2"></div>
-            <div className="h-4 rounded bg-muted w-full"></div>
+            <div className="h-6 rounded bg-muted w-2/3" />
+            <div className="h-8 rounded bg-muted w-1/2" />
+            <div className="h-4 rounded bg-muted w-full" />
           </div>
         </CardContent>
       </Card>
@@ -254,7 +254,7 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
               >
                 {completingToday ? (
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     <span>Updating...</span>
                   </div>
                 ) : (
@@ -364,7 +364,7 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
             >
               {completingToday ? (
                 <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   <span>Marking Complete...</span>
                 </div>
               ) : (

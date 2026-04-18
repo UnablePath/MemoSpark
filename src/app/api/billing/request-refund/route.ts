@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let requestId = 'temp-' + Date.now();
+    let requestId = `temp-${Date.now()}`;
 
     // Log the refund request to the database (optional, for audit)
     if (supabase) {

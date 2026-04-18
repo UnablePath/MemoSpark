@@ -598,7 +598,7 @@ export const TimetableView: React.FC<TimetableViewProps> = ({
                             <div
                               className="w-3 h-3 rounded-full flex-shrink-0 mt-1"
                               style={{ backgroundColor: entry.color }}
-                              aria-label={`Color indicator`}
+                              aria-label={"Color indicator"}
                             />
                           )}
                         </div>

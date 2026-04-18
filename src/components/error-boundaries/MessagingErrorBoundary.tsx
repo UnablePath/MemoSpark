@@ -97,7 +97,7 @@ export class MessagingErrorBoundary extends Component<Props, State> {
       clearTimeout(this.retryTimeout);
     }
 
-    const delay = Math.min(1000 * Math.pow(2, this.state.retryCount), 10000); // Exponential backoff, max 10s
+    const delay = Math.min(1000 * 2 ** this.state.retryCount, 10000); // Exponential backoff, max 10s
     
     this.retryTimeout = setTimeout(() => {
       if (this.state.isOnline) {

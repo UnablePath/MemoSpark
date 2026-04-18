@@ -139,7 +139,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
 
       // Get next recommended questionnaire
       const nextTemplate =
-        await questionnaireManager.getNextRecommendedQuestionnaire(user!.id);
+        await questionnaireManager.getNextRecommendedQuestionnaire(user?.id);
       qDevLog("Next template found:", nextTemplate);
 
       if (nextTemplate) {
@@ -147,7 +147,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
 
         // Check if user has existing response
         const existingResponse = await questionnaireManager.getUserResponse(
-          user!.id,
+          user?.id,
           nextTemplate.id,
         );
         qDevLog("Existing response:", existingResponse);
@@ -190,7 +190,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
           // Start new questionnaire
           qDevLog("Starting new questionnaire...");
           const newResponse = await questionnaireManager.startQuestionnaire(
-            user!.id,
+            user?.id,
             nextTemplate.id,
           );
           qDevLog("New response created:", newResponse);
@@ -217,7 +217,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
       } else {
         // Check if user has any completed questionnaires
         const userResponses = await questionnaireManager.getUserResponses(
-          user!.id,
+          user?.id,
         );
         const hasCompletedQuestionnaires = userResponses.some(
           (r) => r.completion_status === "completed",
@@ -370,13 +370,13 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
       try {
         await questionnaireManager.updateResponse(
           user.id,
-          currentTemplate!.id,
+          currentTemplate?.id,
           answers,
         );
       } catch (firstErr) {
         qDevLog("updateResponse retry after:", firstErr);
         await new Promise((r) => setTimeout(r, 900));
-        await questionnaireManager.updateResponse(user.id, currentTemplate!.id, answers);
+        await questionnaireManager.updateResponse(user.id, currentTemplate?.id, answers);
       }
 
       const patterns = await questionnaireManager.getUserPatterns(user.id);
@@ -598,7 +598,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
           </div>
         );
 
-      case "time":
+      case "time": {
         if (supportsNativeTimeInput) {
           return (
             <Input
@@ -614,7 +614,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
         // Fallback: stable hour/minute selectors to avoid input resets on unsupported browsers
         const raw = typeof currentAnswer === "string" ? currentAnswer : "";
         const [hStr, mStr] =
-          raw && raw.includes(":") ? raw.split(":") : ["", ""];
+          raw?.includes(":") ? raw.split(":") : ["", ""];
         const hour = hStr !== "" ? Number.parseInt(hStr, 10) : undefined;
         const minute = mStr !== "" ? Number.parseInt(mStr, 10) : undefined;
 
@@ -688,6 +688,7 @@ export const AIQuestionnaire: React.FC<AIQuestionnaireProps> = ({
             </div>
           </div>
         );
+      }
 
       case "text":
         return (

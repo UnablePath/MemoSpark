@@ -143,13 +143,14 @@ export async function getCrashoutPosts(options: GetPostsOptions = { filter: 'lat
       query = query.order('upvotes', { ascending: false })
         .order('created_at', { ascending: false });
       break;
-    case 'trending':
+    case 'trending': {
       // Trending: posts with high engagement in last 24 hours
       const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       query = query.gte('created_at', last24Hours)
         .order('upvotes', { ascending: false })
         .order('created_at', { ascending: false });
       break;
+    }
     case 'top':
       // Top: highest upvoted posts overall
       query = query.order('upvotes', { ascending: false })
@@ -184,10 +185,11 @@ export async function hasMorePosts(lastPostDate: string, filter: 'latest' | 'pop
 
   // Apply same filtering logic as getCrashoutPosts
   switch (filter) {
-    case 'trending':
+    case 'trending': {
       const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       query = query.gte('created_at', last24Hours);
       break;
+    }
   }
 
   const { count, error } = await query;

@@ -1,69 +1,77 @@
 "use client";
 
-import type React from 'react';
-import { useState, useEffect, useMemo, createRef, useCallback } from 'react';
-import TinderCard from 'react-tinder-card';
-import { useAuth, useUser } from '@clerk/nextjs';
-import { StudentDiscovery, type UserSearchResult } from '@/lib/social/StudentDiscovery';
-import type { UserProfile } from '@/lib/social/StudentDiscovery';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { X, Heart, Undo, Users, Loader2, RefreshCw, Sparkles, GraduationCap, User } from 'lucide-react';
-import { toast } from 'sonner';
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { StudentDiscovery, type UserSearchResult } from "@/lib/social/StudentDiscovery";
+import type { UserProfile } from "@/lib/social/StudentDiscovery";
+import { useAuth, useUser } from "@clerk/nextjs";
+import {
+  ArrowClockwise,
+  GraduationCap,
+  Heart,
+  UserCircle,
+  UsersThree,
+  X,
+} from "@phosphor-icons/react";
+import { motion, useReducedMotion } from "framer-motion";
+import type React from "react";
+import { createRef, useCallback, useEffect, useMemo, useState } from "react";
+import TinderCard from "react-tinder-card";
+import { toast } from "sonner";
 
 interface SwipeInterfaceProps {
   onMatch?: (matchedUser: UserProfile) => void;
   onSwipeModeChange?: (isSwipeMode: boolean) => void;
 }
 
-export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({ onMatch, onSwipeModeChange }) => {
+export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({
+  onMatch,
+  onSwipeModeChange,
+}) => {
   const { getToken } = useAuth();
   const { user } = useUser();
-  
-  const [studentDiscovery, setStudentDiscovery] = useState<StudentDiscovery | null>(null);
+  const reduceMotion = useReducedMotion();
+
+  const [studentDiscovery, setStudentDiscovery] =
+    useState<StudentDiscovery | null>(null);
   const [recommendations, setRecommendations] = useState<UserSearchResult[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [swipedUsers, setSwipedUsers] = useState<string[]>([]);
 
-  const studentDiscoveryMemo = useMemo(() => {
-    return new StudentDiscovery(getToken);
-  }, [getToken]);
+  const studentDiscoveryMemo = useMemo(
+    () => new StudentDiscovery(getToken),
+    [getToken],
+  );
 
   useEffect(() => {
-    if (user && studentDiscoveryMemo) {
-      setStudentDiscovery(studentDiscoveryMemo);
-    }
+    if (user && studentDiscoveryMemo) setStudentDiscovery(studentDiscoveryMemo);
   }, [user, studentDiscoveryMemo]);
-  
+
   const loadRecommendations = useCallback(async () => {
     if (!studentDiscovery || !user) return;
-    
     setLoading(true);
     setError(null);
-    
     try {
       const recs = await studentDiscovery.getRecommendations(user.id);
-      // Filter out already swiped users
-      const filteredRecs = recs.filter(rec => !swipedUsers.includes(rec.clerk_user_id));
-      setRecommendations(filteredRecs);
+      setRecommendations(
+        recs.filter((rec) => !swipedUsers.includes(rec.clerk_user_id)),
+      );
       setCurrentIndex(0);
     } catch (err) {
-      console.error('[social:swipe:load-recommendations]', err);
-      setError('Failed to load recommendations. Please try again.');
+      console.error("[social:swipe:load-recommendations]", err);
+      setError("Couldn't load people right now. Try again.");
     } finally {
       setLoading(false);
     }
   }, [studentDiscovery, user, swipedUsers]);
-  
+
   useEffect(() => {
     loadRecommendations();
   }, [loadRecommendations]);
 
-  // Communicate swipe mode to parent
   useEffect(() => {
     onSwipeModeChange?.(true);
     return () => onSwipeModeChange?.(false);
@@ -74,66 +82,69 @@ export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({ onMatch, onSwipe
       Array(recommendations.length)
         .fill(0)
         .map(() => createRef<any>()),
-    [recommendations.length]
+    [recommendations.length],
   );
-  
+
   const onSwipe = async (direction: string, userSwiped: UserSearchResult) => {
-    // Add to swiped users to prevent re-showing
-    setSwipedUsers(prev => [...prev, userSwiped.clerk_user_id]);
-    
-    if (direction === 'right') {
+    setSwipedUsers((prev) => [...prev, userSwiped.clerk_user_id]);
+
+    if (direction === "right") {
       try {
-        const status = await studentDiscovery?.sendConnectionRequest(user?.id!, userSwiped.clerk_user_id);
-        if (status === 'accepted') {
+        const status = await studentDiscovery?.sendConnectionRequest(
+          user?.id!,
+          userSwiped.clerk_user_id,
+        );
+        if (status === "accepted") {
           toast.success("It's a match.");
           onMatch?.(userSwiped as UserProfile);
-          // Optional: fire a lightweight notification to the other user (no-op if not configured)
           try {
-            await fetch('/api/notifications/send', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+            await fetch("/api/notifications/send", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 userId: userSwiped.clerk_user_id,
                 notification: {
                   app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
-                  headings: { en: 'New connection' },
-                  contents: { en: `${user?.firstName ?? 'Someone'} just matched with you!` },
-                  data: { type: 'connection_accept' },
+                  headings: { en: "New connection" },
+                  contents: {
+                    en: `${user?.firstName ?? "Someone"} just matched with you!`,
+                  },
+                  data: { type: "connection_accept" },
                 },
-              })
+              }),
             });
           } catch {}
         } else {
-          toast.success('Request sent');
+          toast.success("Request sent");
           try {
-            await fetch('/api/notifications/send', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+            await fetch("/api/notifications/send", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 userId: userSwiped.clerk_user_id,
                 notification: {
                   app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
-                  headings: { en: 'New connection request' },
-                  contents: { en: `${user?.firstName ?? 'Someone'} wants to connect with you` },
-                  data: { type: 'connection_request' },
+                  headings: { en: "New connection request" },
+                  contents: {
+                    en: `${user?.firstName ?? "Someone"} wants to connect with you`,
+                  },
+                  data: { type: "connection_request" },
                 },
-              })
+              }),
             });
           } catch {}
         }
       } catch (error) {
-        console.error('[social:swipe:send-request]', error);
-        toast.error('Failed to send request');
+        console.error("[social:swipe:send-request]", error);
+        toast.error("Couldn't send request");
       }
     }
     setCurrentIndex((prev) => prev + 1);
   };
 
-  const onCardLeftScreen = (myIdentifier: string) => {
-    // Optional: Add analytics or cleanup
-  };
+  const onCardLeftScreen = () => {};
 
-  const swipe = async (dir: 'left' | 'right') => {
+  const swipe = async (dir: "left" | "right") => {
     if (currentIndex < recommendations.length) {
       await childRefs[currentIndex].current?.swipe(dir);
     }
@@ -147,36 +158,58 @@ export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({ onMatch, onSwipe
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[600px] w-full space-y-6">
-        <div className="relative">
-          <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+      <div className="flex min-h-[520px] w-full flex-col items-center justify-center gap-6">
+        <div className="grid h-[360px] w-full max-w-[22rem] place-items-center">
+          <div className="relative h-full w-full">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                aria-hidden
+                className={cn(
+                  "absolute inset-0 overflow-hidden rounded-[1.75rem] border border-border/60 bg-card/80",
+                  "shadow-[0_20px_40px_-24px_hsl(var(--foreground)/0.18)]",
+                )}
+                style={{
+                  transform: `translateY(${i * 8}px) scale(${1 - i * 0.04})`,
+                  zIndex: 3 - i,
+                  opacity: 1 - i * 0.25,
+                }}
+              >
+                <div className="h-[62%] w-full animate-pulse bg-muted/60" />
+                <div className="space-y-2 p-5">
+                  <div className="h-4 w-2/3 animate-pulse rounded bg-muted/60" />
+                  <div className="h-3 w-1/3 animate-pulse rounded bg-muted/50" />
+                  <div className="flex gap-1.5 pt-1">
+                    <div className="h-5 w-14 animate-pulse rounded-full bg-muted/50" />
+                    <div className="h-5 w-10 animate-pulse rounded-full bg-muted/50" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-        <div className="text-center space-y-2">
-          <h3 className="text-lg font-semibold">Finding Study Partners</h3>
-          <p className="text-muted-foreground">Discovering amazing people for you to connect with...</p>
-        </div>
+        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground/80">
+          Finding people
+        </p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-[600px] w-full space-y-6">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
-            <X className="h-8 w-8 text-destructive" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold">Oops! Something went wrong</h3>
-            <p className="text-muted-foreground max-w-sm">{error}</p>
-          </div>
+      <div className="flex min-h-[520px] w-full flex-col items-center justify-center gap-5 px-6 text-center">
+        <div className="grid h-14 w-14 place-items-center rounded-full bg-destructive/10 text-destructive">
+          <X className="h-6 w-6" weight="bold" aria-hidden />
         </div>
-        <Button onClick={loadRecommendations} variant="outline" className="gap-2">
-          <RefreshCw className="h-4 w-4" />
-          Try Again
+        <p className="max-w-xs text-sm text-muted-foreground">{error}</p>
+        <Button
+          onClick={loadRecommendations}
+          variant="outline"
+          size="sm"
+          className="rounded-full"
+        >
+          <ArrowClockwise className="mr-1.5 h-4 w-4" weight="bold" aria-hidden />
+          Retry
         </Button>
       </div>
     );
@@ -186,200 +219,216 @@ export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({ onMatch, onSwipe
 
   if (availableCards.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[600px] w-full space-y-8">
-        <div className="text-center space-y-6">
-          <div className="w-24 h-24 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center">
-            <Users className="h-12 w-12 text-primary" />
-          </div>
-          <div className="space-y-3">
-            <h3 className="text-2xl font-bold">That's everyone for now!</h3>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              You've seen all available study partners. Check back later for new students or adjust your preferences!
-            </p>
-          </div>
+      <div className="flex min-h-[520px] w-full flex-col items-center justify-center gap-5 px-6 text-center">
+        <div className="grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
+          <UsersThree className="h-7 w-7" weight="duotone" aria-hidden />
         </div>
-        <div className="flex gap-4">
-          <Button onClick={resetSwipes} variant="outline" className="gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Start Over
-          </Button>
+        <div className="space-y-1.5">
+          <h3 className="text-lg font-semibold text-foreground">
+            You're caught up
+          </h3>
+          <p className="max-w-xs text-sm text-muted-foreground">
+            New students will show up as they join. Reset to see profiles again.
+          </p>
         </div>
+        <Button
+          onClick={resetSwipes}
+          variant="outline"
+          size="sm"
+          className="rounded-full"
+        >
+          <ArrowClockwise className="mr-1.5 h-4 w-4" weight="bold" aria-hidden />
+          Reset deck
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[600px] w-full space-y-8 px-4">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-          Study Mode
-        </h2>
-        <p className="text-muted-foreground text-sm">
-          Swipe right to connect • Swipe left to pass
-        </p>
-      </div>
+    <div className="flex w-full flex-col items-center gap-6">
+      <div className="relative w-full max-w-[22rem]">
+        <div className="pointer-events-none absolute -top-3 right-1 z-40 flex items-center gap-1.5 rounded-full bg-background/80 px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-[0.18em] text-muted-foreground shadow-[0_2px_6px_-3px_hsl(var(--foreground)/0.2)]">
+          <span className="tabular-nums text-foreground">
+            {availableCards.length}
+          </span>
+          <span>left</span>
+        </div>
 
-      {/* Cards Container */}
-      <div className="relative w-full max-w-sm">
         <div className="relative h-[520px] w-full">
           {availableCards.slice(0, 3).map((rec, index) => {
             const cardIndex = currentIndex + index;
             const isTopCard = index === 0;
-            
+            const chips = [
+              ...(rec.subjects ?? []).slice(0, 3).map((s) => ({
+                label: s,
+                kind: "subject" as const,
+              })),
+              ...(rec.interests ?? []).slice(0, 2).map((s) => ({
+                label: s,
+                kind: "interest" as const,
+              })),
+            ].slice(0, 4);
+            const overflow =
+              (rec.subjects?.length ?? 0) +
+              (rec.interests?.length ?? 0) -
+              chips.length;
+
             return (
               <TinderCard
                 ref={childRefs[cardIndex]}
                 key={rec.clerk_user_id}
                 onSwipe={(dir) => onSwipe(dir, rec)}
-                onCardLeftScreen={() => onCardLeftScreen(rec.full_name || '')}
-                preventSwipe={['up', 'down']}
+                onCardLeftScreen={onCardLeftScreen}
+                preventSwipe={["up", "down"]}
                 className="absolute inset-0"
                 swipeRequirementType="position"
                 swipeThreshold={80}
               >
-                <Card 
-                  className={`
-                    w-full h-full shadow-2xl rounded-3xl overflow-hidden border-0
-                    bg-gradient-to-br from-background via-background to-background/95
-                    backdrop-blur-sm transition-all duration-300
-                    ${isTopCard ? 'scale-100 z-30' : index === 1 ? 'scale-95 z-20' : 'scale-90 z-10'}
-                    ${!isTopCard ? 'pointer-events-none' : ''}
-                  `}
+                <motion.article
+                  aria-label={`${rec.full_name ?? "Student profile"} card`}
+                  animate={
+                    isTopCard && !reduceMotion
+                      ? { y: [0, -3, 0] }
+                      : { y: 0 }
+                  }
+                  transition={
+                    isTopCard && !reduceMotion
+                      ? {
+                          duration: 6,
+                          repeat: Number.POSITIVE_INFINITY,
+                          ease: "easeInOut",
+                        }
+                      : { duration: 0 }
+                  }
                   style={{
-                    transform: !isTopCard ? `scale(${1 - index * 0.05}) translateY(${index * 10}px)` : undefined
+                    transform: !isTopCard
+                      ? `scale(${1 - index * 0.035}) translateY(${index * 10}px)`
+                      : undefined,
+                    zIndex: 30 - index,
                   }}
+                  className={cn(
+                    "relative h-full w-full overflow-hidden rounded-[1.75rem] bg-card",
+                    "border border-border/50",
+                    "shadow-[0_24px_48px_-24px_hsl(var(--foreground)/0.28)]",
+                    !isTopCard && "pointer-events-none",
+                  )}
                 >
-                  <CardContent className="p-0 flex flex-col h-full">
-                    {/* Profile Image Section */}
-                    <div className="relative h-[55%] overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/20"></div>
-                      <Avatar className="w-full h-full rounded-none">
-                        <AvatarImage 
-                          src={rec.avatar_url || ''} 
-                          className="object-cover w-full h-full"
-                          alt={rec.full_name || 'User avatar'}
-                        />
-                        <AvatarFallback className="w-full h-full text-7xl rounded-none bg-gradient-to-br from-primary/10 to-primary/30 flex items-center justify-center">
-                          {rec.full_name?.charAt(0)?.toUpperCase() || <User className="h-16 w-16 text-primary/60" />}
-                        </AvatarFallback>
-                      </Avatar>
-                      
-                      {/* Gradient overlay for better text readability */}
-                      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                      
-                      {/* Floating status indicator */}
-                      <div className="absolute top-4 right-4">
-                        <div className="bg-green-500 w-3 h-3 rounded-full ring-2 ring-white shadow-lg"></div>
-                      </div>
-                    </div>
-                    
-                    {/* Profile Info Section */}
-                    <div className="flex-1 p-6 space-y-4 bg-gradient-to-b from-transparent to-background/50">
-                      {/* Name and Year */}
-                      <div className="space-y-1">
-                        <h2 className="text-2xl font-bold text-foreground line-clamp-1">
-                          {rec.full_name || 'Anonymous Student'}
-                        </h2>
-                        {rec.year_of_study && (
-                          <div className="flex items-center gap-2 text-primary">
-                            <GraduationCap className="h-4 w-4" />
-                            <span className="text-sm font-medium">{rec.year_of_study}</span>
-                          </div>
+                  <div className="relative h-[62%] w-full overflow-hidden bg-muted">
+                    <Avatar className="h-full w-full rounded-none">
+                      <AvatarImage
+                        src={rec.avatar_url || ""}
+                        className="h-full w-full object-cover"
+                        alt={rec.full_name || "Student avatar"}
+                      />
+                      <AvatarFallback className="grid h-full w-full place-items-center rounded-none bg-muted text-5xl font-medium text-muted-foreground">
+                        {rec.full_name?.charAt(0)?.toUpperCase() || (
+                          <UserCircle
+                            className="h-14 w-14 text-muted-foreground/70"
+                            weight="duotone"
+                            aria-hidden
+                          />
                         )}
-                      </div>
-                      
-                      {/* Subjects */}
-                      {rec.subjects && rec.subjects.length > 0 && (
-                        <div className="space-y-2">
-                          <p className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                            <Sparkles className="h-3 w-3" />
-                            Subjects
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {rec.subjects.slice(0, 3).map((subject, idx) => (
-                              <Badge key={idx} variant="secondary" className="text-xs font-medium px-3 py-1 bg-primary/10 text-primary border-primary/20">
-                                {subject}
-                              </Badge>
-                            ))}
-                            {rec.subjects.length > 3 && (
-                              <Badge variant="outline" className="text-xs font-medium px-3 py-1">
-                                +{rec.subjects.length - 3}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Interests */}
-                      {rec.interests && rec.interests.length > 0 && (
-                        <div className="space-y-2">
-                          <p className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                            <Heart className="h-3 w-3" />
-                            Interests
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {rec.interests.slice(0, 3).map((interest, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs font-medium px-3 py-1 bg-background border-muted-foreground/20">
-                                {interest}
-                              </Badge>
-                            ))}
-                            {rec.interests.length > 3 && (
-                              <Badge variant="outline" className="text-xs font-medium px-3 py-1">
-                                +{rec.interests.length - 3}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                      </AvatarFallback>
+                    </Avatar>
+
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-[linear-gradient(to_top,hsl(var(--card))_5%,transparent_100%)]"
+                    />
+
+                    <span
+                      aria-hidden
+                      className="absolute left-3 top-3 rounded-full bg-background/85 px-2 py-0.5 font-mono text-[0.62rem] tabular-nums text-muted-foreground"
+                    >
+                      {String(cardIndex + 1).padStart(2, "0")}
+                      <span className="mx-0.5 text-muted-foreground/40">/</span>
+                      {String(recommendations.length).padStart(2, "0")}
+                    </span>
+                  </div>
+
+                  <div className="flex h-[38%] flex-col justify-between px-5 pb-5 pt-2">
+                    <div className="space-y-1">
+                      <h2 className="line-clamp-1 text-[1.35rem] font-semibold leading-tight tracking-tight text-foreground">
+                        {rec.full_name || "Anonymous student"}
+                      </h2>
+                      {rec.year_of_study ? (
+                        <p className="flex items-center gap-1.5 text-[0.72rem] text-muted-foreground">
+                          <GraduationCap
+                            className="h-3.5 w-3.5"
+                            weight="duotone"
+                            aria-hidden
+                          />
+                          <span className="truncate">{rec.year_of_study}</span>
+                        </p>
+                      ) : null}
                     </div>
-                  </CardContent>
-                </Card>
+
+                    {chips.length > 0 ? (
+                      <ul className="flex flex-wrap gap-1.5">
+                        {chips.map((chip, i) => (
+                          <li
+                            key={`${chip.kind}-${i}`}
+                            className={cn(
+                              "rounded-full px-2.5 py-0.5 text-[0.68rem] font-medium",
+                              chip.kind === "subject"
+                                ? "bg-primary/10 text-primary"
+                                : "bg-muted text-muted-foreground",
+                            )}
+                          >
+                            {chip.label}
+                          </li>
+                        ))}
+                        {overflow > 0 ? (
+                          <li className="rounded-full bg-muted px-2.5 py-0.5 text-[0.68rem] font-medium text-muted-foreground tabular-nums">
+                            +{overflow}
+                          </li>
+                        ) : null}
+                      </ul>
+                    ) : null}
+                  </div>
+                </motion.article>
               </TinderCard>
             );
           })}
         </div>
       </div>
-      
-      {/* Action Buttons */}
-      <div className="flex items-center justify-center gap-8">
-        <Button 
-          variant="outline" 
-          size="lg" 
-          className="rounded-full w-16 h-16 p-0 border-2 border-destructive/20 hover:border-destructive hover:bg-destructive hover:text-destructive-foreground transition-all duration-200 shadow-lg hover:shadow-xl" 
-          onClick={() => swipe('left')}
+
+      <div className="flex items-center gap-4">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => swipe("left")}
           disabled={availableCards.length === 0}
+          aria-label="Pass"
+          className={cn(
+            "h-12 w-12 rounded-full border-border/70 bg-card/80",
+            "text-muted-foreground transition-all duration-200",
+            "hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive",
+            "active:scale-[0.94]",
+          )}
         >
-          <X className="h-7 w-7"/>
+          <X className="h-5 w-5" weight="bold" aria-hidden />
         </Button>
-        
-        <div className="text-center min-w-[80px]">
-          <div className="text-2xl font-bold text-primary">
-            {availableCards.length}
-          </div>
-          <p className="text-xs text-muted-foreground font-medium">
-            remaining
-          </p>
-        </div>
-        
-        <Button 
-          variant="outline" 
-          size="lg" 
-          className="rounded-full w-16 h-16 p-0 border-2 border-green-500/20 hover:border-green-500 hover:bg-green-500 hover:text-white transition-all duration-200 shadow-lg hover:shadow-xl" 
-          onClick={() => swipe('right')}
+
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => swipe("right")}
           disabled={availableCards.length === 0}
+          aria-label="Connect"
+          className={cn(
+            "h-14 w-14 rounded-full border-primary/30 bg-primary text-primary-foreground",
+            "shadow-[0_12px_24px_-12px_hsl(var(--primary)/0.5)]",
+            "transition-all duration-200",
+            "hover:brightness-105",
+            "active:scale-[0.94]",
+          )}
         >
-          <Heart className="h-7 w-7"/>
+          <Heart className="h-6 w-6" weight="fill" aria-hidden />
         </Button>
       </div>
-      
-      {/* Reset button when low on cards */}
-      {availableCards.length <= 3 && availableCards.length > 0 && (
-        <Button onClick={resetSwipes} variant="ghost" className="text-muted-foreground gap-2 hover:text-foreground">
-          <Undo className="h-4 w-4" />
-          Reset and see profiles again
-        </Button>
-      )}
     </div>
   );
-}; 
+};

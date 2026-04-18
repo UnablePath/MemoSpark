@@ -92,9 +92,9 @@ process.env = {
 // Setup global test utilities
 export const createMockElement = (tagName = 'div', attributes: Record<string, string> = {}) => {
   const element = document.createElement(tagName);
-  Object.entries(attributes).forEach(([key, value]) => {
+  for (const [key, value] of Object.entries(attributes)) {
     element.setAttribute(key, value);
-  });
+  }
   return element;
 };
 

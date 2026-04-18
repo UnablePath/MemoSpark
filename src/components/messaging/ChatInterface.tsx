@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth, useUser } from '@clerk/nextjs';
-import { useMessagingService } from '@/lib/messaging/MessagingService';
+import { useMessagingService } from '@/lib/messaging/useMessagingService';
 import type { 
   Message,
   MessageWithDetails, 
@@ -76,11 +76,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = React.memo(({
     const date = new Date(timestamp);
     if (isToday(date)) {
       return format(date, 'HH:mm');
-    } else if (isYesterday(date)) {
-      return `Yesterday ${format(date, 'HH:mm')}`;
-    } else {
-      return format(date, 'MMM dd, HH:mm');
     }
+    if (isYesterday(date)) {
+      return `Yesterday ${format(date, 'HH:mm')}`;
+    }
+    return format(date, 'MMM dd, HH:mm');
   };
 
   const getDeliveryIcon = () => {

@@ -103,19 +103,21 @@ export function parseICalFile(icalContent: string): ICalParseResult {
       case 'LOCATION':
         currentEvent.location = value;
         break;
-      case 'DTSTART':
+      case 'DTSTART': {
         const startDate = parseICalDate(value, params);
         if (startDate) {
           currentEvent.startTime = startDate;
           currentEvent.allDay = !value.includes('T');
         }
         break;
-      case 'DTEND':
+      }
+      case 'DTEND': {
         const endDate = parseICalDate(value, params);
         if (endDate) {
           currentEvent.endTime = endDate;
         }
         break;
+      }
       case 'RRULE':
         currentEvent.isRecurring = true;
         currentEvent.recurrenceRule = value;
@@ -134,7 +136,7 @@ function parseICalDate(dateString: string, params?: string): Date | null {
   let dateStr = dateString;
   
   // Remove VALUE=DATE parameter if present
-  if (params && params.includes('VALUE=DATE')) {
+  if (params?.includes('VALUE=DATE')) {
     // Date only format (YYYYMMDD)
     if (/^\d{8}$/.test(dateStr)) {
       const year = dateStr.substring(0, 4);
@@ -174,7 +176,7 @@ export function exportToICal(data: ExportData): string {
     'PRODID:-//StudySpark//Calendar Export//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    `X-WR-CALNAME:StudySpark Calendar`,
+    "X-WR-CALNAME:StudySpark Calendar",
     `X-WR-TIMEZONE:${timeZone}`
   ];
 

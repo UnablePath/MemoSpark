@@ -27,8 +27,8 @@ export class AISecurityValidator {
       const decoder = new TextDecoder();
       
       // Generate salt and IV
-      const salt = crypto.getRandomValues(new Uint8Array(this.SALT_LENGTH));
-      const iv = crypto.getRandomValues(new Uint8Array(this.IV_LENGTH));
+      const salt = crypto.getRandomValues(new Uint8Array(AISecurityValidator.SALT_LENGTH));
+      const iv = crypto.getRandomValues(new Uint8Array(AISecurityValidator.IV_LENGTH));
       
       // Derive key using PBKDF2
       const keyMaterial = await crypto.subtle.importKey(
@@ -85,9 +85,9 @@ export class AISecurityValidator {
       );
       
       // Extract salt, iv, and encrypted data
-      const salt = combined.slice(0, this.SALT_LENGTH);
-      const iv = combined.slice(this.SALT_LENGTH, this.SALT_LENGTH + this.IV_LENGTH);
-      const encrypted = combined.slice(this.SALT_LENGTH + this.IV_LENGTH);
+      const salt = combined.slice(0, AISecurityValidator.SALT_LENGTH);
+      const iv = combined.slice(AISecurityValidator.SALT_LENGTH, AISecurityValidator.SALT_LENGTH + AISecurityValidator.IV_LENGTH);
+      const encrypted = combined.slice(AISecurityValidator.SALT_LENGTH + AISecurityValidator.IV_LENGTH);
       
       // Derive key using PBKDF2
       const keyMaterial = await crypto.subtle.importKey(
@@ -176,7 +176,7 @@ export class AISecurityValidator {
     function removePersonalData(obj: any): any {
       if (Array.isArray(obj)) {
         return obj.map(removePersonalData);
-      } else if (obj && typeof obj === 'object') {
+      }if (obj && typeof obj === 'object') {
         const cleaned = { ...obj };
         removeFields.forEach(field => delete cleaned[field]);
         
@@ -272,22 +272,22 @@ export class AISecurityValidator {
   } {
     const now = Date.now();
     const key = `${userId}_${tier}`;
-    const current = this.rateLimitStore.get(key);
+    const current = AISecurityValidator.rateLimitStore.get(key);
 
     // Get tier-specific limits
-    const limits = this.getTierLimits(tier);
+    const limits = AISecurityValidator.getTierLimits(tier);
     
     if (!current || current.resetTime <= now) {
       // Reset or create new entry
-      this.rateLimitStore.set(key, {
+      AISecurityValidator.rateLimitStore.set(key, {
         count: 1,
-        resetTime: now + this.RATE_LIMIT_WINDOW
+        resetTime: now + AISecurityValidator.RATE_LIMIT_WINDOW
       });
       
       return {
         allowed: true,
         remaining: limits.maxRequests - 1,
-        resetTime: now + this.RATE_LIMIT_WINDOW
+        resetTime: now + AISecurityValidator.RATE_LIMIT_WINDOW
       };
     }
 
@@ -300,7 +300,7 @@ export class AISecurityValidator {
     }
 
     current.count++;
-    this.rateLimitStore.set(key, current);
+    AISecurityValidator.rateLimitStore.set(key, current);
 
     return {
       allowed: true,
@@ -322,7 +322,7 @@ export class AISecurityValidator {
     const logEntry = {
       ...event,
       timestamp: event.timestamp || new Date(),
-      hash: this.hashValue(`${event.userId}_${event.type}_${Date.now()}`),
+      hash: AISecurityValidator.hashValue(`${event.userId}_${event.type}_${Date.now()}`),
       ip: 'REDACTED', // IP should be passed from middleware
       userAgent: 'REDACTED' // User agent should be passed from middleware
     };
@@ -332,7 +332,7 @@ export class AISecurityValidator {
     
     // Alert on critical events
     if (event.severity === 'critical') {
-      this.triggerSecurityAlert(logEntry);
+      AISecurityValidator.triggerSecurityAlert(logEntry);
     }
   }
 
@@ -349,12 +349,12 @@ export class AISecurityValidator {
 
     try {
       // Clear behavioral data
-      this.rateLimitStore.delete(`${userId}_free`);
-      this.rateLimitStore.delete(`${userId}_premium`);
+      AISecurityValidator.rateLimitStore.delete(`${userId}_free`);
+      AISecurityValidator.rateLimitStore.delete(`${userId}_premium`);
       deletedItems.push('Rate limit data');
 
       // Log the deletion
-      this.logSecurityEvent({
+      AISecurityValidator.logSecurityEvent({
         type: 'request',
         userId,
         details: { action: 'user_data_deletion', items: deletedItems },
@@ -430,10 +430,10 @@ export class AISecurityValidator {
   private static sanitizeTask(task: ExtendedTask): ExtendedTask {
     return {
       ...task,
-      title: this.sanitizeString(task.title),
-      description: task.description ? this.sanitizeString(task.description) : undefined,
-      subject: task.subject ? this.sanitizeString(task.subject) : undefined,
-      tags: task.tags ? task.tags.map(tag => this.sanitizeString(tag)) : undefined
+      title: AISecurityValidator.sanitizeString(task.title),
+      description: task.description ? AISecurityValidator.sanitizeString(task.description) : undefined,
+      subject: task.subject ? AISecurityValidator.sanitizeString(task.subject) : undefined,
+      tags: task.tags ? task.tags.map(tag => AISecurityValidator.sanitizeString(tag)) : undefined
     };
   }
 
@@ -483,9 +483,8 @@ export class AISecurityValidator {
     switch (tier) {
       case 'premium':
         return { maxRequests: 300 };
-      case 'free':
       default:
-        return { maxRequests: this.MAX_REQUESTS_PER_WINDOW };
+        return { maxRequests: AISecurityValidator.MAX_REQUESTS_PER_WINDOW };
     }
   }
 }

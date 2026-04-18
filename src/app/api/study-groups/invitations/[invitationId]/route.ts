@@ -4,9 +4,10 @@ import { supabase } from '@/lib/supabase/client';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { invitationId: string } }
+  context: { params: Promise<{ invitationId: string }> }
 ) {
   try {
+    const params = await context.params;
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

@@ -321,7 +321,6 @@ export const StuTaskGuidance: React.FC<StuTaskGuidanceProps> = ({
           container: "absolute top-0 right-0",
           bubble: "absolute top-full right-0 mt-2"
         };
-      case 'embedded':
       default:
         return {
           container: "relative",

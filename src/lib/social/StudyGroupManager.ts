@@ -2,8 +2,11 @@
  * StudyGroupManager - Social features for collaborative studying
  */
 
-import { supabase } from '@/lib/supabase/client';
+import { createAuthenticatedSupabaseClient } from '@/lib/supabase/client';
+import { wrapClerkTokenForSupabase } from '@/lib/clerk/clerkSupabaseToken';
+import type { ClerkGetToken } from '@/lib/messaging/MessagingService';
 import type { Database } from '@/types/database';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Types from database
 export type StudyGroup = Database['public']['Tables']['study_groups']['Row'];
@@ -33,19 +36,32 @@ export interface GroupCategory {
 }
 
 export class StudyGroupManager {
-  private getToken: (() => string | null) | (() => Promise<string | null>);
+  private readonly getJwt: () => Promise<string | null>;
 
-  constructor(getToken: (() => string | null) | (() => Promise<string | null>)) {
-    this.getToken = getToken;
+  constructor(getToken: ClerkGetToken) {
+    this.getJwt = wrapClerkTokenForSupabase(getToken);
   }
 
-  private async getAuthToken(): Promise<string | null> {
-    const token = this.getToken();
-    if (token instanceof Promise) {
-      return await token;
+  private db(): SupabaseClient<Database> {
+    const client = createAuthenticatedSupabaseClient(this.getJwt);
+    if (!client) {
+      throw new Error('StudyGroupManager: Supabase client unavailable');
     }
-    return token;
+    return client as SupabaseClient<Database>;
   }
+
+  async attachConversationToGroup(groupId: string, conversationId: string): Promise<boolean> {
+    const { error } = await this.db()
+      .from('study_groups')
+      .update({ conversation_id: conversationId })
+      .eq('id', groupId);
+    if (error) {
+      console.error('attachConversationToGroup:', error);
+      return false;
+    }
+    return true;
+  }
+
   /**
    * Create a new study group
    */
@@ -251,22 +267,6 @@ export class StudyGroupManager {
   }
 
   /**
-   * TODO: Start a study session (placeholder for future implementation)
-   */
-  static async startSession(groupId: string, title: string): Promise<any> {
-    // TODO: Implement study sessions when needed
-    throw new Error('Study sessions not yet implemented');
-  }
-
-  /**
-   * TODO: Get active sessions for a group (placeholder for future implementation)
-   */
-  static async getActiveSessions(groupId: string): Promise<any[]> {
-    // TODO: Implement study sessions when needed
-    return [];
-  }
-
-  /**
    * Get user's study groups using API route
    */
   async getUserGroups(userId: string): Promise<StudyGroupWithMembers[]> {
@@ -349,12 +349,7 @@ export class StudyGroupManager {
    */
   async getGroupMembersWithNames(groupId: string): Promise<StudyGroupMemberWithName[]> {
     try {
-      if (!supabase) {
-        console.error('Supabase client not available');
-        return [];
-      }
-
-      const { data, error } = await supabase
+      const { data, error } = await this.db()
         .from('study_group_members')
         .select(`
           *,
@@ -383,12 +378,7 @@ export class StudyGroupManager {
    */
   async getResources(groupId: string): Promise<StudyGroupResourceWithUser[]> {
     try {
-      if (!supabase) {
-        console.error('Supabase client not available');
-        return [];
-      }
-
-      const { data, error } = await supabase
+      const { data, error } = await this.db()
         .from('study_group_resources')
         .select(`
           *,
@@ -423,12 +413,7 @@ export class StudyGroupManager {
     resource_type: string;
   }): Promise<StudyGroupResource | null> {
     try {
-      if (!supabase) {
-        console.error('Supabase client not available');
-        return null;
-      }
-
-      const { data, error } = await supabase
+      const { data, error } = await this.db()
         .from('study_group_resources')
         .insert({
           group_id: groupId,
@@ -455,12 +440,7 @@ export class StudyGroupManager {
    */
   async removeMember(groupId: string, userId: string): Promise<boolean> {
     try {
-      if (!supabase) {
-        console.error('Supabase client not available');
-        return false;
-      }
-
-      const { error } = await supabase
+      const { error } = await this.db()
         .from('study_group_members')
         .delete()
         .eq('group_id', groupId)
@@ -483,12 +463,7 @@ export class StudyGroupManager {
    */
   async isUserMember(groupId: string, userId: string): Promise<boolean> {
     try {
-      if (!supabase) {
-        console.error('Supabase client not available');
-        return false;
-      }
-
-      const { data, error } = await supabase
+      const { data, error } = await this.db()
         .from('study_group_members')
         .select('user_id')
         .eq('group_id', groupId)
@@ -519,12 +494,7 @@ export class StudyGroupManager {
    */
   async addMember(groupId: string, userId: string, role = 'member'): Promise<boolean> {
     try {
-      if (!supabase) {
-        console.error('Supabase client not available');
-        return false;
-      }
-
-      const { error } = await supabase
+      const { error } = await this.db()
         .from('study_group_members')
         .insert({
           group_id: groupId,
@@ -549,12 +519,7 @@ export class StudyGroupManager {
    */
   async getCategories(): Promise<GroupCategory[]> {
     try {
-      if (!supabase) {
-        console.error('Supabase client not available');
-        return [];
-      }
-
-      const { data, error } = await supabase
+      const { data, error } = await this.db()
         .from('group_categories')
         .select('*')
         .order('name');
@@ -564,7 +529,11 @@ export class StudyGroupManager {
         return [];
       }
 
-      return data || [];
+      return (data || []).map((row) => ({
+        id: row.id,
+        name: row.name,
+        description: row.description ?? undefined,
+      }));
     } catch (error) {
       console.error('Error in getCategories:', error);
       return [];

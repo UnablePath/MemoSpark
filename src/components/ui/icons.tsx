@@ -125,6 +125,8 @@ import {
   SquaresFour as PhGrid3X3,
   Star as PhStar,
   Sun as PhSun,
+  SunDim as PhSunDim,
+  SunHorizon as PhSunHorizon,
   Table as PhTable,
   Target as PhTarget,
   TestTube as PhTestTube,
@@ -230,6 +232,10 @@ export const Add = withPhosphorDefaults(PhPlus);
 export const TrashIcon = withPhosphorDefaults(PhTrash);
 export const CheckIcon = withPhosphorDefaults(PhCheck);
 export const Sun = withPhosphorDefaults(PhSun);
+/** Lucide-compat: horizon / dawn (Phosphor `SunHorizon`). */
+export const Sunrise = withPhosphorDefaults(PhSunHorizon);
+/** Lucide-compat: softer sun (Phosphor `SunDim`) — reads as golden hour / dusk. */
+export const Sunset = withPhosphorDefaults(PhSunDim);
 export const MoonIcon = withPhosphorDefaults(PhMoon);
 export const LaptopIcon = withPhosphorDefaults(PhLaptop);
 export const UserIcon = withPhosphorDefaults(PhUser);

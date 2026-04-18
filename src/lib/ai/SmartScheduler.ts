@@ -56,7 +56,7 @@ export class SmartScheduler {
   constructor(
     tasks: ExtendedTask[],
     patterns: PatternData,
-    existingEvents: CalendarEvent[] = [],
+    existingEvents: CalendarEvent[],
     userPreferences: UserPreferences,
     taskHistory: ExtendedTask[] = []
   ) {
@@ -632,7 +632,7 @@ export class SmartScheduler {
         priority: 'medium',
         type: 'productivity_optimization',
         title: 'Add Strategic Breaks',
-        description: `Consider adding 15-minute breaks between long study sessions to maintain focus`,
+        description: "Consider adding 15-minute breaks between long study sessions to maintain focus",
         impact: 'medium',
         effort: 'low',
         suggestedChange: 'Insert breaks after every 2-3 hours of continuous work',

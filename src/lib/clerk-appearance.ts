@@ -209,7 +209,7 @@ const lightElements = {
     color: 'hsl(222 47% 11%)',
     '&:focus': {
       borderColor: PRIMARY,
-      boxShadow: `0 0 0 2px hsl(142 76% 36% / 0.25)`,
+      boxShadow: "0 0 0 2px hsl(142 76% 36% / 0.25)",
     },
   },
   /** PasswordInput uses an absolutely positioned IconButton; avoid clipping and stacking issues */
@@ -429,7 +429,7 @@ const darkElements = {
     color: 'hsl(210 40% 98%)',
     '&:focus': {
       borderColor: PRIMARY,
-      boxShadow: `0 0 0 2px hsl(142 76% 36% / 0.35)`,
+      boxShadow: "0 0 0 2px hsl(142 76% 36% / 0.35)",
     },
   },
   formFieldInputGroup: {

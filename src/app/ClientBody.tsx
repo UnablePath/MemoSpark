@@ -5,6 +5,24 @@ import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 import { UpdateAvailable } from '@/components/pwa/UpdateAvailable';
 import { useEffect } from 'react';
 
+interface DevHelpers {
+  resetAIUsage: () => Promise<unknown>;
+  checkUsage: () => Promise<unknown>;
+  clearStorage: () => void;
+  upgradeToPremium: () => Promise<unknown>;
+  help: () => void;
+}
+
+declare global {
+  interface Window {
+    devHelpers?: DevHelpers;
+  }
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unknown error";
+}
+
 interface ClientBodyProps {
   children: React.ReactNode;
 }
@@ -15,7 +33,7 @@ export default function ClientBody({ children }: ClientBodyProps) {
   useEffect(() => {
     if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
       // Development Helper Functions
-      (window as any).devHelpers = {
+      window.devHelpers = {
         /**
          * Reset AI usage limits for current user
          */
@@ -45,9 +63,9 @@ export default function ClientBody({ children }: ClientBodyProps) {
             }
             
             return data;
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.error('❌ Error resetting usage:', error);
-            return { error: error.message };
+            return { error: getErrorMessage(error) };
           }
         },
 
@@ -120,7 +138,7 @@ export default function ClientBody({ children }: ClientBodyProps) {
             }
             
             return data;
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.log('ℹ️ Upgrade endpoint not available, but development override is active');
             console.log('🎯 Premium features should work in development mode');
             return { message: 'Development override active' };

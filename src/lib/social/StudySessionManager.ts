@@ -1,4 +1,6 @@
-import { getAuthenticatedClient } from '../supabase/client';
+import { createAuthenticatedSupabaseClient } from '../supabase/client';
+import { wrapClerkTokenForSupabase } from '@/lib/clerk/clerkSupabaseToken';
+import type { ClerkGetToken } from '@/lib/messaging/MessagingService';
 
 export interface StudySession {
   id: string;
@@ -37,8 +39,13 @@ export class StudySessionManager {
   // Use broadly-typed client to support newly added tables before codegen updates
   private supabase: any;
 
-  constructor(getToken?: () => Promise<string | null>) {
-    this.supabase = getAuthenticatedClient(getToken);
+  constructor(getToken?: ClerkGetToken) {
+    const jwt = getToken ? wrapClerkTokenForSupabase(getToken) : async () => null;
+    const client = createAuthenticatedSupabaseClient(jwt);
+    if (!client) {
+      throw new Error('StudySessionManager: Supabase client unavailable');
+    }
+    this.supabase = client;
   }
 
   private logError(context: string, error: any, info: Record<string, any> = {}) {

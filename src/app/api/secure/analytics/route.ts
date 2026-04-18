@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseServerAdmin } from '@/lib/supabase/server';
-import { createHash } from 'crypto';
+import { createHash } from 'node:crypto';
 
 function getClientIP(request: NextRequest): string {
   // Check various headers for client IP

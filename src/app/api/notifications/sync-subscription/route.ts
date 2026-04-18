@@ -69,7 +69,8 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    let data, error;
+    let data;
+    let error;
 
     if (existingSubscription) {
       // Update existing subscription

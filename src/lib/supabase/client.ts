@@ -262,7 +262,7 @@ export const supabaseHelpers = {
         }
         
         // Exponential backoff
-        const delay = baseDelay * Math.pow(2, attempt - 1);
+        const delay = baseDelay * 2 ** (attempt - 1);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }

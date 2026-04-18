@@ -59,6 +59,10 @@ export async function GET(request: NextRequest) {
         .range(offset, offset + limit - 1)
         .order('created_at', { ascending: false });
 
+      if (type === 'discover') {
+        query_builder = query_builder.eq('is_public', true);
+      }
+
       // Add search filter
       if (query) {
         query_builder = query_builder.or(`name.ilike.%${query}%,description.ilike.%${query}%`);

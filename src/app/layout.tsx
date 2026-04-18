@@ -122,7 +122,7 @@ export default function RootLayout({
           <link rel="dns-prefetch" href="https://api.memospark.live" />
           
           {/* OneSignal Web SDK - Official Implementation */}
-          <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+          <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer />
           <script
             dangerouslySetInnerHTML={{
               __html: `

@@ -254,7 +254,7 @@ export class AchievementProcessor {
     const userStats = await this.getUserStats(userId);
     
     switch (action) {
-      case 'task_completed':
+      case 'task_completed': {
         userStats.tasksCompleted += 1;
         userStats.dailyTasks += 1;
         
@@ -272,6 +272,7 @@ export class AchievementProcessor {
           userStats.earlyMorningTasks += 1;
         }
         break;
+      }
       case 'streak_updated':
         userStats.consecutiveDays = data.currentStreak || 0;
         userStats.longestStreak = Math.max(userStats.longestStreak, userStats.consecutiveDays);

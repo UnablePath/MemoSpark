@@ -271,7 +271,7 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
     try {
       switch (feature) {
         case 'basic_suggestions':
-        case 'advanced_suggestions':
+        case 'advanced_suggestions': {
           const suggestionResponse = await consolidatedAIService.generateSuggestions({ 
             userId, 
             feature, 
@@ -281,8 +281,9 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
           });
           suggestions = suggestionResponse.data as AISuggestion[] || [];
           break;
+        }
           
-        case 'study_planning':
+        case 'study_planning': {
           const studyPlan = await consolidatedAIService.generateStudyPlan({ 
             userId, 
             feature, 
@@ -315,8 +316,9 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
             }
           }];
           break;
+        }
           
-        case 'voice_processing':
+        case 'voice_processing': {
           if (!audioData) {
             return {
               success: false,
@@ -351,8 +353,9 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
             }
           }];
           break;
+        }
           
-        case 'stu_personality':
+        case 'stu_personality': {
           const stuResponse = await consolidatedAIService.generateStuResponse({ 
             userId, 
             feature, 
@@ -381,8 +384,9 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
             }
           }];
           break;
+        }
           
-        case 'ml_predictions':
+        case 'ml_predictions': {
           const predictions = await consolidatedAIService.generateMLPredictions({ 
             userId, 
             feature, 
@@ -409,8 +413,9 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
             }
           }));
           break;
+        }
           
-        case 'collaborative_filtering':
+        case 'collaborative_filtering': {
           const insights = await consolidatedAIService.getCollaborativeInsights({ userId, feature });
           suggestions = [{
             id: `collaborative_${Date.now()}`,
@@ -433,8 +438,9 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
             }
           }];
           break;
+        }
           
-        case 'premium_analytics':
+        case 'premium_analytics': {
           const analytics = await consolidatedAIService.generateAnalytics({ 
             userId, 
             feature, 
@@ -461,8 +467,9 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
             }
           }];
           break;
+        }
           
-        default:
+        default: {
           // Fallback to basic suggestions
           const fallbackResponse = await consolidatedAIService.generateSuggestions({ 
             userId, 
@@ -472,6 +479,7 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
             userTier: accessCheck.tier
           });
           suggestions = fallbackResponse.data as AISuggestion[] || [];
+        }
       }
 
       // 6. Track usage

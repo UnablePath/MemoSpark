@@ -206,10 +206,9 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       
       if (response.success && response.data && Array.isArray(response.data)) {
         return response.data;
-      } else {
+      }
         // Fallback to contextual suggestions for free users
         return generateContextualSuggestions(title, subject, type);
-      }
     } catch (error) {
       console.error('Error generating tier-aware suggestions:', error);
       // Fallback to contextual suggestions for free users
@@ -405,25 +404,16 @@ export const TaskForm: React.FC<TaskFormProps> = ({
     if (suggestion.metadata?.tags?.includes('active-recall')) {
       // Enhance description with active recall techniques
       const currentDesc = form.getValues('description') || '';
-      const enhancedDesc = currentDesc + 
-        (currentDesc ? '\n\n' : '') + 
-        'Include active recall techniques:\n' +
-        '• Create flashcards for key concepts\n' +
-        '• Practice problems without looking at solutions\n' +
-        '• Explain concepts out loud';
+      const enhancedDesc = `${currentDesc + 
+        (currentDesc ? '\n\n' : '')}Include active recall techniques:\n• Create flashcards for key concepts\n• Practice problems without looking at solutions\n• Explain concepts out loud`;
       form.setValue('description', enhancedDesc);
     }
 
     if (suggestion.metadata?.tags?.includes('milestones')) {
       // Suggest breaking into phases
       const currentDesc = form.getValues('description') || '';
-      const enhancedDesc = currentDesc + 
-        (currentDesc ? '\n\n' : '') + 
-        'Project milestones:\n' +
-        '• Phase 1: Research and planning\n' +
-        '• Phase 2: Initial implementation\n' +
-        '• Phase 3: Review and refinement\n' +
-        '• Phase 4: Final submission';
+      const enhancedDesc = `${currentDesc + 
+        (currentDesc ? '\n\n' : '')}Project milestones:\n• Phase 1: Research and planning\n• Phase 2: Initial implementation\n• Phase 3: Review and refinement\n• Phase 4: Final submission`;
       form.setValue('description', enhancedDesc);
     }
 

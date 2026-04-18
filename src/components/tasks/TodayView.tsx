@@ -4,8 +4,23 @@ import type React from 'react';
 import { useMemo, useState, useRef, lazy, Suspense } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { parseISO, isToday, isBefore, startOfDay, format } from 'date-fns';
-import { Calendar as CalendarIcon, Plus, ChevronDown } from 'lucide-react';
+import {
+  Calendar as CalendarIcon,
+  Plus,
+  ChevronDown,
+  ListTodo,
+  GraduationCap,
+  Clock,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { TaskRow } from './TaskRow';
 import { StuNudge } from './StuNudge';
@@ -36,6 +51,10 @@ export interface TodayViewProps {
   onToggleCompletion: (taskId: string) => Promise<void> | void;
   onAcceptSuggestion: (suggestion: AISuggestion) => void | Promise<void>;
   onDismissSuggestion: (suggestion: AISuggestion) => void | Promise<void>;
+  /** Navigate to calendar / timetable or open class form from quick capture “More options”. */
+  onGoToCalendar?: () => void;
+  onGoToTimetable?: () => void;
+  onAddTimetableClass?: () => void;
 }
 
 interface GroupedTasks {
@@ -103,10 +122,20 @@ function greeting(hour: number, name?: string): string {
 
 function QuickCapture({
   onSubmit,
-  onOpenFull,
+  onOpenFullTask,
+  onGoToCalendar,
+  onGoToTimetable,
+  onAddTimetableClass,
+  onShowSuggestedSchedule,
+  showSuggestedScheduleOption,
 }: {
   onSubmit: (title: string) => Promise<void> | void;
-  onOpenFull: () => void;
+  onOpenFullTask: () => void;
+  onGoToCalendar?: () => void;
+  onGoToTimetable?: () => void;
+  onAddTimetableClass?: () => void;
+  onShowSuggestedSchedule?: () => void;
+  showSuggestedScheduleOption?: boolean;
 }) {
   const [value, setValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -130,39 +159,86 @@ function QuickCapture({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        'flex items-center gap-2 rounded-xl border border-border/70 bg-card px-3 py-2',
-        'focus-within:border-primary/50 transition-colors',
+        'flex flex-col gap-2 rounded-xl border border-border/70 bg-card/95 px-3 py-2.5 shadow-sm',
+        'focus-within:border-primary/50 sm:flex-row sm:items-center sm:gap-2 sm:py-2',
+        'backdrop-blur-[2px] transition-colors',
       )}
     >
-      <Plus
-        className="h-4 w-4 shrink-0 text-muted-foreground"
-        strokeWidth={1.75}
-        aria-hidden
-      />
-      <input
-        ref={inputRef}
-        type="text"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder="Add a task, then press Enter to save"
-        className={cn(
-          'flex-1 bg-transparent text-sm placeholder:text-muted-foreground',
-          'focus:outline-none',
-        )}
-        aria-label="Quick capture task title"
-        disabled={submitting}
-      />
-      <button
-        type="button"
-        onClick={onOpenFull}
-        className={cn(
-          'shrink-0 rounded-md px-2 py-1 text-xs text-muted-foreground',
-          'hover:text-foreground hover:bg-muted transition-colors',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        )}
-      >
-        More options
-      </button>
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <Plus
+          className="h-4 w-4 shrink-0 text-muted-foreground"
+          strokeWidth={1.75}
+          aria-hidden
+        />
+        <input
+          ref={inputRef}
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="Add a task, then press Enter to save"
+          className={cn(
+            'min-w-0 flex-1 bg-transparent text-base leading-normal placeholder:text-muted-foreground sm:text-sm',
+            'focus:outline-none',
+          )}
+          aria-label="Quick capture task title"
+          disabled={submitting}
+          enterKeyHint="done"
+        />
+      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              'flex h-11 w-full shrink-0 items-center justify-center gap-1 rounded-md px-3 text-xs font-medium text-muted-foreground',
+              'hover:bg-muted hover:text-foreground sm:h-auto sm:w-auto sm:justify-start sm:px-2 sm:py-1',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              'data-[state=open]:bg-muted data-[state=open]:text-foreground',
+              'touch-manipulation active:scale-[0.99]',
+            )}
+            aria-label="More capture options"
+          >
+            More options
+            <ChevronDown className="h-3 w-3 opacity-70" strokeWidth={2} aria-hidden />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+            Add or navigate
+          </DropdownMenuLabel>
+          <DropdownMenuItem onClick={onOpenFullTask}>
+            <ListTodo className="mr-2 h-4 w-4" strokeWidth={1.75} />
+            Task with all fields
+          </DropdownMenuItem>
+          {onGoToCalendar && (
+            <DropdownMenuItem onClick={onGoToCalendar}>
+              <CalendarIcon className="mr-2 h-4 w-4" strokeWidth={1.75} />
+              Open calendar
+            </DropdownMenuItem>
+          )}
+          {onGoToTimetable && (
+            <DropdownMenuItem onClick={onGoToTimetable}>
+              <Clock className="mr-2 h-4 w-4" strokeWidth={1.75} />
+              Open timetable
+            </DropdownMenuItem>
+          )}
+          {onAddTimetableClass && (
+            <DropdownMenuItem onClick={onAddTimetableClass}>
+              <GraduationCap className="mr-2 h-4 w-4" strokeWidth={1.75} />
+              Add a class
+            </DropdownMenuItem>
+          )}
+          {showSuggestedScheduleOption && onShowSuggestedSchedule && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onShowSuggestedSchedule}>
+                <CalendarIcon className="mr-2 h-4 w-4" strokeWidth={1.75} />
+                Show suggested time blocks
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </form>
   );
 }
@@ -229,9 +305,13 @@ export const TodayView: React.FC<TodayViewProps> = ({
   onToggleCompletion,
   onAcceptSuggestion,
   onDismissSuggestion,
+  onGoToCalendar,
+  onGoToTimetable,
+  onAddTimetableClass,
 }) => {
   const reducedMotion = useReducedMotion();
   const [showSchedule, setShowSchedule] = useState(false);
+  const scheduleSectionRef = useRef<HTMLDivElement>(null);
 
   const grouped = useMemo(() => groupTasks(tasks), [tasks]);
   const hour = new Date().getHours();
@@ -267,16 +347,16 @@ export const TodayView: React.FC<TodayViewProps> = ({
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 px-1 pb-12">
+    <div className="mx-auto w-full max-w-3xl space-y-5 px-0 pb-10 sm:space-y-6 sm:px-1 sm:pb-12">
       <header className="space-y-2">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground tabular-nums">
           {format(now, 'EEEE · MMMM d')}
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+        <h1 className="text-responsive-xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl sm:leading-tight">
           {greeting(hour, userFirstName)}
         </h1>
         {hasAny ? (
-          <p className="text-sm text-muted-foreground max-w-[60ch]">
+          <p className="text-sm leading-relaxed text-muted-foreground max-w-[65ch]">
             {grouped.overdue.length > 0
               ? `${grouped.overdue.length} overdue · ${
                   grouped.morning.length +
@@ -297,7 +377,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
                 } on deck for today.`}
           </p>
         ) : (
-          <p className="text-sm text-muted-foreground max-w-[60ch]">
+          <p className="text-sm leading-relaxed text-muted-foreground max-w-[65ch]">
             Nothing due today. Capture what's on your mind, or open the calendar
             to plan ahead.
           </p>
@@ -305,7 +385,23 @@ export const TodayView: React.FC<TodayViewProps> = ({
       </header>
 
       {onQuickCreate && (
-        <QuickCapture onSubmit={onQuickCreate} onOpenFull={onCreateTask} />
+        <QuickCapture
+          onSubmit={onQuickCreate}
+          onOpenFullTask={onCreateTask}
+          onGoToCalendar={onGoToCalendar}
+          onGoToTimetable={onGoToTimetable}
+          onAddTimetableClass={onAddTimetableClass}
+          showSuggestedScheduleOption={hasAny}
+          onShowSuggestedSchedule={() => {
+            setShowSchedule(true);
+            window.setTimeout(() => {
+              scheduleSectionRef.current?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+              });
+            }, 200);
+          }}
+        />
       )}
 
       {!hasAny && pendingSuggestions.length === 0 && (
@@ -318,10 +414,10 @@ export const TodayView: React.FC<TodayViewProps> = ({
           <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Plus className="h-5 w-5" strokeWidth={1.5} />
           </div>
-          <h2 className="text-base font-semibold text-foreground">
+          <h2 className="text-base font-semibold leading-snug tracking-tight text-foreground">
             Start your day with one task
           </h2>
-          <p className="mx-auto mt-1 max-w-[40ch] text-sm text-muted-foreground">
+          <p className="mx-auto mt-2 max-w-[42ch] text-sm leading-relaxed text-muted-foreground">
             Small, specific tasks are easier to finish. Try one thing you can
             complete in the next hour.
           </p>
@@ -396,7 +492,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
       />
 
       {hasAny && (
-        <div className="pt-4">
+        <div ref={scheduleSectionRef} className="pt-4">
           <button
             type="button"
             onClick={() => setShowSchedule((v) => !v)}

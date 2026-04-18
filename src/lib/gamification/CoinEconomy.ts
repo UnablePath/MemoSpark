@@ -282,8 +282,7 @@ export class CoinEconomy {
       const newBalance = currentBalance + amount;
 
       // Update coin_balances table (primary source of truth)
-      const { error: balanceError } = await supabase!
-        .from('coin_balances')
+      const { error: balanceError } = await supabase?.from('coin_balances')
         .upsert({
           user_id: userId,
           current_balance: newBalance,
@@ -297,8 +296,7 @@ export class CoinEconomy {
       }
 
       // Record transaction
-      const { error: transactionError } = await supabase!
-        .from('coin_transactions')
+      const { error: transactionError } = await supabase?.from('coin_transactions')
         .insert({
           user_id: userId,
           amount: amount,
@@ -499,8 +497,7 @@ export class CoinEconomy {
       const currentBalance = await this.getCoinBalance(userId);
       
       // Get transaction data
-      const { data: transactions, error } = await supabase!
-        .from('coin_transactions')
+      const { data: transactions, error } = await supabase?.from('coin_transactions')
         .select('amount, transaction_type, source')
         .eq('user_id', userId);
 
@@ -692,7 +689,7 @@ export class CoinEconomy {
       return await this.spendCoins(
         userId,
         Number(item.cost),
-        `shop_purchase`,
+        "shop_purchase",
         `Purchased ${item.item_name}`,
         { 
           item_id: itemId, 
@@ -821,7 +818,7 @@ export class CoinEconomy {
   ): Promise<CoinEarningResult> {
     // Calculate daily bonus: +5 coins per day for streaks 7+
     let bonusAmount = 0;
-    let description = `Daily check-in`;
+    let description = "Daily check-in";
     
     if (streakLength >= 7) {
       bonusAmount = 5;
@@ -975,8 +972,7 @@ export class CoinEconomy {
 
       // Get today's earnings
       const today = new Date().toISOString().split('T')[0];
-      const { data: todayTransactions } = await supabase!
-        .from('coin_transactions')
+      const { data: todayTransactions } = await supabase?.from('coin_transactions')
         .select('amount')
         .eq('user_id', userId)
         .eq('transaction_type', 'earned')
@@ -988,8 +984,7 @@ export class CoinEconomy {
       // Get weekly earnings
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      const { data: weeklyTransactions } = await supabase!
-        .from('coin_transactions')
+      const { data: weeklyTransactions } = await supabase?.from('coin_transactions')
         .select('amount')
         .eq('user_id', userId)
         .eq('transaction_type', 'earned')
@@ -1025,7 +1020,7 @@ export class CoinEconomy {
     return await this.awardCoins(
       userId,
       'bug_compensation',
-      `🎁 Compensation for unfair streak penalty bug (sorry!)`,
+      "🎁 Compensation for unfair streak penalty bug (sorry!)",
       { 
         compensation_type: 'penalty_bug_fix',
         original_penalty_system: '50_percent_balance',

@@ -56,9 +56,8 @@ export const useReminders = (filters?: ReminderFilters) => {
         const newReminder = data.reminder;
         setReminders((prev) => [newReminder, ...prev]);
         return newReminder;
-      } else {
-        throw new Error(data.error || 'Failed to create reminder');
       }
+        throw new Error(data.error || 'Failed to create reminder');
     } catch (error) {
       console.error('Error creating reminder:', error);
       throw error;
@@ -89,9 +88,8 @@ export const useReminders = (filters?: ReminderFilters) => {
         // Replace with final data from server
         setReminders((prev) => prev.map((r) => (r.id === id ? updated : r)));
         return updated;
-      } else {
-        throw new Error(data.error || 'Failed to update reminder');
       }
+        throw new Error(data.error || 'Failed to update reminder');
     } catch (e) {
       // Revert on error
       console.error('Error updating reminder:', e);

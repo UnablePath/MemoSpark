@@ -298,7 +298,7 @@ const GamificationHub = () => {
               <AchievementCollection
                 achievements={userAchievements.map(ua => ({
                   ...ua.achievements!,
-                  type: ua.achievements!.type as any, // Cast to avoid TypeScript strict checking
+                  type: ua.achievements?.type as any, // Cast to avoid TypeScript strict checking
                   unlocked: true,
                   earnedAt: ua.unlocked_at
                 }))}

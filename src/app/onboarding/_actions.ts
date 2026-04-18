@@ -224,7 +224,7 @@ export async function completeUserProfileOnboarding(formData: FormData): Promise
       // Check if it's a Clerk API error
       if (clerkOrSupabaseError && typeof clerkOrSupabaseError === 'object' && 'errors' in clerkOrSupabaseError) {
         const clerkError = clerkOrSupabaseError as any;
-        if (clerkError.errors && clerkError.errors[0] && clerkError.errors[0].message) {
+        if (clerkError.errors?.[0]?.message) {
           return { 
             error: `Authentication error: ${clerkError.errors[0].message}`,
             success: false 

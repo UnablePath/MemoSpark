@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     // Test 5: Test TaskReminderService with a mock task
     try {
       const mockTask = {
-        id: 'test-task-' + Date.now(),
+        id: `test-task-${Date.now()}`,
         title: 'Test Task for Notification System',
         due_date: new Date(Date.now() + 2 * 60 * 1000).toISOString(), // 2 minutes from now
         user_id: userId,

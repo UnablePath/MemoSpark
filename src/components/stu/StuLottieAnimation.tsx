@@ -50,7 +50,7 @@ export const StuLottieAnimation: React.FC<StuLottieAnimationProps> = ({
   if (isLoading) {
     return (
       <div className={`w-full h-full flex items-center justify-center ${className}`}>
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
       </div>
     );
   }

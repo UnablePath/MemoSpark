@@ -198,14 +198,14 @@ describe('TutorialErrorHandler', () => {
     it('should return user-friendly messages for all error codes', () => {
       const errorCodes = Object.values(TUTORIAL_ERROR_CODES);
       
-      errorCodes.forEach(code => {
+      for (const code of errorCodes) {
         const error = errorHandler.createError(code, 'Test error');
         const message = errorHandler.getUserFriendlyMessage(error);
         
         expect(message).toBeDefined();
         expect(message.length).toBeGreaterThan(0);
         expect(message).not.toContain('undefined');
-      });
+      }
     });
 
     it('should return default message for unknown error codes', () => {

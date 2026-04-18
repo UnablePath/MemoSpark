@@ -113,7 +113,7 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
     const currentPhase = breathingCycle[cycleIndex];
     if (currentPhase.phase === 'inhale') {
       return 1 + (breathingProgress * 0.5); // Scale from 1 to 1.5
-    } else if (currentPhase.phase === 'exhale') {
+    }if (currentPhase.phase === 'exhale') {
       return 1.5 - (breathingProgress * 0.5); // Scale from 1.5 to 1
     }
     return 1.5; // Hold phase
@@ -121,7 +121,7 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
 
   const renderContent = () => {
     switch (currentMode) {
-      case 'breathing':
+      case 'breathing': {
         const currentPhase = breathingCycle[cycleIndex];
         const scale = getBreathingScale();
         
@@ -232,6 +232,7 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
             </div>
           </div>
         );
+      }
 
       case 'ragdoll':
         return (
@@ -255,7 +256,7 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
           </div>
         );
 
-      case 'music':
+      case 'music': {
         const soundscapes: Array<{
           id: RelaxationSoundType;
           name: string;
@@ -331,7 +332,7 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
               {/* Loading and Error States */}
               {isLoading && (
                 <div className="mt-4 text-blue-400 flex items-center justify-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-400 border-t-transparent"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-400 border-t-transparent" />
                   <span>Loading audio...</span>
                 </div>
               )}
@@ -371,7 +372,7 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
                   >
                     {/* Visual Feedback for Active Sound */}
                     {isCurrentlyPlaying && (
-                      <div className="absolute inset-0 rounded-xl bg-cyan-500/10 animate-pulse"></div>
+                      <div className="absolute inset-0 rounded-xl bg-cyan-500/10 animate-pulse" />
                     )}
                     
                     <div className="relative z-10">
@@ -392,9 +393,9 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
                             {isCurrentlyPlaying ? (
                               <>
                                 <div className="flex space-x-1">
-                                  <div className="w-1 h-4 bg-cyan-400 animate-pulse"></div>
-                                  <div className="w-1 h-4 bg-cyan-400 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                                  <div className="w-1 h-4 bg-cyan-400 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                                  <div className="w-1 h-4 bg-cyan-400 animate-pulse" />
+                                  <div className="w-1 h-4 bg-cyan-400 animate-pulse" style={{ animationDelay: '0.2s' }} />
+                                  <div className="w-1 h-4 bg-cyan-400 animate-pulse" style={{ animationDelay: '0.4s' }} />
                                 </div>
                                 <span className="text-sm">Playing</span>
                               </>
@@ -428,6 +429,7 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
             </div>
           </div>
         );
+      }
 
       case 'drawing':
         return (

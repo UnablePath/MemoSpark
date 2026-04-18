@@ -11,6 +11,9 @@ import {
   Plus,
   GraduationCap,
   Sun,
+  Sunrise,
+  Sunset,
+  Moon,
   RefreshCw,
 } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
@@ -53,10 +56,11 @@ const viewOptions: ViewOption[] = [
 
 const viewTabVariants = cva(
   cn(
-    'inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium',
+    'inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-sm font-medium',
+    'sm:flex-initial sm:px-3 sm:py-1.5',
     'transition-[color,background-color,transform] duration-150',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-    'active:scale-[0.97]',
+    'active:scale-[0.97] touch-manipulation',
   ),
   {
     variants: {
@@ -325,6 +329,30 @@ export const TaskEventHub: React.FC = () => {
   const { user } = useUser();
   const { toast } = useToast();
   const reducedMotion = useReducedMotion();
+
+  /** Re-check hourly so the Today tab icon matches time of day (same buckets as TodayView greeting). */
+  const [todayHourSnapshot, setTodayHourSnapshot] = useState(() => new Date().getHours());
+  useEffect(() => {
+    const sync = () => setTodayHourSnapshot(new Date().getHours());
+    const id = window.setInterval(sync, 60_000);
+    const onVis = () => {
+      if (document.visibilityState === 'visible') sync();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, []);
+
+  const todayTabIcon = useMemo(() => {
+    const h = todayHourSnapshot;
+    if (h < 5) return Moon;
+    if (h < 12) return Sunrise;
+    if (h < 17) return Sun;
+    if (h < 22) return Sunset;
+    return Moon;
+  }, [todayHourSnapshot]);
 
   const [currentView, setCurrentView] = useState<ViewType>('today');
   const [isTaskFormOpen, setTaskFormOpen] = useState(false);
@@ -706,7 +734,7 @@ export const TaskEventHub: React.FC = () => {
         <Button
           onClick={() => openTimetableForm()}
           size="sm"
-          className="active:scale-[0.97] transition-transform"
+          className="h-10 shrink-0 active:scale-[0.97] transition-transform sm:h-9"
           aria-label="Add new class (Ctrl+N)"
         >
           <GraduationCap className="h-4 w-4" strokeWidth={1.75} />
@@ -718,7 +746,7 @@ export const TaskEventHub: React.FC = () => {
       <Button
         onClick={() => openTaskForm()}
         size="sm"
-        className="active:scale-[0.97] transition-transform"
+        className="h-10 shrink-0 active:scale-[0.97] transition-transform sm:h-9"
         aria-label="Create new task (Ctrl+N)"
       >
         <Plus className="h-4 w-4" strokeWidth={1.75} />
@@ -728,14 +756,21 @@ export const TaskEventHub: React.FC = () => {
   };
 
   return (
-    <div className="flex h-full flex-col p-4 md:p-6">
-      <header className="mb-5 flex items-center gap-3">
+    <div
+      className={cn(
+        'task-hub-texture flex h-full min-h-0 flex-col rounded-2xl md:rounded-none',
+        'px-3 pb-safe-bottom pt-3 sm:px-4 md:p-6',
+      )}
+    >
+      <header className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-center sm:gap-3">
         <div
           role="tablist"
           aria-label="Task hub views"
-          className="inline-flex items-center gap-0.5 rounded-lg bg-muted p-1"
+          className="flex w-full min-w-0 items-stretch gap-0.5 rounded-xl bg-muted/90 p-1 shadow-sm ring-1 ring-border/40 backdrop-blur-sm sm:inline-flex sm:w-auto"
         >
-          {viewOptions.map((option) => (
+          {viewOptions.map((option) => {
+            const TabIcon = option.id === 'today' ? todayTabIcon : option.icon;
+            return (
             <button
               key={option.id}
               role="tab"
@@ -746,21 +781,22 @@ export const TaskEventHub: React.FC = () => {
                 state: currentView === option.id ? 'active' : 'inactive',
               })}
             >
-              <option.icon className="h-4 w-4" strokeWidth={1.5} />
+              <TabIcon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
               <span className="hidden sm:inline">{option.label}</span>
               <span className="sm:hidden">{option.shortLabel}</span>
             </button>
-          ))}
+            );
+          })}
         </div>
 
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center justify-end gap-2 sm:ml-auto">
           {currentView === 'today' && (
             <Button
               variant="ghost"
               size="sm"
               onClick={handleManualRefreshSuggestions}
               disabled={isLoadingSuggestions}
-              className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+              className="h-10 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground sm:h-8"
               aria-label={
                 isFeatureAvailable('basic_suggestions')
                   ? `Get a fresh AI suggestion (${usage.requestsRemaining} of ${usage.dailyLimit} left today)`
@@ -777,7 +813,7 @@ export const TaskEventHub: React.FC = () => {
               ) : (
                 <Sparkles className="h-3.5 w-3.5" strokeWidth={1.75} />
               )}
-              <span className="hidden sm:inline">
+              <span className="hidden min-[400px]:inline sm:inline">
                 {isLoadingSuggestions ? 'Thinking…' : 'New suggestion'}
               </span>
               {isFeatureAvailable('basic_suggestions') && (
@@ -792,7 +828,7 @@ export const TaskEventHub: React.FC = () => {
         </div>
       </header>
 
-      <div className="flex-1 overflow-auto">
+      <div className="min-h-0 flex-1 overflow-auto [-webkit-overflow-scrolling:touch]">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={currentView}
@@ -803,8 +839,7 @@ export const TaskEventHub: React.FC = () => {
             className="h-full"
           >
             {currentView === 'today' && (
-              <>
-                {tasksError ? (
+              tasksError ? (
                   <div className="flex flex-col items-center justify-center rounded-2xl border border-border/70 bg-card p-8 text-center">
                     <p className="text-base font-semibold text-destructive">
                       Could not load your tasks
@@ -835,9 +870,14 @@ export const TaskEventHub: React.FC = () => {
                     onToggleCompletion={handleToggleCompletion}
                     onAcceptSuggestion={handleAcceptSuggestion}
                     onDismissSuggestion={handleDismissSuggestion}
+                    onGoToCalendar={() => setCurrentView('calendar')}
+                    onGoToTimetable={() => setCurrentView('timetable')}
+                    onAddTimetableClass={() => {
+                      setCurrentView('timetable');
+                      openTimetableForm();
+                    }}
                   />
-                )}
-              </>
+                )
             )}
             {currentView === 'calendar' && (
               <CalendarViewEnhanced onEditTask={openTaskForm} />

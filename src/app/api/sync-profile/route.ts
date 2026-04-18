@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        profileCreated: !profile ? false : true,
+        profileCreated: !!profile,
         syncedFields: ['email', 'full_name', 'avatar_url', 'onboarding_completed', 'year_of_study', 'interests', 'subjects'],
         profile,
         metadata: user.publicMetadata

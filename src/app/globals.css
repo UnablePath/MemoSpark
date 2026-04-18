@@ -872,6 +872,42 @@ html[class*="theme-"]:not([class*="-light"]) {
   .responsive-container {
     @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
+
+  /**
+   * Task hub (dashboard): soft layered wash for phone/tablet depth.
+   * Keeps contrast; pseudo stays behind content (z-index via isolation on parent).
+   */
+  .task-hub-texture {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .task-hub-texture::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0.5;
+    background:
+      radial-gradient(ellipse 130% 55% at 50% 0%, hsl(var(--primary) / 0.09), transparent 52%),
+      radial-gradient(ellipse 90% 45% at 100% 100%, hsl(var(--muted) / 0.35), transparent 48%),
+      linear-gradient(180deg, hsl(var(--card) / 0.25) 0%, transparent 42%);
+  }
+
+  .dark .task-hub-texture::before {
+    opacity: 0.4;
+    background:
+      radial-gradient(ellipse 130% 55% at 50% 0%, hsl(var(--primary) / 0.14), transparent 52%),
+      radial-gradient(ellipse 90% 45% at 100% 100%, hsl(var(--muted) / 0.22), transparent 48%),
+      linear-gradient(180deg, hsl(var(--card) / 0.12) 0%, transparent 40%);
+  }
+
+  .task-hub-texture > * {
+    position: relative;
+    z-index: 1;
+  }
   
   /* Page container that accounts for navigation */
   .page-container {

@@ -230,7 +230,8 @@ export class SubscriptionTierManager {
         updated_at: new Date().toISOString()
       };
 
-      let data, error;
+      let data;
+      let error;
 
       if (existingSubscription) {
         // Update existing subscription

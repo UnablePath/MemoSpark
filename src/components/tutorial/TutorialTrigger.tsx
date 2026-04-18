@@ -71,9 +71,8 @@ export const TutorialTrigger: React.FC<TutorialTriggerProps> = memo(({
       }, 3000);
       
       return () => clearTimeout(fallbackTimer);
-    } else {
-      setShowFallback(false);
     }
+      setShowFallback(false);
   }, [isLoading, currentProgress]);
   
   // Show fallback after timeout or don't render at all if still loading

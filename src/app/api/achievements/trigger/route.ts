@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
         .eq('name', template.name)
         .single();
 
-      if (existingAchievement && existingAchievement.unlocked) {
+      if (existingAchievement?.unlocked) {
         continue; // User already has this achievement
       }
 

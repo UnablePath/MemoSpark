@@ -5,7 +5,20 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { StudyGroupManager, type StudyGroup, type StudyGroupMember, type StudyGroupResource } from '@/lib/social/StudyGroupManager';
 import { MessagingService } from '@/lib/messaging/MessagingService';
-import { useStudySessions, useCreateSession, useSessionParticipants, useJoinSession, useLeaveSession, useGroupCategories, useDiscoverGroups } from '@/hooks/useStudyGroupQueries';
+import {
+  useStudySessions,
+  useCreateSession,
+  useSessionParticipants,
+  useJoinSession,
+  useLeaveSession,
+  useGroupCategories,
+  useDiscoverGroups,
+  useStudyGroupHubRealtime,
+  useStudyGroupMembersDetailed,
+  useStudyGroupResources,
+  useUserStudyGroups,
+  studyGroupKeys,
+} from '@/hooks/useStudyGroupQueries';
 import { StudySessionManager } from '@/lib/social/StudySessionManager';
 import { useQueryClient } from '@tanstack/react-query';
 import type { StudySession } from '@/lib/social/StudySessionManager';
@@ -15,7 +28,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Users, 
   PlusCircle, 
@@ -31,7 +43,6 @@ import {
   FileText,
   Link,
   Upload,
-  Send,
   MoreVertical,
   X,
   UserMinus,
@@ -70,22 +81,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-// Import Magic UI components
-import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
-import { ShimmerButton } from "@/components/ui/shimmer-button";
-import { AnimatedList, AnimatedListItem } from "@/components/magicui/animated-list";
 import GroupManagementPanel from './GroupManagementPanel';
+import { StudyGroupChatTab } from '@/components/social/study-group/StudyGroupChatTab';
+import { GroupsBento } from './group/GroupsBento';
 
-interface Message {
-  id: string;
-  content: string;
-  sender_id: string;
-  sender_name?: string;
-  created_at: string;
-  sender?: {
-    full_name?: string;
-  };
-}
+/** Matches Groups lane bento: diffused scrim, not flat `bg-black/80`. */
+const GROUPS_HUB_OVERLAY = cn(
+  "bg-[hsl(var(--foreground)/0.12)] backdrop-blur-2xl",
+  "supports-[backdrop-filter]:bg-[hsl(var(--foreground)/0.05)]",
+  "before:pointer-events-none before:absolute before:inset-0",
+  "before:bg-[radial-gradient(ellipse_80%_52%_at_50%_0%,hsl(var(--primary)/0.14),transparent_58%)]",
+);
+
+/** Double-shell panel: full-bleed on small phones, floating on `sm+`. */
+const GROUPS_HUB_SHELL = cn(
+  "gap-0 border-0 p-0 shadow-none flex flex-col overflow-hidden",
+  "w-full max-w-none rounded-none bg-transparent",
+  "h-[100dvh] max-h-[100dvh] min-h-0 sm:h-[min(82vh,880px)] sm:max-h-[85vh] sm:max-w-[1100px] sm:w-[min(1100px,calc(100vw-1.25rem))]",
+  "sm:rounded-[1.75rem] sm:border sm:border-border/55 sm:bg-card/96 sm:shadow-[0_40px_96px_-48px_hsl(var(--foreground)/0.42)] sm:ring-1 sm:ring-border/35",
+);
 
 export const StudyGroupHub: React.FC = () => {
   const { getToken } = useAuth();
@@ -93,14 +107,13 @@ export const StudyGroupHub: React.FC = () => {
   const studyGroupManager = useMemo(() => new StudyGroupManager(getToken), [getToken]);
   const messagingService = useMemo(() => new MessagingService(getToken), [getToken]);
 
+  const userGroupsQuery = useUserStudyGroups(getToken, user?.id);
+  const userGroups = userGroupsQuery.data ?? [];
+
   // State management
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("browse");
   const [selectedGroup, setSelectedGroup] = useState<StudyGroup | null>(null);
-  const [groupMembers, setGroupMembers] = useState<(StudyGroupMember & { user_name: string })[]>([]);
-  const [groupResources, setGroupResources] = useState<StudyGroupResource[]>([]);
-  const [groupMessages, setGroupMessages] = useState<Message[]>([]);
-  const [userGroups, setUserGroups] = useState<StudyGroup[]>([]);
   const [allGroups, setAllGroups] = useState<StudyGroup[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -112,7 +125,6 @@ export const StudyGroupHub: React.FC = () => {
   const [newGroupDescription, setNewGroupDescription] = useState("");
   const [newGroupCategory, setNewGroupCategory] = useState<string | null>(null);
   const [newGroupPrivacy, setNewGroupPrivacy] = useState<'public' | 'private' | 'invite_only'>('public');
-  const [newMessage, setNewMessage] = useState("");
   const [newResourceTitle, setNewResourceTitle] = useState("");
   const [newResourceContent, setNewResourceContent] = useState("");
   const [newResourceUrl, setNewResourceUrl] = useState("");
@@ -137,6 +149,14 @@ export const StudyGroupHub: React.FC = () => {
   const joinSession = useJoinSession(getToken, selectedGroup?.id || '');
   const leaveSession = useLeaveSession(getToken, selectedGroup?.id || '');
   const queryClient = useQueryClient();
+
+  const selectedGroupId = selectedGroup?.id ?? '';
+  useStudyGroupHubRealtime(selectedGroupId);
+
+  const membersQuery = useStudyGroupMembersDetailed(getToken, selectedGroupId);
+  const resourcesQuery = useStudyGroupResources(getToken, selectedGroupId);
+  const groupMembers = membersQuery.data ?? [];
+  const groupResources = resourcesQuery.data ?? [];
 
   // Resolve participant names
   const [participantNames, setParticipantNames] = useState<Record<string, string>>({});
@@ -176,21 +196,6 @@ export const StudyGroupHub: React.FC = () => {
     return unsubscribe;
   }, [sessionDetailsId, getToken, queryClient, selectedGroup?.id]);
 
-  // Load user groups
-  const loadUserGroups = useCallback(async () => {
-    if (!user) return;
-    try {
-      setIsLoading(true);
-      const groups = await studyGroupManager.getUserGroups(user.id);
-      setUserGroups(groups);
-    } catch (error) {
-      console.error("Failed to load user groups:", error);
-      toast.error("Failed to load your groups");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [studyGroupManager, user]);
-
   // Load all groups for browsing
   const loadAllGroups = useCallback(async () => {
     if (!user) return;
@@ -220,54 +225,19 @@ export const StudyGroupHub: React.FC = () => {
     }
   }, [studyGroupManager, user]);
 
-  // Load group details
-  const loadGroupDetails = useCallback(async (group: StudyGroup) => {
-    try {
-      setSelectedGroup(group);
-      
-      // Load members, resources, and messages concurrently
-      const [members, resources] = await Promise.all([
-        studyGroupManager.getGroupMembersWithNames(group.id),
-        studyGroupManager.getResources(group.id)
-      ]);
-      
-      // Map members to include user_name property
-      const membersWithUserName = members.map(member => ({
-        ...member,
-        user_name: member.name || 'Unknown'
-      }));
-      setGroupMembers(membersWithUserName);
-      setGroupResources(resources);
-      
-      // Load messages if conversation exists
-      if (group.conversation_id) {
-        try {
-          const messages = await messagingService.getMessages(group.conversation_id);
-          setGroupMessages(messages);
-        } catch (error) {
-          console.error("Failed to load messages:", error);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to load group details:", error);
-      toast.error("Failed to load group details");
-    }
-  }, [studyGroupManager, messagingService]);
+  const loadGroupDetails = useCallback((group: StudyGroup) => {
+    setSelectedGroup(group);
+  }, []);
 
   // Effects
   useEffect(() => {
-    if (isPopoverOpen && user) {
-      loadUserGroups();
-      loadAllGroups();
-    }
-  }, [isPopoverOpen, user, loadUserGroups, loadAllGroups]);
+    if (!isPopoverOpen || !user?.id) return;
+    void queryClient.invalidateQueries({ queryKey: studyGroupKeys.userGroups(user.id) });
+    void loadAllGroups();
+  }, [isPopoverOpen, user?.id, loadAllGroups, queryClient]);
 
-  // Load initial data for the card
-  useEffect(() => {
-    if (user) {
-      loadUserGroups();
-    }
-  }, [user, loadUserGroups]);
+  // useUserStudyGroups already fetches when userId is set — do not depend on the
+  // useQuery result object (new reference every fetch) or refetch loops forever.
 
   // Group creation
   const handleCreateGroup = async () => {
@@ -277,12 +247,37 @@ export const StudyGroupHub: React.FC = () => {
       await studyGroupManager.createGroup(newGroupName, user.id, newGroupDescription);
       setNewGroupName("");
       setNewGroupDescription("");
-      loadUserGroups();
+      void queryClient.invalidateQueries({ queryKey: studyGroupKeys.userGroups(user.id) });
       loadAllGroups();
       toast.success("Group created successfully!");
     } catch (error) {
       console.error("Failed to create group:", error);
       toast.error("Failed to create group");
+    }
+  };
+
+  // Bento morph create path: take explicit values so the surface owns its form state.
+  const handleCreateGroupFromBento = async ({
+    name,
+    description,
+  }: { name: string; description: string }) => {
+    if (!user) return;
+    const trimmed = name.trim();
+    if (!trimmed) {
+      toast.error("Give the group a name");
+      return;
+    }
+    try {
+      await studyGroupManager.createGroup(trimmed, user.id, description);
+      void queryClient.invalidateQueries({
+        queryKey: studyGroupKeys.userGroups(user.id),
+      });
+      loadAllGroups();
+      toast.success("Group created");
+    } catch (error) {
+      console.error("Failed to create group:", error);
+      toast.error("Failed to create group");
+      throw error;
     }
   };
 
@@ -300,7 +295,7 @@ export const StudyGroupHub: React.FC = () => {
 
       await studyGroupManager.addMember(groupId, user.id, 'member');
       setMembershipStatus(prev => ({ ...prev, [groupId]: true }));
-      loadUserGroups();
+      void queryClient.invalidateQueries({ queryKey: studyGroupKeys.userGroups(user.id) });
       loadAllGroups(); // Refresh to update membership status
       toast.success("Joined group successfully!");
     } catch (error) {
@@ -322,7 +317,7 @@ export const StudyGroupHub: React.FC = () => {
 
       await studyGroupManager.removeMember(groupId, user.id);
       setMembershipStatus(prev => ({ ...prev, [groupId]: false }));
-      loadUserGroups();
+      void queryClient.invalidateQueries({ queryKey: studyGroupKeys.userGroups(user.id) });
       loadAllGroups(); // Refresh to update membership status
       if (selectedGroup?.id === groupId) {
         setSelectedGroup(null);
@@ -351,62 +346,11 @@ export const StudyGroupHub: React.FC = () => {
       setNewResourceContent("");
       setNewResourceUrl("");
       setNewResourceType("note");
-      
-      // Reload resources
-      const resources = await studyGroupManager.getResources(selectedGroup.id);
-      setGroupResources(resources);
+      void queryClient.invalidateQueries({ queryKey: studyGroupKeys.groupResources(selectedGroup.id) });
       toast.success("Resource added successfully!");
     } catch (error) {
       console.error("Failed to add resource:", error);
       toast.error("Failed to add resource");
-    }
-  };
-
-  // Message sending
-  const handleSendMessage = async () => {
-    if (!selectedGroup || !user || !newMessage.trim()) return;
-    // Fallback: ensure conversation exists and user is a participant
-    let conversationId = selectedGroup.conversation_id;
-    try {
-      if (!conversationId) {
-        conversationId = await messagingService.createGroupConversation(
-          selectedGroup.name,
-          user.id,
-          selectedGroup.description || undefined
-        );
-        // Persist on group (best-effort; ignore UI failure)
-        try {
-          // TODO: Implement attachConversationId method
-          console.info('[social:study-group:attach-conversation]', { conversationId, groupId: selectedGroup.id });
-          setSelectedGroup({ ...selectedGroup, conversation_id: conversationId });
-        } catch {}
-      }
-      // Ensure current user is participant
-      try { await messagingService.addConversationParticipant(conversationId!, user.id); } catch {}
-    } catch {}
-    
-    // Check if user is a member of the group
-    if (!membershipStatus[selectedGroup.id]) {
-      toast.error("You must be a member of this group to send messages");
-      return;
-    }
-    
-    try {
-      await messagingService.sendMessage({
-        userId: user.id,
-        recipientId: user.id, // satisfy NOT NULL recipient_id for group messages
-        content: newMessage.trim(),
-        conversationId: conversationId!
-      });
-      setNewMessage("");
-      
-      // Reload messages
-      const messages = await messagingService.getMessages(conversationId!);
-      setGroupMessages(messages);
-      toast.success("Message sent!");
-    } catch (error) {
-      console.error("Failed to send message:", error);
-      toast.error("Failed to send message");
     }
   };
 
@@ -490,84 +434,90 @@ export const StudyGroupHub: React.FC = () => {
   const sessionsLoading = sessionsQuery.isLoading;
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-xl sm:text-2xl">
-          <Users className="h-6 w-6 text-primary" />
-          <span className="text-foreground">Study Groups Hub</span>
-        </CardTitle>
-        <CardDescription className="text-sm">Find, create, and join study groups to collaborate with your peers.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {userGroups.length > 0 ? (
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Your Groups:</p>
-            <div className="space-y-1">
-              {userGroups.slice(0, 3).map((group) => (
-                <div key={group.id} className="flex items-center gap-2 text-sm">
-                  <Users className="h-3 w-3" />
-                  <span className="truncate">{group.name}</span>
-                </div>
-              ))}
-              {userGroups.length > 3 && (
-                <p className="text-xs text-muted-foreground">
-                  +{userGroups.length - 3} more groups
-                </p>
+    <div className="relative space-y-6">
+      <GroupsBento
+        groups={userGroups}
+        onOpenGroup={(g) => {
+          setSelectedGroup(g);
+          setIsPopoverOpen(true);
+        }}
+        onCreateGroup={handleCreateGroupFromBento}
+        onDiscover={() => {
+          setSelectedGroup(null);
+          setIsPopoverOpen(true);
+        }}
+      />
+
+      <Dialog open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+        <DialogContent
+          overlayClassName={GROUPS_HUB_OVERLAY}
+          className={cn(
+            GROUPS_HUB_SHELL,
+            "duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+          )}
+        >
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-card/98 sm:bg-transparent">
+            {/* Header */}
+            <div
+              className={cn(
+                "flex-shrink-0 border-b border-border/50 bg-background/90 px-4 py-3 sm:px-5 sm:py-4",
+                "safe-area-top",
               )}
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            You haven't joined any study groups yet.
-          </p>
-        )}
-      </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row gap-2 sm:gap-3 p-4">
-        <Dialog open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-          <DialogTrigger asChild>
-            <Button className="w-full sm:w-auto h-10 px-5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow">
-              <Users className="h-4 w-4 mr-2" />
-              Browse Groups
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-[1100px] w-[95vw] h-[80vh] p-0 flex flex-col overflow-hidden border-none shadow-2xl">
-            {/* Header - Fixed */}
-            <div className="flex-shrink-0 p-4 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-              <div className="flex items-center justify-between">
-                <AnimatedGradientText>
-                  <span className="inline animate-gradient bg-gradient-to-r from-[#ffaa40] via-[#22d3ee] to-[#ffaa40] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent">
-                    Study Groups Hub
-                  </span>
-                </AnimatedGradientText>
-                {/* Single close control is provided by the dialog chrome; remove duplicate */}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 max-w-[65ch] text-left">
+                  <DialogTitle className="text-xl font-semibold leading-tight tracking-tight text-foreground sm:text-2xl">
+                    Groups
+                  </DialogTitle>
+                  <DialogDescription className="sr-only">
+                    Search, join, and manage your groups.
+                  </DialogDescription>
+                </div>
               </div>
             </div>
 
             {/* Main Content - Scrollable */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="flex min-h-full">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <div className="flex min-h-full flex-col sm:flex-row">
                 {/* Sidebar */}
                 <div className={cn(
-                  "w-full sm:w-80 sm:border-r bg-muted/40 transition-all duration-300 flex flex-col",
-                  selectedGroup && "hidden sm:block"
+                  "flex w-full flex-col border-border/40 transition-all duration-300 sm:w-[min(100%,20rem)] sm:border-r sm:bg-muted/25",
+                  selectedGroup && "hidden sm:flex"
                 )}>
-                  <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col">
-                    <TabsList className="grid w-full grid-cols-2 m-2 h-10 rounded-xl sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-                      <TabsTrigger value="browse" className="text-xs px-3 rounded-lg">Browse</TabsTrigger>
-                      <TabsTrigger value="my-groups" className="text-xs px-3 rounded-lg">My Groups</TabsTrigger>
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col">
+                    <TabsList
+                      className={cn(
+                        "sticky top-0 z-20 mx-3 mt-3 grid h-11 grid-cols-2 gap-1 rounded-2xl p-1",
+                        "border border-border/50 bg-background/90 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)]",
+                        "sm:mx-4 sm:mt-4",
+                      )}
+                    >
+                      <TabsTrigger
+                        value="browse"
+                        className="rounded-[0.85rem] text-xs font-medium data-[state=active]:bg-primary/12 data-[state=active]:text-foreground"
+                      >
+                        Discover
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="my-groups"
+                        className="rounded-[0.85rem] text-xs font-medium data-[state=active]:bg-primary/12 data-[state=active]:text-foreground"
+                      >
+                        Yours
+                      </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="browse" className="m-0">
-                      <div className="p-4 space-y-4">
+                    <TabsContent value="browse" className="m-0 flex-1">
+                      <div className="space-y-4 p-4 sm:p-5">
                         {/* Search & Categories */}
                         <div className="space-y-3">
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
-                            placeholder="Search groups..."
+                            placeholder="Search"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10"
+                            className="h-11 rounded-2xl border-border/60 bg-background/80 pl-10 text-base leading-normal sm:text-sm"
                           />
                           </div>
                           <div className="flex flex-wrap gap-2">
@@ -577,10 +527,11 @@ export const StudyGroupHub: React.FC = () => {
                                 type="button"
                                 onClick={() => setSelectedCategory(prev => prev === cat.id ? null : cat.id)}
                                 className={cn(
-                                  'px-3 py-1.5 rounded-full border text-xs transition',
-                                  selectedCategory === cat.id ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-muted'
+                                  "min-h-9 rounded-full border border-border/70 px-3 py-1.5 text-xs font-medium transition-colors",
+                                  selectedCategory === cat.id
+                                    ? "border-primary bg-primary text-primary-foreground"
+                                    : "bg-background/60 text-muted-foreground hover:bg-muted/80 hover:text-foreground",
                                 )}
-                                style={{ borderColor: '#ccc' }}
                               >
                                 {cat.name}
                               </button>
@@ -591,35 +542,45 @@ export const StudyGroupHub: React.FC = () => {
                         {/* Create Group Button */}
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button className="w-full">
-                              <Plus className="h-4 w-4 mr-2" />
-                              Create New Group
+                            <Button
+                              type="button"
+                              className="h-11 w-full rounded-2xl bg-primary text-primary-foreground shadow-[0_12px_32px_-16px_hsl(var(--primary)/0.65)]"
+                            >
+                              <Plus className="mr-2 h-4 w-4" />
+                              Start a group
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent
+                            overlayClassName={GROUPS_HUB_OVERLAY}
+                            className={cn(
+                              "max-w-md rounded-[1.35rem] border-border/55 bg-card/98 p-6 shadow-[0_32px_64px_-40px_hsl(var(--foreground)/0.45)] ring-1 ring-border/35",
+                            )}
+                          >
                             <DialogHeader>
-                              <DialogTitle>Create Study Group</DialogTitle>
-                              <DialogDescription>
-                                Create a collaborative space for studying together.
+                              <DialogTitle>New group</DialogTitle>
+                              <DialogDescription className="sr-only">
+                                Name, description, category, and privacy.
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4">
                               <div>
-                                <Label htmlFor="groupName">Group Name</Label>
+                                <Label htmlFor="groupName">Name</Label>
                                 <Input
                                   id="groupName"
-                                  placeholder="Enter group name"
+                                  placeholder="e.g. Chem 201, exam block"
                                   value={newGroupName}
                                   onChange={(e) => setNewGroupName(e.target.value)}
+                                  className="mt-1.5 rounded-xl border-border/60"
                                 />
                               </div>
                               <div>
                                 <Label htmlFor="groupDescription">Description</Label>
                                 <Textarea
                                   id="groupDescription"
-                                  placeholder="Describe your group's purpose"
+                                  placeholder="Optional"
                                   value={newGroupDescription}
                                   onChange={(e) => setNewGroupDescription(e.target.value)}
+                                  className="mt-1.5 min-h-[88px] rounded-xl border-border/60"
                                 />
                               </div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -638,7 +599,14 @@ export const StudyGroupHub: React.FC = () => {
                                 </div>
                                 <div>
                                   <Label>Privacy</Label>
-                                  <Select value={newGroupPrivacy} onValueChange={(v: any) => setNewGroupPrivacy(v)}>
+                                  <Select
+                                    value={newGroupPrivacy}
+                                    onValueChange={(v) =>
+                                      setNewGroupPrivacy(
+                                        v as "public" | "private" | "invite_only",
+                                      )
+                                    }
+                                  >
                                     <SelectTrigger className="w-full mt-1">
                                       <SelectValue />
                                     </SelectTrigger>
@@ -651,126 +619,160 @@ export const StudyGroupHub: React.FC = () => {
                                 </div>
                               </div>
                             </div>
-                            <DialogFooter>
+                            <DialogFooter className="gap-2 sm:gap-0">
                               <DialogClose asChild>
-                                <Button variant="outline">Cancel</Button>
+                                <Button type="button" variant="outline" className="rounded-xl">
+                                  Cancel
+                                </Button>
                               </DialogClose>
                               <DialogClose asChild>
-                                <Button onClick={async () => {
-                                  await studyGroupManager.createGroup(
-                                    newGroupName,
-                                    newGroupDescription
-                                  );
-                                  setNewGroupName('');
-                                  setNewGroupDescription('');
-                                  setNewGroupCategory(null);
-                                  setNewGroupPrivacy('public');
-                                  loadUserGroups();
-                                  loadAllGroups();
-                                }}>Create Group</Button>
+                                <Button
+                                  type="button"
+                                  className="rounded-xl"
+                                  onClick={async () => {
+                                    if (!user?.id) return;
+                                    const name = newGroupName.trim();
+                                    if (!name) {
+                                      toast.error("Add a name first");
+                                      return;
+                                    }
+                                    try {
+                                      await studyGroupManager.createGroup(
+                                        name,
+                                        user.id,
+                                        newGroupDescription,
+                                      );
+                                      setNewGroupName("");
+                                      setNewGroupDescription("");
+                                      setNewGroupCategory(null);
+                                      setNewGroupPrivacy("public");
+                                      void queryClient.invalidateQueries({
+                                        queryKey: studyGroupKeys.userGroups(user.id),
+                                      });
+                                      loadAllGroups();
+                                      toast.success("Group created");
+                                    } catch {
+                                      toast.error("Could not create group");
+                                    }
+                                  }}
+                                >
+                                  Create
+                                </Button>
                               </DialogClose>
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
 
                         {/* Groups List (discovery) */}
-                        <div className="rounded-md border p-4">
-                          <div className="space-y-2">
+                        <div className="rounded-[1.25rem] border border-border/50 bg-background/40 p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)]">
+                          <div className="space-y-1.5 p-2 sm:p-3">
                             {(discoveryQuery.data ?? filteredGroups).map((group) => (
-                              <Card 
-                                key={group.id} 
+                              <button
+                                key={group.id}
+                                type="button"
                                 className={cn(
-                                  "cursor-pointer transition-colors hover:bg-accent/50",
-                                  selectedGroup?.id === group.id && "bg-accent"
+                                  "w-full rounded-2xl border border-transparent bg-card/80 p-3 text-left transition-colors",
+                                  "hover:border-border/60 hover:bg-muted/40",
+                                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                                  selectedGroup?.id === group.id &&
+                                    "border-primary/35 bg-primary/8",
                                 )}
                                 onClick={() => loadGroupDetails(group)}
                               >
-                                <CardContent className="p-3">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex-1">
-                                      <h4 className="font-medium text-sm">{group.name}</h4>
-                                      <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                      <h4 className="truncate text-sm font-semibold tracking-tight">
+                                        {group.name}
+                                      </h4>
+                                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                                         {group.description}
                                       </p>
-                                      <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
-                                        <span>Last active {group.updated_at ? new Date(group.updated_at).toLocaleDateString() : 'Unknown'}</span>
+                                      <div className="mt-2 text-[0.65rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                                        Updated{" "}
+                                        {group.updated_at
+                                          ? new Date(group.updated_at).toLocaleDateString()
+                                          : "unknown"}
                                       </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex shrink-0 items-center gap-2">
                                       {membershipStatus[group.id] ? (
-                                        <Badge variant="secondary" className="text-xs">Member</Badge>
+                                        <Badge variant="secondary" className="text-[0.65rem]">
+                                          In
+                                        </Badge>
                                       ) : (
-                                        <Button 
-                                          size="sm" 
-                                          variant="outline" 
+                                        <Button
+                                          type="button"
+                                          size="icon"
+                                          variant="outline"
+                                          className="h-10 w-10 shrink-0 rounded-full border-border/60"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                             // Enforce privacy: only public or invite_only via invitation; private requires invitation
-                                             // TODO: Implement privacy level check
-                                             if (false) {
-                                               toast.error('This group is private. You need an invitation to join.');
-                                               return;
-                                             }
                                             handleJoinGroup(group.id);
                                           }}
                                         >
-                                          <UserPlus className="h-3 w-3" />
+                                          <UserPlus className="h-4 w-4" />
                                         </Button>
                                       )}
                                     </div>
                                   </div>
-                                </CardContent>
-                              </Card>
+                              </button>
                             ))}
                           </div>
                         </div>
                       </div>
                     </TabsContent>
 
-                    <TabsContent value="my-groups" className="m-0">
-                      <div className="p-4">
-                        <div className="space-y-2">
+                    <TabsContent value="my-groups" className="m-0 flex-1">
+                      <div className="p-4 sm:p-5">
+                        <div className="space-y-1.5">
                           {userGroups.map((group) => (
-                            <Card 
-                              key={group.id} 
+                            <button
+                              key={group.id}
+                              type="button"
                               className={cn(
-                                "cursor-pointer transition-colors hover:bg-accent/50",
-                                selectedGroup?.id === group.id && "bg-accent"
+                                "flex w-full items-center gap-3 rounded-2xl border border-border/45 bg-card/85 p-3 text-left transition-colors",
+                                "hover:border-border/70 hover:bg-muted/35",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                                selectedGroup?.id === group.id && "border-primary/35 bg-primary/8",
                               )}
                               onClick={() => loadGroupDetails(group)}
                             >
-                              <CardContent className="p-3">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex-1">
-                                    <h4 className="font-medium text-sm">{group.name}</h4>
-                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                  <div className="min-w-0 flex-1">
+                                    <h4 className="truncate text-sm font-semibold tracking-tight">
+                                      {group.name}
+                                    </h4>
+                                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                                       {group.description}
                                     </p>
                                   </div>
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
-                                        <MoreVertical className="h-3 w-3" />
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-10 w-10 shrink-0 rounded-full"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <MoreVertical className="h-4 w-4" />
                                       </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
+                                    <DropdownMenuContent align="end" className="rounded-xl">
                                       <DropdownMenuItem onClick={() => loadGroupDetails(group)}>
-                                        <Settings className="h-4 w-4 mr-2" />
-                                        Manage
+                                        <Settings className="mr-2 h-4 w-4" />
+                                        Open
                                       </DropdownMenuItem>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem 
                                         className="text-destructive"
                                         onClick={() => handleLeaveGroup(group.id)}
                                       >
-                                        <UserMinus className="h-4 w-4 mr-2" />
-                                        Leave Group
+                                        <UserMinus className="mr-2 h-4 w-4" />
+                                        Leave
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
                                   </DropdownMenu>
-                                </div>
-                              </CardContent>
-                            </Card>
+                            </button>
                           ))}
                         </div>
                       </div>
@@ -786,43 +788,44 @@ export const StudyGroupHub: React.FC = () => {
                   {selectedGroup ? (
                     <>
                       {/* Group Header */}
-                      <div className="p-4 border-b">
-                        <div className="flex items-center gap-3">
-                          {/* Mobile Back Button */}
+                      <div className="border-b border-border/50 bg-background/60 px-4 py-3 sm:px-5">
+                        <div className="flex items-start gap-3">
                           <Button
+                            type="button"
                             variant="ghost"
-                            size="sm"
-                            className="sm:hidden"
+                            size="icon"
+                            className="mt-0.5 h-11 w-11 shrink-0 rounded-xl sm:hidden"
                             onClick={() => setSelectedGroup(null)}
+                            aria-label="Back to list"
                           >
-                            <X className="h-4 w-4" />
+                            <X className="h-5 w-5" />
                           </Button>
                           
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h3 className="font-semibold">{selectedGroup.name}</h3>
-                                <p className="text-sm text-muted-foreground">{selectedGroup.description}</p>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div className="min-w-0">
+                                <h3 className="text-base font-semibold tracking-tight sm:text-lg">
+                                  {selectedGroup.name}
+                                </h3>
+                                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                                  {selectedGroup.description}
+                                </p>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="secondary">
-                                  {groupMembers.length} member{groupMembers.length !== 1 ? 's' : ''}
+                              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                                <Badge variant="secondary" className="rounded-full text-xs">
+                                  {groupMembers.length}{" "}
+                                  {groupMembers.length !== 1 ? "people" : "person"}
                                 </Badge>
                                 {!membershipStatus[selectedGroup.id] && (
-                                  false ? (
-                                    <Button size="sm" variant="outline" disabled title="Invite-only group">
-                                      Request Invite
-                                    </Button>
-                                  ) : false ? (
-                                    <Button size="sm" variant="outline" disabled title="Private group">
-                                      Private
-                                    </Button>
-                                  ) : (
-                                  <Button size="sm" onClick={() => handleJoinGroup(selectedGroup.id)}>
-                                    <UserPlus className="h-4 w-4 mr-2" />
-                                    Join Group
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    className="h-10 rounded-full px-4"
+                                    onClick={() => handleJoinGroup(selectedGroup.id)}
+                                  >
+                                    <UserPlus className="mr-2 h-4 w-4" />
+                                    Join
                                   </Button>
-                                  )
                                 )}
                               </div>
                             </div>
@@ -831,108 +834,80 @@ export const StudyGroupHub: React.FC = () => {
                       </div>
 
                       {/* Group Content Tabs */}
-                      <Tabs defaultValue="chat" className="flex-1 flex flex-col">
-                          <TabsList className="mx-4 mt-0 sticky top-0 z-10 bg-background/80 backdrop-blur">
-                          <TabsTrigger value="chat">
-                            <MessageSquare className="h-4 w-4 mr-2" />
+                      <Tabs defaultValue="chat" className="flex min-h-0 flex-1 flex-col">
+                          <TabsList
+                            className={cn(
+                              "sticky top-0 z-10 mx-3 mt-2 flex h-auto min-h-11 flex-wrap gap-1 rounded-2xl border border-border/50 bg-background/90 p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)] sm:mx-4",
+                              "supports-[backdrop-filter]:bg-background/80",
+                            )}
+                          >
+                          <TabsTrigger
+                            value="chat"
+                            className="rounded-xl data-[state=active]:bg-primary/12"
+                          >
+                            <MessageSquare className="mr-2 h-4 w-4" />
                             Chat
                           </TabsTrigger>
-                          <TabsTrigger value="resources">
-                            <BookOpen className="h-4 w-4 mr-2" />
+                          <TabsTrigger
+                            value="resources"
+                            className="rounded-xl data-[state=active]:bg-primary/12"
+                          >
+                            <BookOpen className="mr-2 h-4 w-4" />
                             Resources
                             <span className="ml-1 rounded-full bg-muted px-1.5 text-[10px] leading-5">
                               {groupResources.length}
                             </span>
                           </TabsTrigger>
-                          <TabsTrigger value="members">
-                            <Users className="h-4 w-4 mr-2" />
+                          <TabsTrigger
+                            value="members"
+                            className="rounded-xl data-[state=active]:bg-primary/12"
+                          >
+                            <Users className="mr-2 h-4 w-4" />
                             Members
                             <span className="ml-1 rounded-full bg-muted px-1.5 text-[10px] leading-5">
                               {groupMembers.length}
                             </span>
                           </TabsTrigger>
-                          <TabsTrigger value="sessions">
-                            <PlusCircle className="h-4 w-4 mr-2" />
+                          <TabsTrigger
+                            value="sessions"
+                            className="rounded-xl data-[state=active]:bg-primary/12"
+                          >
+                            <PlusCircle className="mr-2 h-4 w-4" />
                             Sessions
                             <span className="ml-1 rounded-full bg-muted px-1.5 text-[10px] leading-5">
                               {sessionsQuery.data?.length ?? 0}
                             </span>
                           </TabsTrigger>
+                          {user?.id === selectedGroup.created_by && (
+                            <TabsTrigger
+                              value="manage"
+                              className="rounded-xl data-[state=active]:bg-primary/12"
+                            >
+                              <Settings className="mr-2 h-4 w-4" />
+                              Manage
+                            </TabsTrigger>
+                          )}
                         </TabsList>
 
-                        <TabsContent value="chat" className="flex-1 m-0">
-                           <div className="p-4">
-                             <div className="rounded-md border p-4">
-                              <div className="space-y-4">
-                                {groupMessages.length === 0 ? (
-                                  <div className="text-center text-muted-foreground py-8">
-                                    <MessageSquare className="h-8 w-8 mx-auto mb-2" />
-                                    <p>No messages yet. Start the conversation!</p>
-                                  </div>
-                                ) : (
-                                  <AnimatedList>
-                                    {groupMessages.map((message) => (
-                                      <AnimatedListItem key={message.id}>
-                                        <div className="flex gap-3">
-                                                                                      <Avatar className="h-8 w-8">
-                                              <AvatarFallback>
-                                                {(message.sender_name || message.sender?.full_name || 'Unknown User').charAt(0).toUpperCase()}
-                                              </AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex-1">
-                                              <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-medium text-sm">
-                                                  {message.sender_name || message.sender?.full_name || 'Unknown User'}
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">
-                                                  {new Date(message.created_at).toLocaleTimeString()}
-                                                </span>
-                                              </div>
-                                            <p className="text-sm">{message.content}</p>
-                                          </div>
-                                        </div>
-                                      </AnimatedListItem>
-                                    ))}
-                                  </AnimatedList>
-                                )}
-                              </div>
-                             </div>
-                          </div>
-                          
-                          {membershipStatus[selectedGroup.id] && (
-                            <div className="p-4 border-t sticky bottom-0 bg-background/80 backdrop-blur z-10">
-                              <div className="flex gap-2">
-                                <Input
-                                  placeholder="Type a message..."
-                                  value={newMessage}
-                                  onChange={(e) => setNewMessage(e.target.value)}
-                                  onKeyPress={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                      e.preventDefault();
-                                      handleSendMessage();
-                                    }
+                        <TabsContent value="chat" className="flex-1 m-0 flex min-h-0 flex-col">
+                          <div className="min-h-0 flex-1 p-4">
+                            <div className="overflow-hidden rounded-md border">
+                              {user ? (
+                                <StudyGroupChatTab
+                                  selectedGroup={selectedGroup}
+                                  userId={user.id}
+                                  isMember={!!membershipStatus[selectedGroup.id]}
+                                  messagingService={messagingService}
+                                  studyGroupManager={studyGroupManager}
+                                  onConversationLinked={(conversationId) => {
+                                    setSelectedGroup((g) =>
+                                      g ? { ...g, conversation_id: conversationId } : null,
+                                    );
                                   }}
-                                  disabled={!membershipStatus[selectedGroup.id]}
                                 />
-                                <Button 
-                                  onClick={handleSendMessage}
-                                  disabled={!newMessage.trim() || !membershipStatus[selectedGroup.id]}
-                                >
-                                  <Send className="h-4 w-4" />
-                                </Button>
-                              </div>
+                              ) : null}
                             </div>
-                          )}
-                          {!membershipStatus[selectedGroup.id] && (
-                            <div className="p-4 border-t bg-muted/30">
-                              <div className="flex items-center justify-between">
-                                <p className="text-sm text-muted-foreground">Join this group to participate in chat.</p>
-                                <Button size="sm" onClick={() => handleJoinGroup(selectedGroup.id)}>
-                                  Join Group
-                                </Button>
-                              </div>
-                            </div>
-                          )}
+                          </div>
                         </TabsContent>
 
                         {/* Sessions Tab */}
@@ -1072,10 +1047,17 @@ export const StudyGroupHub: React.FC = () => {
                         </TabsContent>
 
                         <Dialog open={Boolean(sessionDetailsId)} onOpenChange={(open) => !open && setSessionDetailsId(null)}>
-                          <DialogContent>
+                          <DialogContent
+                            overlayClassName={GROUPS_HUB_OVERLAY}
+                            className="max-w-md rounded-[1.25rem] border-border/55 bg-card/98 ring-1 ring-border/35"
+                          >
                             <DialogHeader>
-                              <DialogTitle>Session Details</DialogTitle>
-                              <DialogDescription>View participants and join or leave the session</DialogDescription>
+                              <DialogTitle className="text-xl font-semibold tracking-tight">
+                                Session
+                              </DialogTitle>
+                              <DialogDescription className="sr-only">
+                                Participants and join or leave.
+                              </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4">
                               {participantsQuery.isLoading ? (
@@ -1254,15 +1236,27 @@ export const StudyGroupHub: React.FC = () => {
                             </div>
                           </div>
                         </TabsContent>
+
+                        {user?.id === selectedGroup.created_by && (
+                          <TabsContent value="manage" className="flex-1 m-0 overflow-y-auto p-4">
+                            <GroupManagementPanel
+                              groupId={selectedGroup.id}
+                              groupName={selectedGroup.name}
+                              isOwner
+                            />
+                          </TabsContent>
+                        )}
                       </Tabs>
                     </>
                   ) : (
-                    <div className="flex-1 flex items-center justify-center text-center">
-                      <div>
-                        <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                        <h3 className="font-semibold mb-2">Select a Study Group</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Choose a group from the sidebar to view details, chat with members, and access resources.
+                    <div className="flex flex-1 items-center justify-center px-6 py-12 text-center sm:py-16">
+                      <div className="max-w-xs">
+                        <Users
+                          className="mx-auto mb-3 h-10 w-10 text-muted-foreground/70"
+                          aria-hidden
+                        />
+                        <p className="text-base font-semibold leading-snug tracking-tight text-foreground">
+                          Select a group
                         </p>
                       </div>
                     </div>
@@ -1270,43 +1264,9 @@ export const StudyGroupHub: React.FC = () => {
                 </div>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-        
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button className="w-full sm:w-auto"><PlusCircle className="h-4 w-4 mr-2"/>Create New Group</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create a new study group</DialogTitle>
-              <DialogDescription>
-                Create a collaborative space where you can chat with members and share study resources.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <Input
-                placeholder="Group Name"
-                value={newGroupName}
-                onChange={(e) => setNewGroupName(e.target.value)}
-              />
-              <Textarea
-                placeholder="Group Description"
-                value={newGroupDescription}
-                onChange={(e) => setNewGroupDescription(e.target.value)}
-              />
             </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="secondary">Cancel</Button>
-              </DialogClose>
-              <DialogClose asChild>
-                <Button onClick={handleCreateGroup}>Create Group</Button>
-              </DialogClose>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </CardFooter>
-    </Card>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }; 

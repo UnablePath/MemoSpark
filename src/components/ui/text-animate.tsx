@@ -324,7 +324,6 @@ const TextAnimateBase = ({
     case "line":
       segments = children.split("\n");
       break;
-    case "text":
     default:
       segments = [children];
       break;

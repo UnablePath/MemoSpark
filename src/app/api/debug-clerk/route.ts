@@ -11,8 +11,8 @@ export async function GET() {
     
     console.log('Publishable Key exists:', !!publishableKey);
     console.log('Secret Key exists:', !!secretKey);
-    console.log('Publishable Key prefix:', publishableKey?.substring(0, 15) + '...');
-    console.log('Secret Key prefix:', secretKey?.substring(0, 15) + '...');
+    console.log('Publishable Key prefix:', `${publishableKey?.substring(0, 15)}...`);
+    console.log('Secret Key prefix:', `${secretKey?.substring(0, 15)}...`);
     
     // 2. Check current auth
     const { userId, getToken } = await auth();

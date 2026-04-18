@@ -135,7 +135,7 @@ export class SuggestionEngine {
         priority: 'medium',
         subject: strongSubject,
         confidence: 0.7,
-        reasoning: `High engagement rate suggests readiness for advanced challenges`,
+        reasoning: "High engagement rate suggests readiness for advanced challenges",
         metadata: {
           category: 'skill-advancement',
           tags: ['strength-building', 'advanced-topics'],
@@ -207,7 +207,7 @@ export class SuggestionEngine {
         description: 'Recent performance suggests focusing on fundamentals. Build confidence with easier tasks before progressing.',
         priority: 'high',
         confidence: 0.8,
-        reasoning: `Negative learning velocity suggests need to consolidate basics`,
+        reasoning: "Negative learning velocity suggests need to consolidate basics",
         metadata: {
           category: 'difficulty-adjustment',
           tags: ['foundation-building', 'confidence-building'],
@@ -435,7 +435,7 @@ export class SuggestionEngine {
         });
         break;
 
-      case 'break':
+      case 'break': {
         // Suggest resuming with highest priority task
         const nextTask = context.upcomingTasks
           .filter(t => !t.completed)
@@ -462,6 +462,7 @@ export class SuggestionEngine {
           });
         }
         break;
+      }
     }
 
     return followUps;

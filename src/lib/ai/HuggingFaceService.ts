@@ -75,7 +75,7 @@ export class HuggingFaceService {
           const prompt = this.createPersonalizationPrompt(suggestion, tasks, context);
           
           // Get ML enhancement
-          const result = await this.hf!.textGeneration({
+          const result = await this.hf?.textGeneration({
             model: 'microsoft/DialoGPT-medium',
             inputs: prompt,
             parameters: { 
@@ -133,7 +133,7 @@ export class HuggingFaceService {
     try {
       const prompt = this.createStudyPlanPrompt(tasks, patterns, context);
       
-      const result = await this.hf!.textGeneration({
+      const result = await this.hf?.textGeneration({
         model: 'microsoft/DialoGPT-medium',
         inputs: prompt,
         parameters: { 
@@ -315,7 +315,7 @@ Provide a structured plan with times and reasoning:`;
       task: task.title,
       duration: 90,
       difficulty: Math.floor(Math.random() * 3) + 6,
-      reasoning: `Optimal time based on your productivity patterns`
+      reasoning: "Optimal time based on your productivity patterns"
     }));
 
     return {
@@ -339,7 +339,7 @@ Provide a structured plan with times and reasoning:`;
       ...suggestion,
       mlProcessed: false,
       enhancementScore: 0.6,
-      personalizedReason: suggestion.description + ' (Enhanced version available with ML)',
+      personalizedReason: `${suggestion.description} (Enhanced version available with ML)`,
       metadata: {
         ...suggestion.metadata,
         fallbackMode: true
@@ -426,13 +426,12 @@ Provide a structured plan with times and reasoning:`;
           connected: true,
           apiKeyAvailable: true
         };
-      } else {
+      }
         return {
           status: 'Service available but not initialized',
           connected: false,
           apiKeyAvailable: true
         };
-      }
     } catch (error) {
       return {
         status: `Connection error: ${error instanceof Error ? error.message : 'Unknown error'}`,

@@ -169,7 +169,7 @@ export const updateUserContext = (
         lastLoginDate: now
       };
       
-    case 'taskCompleted':
+    case 'taskCompleted': {
       const isNewDay = lastCompletionDate !== today;
       return {
         ...context,
@@ -181,13 +181,15 @@ export const updateUserContext = (
           [now.getHours()]: (context.completionTimes[now.getHours()] || 0) + 1
         }
       };
+    }
       
-    case 'suggestionAccepted':
+    case 'suggestionAccepted': {
       const totalAcceptances = Object.values(context.completionTimes).reduce((a, b) => a + b, 0) || 1;
       return {
         ...context,
         averageSuggestionConfidence: (context.averageSuggestionConfidence * totalAcceptances + (data?.confidence || 0.5)) / (totalAcceptances + 1)
       };
+    }
       
     default:
       return context;

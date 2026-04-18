@@ -33,8 +33,7 @@ export const useUserTier = (): UserTierData => {
           throw new Error('Supabase client not available');
         }
 
-        const { data: subscription, error } = await supabase!
-          .from('user_subscriptions')
+        const { data: subscription, error } = await supabase?.from('user_subscriptions')
           .select('tier_id')
           .eq('clerk_user_id', user.id)
           .eq('status', 'active')

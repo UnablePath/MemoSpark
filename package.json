@@ -8,7 +8,7 @@
     "build": "next build",
     "postbuild": "next-sitemap",
     "start": "next start",
-    "lint": "bunx biome lint --write && bunx tsc --noEmit",
+    "lint": "bunx biome lint --write src && bunx tsc --noEmit",
     "format": "bunx biome format --write",
     "test": "jest",
     "test:watch": "jest --watch",

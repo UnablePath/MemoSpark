@@ -359,7 +359,7 @@ export class VoiceService {
         
         // Set voice if specified
         if (options.voice) {
-          const voices = this.synthesis!.getVoices();
+          const voices = this.synthesis?.getVoices();
           const selectedVoice = voices.find(voice => 
             voice.name.includes(options.voice!) || voice.lang.includes(options.voice!)
           );
@@ -371,7 +371,7 @@ export class VoiceService {
         utterance.onend = () => resolve();
         utterance.onerror = (event) => reject(new Error(`Speech synthesis error: ${event.error}`));
 
-        this.synthesis!.speak(utterance);
+        this.synthesis?.speak(utterance);
       } catch (error) {
         reject(error);
       }

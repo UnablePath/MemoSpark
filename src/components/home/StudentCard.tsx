@@ -40,7 +40,7 @@ const StudentCard = React.memo<StudentCardProps>(({
     if (!isSwipeMode || !drag) return true;
     
     // Get the starting position of the touch/mouse event
-    const clientX = event.clientX || (event.touches && event.touches[0]?.clientX);
+    const clientX = event.clientX || (event.touches?.[0]?.clientX);
     if (!clientX) return true;
     
     const screenWidth = window.innerWidth;

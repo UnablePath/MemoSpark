@@ -115,12 +115,17 @@ export const TaskRow: React.FC<TaskRowProps> = memo(({
             )}
           </div>
         </button>
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
+        <div
+          className={cn(
+            'flex shrink-0 items-center gap-0.5 transition-opacity',
+            'opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100',
+          )}
+        >
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onEdit(task)}
-            className="h-8 w-8 p-0 active:scale-[0.97] transition-transform"
+            className="h-10 w-10 p-0 active:scale-[0.97] transition-transform sm:h-8 sm:w-8"
             aria-label={`Edit ${task.title}`}
           >
             <Pencil className="h-4 w-4" strokeWidth={1.5} />
@@ -129,7 +134,7 @@ export const TaskRow: React.FC<TaskRowProps> = memo(({
             variant="ghost"
             size="sm"
             onClick={() => onDelete(task.id)}
-            className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive active:scale-[0.97] transition-transform"
+            className="h-10 w-10 p-0 hover:bg-destructive/10 hover:text-destructive active:scale-[0.97] transition-transform sm:h-8 sm:w-8"
             aria-label={`Delete ${task.title}`}
           >
             <Trash2 className="h-4 w-4" strokeWidth={1.5} />

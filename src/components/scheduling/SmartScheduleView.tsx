@@ -374,12 +374,11 @@ export const SmartScheduleView: React.FC<SmartScheduleViewProps> = ({ className 
           ...prev,
           [key]: [...currentList, subject]
         };
-      } else {
+      }
         return {
           ...prev,
           [key]: currentList.filter(s => s !== subject)
         };
-      }
     });
   };
 

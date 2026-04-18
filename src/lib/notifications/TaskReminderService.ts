@@ -34,7 +34,7 @@ export class TaskReminderService {
       const settings = { ...this.defaultSettings, ...userSettings };
       
       console.log(`🔔 Scheduling reminder for task: "${task.title}"`);
-      console.log(`📋 Task details:`, { 
+      console.log("📋 Task details:", { 
         id: task.id, 
         due_date: task.due_date, 
         user_id: task.user_id,
@@ -55,7 +55,7 @@ export class TaskReminderService {
       let reminderTime: Date;
       if (reminderOffset === 0) {
         reminderTime = new Date(); // Send immediately
-        console.log(`⚡ Immediate reminder requested - sending now`);
+        console.log("⚡ Immediate reminder requested - sending now");
       } else {
         reminderTime = new Date(dueDate.getTime() - (reminderOffset * 60 * 1000));
         console.log(`⏰ Calculated reminder time: ${reminderTime.toISOString()}`);
@@ -78,10 +78,10 @@ export class TaskReminderService {
 
       // Check quiet hours (skip for immediate reminders and short offsets < 30 minutes)
       if (reminderOffset > 30 && this.isInQuietHours(reminderTime, settings)) {
-        console.log(`🔇 Adjusting for quiet hours (reminder offset > 30 minutes)`);
+        console.log("🔇 Adjusting for quiet hours (reminder offset > 30 minutes)");
         // Adjust to end of quiet hours
-        reminderTime.setHours(Number.parseInt(settings.quietHoursEnd!.split(':')[0]));
-        reminderTime.setMinutes(Number.parseInt(settings.quietHoursEnd!.split(':')[1]));
+        reminderTime.setHours(Number.parseInt(settings.quietHoursEnd?.split(':')[0]));
+        reminderTime.setMinutes(Number.parseInt(settings.quietHoursEnd?.split(':')[1]));
         console.log(`🔇 Adjusted reminder time: ${reminderTime.toISOString()}`);
       } else if (reminderOffset > 0 && reminderOffset <= 30) {
         console.log(`⚡ Short reminder (${reminderOffset} min) - skipping quiet hours adjustment`);
@@ -89,7 +89,7 @@ export class TaskReminderService {
 
       // Check weekends (skip for immediate reminders and short offsets < 30 minutes)
       if (reminderOffset > 30 && !settings.weekendsEnabled && this.isWeekend(reminderTime)) {
-        console.log(`📅 Adjusting for weekend settings (reminder offset > 30 minutes)`);
+        console.log("📅 Adjusting for weekend settings (reminder offset > 30 minutes)");
         // Move to next Monday
         const daysUntilMonday = (8 - reminderTime.getDay()) % 7;
         reminderTime.setDate(reminderTime.getDate() + daysUntilMonday);
@@ -104,7 +104,7 @@ export class TaskReminderService {
       
       if (reminderOffset === 0) {
         // Send immediate notification using OneSignal
-        console.log(`⚡ Sending immediate task reminder via OneSignal`);
+        console.log("⚡ Sending immediate task reminder via OneSignal");
         
         // Check if user has OneSignal subscription
         const subscriptionCheck = await fetch('/api/notifications/check-subscription', {
@@ -116,14 +116,14 @@ export class TaskReminderService {
         const subscriptionResult = await subscriptionCheck.json();
         if (!subscriptionCheck.ok || !subscriptionResult.hasActiveSubscription) {
           console.log(`⚠️ No active OneSignal subscription for user: ${task.user_id}`);
-          console.log(`💡 User needs to enable push notifications first`);
+          console.log("💡 User needs to enable push notifications first");
           return false;
         }
 
         const playerId = subscriptionResult.playerId;
         if (!playerId) {
           console.log(`⚠️ No OneSignal player ID found for user: ${task.user_id}`);
-          console.log(`💡 User needs to complete OneSignal subscription process`);
+          console.log("💡 User needs to complete OneSignal subscription process");
           return false;
         }
 
@@ -174,7 +174,7 @@ export class TaskReminderService {
         const subscriptionResult = await subscriptionCheck.json();
         if (!subscriptionCheck.ok || !subscriptionResult.hasActiveSubscription) {
           console.log(`⚠️ No active OneSignal subscription for user: ${task.user_id}`);
-          console.log(`💡 User needs to enable push notifications first`);
+          console.log("💡 User needs to enable push notifications first");
           return false;
         }
         
@@ -381,9 +381,8 @@ export class TaskReminderService {
     // Handle overnight quiet hours (e.g., 22:00 to 08:00)
     if (startMinutes > endMinutes) {
       return timeMinutes >= startMinutes || timeMinutes <= endMinutes;
-    } else {
-      return timeMinutes >= startMinutes && timeMinutes <= endMinutes;
     }
+      return timeMinutes >= startMinutes && timeMinutes <= endMinutes;
   }
 }
 

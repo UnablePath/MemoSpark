@@ -86,37 +86,16 @@ function parsePreferredStudyTimes(raw: unknown[]): number[] {
   return Array.from(hours).sort((a, b) => a - b);
 }
 
-// #region agent log
-const dbgLog = (message: string, data: Record<string, unknown>) => {
-  try {
-    fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9092b7' },
-      body: JSON.stringify({
-        sessionId: '9092b7',
-        hypothesisId: 'H-SS',
-        location: 'api/ai/schedule/route.ts',
-        message,
-        data,
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-  } catch {}
-};
-// #endregion
-
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    dbgLog('POST: auth ok', { userId });
 
     const supabase = getSupabaseAdmin();
     const body: ScheduleRequest = await request.json();
     const { preferences: requestPreferences, existingEvents = [], scheduleHorizon = 7, forceRefresh = false } = body;
-    dbgLog('POST: body parsed', { scheduleHorizon, forceRefresh, hasPreferences: !!requestPreferences });
 
     // 1. Fetch user's incomplete tasks from database
     const { data: tasksData, error: tasksError } = await supabase
@@ -128,10 +107,8 @@ export async function POST(request: NextRequest) {
 
     if (tasksError) {
       console.error('Error fetching tasks:', tasksError);
-      dbgLog('tasks fetch FAILED', { error: tasksError.message, code: tasksError.code });
       return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 });
     }
-    dbgLog('tasks fetch ok', { count: tasksData?.length ?? 0 });
 
     // 2. Fetch user's task completion history for pattern analysis
     const { data: taskHistory, error: historyError } = await supabase
@@ -144,27 +121,17 @@ export async function POST(request: NextRequest) {
 
     if (historyError) {
       console.error('Error fetching task history:', historyError);
-      dbgLog('history fetch FAILED', { error: historyError.message, code: historyError.code });
-    } else {
-      dbgLog('history fetch ok', { count: taskHistory?.length ?? 0 });
     }
 
     // 3. Fetch user's timetable entries for conflict detection.
     // `user_timetables.user_id` is a uuid referencing `profiles.id`, but there is
     // no FK constraint defined, so PostgREST can't embed `profiles!inner`
     // (PGRST200). Resolve the profile row first, then query by its uuid.
-    const { data: profileRow, error: profileLookupError } = await supabase
+    const { data: profileRow } = await supabase
       .from('profiles')
       .select('id')
       .eq('clerk_user_id', userId)
       .maybeSingle();
-
-    if (profileLookupError) {
-      dbgLog('profile id lookup FAILED', {
-        error: profileLookupError.message,
-        code: profileLookupError.code,
-      });
-    }
 
     let timetableEntries: TimetableEntry[] | null = null;
     if (profileRow?.id) {
@@ -176,16 +143,9 @@ export async function POST(request: NextRequest) {
 
       if (timetableError) {
         console.error('Error fetching timetable:', timetableError);
-        dbgLog('timetable fetch FAILED', {
-          error: timetableError.message,
-          code: timetableError.code,
-        });
       } else {
         timetableEntries = (data ?? []) as TimetableEntry[];
-        dbgLog('timetable fetch ok', { count: timetableEntries.length });
       }
-    } else {
-      dbgLog('timetable fetch skipped', { reason: 'no profile row' });
     }
 
     // 4. Fetch existing user AI patterns and preferences
@@ -197,9 +157,6 @@ export async function POST(request: NextRequest) {
 
     if (patternsError && patternsError.code !== 'PGRST116') {
       console.error('Error fetching user patterns:', patternsError);
-      dbgLog('patterns fetch FAILED', { error: patternsError.message, code: patternsError.code });
-    } else {
-      dbgLog('patterns fetch ok', { hasExistingPatterns: !!existingPatterns });
     }
 
     // 5. Fetch user preferences from profiles table
@@ -211,9 +168,6 @@ export async function POST(request: NextRequest) {
 
     if (profileError && profileError.code !== 'PGRST116') {
       console.error('Error fetching user profile:', profileError);
-      dbgLog('profile fetch FAILED', { error: profileError.message, code: profileError.code });
-    } else {
-      dbgLog('profile fetch ok', { hasProfile: !!userProfile });
     }
 
     // 6. Transform database tasks to ExtendedTask format
@@ -268,16 +222,8 @@ export async function POST(request: NextRequest) {
     let patterns: PatternData;
     
     if (forceRefresh || !existingPatterns || shouldRefreshPatterns(existingPatterns)) {
-      dbgLog('calling PatternAnalyzer.analyze', { historyCount: historyTasks.length });
       const patternAnalyzer = new PatternAnalyzer(userPreferences, historyTasks);
-      let analyzedPatterns: Partial<PatternData>;
-      try {
-        analyzedPatterns = patternAnalyzer.analyze();
-        dbgLog('PatternAnalyzer.analyze ok', { keys: Object.keys(analyzedPatterns || {}) });
-      } catch (e) {
-        dbgLog('PatternAnalyzer.analyze THREW', { error: e instanceof Error ? e.message : String(e) });
-        throw e;
-      }
+      const analyzedPatterns: Partial<PatternData> = patternAnalyzer.analyze();
       patterns = {
         userId,
         lastAnalyzed: new Date().toISOString(),
@@ -302,35 +248,16 @@ export async function POST(request: NextRequest) {
         totalTasksAnalyzed: historyTasks.length,
         dataQuality: 0.7
       };
-      
-      try {
-        await saveUserPatterns(supabase, userId, patterns, userPreferences, existingPatterns ?? null);
-        dbgLog('saveUserPatterns ok', {});
-      } catch (e) {
-        dbgLog('saveUserPatterns THREW', { error: e instanceof Error ? e.message : String(e) });
-        throw e;
-      }
+
+      await saveUserPatterns(supabase, userId, patterns, userPreferences, existingPatterns ?? null);
     } else {
-      try {
-        patterns = transformStoredPatterns(existingPatterns);
-        dbgLog('transformStoredPatterns ok', {});
-      } catch (e) {
-        dbgLog('transformStoredPatterns THREW', { error: e instanceof Error ? e.message : String(e) });
-        throw e;
-      }
+      patterns = transformStoredPatterns(existingPatterns);
     }
 
-    let calendarEvents: CalendarEvent[];
-    try {
-      calendarEvents = [
-        ...existingEvents,
-        ...generateTimetableEvents(timetableEntries || [], scheduleHorizon),
-      ];
-      dbgLog('generateTimetableEvents ok', { count: calendarEvents.length });
-    } catch (e) {
-      dbgLog('generateTimetableEvents THREW', { error: e instanceof Error ? e.message : String(e) });
-      throw e;
-    }
+    const calendarEvents: CalendarEvent[] = [
+      ...existingEvents,
+      ...generateTimetableEvents(timetableEntries || [], scheduleHorizon),
+    ];
 
     const scheduler = new SmartScheduler(
       aiTasks,
@@ -340,17 +267,7 @@ export async function POST(request: NextRequest) {
       historyTasks
     );
 
-    let scheduleResult: ReturnType<SmartScheduler['generate']>;
-    try {
-      scheduleResult = scheduler.generate();
-      dbgLog('SmartScheduler.generate ok', {
-        scheduled: scheduleResult.metadata?.scheduledTasks,
-        totalTasks: scheduleResult.metadata?.totalTasks,
-      });
-    } catch (e) {
-      dbgLog('SmartScheduler.generate THREW', { error: e instanceof Error ? e.message : String(e) });
-      throw e;
-    }
+    const scheduleResult = scheduler.generate();
 
     // 12. Save the generated schedule for tracking and learning
     const scheduleManager = new ScheduleManager();
@@ -364,13 +281,7 @@ export async function POST(request: NextRequest) {
       efficiency: scheduleResult.metadata.efficiency,
       confidence: scheduleResult.metadata.confidence
     };
-    try {
-      await scheduleManager.saveSchedule(userId, scheduleResult.schedule, scheduleMetadata);
-      dbgLog('scheduleManager.saveSchedule ok', { count: scheduleResult.schedule.length });
-    } catch (e) {
-      dbgLog('scheduleManager.saveSchedule THREW', { error: e instanceof Error ? e.message : String(e) });
-      throw e;
-    }
+    await scheduleManager.saveSchedule(userId, scheduleResult.schedule, scheduleMetadata);
 
     // 13. Update user interaction patterns
     await updateUserInteractionPatterns(supabase, userId, {
@@ -395,10 +306,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Schedule generation error:', error);
-    dbgLog('POST: top-level catch', {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack?.split('\n').slice(0, 5).join('\n') : undefined,
-    });
     return NextResponse.json(
       { 
         error: 'Failed to generate schedule',
@@ -499,9 +406,6 @@ function buildUserPreferences(
   // setHours(NaN) when generating time slots.
   if (Array.isArray(existingPatterns?.preferred_study_times)) {
     const parsed = parsePreferredStudyTimes(existingPatterns.preferred_study_times);
-    // #region agent log
-    fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9092b7'},body:JSON.stringify({sessionId:'9092b7',runId:'post-fix',hypothesisId:'H-SS',location:'api/ai/schedule/route.ts:buildUserPreferences',message:'parsePreferredStudyTimes',data:{rawSample:existingPatterns.preferred_study_times.slice(0,5),parsed},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     if (parsed.length > 0) {
       defaults.availableStudyHours = parsed;
     }

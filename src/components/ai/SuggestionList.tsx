@@ -95,15 +95,17 @@ export const SuggestionList: React.FC<SuggestionListProps> = ({
     // Sort suggestions
     return filtered.sort((a, b) => {
       switch (sortBy) {
-        case 'confidence':
+        case 'confidence': {
           const confidenceA = typeof a.confidence === 'number' ? a.confidence : 0;
           const confidenceB = typeof b.confidence === 'number' ? b.confidence : 0;
           return confidenceB - confidenceA;
-        case 'priority':
+        }
+        case 'priority': {
           const priorityOrder = { high: 3, medium: 2, low: 1 } as const;
           const priorityAKey = a.priority && (a.priority in priorityOrder) ? a.priority as keyof typeof priorityOrder : 'medium';
           const priorityBKey = b.priority && (b.priority in priorityOrder) ? b.priority as keyof typeof priorityOrder : 'medium';
           return priorityOrder[priorityBKey] - priorityOrder[priorityAKey];
+        }
         case 'created':
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         default:

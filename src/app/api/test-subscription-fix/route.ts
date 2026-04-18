@@ -70,13 +70,12 @@ export async function POST(request: NextRequest) {
           playerId,
           instructions: 'You should now be subscribed to push notifications'
         });
-      } else {
+      }
         return NextResponse.json({
           success: false,
           message: 'Failed to re-subscribe',
           instructions: 'Please try manually enabling notifications in your browser settings'
         }, { status: 400 });
-      }
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

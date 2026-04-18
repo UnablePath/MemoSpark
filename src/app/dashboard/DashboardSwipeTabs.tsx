@@ -226,9 +226,12 @@ export function DashboardSwipeTabs() {
     };
   }, [handleTabChange]);
 
-  // Trigger initial dashboard visit achievement
+  const dashboardVisitLoggedRef = useRef(false);
+
+  // Trigger initial dashboard visit achievement (once; stable trigger fn avoids re-runs)
   useEffect(() => {
-    // Trigger on first load
+    if (dashboardVisitLoggedRef.current) return;
+    dashboardVisitLoggedRef.current = true;
     triggerAchievement("dashboard_visited");
   }, [triggerAchievement]);
 
@@ -371,7 +374,9 @@ export function DashboardSwipeTabs() {
               onClick={() => handleTabChange(index)}
               className={`relative touch-target p-1 sm:p-1.5 lg:p-2 rounded-md transition-colors duration-200 flex-shrink-0 min-w-0 ${
                 isActive
-                  ? "text-primary bg-primary/10"
+                  ? tab.key === "connections"
+                    ? "text-primary bg-primary/10 ring-1 ring-primary/25 ring-offset-2 ring-offset-background"
+                    : "text-primary bg-primary/10"
                   : "text-muted-foreground hover:text-foreground"
               } ${!hasAccess ? "opacity-50 cursor-not-allowed" : ""}`}
               aria-label={`Go to ${tab.key} tab${!hasAccess ? " (Premium required)" : ""}`}

@@ -604,7 +604,6 @@ export class PatternRecognitionEngine {
   saveUserPreferences(preferences: UserPreferences): void {
     const storage = getSafeStorage();
     if (!storage) {
-      if (typeof window === 'undefined') console.log('Skipping localStorage save on server side');
       return;
     }
 
@@ -644,7 +643,6 @@ export class PatternRecognitionEngine {
   private savePatterns(patterns: PatternData): void {
     const storage = getSafeStorage();
     if (!storage) {
-      if (typeof window === 'undefined') console.log('Skipping localStorage save on server side');
       return;
     }
 
@@ -675,7 +673,6 @@ export class PatternRecognitionEngine {
   private loadPatterns(): void {
     const storage = getSafeStorage();
     if (!storage) {
-      if (typeof window === 'undefined') console.log('Skipping localStorage access on server side');
       this.patterns = null;
       return;
     }
@@ -1088,11 +1085,11 @@ export class PatternRecognitionEngine {
     const firstPreference = preferredTimes[0].toLowerCase();
     if (firstPreference.includes('morning') || firstPreference.includes('6-9') || firstPreference.includes('9-12')) {
       return 'morning';
-    } else if (firstPreference.includes('afternoon') || firstPreference.includes('12-5')) {
+    }if (firstPreference.includes('afternoon') || firstPreference.includes('12-5')) {
       return 'afternoon';
-    } else if (firstPreference.includes('evening') || firstPreference.includes('5-8')) {
+    }if (firstPreference.includes('evening') || firstPreference.includes('5-8')) {
       return 'evening';
-    } else if (firstPreference.includes('night') || firstPreference.includes('11 pm')) {
+    }if (firstPreference.includes('night') || firstPreference.includes('11 pm')) {
       return 'night';
     }
     return 'morning';

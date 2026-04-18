@@ -514,7 +514,7 @@ export class PatternAnalyzer {
     // Calculate consistency (lower variance = higher consistency)
     const counts = Object.values(dailyTaskCounts);
     const mean = counts.reduce((sum, count) => sum + count, 0) / counts.length;
-    const variance = counts.reduce((sum, count) => sum + Math.pow(count - mean, 2), 0) / counts.length;
+    const variance = counts.reduce((sum, count) => sum + (count - mean) ** 2, 0) / counts.length;
     
     // Convert to 0-1 score (lower variance = higher score)
     const consistencyScore = Math.max(0, 1 - (variance / (mean + 1)));

@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache';
 interface ActionResult {
   success: boolean;
   error?: string;
-  data?: any;
+  data?: unknown;
 }
 
 // OneSignal subscription management
@@ -21,15 +21,9 @@ export async function subscribeUser(playerId: string, userAgent?: string): Promi
     }
 
     await oneSignalService.storePlayerSubscription(userId, playerId);
-    
-    // Assume success since the method doesn't return a boolean
-    const success = true;
-    if (success) {
-      revalidatePath('/settings');
-      return { success: true, data: { subscribed: true, playerId } };
-    } else {
-      return { success: false, error: 'Failed to save subscription' };
-    }
+
+    revalidatePath('/settings');
+    return { success: true, data: { subscribed: true, playerId } };
   } catch (error) {
     console.error('Error in subscribeUser action:', error);
     return { success: false, error: 'Internal server error' };
@@ -45,15 +39,9 @@ export async function unsubscribeUser(playerId: string): Promise<ActionResult> {
     }
 
     await oneSignalService.removePlayerSubscription(playerId);
-    
-    // Assume success since the method doesn't return a boolean
-    const success = true;
-    if (success) {
-      revalidatePath('/settings');
-      return { success: true, data: { unsubscribed: true } };
-    } else {
-      return { success: false, error: 'Failed to remove subscription' };
-    }
+
+    revalidatePath('/settings');
+    return { success: true, data: { unsubscribed: true } };
   } catch (error) {
     console.error('Error in unsubscribeUser action:', error);
     return { success: false, error: 'Internal server error' };
@@ -78,9 +66,8 @@ export async function sendTaskReminder(taskId: string, taskTitle: string, dueDat
 
     if (success) {
       return { success: true, data: { sent: true } };
-    } else {
-      return { success: false, error: 'Failed to send notification' };
     }
+    return { success: false, error: 'Failed to send notification' };
   } catch (error) {
     console.error('Error in sendTaskReminder action:', error);
     return { success: false, error: 'Failed to send task reminder' };
@@ -99,7 +86,7 @@ export async function scheduleTaskReminder(
     
     if (!userId) {
       return { success: false, error: 'User not authenticated' };
-}
+    }
 
     // Calculate reminder time
     const dueDateObj = new Date(dueDate);
@@ -127,13 +114,12 @@ export async function scheduleTaskReminder(
           reminderTime: reminderTime.toISOString() 
         } 
       };
-    } else {
-      return { success: false, error: 'Reminder time is in the past' };
     }
+    return { success: false, error: 'Reminder time is in the past' };
   } catch (error) {
     console.error('Error scheduling task reminder:', error);
     return { success: false, error: 'Failed to schedule task reminder' };
-}
+  }
 }
 
 export async function sendAchievementNotification(achievementName: string, description: string): Promise<ActionResult> {
@@ -177,7 +163,7 @@ export async function sendBreakSuggestion(message?: string): Promise<ActionResul
 export async function sendNotification(
   title: string,
   body: string,
-  data?: any,
+  data?: Record<string, unknown>,
   url?: string
 ): Promise<ActionResult> {
   try {
@@ -204,7 +190,7 @@ export async function sendNotification(
 }
 
 // Analytics functions
-export async function trackNotificationClick(notificationId: string, additionalData?: any): Promise<ActionResult> {
+export async function trackNotificationClick(notificationId: string, additionalData?: Record<string, unknown>): Promise<ActionResult> {
   try {
     const { userId } = await auth();
     

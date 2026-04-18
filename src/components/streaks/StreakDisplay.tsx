@@ -153,9 +153,9 @@ export const StreakDisplay: React.FC<StreakDisplayProps> = ({
       <Card className={className}>
         <CardContent className="p-6">
           <div className="animate-pulse space-y-4">
-            <div className="h-8 rounded bg-muted w-1/3"></div>
-            <div className="h-16 rounded bg-muted"></div>
-            <div className="h-4 rounded bg-muted w-1/2"></div>
+            <div className="h-8 rounded bg-muted w-1/3" />
+            <div className="h-16 rounded bg-muted" />
+            <div className="h-4 rounded bg-muted w-1/2" />
           </div>
         </CardContent>
       </Card>

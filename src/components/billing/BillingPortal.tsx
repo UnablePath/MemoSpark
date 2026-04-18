@@ -57,7 +57,7 @@ export const BillingPortal: React.FC<BillingPortalProps> = ({ className }) => {
       
       // Load subscription data and available tiers
       const [userData, tiers] = await Promise.all([
-        tierManager.getUserSubscriptionData(user!.id),
+        tierManager.getUserSubscriptionData(user?.id),
         tierManager.getAvailableTiers()
       ]);
 

@@ -34,7 +34,9 @@ export const colorUtils: ColorUtilities = {
     
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
-    let h = 0, s = 0, l = (max + min) / 2;
+    let h = 0;
+    let s = 0;
+    const l = (max + min) / 2;
     
     if (max !== min) {
       const d = max - min;
@@ -94,7 +96,7 @@ export const colorUtils: ColorUtilities = {
       const g = Number.parseInt(hex.slice(3, 5), 16) / 255;
       const b = Number.parseInt(hex.slice(5, 7), 16) / 255;
       
-      const sRGB = [r, g, b].map(c => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+      const sRGB = [r, g, b].map(c => c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
       return 0.2126 * sRGB[0] + 0.7152 * sRGB[1] + 0.0722 * sRGB[2];
     };
     
@@ -349,19 +351,19 @@ export class ThemeManager {
   private static readonly CURRENT_THEME_KEY = 'memospark_current_theme';
 
   static saveUserTheme(theme: UserTheme): void {
-    const existingThemes = this.getUserThemes();
+    const existingThemes = ThemeManager.getUserThemes();
     const updatedThemes = existingThemes.filter(t => t.id !== theme.id);
     updatedThemes.push({
       ...theme,
       updatedAt: new Date().toISOString()
     });
     
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(updatedThemes));
+    localStorage.setItem(ThemeManager.STORAGE_KEY, JSON.stringify(updatedThemes));
   }
 
   static getUserThemes(): UserTheme[] {
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
+      const stored = localStorage.getItem(ThemeManager.STORAGE_KEY);
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -369,8 +371,8 @@ export class ThemeManager {
   }
 
   static deleteUserTheme(id: string): void {
-    const themes = this.getUserThemes().filter(t => t.id !== id);
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(themes));
+    const themes = ThemeManager.getUserThemes().filter(t => t.id !== id);
+    localStorage.setItem(ThemeManager.STORAGE_KEY, JSON.stringify(themes));
   }
 
   static exportTheme(theme: UserTheme): string {
@@ -758,7 +760,7 @@ export const generateAllLightThemes = (): string => {
   for (const [themeName, darkColors] of Object.entries(darkThemes)) {
     const lightColors = ThemeGenerator.generateLightVariant(darkColors);
     const className = themeName === 'light' ? 'light' : themeName;
-    cssOutput += ThemeGenerator.createThemeCSS(lightColors, className) + '\n\n';
+    cssOutput += `${ThemeGenerator.createThemeCSS(lightColors, className)}\n\n`;
   }
 
   return cssOutput;

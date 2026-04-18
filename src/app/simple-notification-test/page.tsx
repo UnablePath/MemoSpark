@@ -61,7 +61,7 @@ export default function SimpleNotificationTest() {
         
         // Check permission status
         const permission = window.OneSignal.Notifications.permission;
-        setStatus(prev => prev + ` | OneSignal permission: ${permission}`);
+        setStatus(prev => `${prev} | OneSignal permission: ${permission}`);
         
       } else {
         setStatus('OneSignal still not available after waiting');

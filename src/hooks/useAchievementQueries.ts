@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 
@@ -309,12 +310,47 @@ export const useFetchPurchasedThemes = (getToken?: () => Promise<string | null>)
  */
 export const useInvalidateAchievementQueries = () => {
   const queryClient = useQueryClient();
-  
-  return {
-    invalidateAll: () => queryClient.invalidateQueries({ queryKey: achievementKeys.all }),
-    invalidateAchievements: () => queryClient.invalidateQueries({ queryKey: achievementKeys.lists() }),
-    invalidateBalance: (userId?: string) => queryClient.invalidateQueries({ queryKey: achievementKeys.balance(userId) }),
-    invalidateThemes: () => queryClient.invalidateQueries({ queryKey: achievementKeys.themes() }),
-    invalidatePurchasedThemes: (userId?: string) => queryClient.invalidateQueries({ queryKey: achievementKeys.purchasedThemes(userId) }),
-  };
+
+  const invalidateAll = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: achievementKeys.all });
+  }, [queryClient]);
+
+  const invalidateAchievements = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: achievementKeys.lists() });
+  }, [queryClient]);
+
+  const invalidateBalance = useCallback(
+    (userId?: string) => {
+      queryClient.invalidateQueries({ queryKey: achievementKeys.balance(userId) });
+    },
+    [queryClient],
+  );
+
+  const invalidateThemes = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: achievementKeys.themes() });
+  }, [queryClient]);
+
+  const invalidatePurchasedThemes = useCallback(
+    (userId?: string) => {
+      queryClient.invalidateQueries({ queryKey: achievementKeys.purchasedThemes(userId) });
+    },
+    [queryClient],
+  );
+
+  return useMemo(
+    () => ({
+      invalidateAll,
+      invalidateAchievements,
+      invalidateBalance,
+      invalidateThemes,
+      invalidatePurchasedThemes,
+    }),
+    [
+      invalidateAll,
+      invalidateAchievements,
+      invalidateBalance,
+      invalidateThemes,
+      invalidatePurchasedThemes,
+    ],
+  );
 }; 

@@ -728,7 +728,7 @@ function premiumAnalyticsFromContext(args: {
   const attention = typeof row?.attention_span === 'number' ? row.attention_span : merged.timePattern.preferredStudyDuration;
   recommendations.push(`Use ${Math.max(25, Math.min(120, attention))} minute focus blocks as your default.`);
   if (preferredHours.length) recommendations.push(`Aim for your best hours: ${preferredHours.slice(0, 4).join(', ')}.`);
-  recommendations.push(`Target: complete 1 overdue task + 1 due-soon task today.`);
+  recommendations.push("Target: complete 1 overdue task + 1 due-soon task today.");
 
   return {
     usedSignals: [...usedSignals],

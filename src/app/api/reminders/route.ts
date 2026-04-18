@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`📝 Creating reminder for user: ${userId}`);
-    console.log(`Reminder details:`, { title, description, due_date, reminder_time, priority });
+    console.log("Reminder details:", { title, description, due_date, reminder_time, priority });
 
     // Calculate reminder time if not provided
     let finalReminderTime = reminder_time;
@@ -175,7 +175,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     console.log(`📝 Updating reminder ${id} for user: ${userId}`);
-    console.log(`Update data:`, updates);
+    console.log("Update data:", updates);
 
     // Update the reminder
     const { data: reminder, error: reminderError } = await supabase

@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       oneSignalPayload.android_channel_id = notification.android_channel_id;
     }
 
-    console.log(`🚀 Sending immediate notification to OneSignal API:`, {
+    console.log("🚀 Sending immediate notification to OneSignal API:", {
       app_id: oneSignalPayload.app_id,
       include_player_ids: oneSignalPayload.include_player_ids,
       contents: oneSignalPayload.contents,
