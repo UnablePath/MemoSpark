@@ -8,7 +8,7 @@ const supabase = getSupabaseAdmin();
  *
  * Looks up `notification_queue` rows where `data->>taskId` matches, calls
  * OneSignal's `DELETE /notifications/{id}` for each, then flips the local
- * row status to `cancelled`. Best effort — returns counts and continues on
+ * row status to `cancelled`. Best effort, returns counts and continues on
  * partial failure.
  */
 export async function POST(request: NextRequest) {

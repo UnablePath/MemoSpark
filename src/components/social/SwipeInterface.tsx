@@ -246,6 +246,10 @@ export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({
 
   return (
     <div className="flex w-full flex-col items-center gap-6">
+      <p className="max-w-md text-center text-xs leading-relaxed text-muted-foreground">
+        Suggested for you from shared subjects and interests, using the same signals we use
+        in search, not a random list.
+      </p>
       <div className="relative w-full max-w-[22rem]">
         <div className="pointer-events-none absolute -top-3 right-1 z-40 flex items-center gap-1.5 rounded-full bg-background/80 px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-[0.18em] text-muted-foreground shadow-[0_2px_6px_-3px_hsl(var(--foreground)/0.2)]">
           <span className="tabular-nums text-foreground">

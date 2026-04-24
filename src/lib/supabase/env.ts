@@ -32,7 +32,7 @@ export function getSupabaseJwtSecret(): string {
   return value;
 }
 
-/** Returns undefined instead of throwing — use where the key is optional. */
+/** Returns undefined instead of throwing, use where the key is optional. */
 export function tryGetSupabaseUrl(): string | undefined {
   return trimEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
 }

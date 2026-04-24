@@ -77,7 +77,8 @@ export function useJoinSession(getToken: () => Promise<string | null>, groupId: 
   const manager = useMemo(() => new StudySessionManager(getToken), [getToken]);
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (args: { sessionId: string; userId: string }) => manager.joinSession(args.sessionId, args.userId),
+    mutationFn: (args: { sessionId: string; userId: string }) =>
+      manager.joinSession(groupId, args.sessionId, args.userId),
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: studyGroupKeys.sessions(groupId) });
       qc.invalidateQueries({ queryKey: studyGroupKeys.participants(variables.sessionId) });
@@ -89,7 +90,8 @@ export function useLeaveSession(getToken: () => Promise<string | null>, groupId:
   const manager = useMemo(() => new StudySessionManager(getToken), [getToken]);
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (args: { sessionId: string; userId: string }) => manager.leaveSession(args.sessionId, args.userId),
+    mutationFn: (args: { sessionId: string; userId: string }) =>
+      manager.leaveSession(groupId, args.sessionId, args.userId),
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: studyGroupKeys.sessions(groupId) });
       qc.invalidateQueries({ queryKey: studyGroupKeys.participants(variables.sessionId) });
@@ -110,18 +112,25 @@ export const useSendGroupInvitation = () => {
     }: { 
       groupId: string; 
       inviteeEmail: string; 
-      inviteeName: string; 
+      inviteeName?: string; 
       message?: string; 
     }) => {
-      const { data, error } = await sb.rpc('send_group_invitation', {
-        p_group_id: groupId,
-        p_invitee_email: inviteeEmail,
-        p_invitee_name: inviteeName,
-        p_message: message || null
+      // #region agent log
+      fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'manage-actions-debug',hypothesisId:'H1',location:'useStudyGroupQueries.ts:118',message:'send invitation requested',data:{groupId,inviteeEmail},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      void inviteeName;
+      void message;
+      const response = await fetch(`/api/study-groups/${groupId}/invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invitee_email: inviteeEmail }),
       });
-      
-      if (error) throw error;
-      return data;
+      const payload = await response.json().catch(() => ({}));
+      // #region agent log
+      fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'manage-actions-debug',hypothesisId:'H1',location:'useStudyGroupQueries.ts:127',message:'send invitation response',data:{groupId,status:response.status,ok:response.ok,error:payload?.error ?? null},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      if (!response.ok) throw new Error(payload.error ?? 'Failed to send invitation');
+      return payload;
     },
     onSuccess: (_, variables) => {
       // Invalidate relevant queries
@@ -143,13 +152,15 @@ export const useRespondToInvitation = () => {
       invitationId: string; 
       response: 'accept' | 'decline'; 
     }) => {
-      const { data, error } = await sb.rpc('respond_to_invitation', {
-        p_invitation_id: invitationId,
-        p_response: response
+      const apiAction = response === 'accept' ? 'accept' : 'decline';
+      const res = await fetch(`/api/study-groups/invitations/${invitationId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: apiAction }),
       });
-      
-      if (error) throw error;
-      return data;
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload.error ?? 'Failed to respond to invitation');
+      return payload;
     },
     onSuccess: (_, variables) => {
       // Invalidate user's invitations and relevant group data
@@ -172,14 +183,21 @@ export const useChangeMemberRole = () => {
       memberId: string; 
       newRoleId: string; 
     }) => {
-      const { data, error } = await sb.rpc('change_member_role', {
-        p_group_id: groupId,
-        p_member_id: memberId,
-        p_new_role_id: newRoleId
+      // #region agent log
+      fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'manage-actions-debug',hypothesisId:'H2',location:'useStudyGroupQueries.ts:180',message:'change role requested',data:{groupId,memberId,newRoleId},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      const response = await fetch(`/api/study-groups/${groupId}/members/${memberId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roleName: newRoleId }),
       });
-      
-      if (error) throw error;
-      return data;
+      const payload = await response.json().catch(() => ({}));
+      // #region agent log
+      fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'manage-actions-debug',hypothesisId:'H2',location:'useStudyGroupQueries.ts:187',message:'change role api result',data:{groupId,memberId,newRoleId,status:response.status,ok:response.ok,error:payload?.error ?? null},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+
+      if (!response.ok) throw new Error(payload.error ?? 'Failed to change member role');
+      return payload;
     },
     onSuccess: (_, variables) => {
       // Invalidate group members and audit log
@@ -200,13 +218,20 @@ export const useRemoveGroupMember = () => {
       groupId: string; 
       memberId: string; 
     }) => {
-      const { data, error } = await sb.rpc('remove_group_member', {
-        p_group_id: groupId,
-        p_member_id: memberId
+      // #region agent log
+      fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'manage-actions-debug',hypothesisId:'H3',location:'useStudyGroupQueries.ts:208',message:'remove member requested',data:{groupId,memberId},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      const response = await fetch(`/api/study-groups/${groupId}/members/${memberId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
       });
-      
-      if (error) throw error;
-      return data;
+      const payload = await response.json().catch(() => ({}));
+      // #region agent log
+      fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'manage-actions-debug',hypothesisId:'H3',location:'useStudyGroupQueries.ts:214',message:'remove member api result',data:{groupId,memberId,status:response.status,ok:response.ok,error:payload?.error ?? null},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+
+      if (!response.ok) throw new Error(payload.error ?? 'Failed to remove member');
+      return payload;
     },
     onSuccess: (_, variables) => {
       // Invalidate group members and audit log
@@ -228,13 +253,14 @@ export const useTransferGroupOwnership = () => {
       groupId: string; 
       newOwnerId: string; 
     }) => {
-      const { data, error } = await sb.rpc('transfer_group_ownership', {
-        p_group_id: groupId,
-        p_new_owner_id: newOwnerId
+      const response = await fetch(`/api/study-groups/${groupId}/ownership`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newOwnerId }),
       });
-      
-      if (error) throw error;
-      return data;
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error ?? 'Failed to transfer ownership');
+      return payload;
     },
     onSuccess: (_, variables) => {
       // Invalidate group data and members
@@ -250,29 +276,21 @@ export const useGroupMembers = (groupId: string) => {
   return useQuery({
     queryKey: studyGroupKeys.groupMembers(groupId),
     queryFn: async () => {
-      const { data, error } = await sb
-        .from('study_group_members')
-        .select(`
-          *,
-          profiles:user_id (
-            id,
-            full_name,
-            avatar_url,
-            email
-          ),
-          group_roles:role_id (
-            id,
-            name,
-            display_name,
-            description,
-            permissions
-          )
-        `)
-        .eq('group_id', groupId)
-        .order('joined_at', { ascending: true });
-      
-      if (error) throw error;
-      return data;
+      const response = await fetch(`/api/study-groups/${groupId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error ?? 'Failed to fetch group members');
+      const members = Array.isArray(payload?.group?.members) ? payload.group.members : [];
+      return members.map((member: any) => ({
+        ...member,
+        profiles: {
+          full_name: member.name ?? null,
+          email: member.email ?? null,
+          avatar_url: null,
+        },
+      }));
     },
     enabled: !!groupId
   });
@@ -282,14 +300,11 @@ export const useGroupInvitations = (groupId: string) => {
   return useQuery({
     queryKey: studyGroupKeys.groupInvitations(groupId),
     queryFn: async () => {
-      const { data, error } = await sb
-        .from('group_invitations')
-        .select('*')
-        .eq('group_id', groupId)
-        .order('created_at', { ascending: false });
+      const response = await fetch(`/api/study-groups/${groupId}/invite`);
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error ?? 'Failed to fetch invitations');
       
-      if (error) throw error;
-      return data;
+      return payload.invitations ?? [];
     },
     enabled: !!groupId
   });
@@ -300,14 +315,13 @@ export const useUserInvitations = (inviteeId?: string | null) => {
     queryKey: studyGroupKeys.userInvitations(),
     queryFn: async () => {
       let query = sb
-        .from('group_invitations')
+        .from('study_group_invitations')
         .select(`
           *,
           study_groups:group_id (
             id,
             name,
-            description,
-            avatar_url
+            description
           )
         `)
         .eq('status', 'pending')
@@ -327,7 +341,34 @@ export function useUserStudyGroups(getToken: () => Promise<string | null>, userI
   const manager = useMemo(() => new StudyGroupManager(getToken), [getToken]);
   return useQuery({
     queryKey: userId ? studyGroupKeys.userGroups(userId) : [...studyGroupKeys.all, 'userGroups', '__none__'],
-    queryFn: () => manager.getUserGroups(userId!),
+    queryFn: async () => {
+      const groups = await manager.getUserGroups(userId!);
+      if (groups.length === 0) return groups;
+      const countEntries = await Promise.all(
+        groups.map(async (group) => {
+          try {
+            const response = await fetch(`/api/study-groups/${group.id}`, {
+              method: 'GET',
+              headers: { 'Content-Type': 'application/json' },
+            });
+            if (!response.ok) return [group.id, group.member_count ?? null] as const;
+            const payload = await response.json().catch(() => ({}));
+            const members = Array.isArray(payload?.group?.members) ? payload.group.members : [];
+            return [group.id, members.length] as const;
+          } catch {
+            return [group.id, group.member_count ?? null] as const;
+          }
+        }),
+      );
+      const counts = Object.fromEntries(countEntries) as Record<string, number | null>;
+      return groups.map((group: any) => ({
+        ...group,
+        member_count:
+          typeof counts[group.id] === 'number'
+            ? counts[group.id]
+            : group.member_count ?? null,
+      }));
+    },
     enabled: Boolean(userId),
     staleTime: 30_000,
     gcTime: 5 * 60_000,
@@ -344,12 +385,22 @@ export function useStudyGroupResources(getToken: () => Promise<string | null>, g
 }
 
 export function useStudyGroupMembersDetailed(getToken: () => Promise<string | null>, groupId: string) {
-  const manager = useMemo(() => new StudyGroupManager(getToken), [getToken]);
   return useQuery({
     queryKey: studyGroupKeys.groupMembersDetailed(groupId),
     queryFn: async () => {
-      const rows = await manager.getGroupMembersWithNames(groupId);
-      return rows.map((m) => ({ ...m, user_name: m.name || 'Unknown' }));
+      const response = await fetch(`/api/study-groups/${groupId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Failed to fetch group members');
+      }
+      const members = Array.isArray(payload?.group?.members) ? payload.group.members : [];
+      return members.map((member: any) => ({
+        ...member,
+        user_name: member.name || member.user_name || 'Unknown',
+      }));
     },
     enabled: Boolean(groupId),
   });
@@ -371,7 +422,7 @@ export function useGroupRealtime(groupId: string) {
 
     const channel = client
       .channel(`group-realtime-${groupId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'group_invitations', filter: `group_id=eq.${groupId}` }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_invitations', filter: `group_id=eq.${groupId}` }, () => {
         qc.invalidateQueries({ queryKey: studyGroupKeys.groupInvitations(groupId) });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'study_group_members', filter: `group_id=eq.${groupId}` }, () => {
@@ -421,14 +472,7 @@ export const useGroupAuditLog = (groupId: string) => {
     queryFn: async () => {
       const { data, error } = await sb
         .from('group_audit_log')
-        .select(`
-          *,
-          profiles:user_id (
-            id,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('group_id', groupId)
         .order('created_at', { ascending: false })
         .limit(50);

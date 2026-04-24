@@ -123,7 +123,7 @@ export function DashboardSwipeTabs() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Handler for StudentConnectionTab view mode changes
+  // When Connections hub is on Discover, swipe mode hides bottom nav; grid keeps it.
   const handleStudentTabViewModeChange = (isTinder: boolean) => {
     if (TABS_CONFIG[activeTabIndex]?.key === "connections") {
       setIsTinderModeActive(isTinder);

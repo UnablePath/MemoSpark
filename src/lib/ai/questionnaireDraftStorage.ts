@@ -1,6 +1,6 @@
 /**
  * Session draft for AI questionnaire: complements durable `user_questionnaire_responses`.
- * Contract: after a successful `updateResponse`, DB is authoritative — merge with server winning.
+ * Contract: after a successful `updateResponse`, DB is authoritative, merge with server winning.
  */
 
 export interface QuestionnaireDraftFile {
@@ -23,7 +23,7 @@ export function parseQuestionnaireDraft(raw: string | null): QuestionnaireDraftF
     ) {
       return parsed as QuestionnaireDraftFile;
     }
-    // Legacy: plain answers map — caller may wrap with current templateId
+    // Legacy: plain answers map, caller may wrap with current templateId
     if (parsed && typeof parsed === 'object' && !('v' in (parsed as object))) {
       return null;
     }

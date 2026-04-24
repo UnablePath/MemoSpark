@@ -27,9 +27,9 @@ studyspark/
 │   ├── components/          # Reusable components
 │   │   ├── ui/              # UI primitive components
 │   │   ├── home/            # Home page components
+│   │   │   ├── (dashboard uses components under social/ for connections)
 │   │   │   ├── TaskTab.tsx
-│   │   │   ├── StudentConnectionTab.tsx
-│   │   │   └── GamifiedReminderTab.tsx
+│   │   │   └── …
 │   │   │
 │   │   ├── forms/           # Form components
 │   │   ├── layout/          # Layout components
@@ -103,10 +103,10 @@ export const TabContainer = ({ children }) => {
 
 ### 3. Student Connection System
 
-1. **StudentConnectionTab Component**
+1. **ConnectionInterface** (`src/components/social/ConnectionInterface.tsx`) — used by the dashboard Connections tab and `/connections`
    - Student search and filtering
    - Connection requests
-   - Messaging interface
+   - Messaging; study groups via `StudyGroupHub` (also on `/groups`)
 
 2. **StudentList Component**
    - Displays student profiles
@@ -120,10 +120,8 @@ export const TabContainer = ({ children }) => {
 
 ### 4. Gamified Reminder System
 
-1. **GamifiedReminderTab Component**
-   - Displays Stu mascot with animations
-   - Shows upcoming tasks and reminders
-   - Streak tracking and achievements
+1. **RemindersTab** / **GamificationHub** (dashboard) — Stu, streaks, and reminders
+   - Mascot and streak tracking live in these surfaces
 
 2. **Mascot Component**
    - SVG animation for Stu

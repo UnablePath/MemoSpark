@@ -1,10 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { supabase } from '@/lib/supabase/client';
+import { getSupabaseWithClerkAuth } from '@/lib/supabase/server-auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { supabase, userId } = await getSupabaseWithClerkAuth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -14,11 +13,21 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type') || 'all'; // 'all', 'my-groups', 'discover'
+    const typeRaw = searchParams.get('type') || 'all'; // 'all', 'my-groups', 'discover'
+    const allowedTypes = new Set(['all', 'my-groups', 'discover']);
+    if (!allowedTypes.has(typeRaw)) {
+      return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 });
+    }
+    const type = typeRaw;
     const query = searchParams.get('q');
     const categoryId = searchParams.get('categoryId');
-    const limit = Number.parseInt(searchParams.get('limit') || '20');
-    const offset = Number.parseInt(searchParams.get('offset') || '0');
+    const parsedLimit = Number.parseInt(searchParams.get('limit') || '20');
+    const parsedOffset = Number.parseInt(searchParams.get('offset') || '0');
+    if (Number.isNaN(parsedLimit) || Number.isNaN(parsedOffset)) {
+      return NextResponse.json({ error: 'Invalid pagination params' }, { status: 400 });
+    }
+    const limit = Math.min(100, Math.max(1, parsedLimit));
+    const offset = Math.max(0, parsedOffset);
 
     // Add timeout wrapper for database queries
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -53,14 +62,14 @@ export async function GET(request: NextRequest) {
           description,
           created_at,
           created_by,
-          is_public,
+          privacy_level,
           max_members
         `)
         .range(offset, offset + limit - 1)
         .order('created_at', { ascending: false });
 
       if (type === 'discover') {
-        query_builder = query_builder.eq('is_public', true);
+        query_builder = query_builder.eq('privacy_level', 'public').eq('is_archived', false);
       }
 
       // Add search filter
@@ -70,7 +79,7 @@ export async function GET(request: NextRequest) {
 
       // Add category filter (if we had categories)
       if (categoryId) {
-        // TODO: Implement category filtering when categories are added
+        query_builder = query_builder.eq('category_id', categoryId);
       }
 
       const { data, error } = await Promise.race([
@@ -115,7 +124,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { supabase, userId } = await getSupabaseWithClerkAuth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -125,19 +134,34 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, privacy_level = 'public' } = body;
+    const {
+      name,
+      description,
+      privacy_level = 'public',
+      category_id = null,
+      max_members = null,
+    } = body;
 
-    if (!name) {
+    if (!name || typeof name !== 'string' || !name.trim()) {
       return NextResponse.json({ error: 'Group name is required' }, { status: 400 });
+    }
+    if (!['public', 'private'].includes(String(privacy_level))) {
+      return NextResponse.json({ error: 'Invalid privacy_level' }, { status: 400 });
+    }
+    if (max_members !== null && (!Number.isInteger(max_members) || max_members < 2)) {
+      return NextResponse.json({ error: 'max_members must be an integer >= 2 or null' }, { status: 400 });
     }
 
     // Create the study group
     const { data: group, error: groupError } = await supabase
       .from('study_groups')
       .insert({
-        name,
+        name: name.trim(),
         description,
         created_by: userId,
+        privacy_level,
+        category_id,
+        max_members,
         metadata: { privacy_level }
       })
       .select()
@@ -154,7 +178,7 @@ export async function POST(request: NextRequest) {
       .insert({
         group_id: group.id,
         user_id: userId,
-        role: 'admin'
+        role: 'owner'
       });
 
     if (memberError) {

@@ -17,7 +17,7 @@ import { toast } from "sonner";
 /**
  * Tier F: Clerk `publicMetadata` (+ primary email) is authoritative for identity and
  * `onboardingComplete`. `memospark_profile` in localStorage stores **only** AI UI prefs
- * (`aiPreferences`, `aiEnabled`, `lastAIInteraction`) — never a second copy of name/email/subjects.
+ * (`aiPreferences`, `aiEnabled`, `lastAIInteraction`), never a second copy of name/email/subjects.
  */
 
 export interface UserProfile {
@@ -31,7 +31,7 @@ export interface UserProfile {
   bio?: string;
   aiPreferences?: UserAIPreferences;
   aiEnabled?: boolean;
-  /** Mirrors Clerk `publicMetadata.onboardingComplete` — not persisted independently. */
+  /** Mirrors Clerk `publicMetadata.onboardingComplete`, not persisted independently. */
   onboardingCompleted?: boolean;
   lastAIInteraction?: string;
 }
@@ -79,7 +79,7 @@ const UserContext = createContext<UserContextType>({
 
 /**
  * AI prefs (`memospark_profile`) plus Clerk-derived profile fields for display.
- * For session / auth, use `useUser` from `@clerk/nextjs` — not this hook.
+ * For session / auth, use `useUser` from `@clerk/nextjs`, not this hook.
  */
 export function useUserProfilePrefs() {
   return useContext(UserContext);
@@ -212,7 +212,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     ) {
       if (process.env.NODE_ENV === "development") {
         console.warn(
-          "[UserProvider] Ignoring identity fields in updateProfile — use Clerk /profile or onboarding. Only AI prefs are mutable here.",
+          "[UserProvider] Ignoring identity fields in updateProfile, use Clerk /profile or onboarding. Only AI prefs are mutable here.",
         );
       }
     }

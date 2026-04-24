@@ -1,10 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { supabase } from '@/lib/supabase/client';
+import { getSupabaseWithClerkAuth } from '@/lib/supabase/server-auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { supabase, userId } = await getSupabaseWithClerkAuth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -19,7 +18,7 @@ export async function GET(request: NextRequest) {
       .select(`
         *,
         study_groups(name, description),
-        inviter:profiles!study_group_invitations_inviter_id_fkey(name, email)
+        inviter:profiles!study_group_invitations_inviter_id_fkey(full_name, email)
       `)
       .eq('invitee_id', userId)
       .eq('status', 'pending')

@@ -55,7 +55,7 @@ export const ConnectionsDebug: React.FC = () => {
         <CardContent>
           <p>If you can see this, the connections tab is rendering correctly!</p>
           <p className="text-sm text-muted-foreground mt-2">
-            The issue might be with the StudentConnectionTab component specifically.
+            If the real Connections tab fails, compare with <code>ConnectionInterface</code> in the same folder.
           </p>
         </CardContent>
       </Card>

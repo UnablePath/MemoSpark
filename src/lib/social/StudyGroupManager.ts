@@ -65,7 +65,12 @@ export class StudyGroupManager {
   /**
    * Create a new study group
    */
-  static async createGroup(name: string, description?: string, privacy_level = 'public'): Promise<StudyGroup> {
+  static async createGroup(
+    name: string,
+    description?: string,
+    privacy_level: 'public' | 'private' | 'invite_only' = 'public',
+    category_id?: string | null,
+  ): Promise<StudyGroup> {
     try {
       const response = await fetch('/api/study-groups', {
         method: 'POST',
@@ -75,7 +80,8 @@ export class StudyGroupManager {
         body: JSON.stringify({
           name,
           description,
-          privacy_level
+          privacy_level: privacy_level === 'invite_only' ? 'private' : privacy_level,
+          category_id: category_id ?? null,
         })
       });
 
@@ -349,22 +355,32 @@ export class StudyGroupManager {
    */
   async getGroupMembersWithNames(groupId: string): Promise<StudyGroupMemberWithName[]> {
     try {
+      // #region agent log
+      fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'members-tab-debug',hypothesisId:'H2',location:'StudyGroupManager.ts:359',message:'fetching group members with names',data:{groupId},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       const { data, error } = await this.db()
         .from('study_group_members')
         .select(`
           *,
-          profiles(name, email)
+          profiles(full_name, email)
         `)
         .eq('group_id', groupId);
 
       if (error) {
         console.error('Error fetching group members:', error);
+        // #region agent log
+        fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'members-tab-debug',hypothesisId:'H2',location:'StudyGroupManager.ts:369',message:'group members query failed',data:{groupId,errorCode:(error as any)?.code ?? null,errorMessage:(error as any)?.message ?? 'unknown'},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         return [];
       }
 
+      // #region agent log
+      fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'members-tab-debug',hypothesisId:'H2',location:'StudyGroupManager.ts:374',message:'group members query succeeded',data:{groupId,rowCount:Array.isArray(data)?data.length:0},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+
       return data?.map((member: any) => ({
         ...member,
-        name: member.profiles?.name,
+        name: member.profiles?.full_name,
         email: member.profiles?.email
       })) || [];
     } catch (error) {
@@ -382,7 +398,7 @@ export class StudyGroupManager {
         .from('study_group_resources')
         .select(`
           *,
-          profiles(name)
+          profiles(full_name)
         `)
         .eq('group_id', groupId)
         .order('created_at', { ascending: false });
@@ -394,7 +410,7 @@ export class StudyGroupManager {
 
       return data?.map((resource: any) => ({
         ...resource,
-        user_name: resource.profiles?.name
+        user_name: resource.profiles?.full_name
       })) || [];
     } catch (error) {
       console.error('Error in getResources:', error);
@@ -484,9 +500,19 @@ export class StudyGroupManager {
   /**
    * Create a new study group (instance method) - Use static method instead
    */
-  async createGroup(name: string, userId: string, description?: string): Promise<StudyGroup> {
-    // Delegate to static method for consistency
-    return StudyGroupManager.createGroup(name, description);
+  async createGroup(
+    name: string,
+    userId: string,
+    description?: string,
+    options?: { privacy_level?: 'public' | 'private' | 'invite_only'; category_id?: string | null },
+  ): Promise<StudyGroup> {
+    void userId;
+    return StudyGroupManager.createGroup(
+      name,
+      description,
+      options?.privacy_level ?? 'public',
+      options?.category_id,
+    );
   }
 
   /**

@@ -20,6 +20,8 @@ import {
   studyGroupKeys,
 } from '@/hooks/useStudyGroupQueries';
 import { StudySessionManager } from '@/lib/social/StudySessionManager';
+import { createAuthenticatedSupabaseClient } from '@/lib/supabase/client';
+import { wrapClerkTokenForSupabase } from '@/lib/clerk/clerkSupabaseToken';
 import { useQueryClient } from '@tanstack/react-query';
 import type { StudySession } from '@/lib/social/StudySessionManager';
 import { Button } from "@/components/ui/button";
@@ -101,6 +103,8 @@ const GROUPS_HUB_SHELL = cn(
   "sm:rounded-[1.75rem] sm:border sm:border-border/55 sm:bg-card/96 sm:shadow-[0_40px_96px_-48px_hsl(var(--foreground)/0.42)] sm:ring-1 sm:ring-border/35",
 );
 
+const MEMBER_COUNT_CACHE_KEY = 'study-group-known-member-counts';
+
 export const StudyGroupHub: React.FC = () => {
   const { getToken } = useAuth();
   const { user } = useUser();
@@ -118,6 +122,7 @@ export const StudyGroupHub: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [membershipStatus, setMembershipStatus] = useState<Record<string, boolean>>({});
+  const [knownMemberCounts, setKnownMemberCounts] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(false);
 
   // Form states
@@ -158,6 +163,60 @@ export const StudyGroupHub: React.FC = () => {
   const groupMembers = membersQuery.data ?? [];
   const groupResources = resourcesQuery.data ?? [];
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(MEMBER_COUNT_CACHE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, number>;
+      if (!parsed || typeof parsed !== 'object') return;
+      setKnownMemberCounts((prev) => ({ ...parsed, ...prev }));
+    } catch {
+      // Ignore cache read errors.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isPopoverOpen || !selectedGroupId) return;
+    // #region agent log
+    fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'members-tab-debug',hypothesisId:'H1',location:'StudyGroupHub.tsx:164',message:'members query state changed',data:{selectedGroupId,membersStatus:membersQuery.status,membersFetchStatus:membersQuery.fetchStatus,membersLength:groupMembers.length,hasSelectedGroup:Boolean(selectedGroup)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+  }, [isPopoverOpen, selectedGroupId, selectedGroup, membersQuery.status, membersQuery.fetchStatus, groupMembers.length]);
+
+  useEffect(() => {
+    if (!selectedGroupId || !Array.isArray(membersQuery.data)) return;
+    setKnownMemberCounts((prev) => ({
+      ...prev,
+      [selectedGroupId]: membersQuery.data.length,
+    }));
+  }, [selectedGroupId, membersQuery.data]);
+
+  useEffect(() => {
+    if (userGroups.length === 0) return;
+    setKnownMemberCounts((prev) => {
+      const next = { ...prev };
+      for (const group of userGroups) {
+        const explicitCount = Number((group as any).member_count);
+        if (Number.isFinite(explicitCount) && explicitCount >= 0) {
+          next[group.id] = explicitCount;
+        }
+      }
+      return next;
+    });
+  }, [userGroups]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(
+        MEMBER_COUNT_CACHE_KEY,
+        JSON.stringify(knownMemberCounts),
+      );
+    } catch {
+      // Ignore cache write errors.
+    }
+  }, [knownMemberCounts]);
+
   // Resolve participant names
   const [participantNames, setParticipantNames] = useState<Record<string, string>>({});
   useEffect(() => {
@@ -167,17 +226,41 @@ export const StudyGroupHub: React.FC = () => {
         return;
       }
       try {
-        const uniqueIds = Array.from(new Set(participantsQuery.data.map(p => p.user_id)));
-        // Get user names from profiles - this method needs to be implemented
+        const uniqueIds = Array.from(
+          new Set(
+            participantsQuery.data
+              .map((p) => p.user_id)
+              .filter((id): id is string => Boolean(id)),
+          ),
+        );
+        const client = createAuthenticatedSupabaseClient(
+          wrapClerkTokenForSupabase(getToken),
+        );
+        if (!client) {
+          setParticipantNames({});
+          return;
+        }
+        const { data, error } = await client
+          .from("profiles")
+          .select("clerk_user_id, full_name, email, username")
+          .in("clerk_user_id", uniqueIds);
+        if (error) throw error;
         const names: Record<string, string> = {};
+        for (const row of data ?? []) {
+          const id = row.clerk_user_id;
+          names[id] =
+            row.full_name?.trim() ||
+            row.username?.trim() ||
+            (row.email ? row.email.split("@")[0] : null) ||
+            id.slice(0, 8);
+        }
         setParticipantNames(names);
-      } catch (e) {
-        // Fail-soft: keep IDs
+      } catch {
         setParticipantNames({});
       }
     };
-    loadNames();
-  }, [participantsQuery.data, studyGroupManager]);
+    void loadNames();
+  }, [participantsQuery.data, getToken]);
 
   // Realtime subscription for session details dialog
   useEffect(() => {
@@ -236,7 +319,7 @@ export const StudyGroupHub: React.FC = () => {
     void loadAllGroups();
   }, [isPopoverOpen, user?.id, loadAllGroups, queryClient]);
 
-  // useUserStudyGroups already fetches when userId is set — do not depend on the
+  // useUserStudyGroups already fetches when userId is set, do not depend on the
   // useQuery result object (new reference every fetch) or refetch loops forever.
 
   // Group creation
@@ -244,7 +327,10 @@ export const StudyGroupHub: React.FC = () => {
     if (!user || !newGroupName.trim()) return;
     
     try {
-      await studyGroupManager.createGroup(newGroupName, user.id, newGroupDescription);
+      await studyGroupManager.createGroup(newGroupName, user.id, newGroupDescription, {
+        privacy_level: newGroupPrivacy,
+        category_id: newGroupCategory,
+      });
       setNewGroupName("");
       setNewGroupDescription("");
       void queryClient.invalidateQueries({ queryKey: studyGroupKeys.userGroups(user.id) });
@@ -293,7 +379,7 @@ export const StudyGroupHub: React.FC = () => {
         return;
       }
 
-      await studyGroupManager.addMember(groupId, user.id, 'member');
+      await StudyGroupManager.joinGroup(groupId);
       setMembershipStatus(prev => ({ ...prev, [groupId]: true }));
       void queryClient.invalidateQueries({ queryKey: studyGroupKeys.userGroups(user.id) });
       loadAllGroups(); // Refresh to update membership status
@@ -315,7 +401,7 @@ export const StudyGroupHub: React.FC = () => {
         return;
       }
 
-      await studyGroupManager.removeMember(groupId, user.id);
+      await StudyGroupManager.leaveGroup(groupId);
       setMembershipStatus(prev => ({ ...prev, [groupId]: false }));
       void queryClient.invalidateQueries({ queryKey: studyGroupKeys.userGroups(user.id) });
       loadAllGroups(); // Refresh to update membership status
@@ -363,6 +449,21 @@ export const StudyGroupHub: React.FC = () => {
     );
   }, [allGroups, searchQuery]);
 
+  const groupMemberCounts = useMemo(() => {
+    return userGroups.reduce((acc, group) => {
+      const knownCount = knownMemberCounts[group.id];
+      if (typeof knownCount === 'number' && knownCount >= 0) {
+        acc[group.id] = knownCount;
+      } else {
+        const explicitCount = Number((group as any).member_count);
+        if (Number.isFinite(explicitCount) && explicitCount >= 0) {
+          acc[group.id] = explicitCount;
+        }
+      }
+      return acc;
+    }, {} as Record<string, number>);
+  }, [userGroups, knownMemberCounts]);
+
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'owner': return <Crown className="h-4 w-4 text-yellow-500" />;
@@ -383,7 +484,7 @@ export const StudyGroupHub: React.FC = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  const [groupTab, setGroupTab] = useState('overview');
+  const [groupTab, setGroupTab] = useState('chat');
   const [selectedSession, setSelectedSession] = useState<StudySession | null>(null);
   const [newSessionTitle, setNewSessionTitle] = useState('');
   const [newSessionDescription, setNewSessionDescription] = useState('');
@@ -437,6 +538,7 @@ export const StudyGroupHub: React.FC = () => {
     <div className="relative space-y-6">
       <GroupsBento
         groups={userGroups}
+        memberCounts={groupMemberCounts}
         onOpenGroup={(g) => {
           setSelectedGroup(g);
           setIsPopoverOpen(true);
@@ -641,6 +743,10 @@ export const StudyGroupHub: React.FC = () => {
                                         name,
                                         user.id,
                                         newGroupDescription,
+                                        {
+                                          privacy_level: newGroupPrivacy,
+                                          category_id: newGroupCategory,
+                                        },
                                       );
                                       setNewGroupName("");
                                       setNewGroupDescription("");
@@ -667,9 +773,10 @@ export const StudyGroupHub: React.FC = () => {
                         <div className="rounded-[1.25rem] border border-border/50 bg-background/40 p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)]">
                           <div className="space-y-1.5 p-2 sm:p-3">
                             {(discoveryQuery.data ?? filteredGroups).map((group) => (
-                              <button
+                              <div
                                 key={group.id}
-                                type="button"
+                                role="button"
+                                tabIndex={0}
                                 className={cn(
                                   "w-full rounded-2xl border border-transparent bg-card/80 p-3 text-left transition-colors",
                                   "hover:border-border/60 hover:bg-muted/40",
@@ -678,6 +785,12 @@ export const StudyGroupHub: React.FC = () => {
                                     "border-primary/35 bg-primary/8",
                                 )}
                                 onClick={() => loadGroupDetails(group)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    loadGroupDetails(group);
+                                  }
+                                }}
                               >
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0 flex-1">
@@ -715,7 +828,7 @@ export const StudyGroupHub: React.FC = () => {
                                       )}
                                     </div>
                                   </div>
-                              </button>
+                              </div>
                             ))}
                           </div>
                         </div>
@@ -726,9 +839,10 @@ export const StudyGroupHub: React.FC = () => {
                       <div className="p-4 sm:p-5">
                         <div className="space-y-1.5">
                           {userGroups.map((group) => (
-                            <button
+                            <div
                               key={group.id}
-                              type="button"
+                              role="button"
+                              tabIndex={0}
                               className={cn(
                                 "flex w-full items-center gap-3 rounded-2xl border border-border/45 bg-card/85 p-3 text-left transition-colors",
                                 "hover:border-border/70 hover:bg-muted/35",
@@ -736,6 +850,12 @@ export const StudyGroupHub: React.FC = () => {
                                 selectedGroup?.id === group.id && "border-primary/35 bg-primary/8",
                               )}
                               onClick={() => loadGroupDetails(group)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  loadGroupDetails(group);
+                                }
+                              }}
                             >
                                   <div className="min-w-0 flex-1">
                                     <h4 className="truncate text-sm font-semibold tracking-tight">
@@ -772,7 +892,7 @@ export const StudyGroupHub: React.FC = () => {
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
                                   </DropdownMenu>
-                            </button>
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -834,7 +954,16 @@ export const StudyGroupHub: React.FC = () => {
                       </div>
 
                       {/* Group Content Tabs */}
-                      <Tabs defaultValue="chat" className="flex min-h-0 flex-1 flex-col">
+                      <Tabs
+                        value={groupTab}
+                        onValueChange={(value) => {
+                          setGroupTab(value);
+                          // #region agent log
+                          fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'members-tab-debug',hypothesisId:'H3',location:'StudyGroupHub.tsx:905',message:'group detail tab changed',data:{tab:value,selectedGroupId,currentMembersLength:groupMembers.length},timestamp:Date.now()})}).catch(()=>{});
+                          // #endregion
+                        }}
+                        className="flex min-h-0 flex-1 flex-col"
+                      >
                           <TabsList
                             className={cn(
                               "sticky top-0 z-10 mx-3 mt-2 flex h-auto min-h-11 flex-wrap gap-1 rounded-2xl border border-border/50 bg-background/90 p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)] sm:mx-4",

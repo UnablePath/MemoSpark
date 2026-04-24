@@ -60,7 +60,7 @@ interface ConnectionManagerProps {
 
 /* ─────────────── helpers ─────────────── */
 
-/** Stable deterministic "unit id" derived from a clerk id — for CRT metadata flavor. */
+/** Stable deterministic "unit id" derived from a clerk id, for CRT metadata flavor. */
 function unitId(id: string | null | undefined): string {
   if (!id) return "UNIT / ----";
   const tail = id.replace(/[^a-z0-9]/gi, "").slice(-4).toUpperCase();

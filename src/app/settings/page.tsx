@@ -24,7 +24,7 @@ const SettingsPage: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isEmbed = searchParams.get('embed') === '1';
-  /** Full-bleed inside Clerk iframe — drop max-width containers */
+  /** Full-bleed inside Clerk iframe, drop max-width containers */
   const embedOuterClass = isEmbed
     ? 'mx-auto w-full max-w-full min-w-0 overflow-x-hidden py-6 px-3 sm:px-3'
     : 'container mx-auto max-w-4xl py-8 px-4';

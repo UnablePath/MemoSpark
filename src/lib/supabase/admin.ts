@@ -5,7 +5,7 @@ let _adminClient: SupabaseClient | null = null;
 
 /**
  * Lazy singleton Supabase client with the service role key.
- * Bypasses RLS — only use server-side for admin operations.
+ * Bypasses RLS, only use server-side for admin operations.
  * Returns null when env vars are missing (e.g. during static build).
  */
 export function getSupabaseAdmin(): SupabaseClient | null {

@@ -459,7 +459,7 @@ export function BubblePopGame() {
                   )
                 }
               >
-                {/* Inner highlight — simulates glass refraction */}
+                {/* Inner highlight, simulates glass refraction */}
                 <div
                   className="absolute rounded-full"
                   style={{

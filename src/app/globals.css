@@ -165,7 +165,7 @@ html[class*="theme-"]:not([class*="-light"]) {
 @layer base {
   /*
    * MemoSpark default = dark (editorial slate + jade accent).
-   * Light mode overrides via .light only — avoids generic “mint SaaS” wash.
+   * Light mode overrides via .light only, avoids generic "mint SaaS" wash.
    */
   :root,
   .dark {
@@ -1613,7 +1613,7 @@ div[data-clerk-component] .cl-userButtonAvatarBox,
 }
 
 /*
- * Clerk UserProfile modal — nav rail (scoped to .cl-userProfile-root).
+ * Clerk UserProfile modal, nav rail (scoped to .cl-userProfile-root).
  * Prefer appearance in src/lib/clerk-appearance.ts; @clerk/ui on ClerkProvider pins DOM for fewer breaks.
  */
 .cl-modalContent .cl-userProfile-root .cl-navbar {
@@ -1754,7 +1754,7 @@ div[data-clerk-component] .cl-userButtonAvatarBox,
 
 /*
  * Narrow viewports: full-viewport account modal + horizontal icon strip.
- * Covers up to 770px — between 640–770px Clerk’s desktop sidebar rules alone break layout (tablet / small laptop).
+ * Covers up to 770px, between 640-770px Clerk's desktop sidebar rules alone break layout (tablet / small laptop).
  */
 @media (max-width: 770px) {
   /* 100% (not 100vw) avoids horizontal chop when scrollbars / mobile UI shift layout */
@@ -1803,7 +1803,7 @@ div[data-clerk-component] .cl-userButtonAvatarBox,
   }
 
   /*
-   * Mobile account modal: column layout — header block, then a single horizontal tab strip.
+   * Mobile account modal: column layout, header block, then a single horizontal tab strip.
    * (Row layout put the tab picker beside the header and forced icons into a vertical column.)
    */
   .cl-modalContent .cl-userProfile-root .cl-navbar {
@@ -1826,7 +1826,7 @@ div[data-clerk-component] .cl-userButtonAvatarBox,
     inset: auto !important;
   }
 
-  /* Clerk wraps header + tab list — stack full-width; kill phantom min-height that creates ~240px dead air */
+  /* Clerk wraps header + tab list, stack full-width; kill phantom min-height that creates ~240px dead air */
   .cl-modalContent .cl-userProfile-root .cl-navbar > div {
     display: flex !important;
     flex-direction: column !important;
@@ -1971,7 +1971,7 @@ div[data-clerk-component] .cl-userButtonAvatarBox,
     display: none !important;
   }
 
-  /* Compact header row — keep one line + subtitle, avoid 200px+ dead air */
+  /* Compact header row, keep one line + subtitle, avoid 200px+ dead air */
   .cl-modalContent .cl-userProfile-root .cl-navbar .cl-headerTitle {
     display: block !important;
     font-size: 0.9375rem !important;
@@ -2008,7 +2008,7 @@ div[data-clerk-component] .cl-userButtonAvatarBox,
   }
 }
 
-/* UserButton account popover — full-width actions; label visually centered */
+/* UserButton account popover, full-width actions; label visually centered */
 .cl-userButtonPopoverMain {
   align-items: stretch !important;
   width: 100% !important;
@@ -2037,7 +2037,7 @@ div[data-clerk-component] .cl-userButtonAvatarBox,
   box-sizing: border-box !important;
 }
 
-/* MemoSpark hub iframe — fill the UserProfile content column (flex chain + explicit modal height) */
+/* MemoSpark hub iframe, fill the UserProfile content column (flex chain + explicit modal height) */
 .cl-modalContent:has([data-memospark-hub-panel]) {
   width: min(96vw, 1100px) !important;
   max-width: min(96vw, 1100px) !important;
@@ -2114,7 +2114,7 @@ div[data-clerk-component] .cl-userButtonAvatarBox,
 }
 
 /*
- * Clerk injects a wrapper div between .cl-profilePage and custom content — without this it stays
+ * Clerk injects a wrapper div between .cl-profilePage and custom content, without this it stays
  * content-sized (~250px) while .cl-profilePage is ~700px+, leaving a huge void under the hub.
  */
 .cl-modalContent:has([data-memospark-hub-panel]) .cl-profilePage > * {
@@ -2130,7 +2130,7 @@ div[data-clerk-component] .cl-userButtonAvatarBox,
   overflow: hidden !important;
 }
 
-/* Direct child of scroll region (Clerk page shell) — stretch hub to full column */
+/* Direct child of scroll region (Clerk page shell), stretch hub to full column */
 .cl-modalContent:has([data-memospark-hub-panel]) .cl-pageScrollBox > * {
   flex: 1 1 0% !important;
   min-height: 0 !important;
@@ -2168,7 +2168,7 @@ div[data-clerk-component] .cl-userButtonAvatarBox,
   width: 100% !important;
 }
 
-/* Desktop: flex % heights sometimes still collapse — floor without exceeding short modals */
+/* Desktop: flex % heights sometimes still collapse, floor without exceeding short modals */
 @media (min-width: 771px) {
   .cl-modalContent:has([data-memospark-hub-panel]) [data-memospark-hub-iframe-wrap] {
     min-height: min(58dvh, 560px) !important;

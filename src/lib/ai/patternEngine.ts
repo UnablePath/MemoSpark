@@ -1027,10 +1027,48 @@ export class PatternRecognitionEngine {
    * Tracks user feedback on suggestions.
    * This method is called by AIProvider.
    */
-  public trackFeedback(suggestionId: string, accepted: boolean): void {
-    console.log(`PatternRecognitionEngine: Feedback for suggestion ${suggestionId} - ${accepted ? 'Accepted' : 'Rejected'}.`);
-    // TODO: Implement feedback storage (e.g., to Supabase or local analytics)
-    // This could influence future pattern analysis or suggestion weighting.
+  public trackFeedback(
+    suggestionId: string,
+    accepted: boolean,
+    userId?: string,
+    suggestionMeta?: {
+      type?: string;
+      title?: string;
+      source?: string;
+    },
+  ): void {
+    if (this.supabase && userId) {
+      const feedback = accepted ? 'liked' : 'disliked';
+      void (async () => {
+        let feedbackUserId = userId;
+        // Production schema uses profiles.id (uuid) in ai_suggestion_feedback.user_id.
+        // If lookup fails, fallback to the original id so text-based dev schemas still work.
+        const { data: profile } = await this.supabase!
+          .from("profiles")
+          .select("id")
+          .eq("clerk_user_id", userId)
+          .maybeSingle();
+        if (profile?.id) feedbackUserId = profile.id;
+
+        const { error } = await this.supabase!
+          .from("ai_suggestion_feedback")
+          .insert({
+            user_id: feedbackUserId,
+            suggestion_id: suggestionId,
+            suggestion_type: suggestionMeta?.type ?? "unknown",
+            suggestion_title: suggestionMeta?.title ?? "AI suggestion",
+            feedback,
+            suggestion_context: {
+              source: suggestionMeta?.source ?? "PatternRecognitionEngine",
+              accepted,
+            },
+            updated_at: new Date().toISOString(),
+          });
+        if (error) {
+          console.warn("PatternRecognitionEngine: feedback save failed", error.message);
+        }
+      })();
+    }
   }
 
   /**

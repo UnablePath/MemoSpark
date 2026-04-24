@@ -2177,6 +2177,99 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_suggestion_feedback: {
+        Row: {
+          created_at: string
+          feedback: string
+          id: string
+          suggestion_context: Json | null
+          suggestion_id: string
+          suggestion_title: string
+          suggestion_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feedback: string
+          id?: string
+          suggestion_context?: Json | null
+          suggestion_id: string
+          suggestion_title: string
+          suggestion_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feedback?: string
+          id?: string
+          suggestion_context?: Json | null
+          suggestion_id?: string
+          suggestion_title?: string
+          suggestion_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      clerk_notification_preferences: {
+        Row: {
+          categories: Json
+          clerk_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          categories?: Json
+          clerk_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          categories?: Json
+          clerk_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      social_activity_events: {
+        Row: {
+          actor_display_name: string | null
+          actor_id: string
+          created_at: string
+          group_display_name: string | null
+          group_id: string | null
+          id: string
+          metadata: Json
+          object_id: string | null
+          object_type: string
+          verb: string
+        }
+        Insert: {
+          actor_display_name?: string | null
+          actor_id: string
+          created_at?: string
+          group_display_name?: string | null
+          group_id?: string | null
+          id?: string
+          metadata?: Json
+          object_id?: string | null
+          object_type?: string
+          verb: string
+        }
+        Update: {
+          actor_display_name?: string | null
+          actor_id?: string
+          created_at?: string
+          group_display_name?: string | null
+          group_id?: string | null
+          id?: string
+          metadata?: Json
+          object_id?: string | null
+          object_type?: string
+          verb?: string
+        }
+        Relationships: []
+      }
       streak_activities: {
         Row: {
           activity_count: number | null
@@ -2204,6 +2297,33 @@ export type Database = {
           metadata?: Json | null
           streak_type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_reports: {
+        Row: {
+          context: Json
+          created_at: string
+          id: string
+          reason: string | null
+          reported_id: string
+          reporter_id: string
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          id?: string
+          reason?: string | null
+          reported_id: string
+          reporter_id: string
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          id?: string
+          reason?: string | null
+          reported_id?: string
+          reporter_id?: string
         }
         Relationships: []
       }
@@ -3653,6 +3773,7 @@ export type Database = {
         Args: { message_uuid: string; reader_id: string }
         Returns: undefined
       }
+      maintain_social_activity_feed: { Args: never; Returns: undefined }
       remove_connection: {
         Args: { actor_id: string; other_id: string }
         Returns: boolean

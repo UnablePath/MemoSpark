@@ -22,7 +22,8 @@ import {
   useSpring,
 } from "framer-motion";
 import type React from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 /* ─────────────── types ─────────────── */
 
@@ -60,7 +61,7 @@ const SPRING = {
 
 /**
  * Double-bezel tile with a cursor-tracking spotlight border on pointer devices.
- * Uses transform/opacity only — no layout-triggering animations.
+ * Uses transform/opacity only, no layout-triggering animations.
  */
 function useSpotlight() {
   const reduceMotion = useReducedMotion();
@@ -214,7 +215,7 @@ const GroupTile: React.FC<{
           <div className="flex items-center gap-2 text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground">
             <UsersThree className="h-3.5 w-3.5" weight="bold" />
             <span className="tabular-nums">
-              {typeof memberCount === "number" ? memberCount : "—"}
+              {typeof memberCount === "number" ? memberCount : "-"}
             </span>
             <span aria-hidden className="opacity-40">
               ·
@@ -249,6 +250,11 @@ const CreateGroupMorph: React.FC<{
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleSubmit = async () => {
     if (!name.trim() || submitting) return;
@@ -296,6 +302,8 @@ const CreateGroupMorph: React.FC<{
         </span>
       </motion.button>
 
+      {isMounted
+        ? createPortal(
       <AnimatePresence>
         {open ? (
           <motion.div
@@ -310,7 +318,7 @@ const CreateGroupMorph: React.FC<{
               type="button"
               aria-label="Close"
               onClick={() => setOpen(false)}
-              className="absolute inset-0 bg-background/80 backdrop-blur-md"
+              className="absolute inset-0 bg-background/85 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/65"
               initial={reduceMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={reduceMotion ? undefined : { opacity: 0 }}
@@ -419,6 +427,8 @@ const CreateGroupMorph: React.FC<{
           </motion.div>
         ) : null}
       </AnimatePresence>
+      , document.body)
+        : null}
     </>
   );
 };
@@ -520,7 +530,14 @@ const GroupDetailPanel: React.FC<{
   onOpenFull: (group: StudyGroup) => void;
 }> = ({ group, memberCount, onClose, onOpenFull }) => {
   const reduceMotion = useReducedMotion();
-  return (
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) return null;
+  return createPortal(
     <motion.div
       key="detail-overlay"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
@@ -533,7 +550,7 @@ const GroupDetailPanel: React.FC<{
         type="button"
         aria-label="Close"
         onClick={onClose}
-        className="absolute inset-0 bg-background/80 backdrop-blur-md"
+        className="absolute inset-0 bg-background/85 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/65"
         initial={reduceMotion ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={reduceMotion ? undefined : { opacity: 0 }}
@@ -582,7 +599,7 @@ const GroupDetailPanel: React.FC<{
               {
                 label: "Members",
                 value:
-                  typeof memberCount === "number" ? memberCount : "—",
+                  typeof memberCount === "number" ? memberCount : "-",
               },
               { label: "Last active", value: formatUpdated(group.updated_at) },
               {
@@ -647,7 +664,7 @@ const GroupDetailPanel: React.FC<{
         </div>
       </motion.div>
     </motion.div>
-  );
+  , document.body);
 };
 
 /* ─────────────── main bento ─────────────── */
@@ -660,6 +677,29 @@ export const GroupsBento: React.FC<GroupsBentoProps> = ({
   onDiscover,
 }) => {
   const [selected, setSelected] = useState<StudyGroup | null>(null);
+  const [selectedMemberCount, setSelectedMemberCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const loadSelectedCount = async () => {
+      if (!selected?.id) {
+        setSelectedMemberCount(null);
+        return;
+      }
+      try {
+        const response = await fetch(`/api/study-groups/${selected.id}`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) return;
+        const members = Array.isArray(payload?.group?.members) ? payload.group.members : [];
+        setSelectedMemberCount(members.length);
+      } catch {
+        setSelectedMemberCount(null);
+      }
+    };
+    void loadSelectedCount();
+  }, [selected?.id]);
 
   if (groups.length === 0) {
     return (
@@ -722,7 +762,11 @@ export const GroupsBento: React.FC<GroupsBentoProps> = ({
           <GroupDetailPanel
             key={selected.id}
             group={selected}
-            memberCount={readCount(memberCounts, selected.id)}
+            memberCount={
+              typeof selectedMemberCount === "number"
+                ? selectedMemberCount
+                : readCount(memberCounts, selected.id)
+            }
             onClose={() => setSelected(null)}
             onOpenFull={onOpenGroup}
           />

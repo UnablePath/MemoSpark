@@ -6,6 +6,19 @@ import {
   needsOnboarding,
 } from "@/lib/onboarding-gate";
 
+/** Local/dev-only: not anonymous in production (requires sign-in or 404 from matcher) */
+const devOnlyPublicRoutes =
+  process.env.NODE_ENV === "development"
+    ? ([
+        "/pwa-test",
+        "/pwa-debug",
+        "/onesignal-test",
+        "/api/test-notification",
+        "/api/test-manifest",
+        "/api/debug-clerk",
+      ] as const)
+    : ([] as const);
+
 const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
@@ -16,15 +29,10 @@ const isPublicRoute = createRouteMatcher([
   "/privacy(.*)",
   "/coming-soon",
   "/offline",
-  "/pwa-test",
-  "/pwa-debug",
-  "/onesignal-test",
-  "/api/test-notification",
-  "/api/test-manifest",
+  ...devOnlyPublicRoutes,
   "/api/webhooks(.*)",
   "/api/clerk-webhooks",
   "/api/webhook-health",
-  "/api/debug-clerk",
   "/OneSignalSDKWorker.js",
   "/sw.js",
   "/manifest",

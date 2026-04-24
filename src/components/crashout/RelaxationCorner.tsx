@@ -4,7 +4,7 @@ import type React from 'react';
 import { useState, useEffect } from 'react';
 import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 import { useRelaxationAudio, type RelaxationSoundType } from '@/hooks/useRelaxationAudio';
-import { CloudRain, Flame, Gamepad2, Lightbulb, Music, Palette, Pause, Play, TreePine, Volume2, VolumeX, Waves, X } from 'lucide-react';
+import { CloudRain, Flame, Lightbulb, Music, Pause, Play, TreePine, Volume2, VolumeX, Waves, Wind, X } from 'lucide-react';
 
 const breathingCycle = [
   { text: 'Breathe In...', duration: 4000, phase: 'inhale' },
@@ -16,7 +16,7 @@ interface RelaxationCornerProps {
   onExit: () => void;
 }
 
-type RelaxationMode = 'breathing' | 'ragdoll' | 'music' | 'drawing';
+type RelaxationMode = 'breathing' | 'music';
 
 export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) => {
   const { triggerWellnessAction } = useDebouncedAchievementTrigger();
@@ -59,35 +59,27 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
     }
   }, [cycleIndex, currentMode, isBreathingActive]);
 
-  const relaxationModes = [
+  const relaxationModes: {
+    id: RelaxationMode;
+    title: string;
+    icon: typeof Wind;
+    description: string;
+    color: string;
+  }[] = [
     {
-      id: 'breathing' as RelaxationMode,
+      id: 'breathing',
       title: 'Breathing Exercise',
       icon: Wind,
       description: 'Calm your mind with guided breathing',
-      color: 'from-blue-500 to-cyan-500'
+      color: 'from-blue-500 to-cyan-500',
     },
     {
-      id: 'music' as RelaxationMode,
+      id: 'music',
       title: 'Calming Sounds',
       icon: Music,
       description: 'Relax with ambient soundscapes',
-      color: 'from-cyan-500 to-emerald-500'
+      color: 'from-cyan-500 to-emerald-500',
     },
-    {
-      id: 'drawing' as RelaxationMode,
-      title: 'Zen Drawing',
-      icon: Palette,
-      description: 'Express yourself with digital art',
-      color: 'from-green-500 to-teal-500'
-    },
-    {
-      id: 'ragdoll' as RelaxationMode,
-      title: 'Stress Game',
-      icon: Gamepad2,
-      description: 'Coming Soon',
-      color: 'from-gray-500 to-gray-600'
-    }
   ];
 
   const handleModeChange = (mode: RelaxationMode) => {
@@ -233,28 +225,6 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
           </div>
         );
       }
-
-      case 'ragdoll':
-        return (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="bg-gray-800/80 backdrop-blur-sm rounded-xl p-8 w-full max-w-2xl border border-gray-700 text-center">
-              <Gamepad2 className="mx-auto mb-6 h-14 w-14 text-muted-foreground" />
-              <h3 className="text-3xl font-bold text-white mb-4">Stress Relief Game</h3>
-              <p className="text-gray-300 text-lg mb-6">
-                An interactive stress relief experience is coming soon!
-              </p>
-              <div className="bg-gray-700/50 rounded-lg p-6 border border-gray-600">
-                <h4 className="text-xl font-semibold text-white mb-3">What to expect:</h4>
-                <ul className="text-gray-300 space-y-2 text-left max-w-md mx-auto">
-                  <li>• Interactive stress relief activities</li>
-                  <li>• Satisfying physics-based interactions</li>
-                  <li>• Multiple stress-busting mini-games</li>
-                  <li>• Progress tracking and achievements</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        );
 
       case 'music': {
         const soundscapes: Array<{
@@ -431,28 +401,6 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
         );
       }
 
-      case 'drawing':
-        return (
-          <div className="text-center">
-            <div className="bg-gray-800/80 backdrop-blur-sm rounded-xl p-8 max-w-2xl mx-auto border border-gray-700">
-              <h3 className="text-2xl font-bold text-white mb-4">Zen Drawing Canvas</h3>
-              <div className="w-full h-96 bg-white rounded-lg mb-4 flex items-center justify-center">
-                <p className="text-gray-500">Drawing canvas coming soon...</p>
-              </div>
-              <div className="flex justify-center space-x-4">
-                {['Brush', 'Pencil', 'Colors', 'Clear'].map((tool) => (
-                  <button
-                    key={tool}
-                    className="py-2 px-4 bg-green-600/20 hover:bg-green-600/40 rounded-lg text-white transition-colors border border-green-500/30"
-                  >
-                    {tool}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-
       default:
         return null;
     }
@@ -477,17 +425,14 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
         <div className="flex bg-gray-800/50 rounded-full p-2 border border-gray-700 overflow-x-auto max-w-full">
           {relaxationModes.map((mode) => {
             const Icon = mode.icon;
-            const isDisabled = mode.id === 'ragdoll';
             return (
               <button
                 key={mode.id}
-                onClick={() => !isDisabled && handleModeChange(mode.id)}
-                disabled={isDisabled}
+                onClick={() => handleModeChange(mode.id)}
+                type="button"
                 className={`flex items-center space-x-2 px-3 sm:px-6 py-2 sm:py-3 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                   currentMode === mode.id
                     ? `bg-gradient-to-r ${mode.color} text-white shadow-lg`
-                    : isDisabled
-                    ? 'text-gray-500 cursor-not-allowed'
                     : 'text-gray-300 hover:text-white hover:bg-white/10'
                 }`}
               >

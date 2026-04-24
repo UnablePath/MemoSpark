@@ -62,7 +62,7 @@ function mergeById(
 }
 
 export interface UseRealtimeChatOptions {
-  /** Topic for `supabase.channel(roomName)` — must be unique per room (Supabase UI contract). */
+  /** Topic for `supabase.channel(roomName)`, must be unique per room (Supabase UI contract). */
   roomName: string;
   /** Used for DB load, send, and postgres_changes filter. */
   conversationId: string;

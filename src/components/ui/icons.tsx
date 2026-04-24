@@ -234,7 +234,7 @@ export const CheckIcon = withPhosphorDefaults(PhCheck);
 export const Sun = withPhosphorDefaults(PhSun);
 /** Lucide-compat: horizon / dawn (Phosphor `SunHorizon`). */
 export const Sunrise = withPhosphorDefaults(PhSunHorizon);
-/** Lucide-compat: softer sun (Phosphor `SunDim`) — reads as golden hour / dusk. */
+/** Lucide-compat: softer sun (Phosphor `SunDim`), reads as golden hour / dusk. */
 export const Sunset = withPhosphorDefaults(PhSunDim);
 export const MoonIcon = withPhosphorDefaults(PhMoon);
 export const LaptopIcon = withPhosphorDefaults(PhLaptop);

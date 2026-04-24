@@ -1,7 +1,7 @@
 'use client';
 
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { 
   useGroupMembers, 
@@ -56,6 +56,12 @@ interface GroupManagementPanelProps {
   isOwner: boolean;
 }
 
+const ROLE_PERMISSIONS: Record<string, { can_invite: boolean; can_manage_members: boolean; can_change_roles: boolean; can_transfer_ownership: boolean }> = {
+  owner: { can_invite: true, can_manage_members: true, can_change_roles: true, can_transfer_ownership: true },
+  admin: { can_invite: true, can_manage_members: true, can_change_roles: true, can_transfer_ownership: false },
+  member: { can_invite: false, can_manage_members: false, can_change_roles: false, can_transfer_ownership: false },
+};
+
 export default function GroupManagementPanel({ 
   groupId, 
   groupName, 
@@ -85,10 +91,18 @@ export default function GroupManagementPanel({
 
   // Get current user's permissions in this group
   const currentUserMember = members?.find((m: any) => m.user_id === user?.id);
-  const currentUserPermissions = currentUserMember?.group_roles?.permissions || {};
+  const currentUserRole = currentUserMember?.role || 'member';
+  const currentUserPermissions = ROLE_PERMISSIONS[currentUserRole] || ROLE_PERMISSIONS.member;
   const canInvite = Boolean(isOwner || currentUserPermissions.can_invite);
   const canManageMembers = Boolean(isOwner || currentUserPermissions.can_manage_members);
   const canChangeRoles = Boolean(isOwner || currentUserPermissions.can_change_roles);
+
+  useEffect(() => {
+    if (!groupId) return;
+    // #region agent log
+    fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'manage-tab-debug',hypothesisId:'H2',location:'GroupManagementPanel.tsx:95',message:'manage panel state',data:{groupId,activeTab,membersLoading,membersCount:members?.length ?? 0,currentUserId:user?.id ?? null,currentUserRole:currentUserRole ?? null,canInvite,canManageMembers,canChangeRoles},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+  }, [groupId, activeTab, membersLoading, members?.length, user?.id, currentUserRole, canInvite, canManageMembers, canChangeRoles]);
 
   const renderPermissionBadges = (permissions: any) => {
     if (!permissions) return null;
@@ -119,8 +133,8 @@ export default function GroupManagementPanel({
   };
 
   const handleSendInvitation = async () => {
-    if (!inviteEmail || !inviteName) {
-      toast.error('Please fill in all required fields');
+    if (!inviteEmail) {
+      toast.error('Please enter an email address');
       return;
     }
 
@@ -128,7 +142,7 @@ export default function GroupManagementPanel({
       await sendInvitation.mutateAsync({
         groupId,
         inviteeEmail: inviteEmail,
-        inviteeName: inviteName,
+        inviteeName: inviteName || undefined,
         message: inviteMessage || undefined
       });
       
@@ -299,7 +313,7 @@ export default function GroupManagementPanel({
                     </div>
                     <Button 
                       onClick={handleSendInvitation}
-                      disabled={sendInvitation.isPending || !inviteEmail || !inviteName}
+                      disabled={sendInvitation.isPending || !inviteEmail}
                       className="w-full"
                     >
                       {sendInvitation.isPending ? 'Sending...' : 'Send Invitation'}
@@ -341,8 +355,8 @@ export default function GroupManagementPanel({
                               {member.profiles?.full_name || 'Unknown User'}
                             </span>
                             <Badge variant="secondary" className="flex items-center space-x-1">
-                              {getRoleIcon(member.group_roles?.name || 'member')}
-                              <span>{member.group_roles?.display_name || 'Member'}</span>
+                              {getRoleIcon(member.role || 'member')}
+                              <span>{member.role || 'member'}</span>
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">
@@ -352,12 +366,12 @@ export default function GroupManagementPanel({
                             Joined {formatDate(member.joined_at)}
                           </p>
                           </div>
-                          {renderPermissionBadges(member.group_roles?.permissions)}
+                          {renderPermissionBadges(ROLE_PERMISSIONS[member.role || 'member'] || ROLE_PERMISSIONS.member)}
                       </div>
                       
                       {canManageMembers && member.user_id !== user?.id && (
                         <div className="flex items-center space-x-2">
-                          {canChangeRoles && member.group_roles?.name !== 'owner' && (
+                          {canChangeRoles && member.role !== 'owner' && (
                             <Dialog>
                               <DialogTrigger asChild>
                                 <Button 
@@ -380,11 +394,9 @@ export default function GroupManagementPanel({
                                         <SelectValue placeholder="Select a role" />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        {roles?.map((role: any) => (
-                                          <SelectItem key={role.id} value={role.id}>
-                                            {role.display_name}
-                                          </SelectItem>
-                                        ))}
+                                        <SelectItem value="admin">Admin</SelectItem>
+                                        <SelectItem value="moderator">Moderator</SelectItem>
+                                        <SelectItem value="member">Member</SelectItem>
                                       </SelectContent>
                                     </Select>
                                   </div>
@@ -400,7 +412,7 @@ export default function GroupManagementPanel({
                             </Dialog>
                           )}
                           
-                          {isOwner && member.group_roles?.name !== 'owner' && (
+                          {isOwner && member.role !== 'owner' && (
                             <Dialog>
                               <DialogTrigger asChild>
                                 <Button 
@@ -414,7 +426,7 @@ export default function GroupManagementPanel({
                             </Dialog>
                           )}
                           
-                          {member.group_roles?.name !== 'owner' && (
+                          {member.role !== 'owner' && (
                             <Button 
                               variant="destructive" 
                               size="sm"

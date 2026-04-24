@@ -13,7 +13,7 @@ export function needsOnboarding(sessionClaims: unknown): boolean {
  * Routes an incomplete user may access (wizard, sync, onboarding analytics).
  * Must stay in sync with middleware and §7.6 of the onboarding plan.
  *
- * **Not allowlisted:** `/questionnaire`, `/dashboard`, `/profile`, etc. — incomplete users
+ * **Not allowlisted:** `/questionnaire`, `/dashboard`, `/profile`, etc., incomplete users
  * are redirected to `/onboarding` (or receive 403 JSON for disallowed `/api/*`).
  */
 export const isOnboardingFlowAllowedRoute = createRouteMatcher([

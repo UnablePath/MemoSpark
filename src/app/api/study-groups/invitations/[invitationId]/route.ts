@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { supabase } from '@/lib/supabase/client';
+import { getSupabaseWithClerkAuth } from '@/lib/supabase/server-auth';
 
 export async function POST(
   request: NextRequest,
@@ -8,7 +7,7 @@ export async function POST(
 ) {
   try {
     const params = await context.params;
-    const { userId } = await auth();
+    const { supabase, userId } = await getSupabaseWithClerkAuth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -32,28 +31,55 @@ export async function POST(
       .from('study_group_invitations')
       .select(`
         *,
-        study_groups(conversation_id)
+        study_groups(conversation_id, max_members, is_archived)
       `)
       .eq('id', invitationId)
       .eq('invitee_id', userId)
-      .eq('status', 'pending')
-      .single();
+      .maybeSingle();
 
     if (invitationError || !invitation) {
       return NextResponse.json({ 
-        error: 'Invitation not found or already processed' 
+        error: 'Invitation not found' 
       }, { status: 404 });
+    }
+    if (invitation.status !== 'pending') {
+      return NextResponse.json(
+        { message: 'Invitation already processed', status: invitation.status },
+        { status: 200 },
+      );
     }
 
     if (action === 'accept') {
-      // Add user to group
-      const { error: memberError } = await supabase
+      if (invitation.study_groups?.is_archived) {
+        return NextResponse.json({ error: 'Group is archived' }, { status: 409 });
+      }
+      if (invitation.study_groups?.max_members) {
+        const { count } = await supabase
+          .from('study_group_members')
+          .select('id', { head: true, count: 'exact' })
+          .eq('group_id', invitation.group_id);
+        if ((count ?? 0) >= invitation.study_groups.max_members) {
+          return NextResponse.json({ error: 'Group is full' }, { status: 409 });
+        }
+      }
+
+      const { data: existingMembership } = await supabase
         .from('study_group_members')
-        .insert({
-          group_id: invitation.group_id,
-          user_id: userId,
-          role: 'member'
-        });
+        .select('id')
+        .eq('group_id', invitation.group_id)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      // Add user to group
+      const { error: memberError } = existingMembership
+        ? { error: null }
+        : await supabase
+            .from('study_group_members')
+            .insert({
+              group_id: invitation.group_id,
+              user_id: userId,
+              role: 'member'
+            });
 
       if (memberError) {
         console.error('Error adding member:', memberError);
@@ -85,7 +111,7 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to update invitation' }, { status: 500 });
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: `Invitation ${action}ed successfully` 
     });
   } catch (error) {

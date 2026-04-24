@@ -11,7 +11,7 @@ export * from './gamificationApi';
 // Export createClient for use in other modules
 export { createClient };
 
-// Supabase configuration — trim to guard against trailing newlines from env pipelines
+// Supabase configuration, trim to guard against trailing newlines from env pipelines
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
@@ -77,7 +77,7 @@ export function createServiceRoleClient() {
 /**
  * Create authenticated Supabase client using Clerk session tokens.
  *
- * **Do not cache** instances keyed by `getToken.toString()` — every
+ * **Do not cache** instances keyed by `getToken.toString()`, every
  * `() => getClerkSupabaseJwt(getToken)` has the same string form, so a singleton
  * would pin the first session's closure and break auth (401 / PGRST301) for
  * other users or after sign-in/out. Creating a client per call is cheap.

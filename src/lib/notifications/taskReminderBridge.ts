@@ -8,7 +8,7 @@ import type { Task } from '@/types/taskTypes';
  * single canonical cancel path that hits the server route, which in turn
  * talks to OneSignal's REST API and marks the local queue rows cancelled.
  *
- * All methods are best-effort and never throw into calling code — a reminder
+ * All methods are best-effort and never throw into calling code, a reminder
  * failing to cancel must never block a task being deleted.
  */
 

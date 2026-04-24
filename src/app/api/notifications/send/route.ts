@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
 
 // Validate required environment variables
@@ -28,12 +29,16 @@ const supabase = requiredEnvVars.NEXT_PUBLIC_SUPABASE_URL && requiredEnvVars.SUP
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId: actorId } = await auth();
+    if (!actorId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Check environment variables first
     if (missingEnvVars.length > 0) {
       console.error('❌ Cannot send notification - missing environment variables:', missingEnvVars);
       return NextResponse.json({ 
-        error: 'Server configuration error - missing environment variables',
-        missingVars: missingEnvVars
+        error: 'Server configuration error'
       }, { status: 500 });
     }
 
@@ -44,37 +49,69 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    const { 
-      userId, 
-      notification 
-    } = await request.json();
+    const { userId, notification } = await request.json();
 
     if (!userId || !notification) {
       return NextResponse.json({ 
         error: 'Missing required fields: userId, notification' 
       }, { status: 400 });
     }
+    const targetUserId = String(userId);
 
-    console.log(`📨 Sending immediate OneSignal notification to user: ${userId}`);
+    // Authorization guard: sender can notify self, accepted connection, or a user in the same group context.
+    let isAuthorized = actorId === targetUserId;
+    if (!isAuthorized) {
+      const { data: connected } = await supabase
+        .from('connections')
+        .select('id')
+        .or(
+          `and(requester_id.eq.${actorId},receiver_id.eq.${targetUserId}),and(requester_id.eq.${targetUserId},receiver_id.eq.${actorId})`,
+        )
+        .eq('status', 'accepted')
+        .maybeSingle();
+      isAuthorized = Boolean(connected);
+    }
+
+    const groupId = notification?.data?.groupId || notification?.data?.group_id;
+    if (!isAuthorized && typeof groupId === 'string') {
+      const { data: actorMembership } = await supabase
+        .from('study_group_members')
+        .select('role')
+        .eq('group_id', groupId)
+        .eq('user_id', actorId)
+        .maybeSingle();
+      const { data: targetMembership } = await supabase
+        .from('study_group_members')
+        .select('id')
+        .eq('group_id', groupId)
+        .eq('user_id', targetUserId)
+        .maybeSingle();
+      isAuthorized = Boolean(actorMembership && targetMembership);
+    }
+
+    if (!isAuthorized) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    console.log(`📨 Sending immediate OneSignal notification to user: ${targetUserId}`);
 
     // Get user's OneSignal player ID from database
     const { data: subscription, error: subscriptionError } = await supabase
       .from('push_subscriptions')
       .select('onesignal_player_id')
-      .eq('external_user_id', userId)
+      .eq('external_user_id', targetUserId)
       .eq('is_active', true)
       .maybeSingle();
 
     if (subscriptionError) {
       console.error('❌ Error fetching subscription:', subscriptionError);
       return NextResponse.json({ 
-        error: 'Failed to fetch user subscription',
-        details: subscriptionError.message 
+        error: 'Failed to fetch user subscription'
       }, { status: 500 });
     }
 
     if (!subscription?.onesignal_player_id) {
-      console.log(`❌ No active OneSignal subscription found for user: ${userId}`);
+      console.log(`❌ No active OneSignal subscription found for user: ${targetUserId}`);
       return NextResponse.json({ 
         error: 'No active OneSignal subscription found for user',
         hasSubscription: false
@@ -148,10 +185,8 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json({ 
         error: 'OneSignal API error',
-        details: oneSignalResult,
-        oneSignalStatus: oneSignalResponse.status,
-        sentPayload: oneSignalPayload
-      }, { status: 500 });
+        oneSignalStatus: oneSignalResponse.status
+      }, { status: 502 });
     }
 
     console.log('✅ OneSignal notification sent successfully:', oneSignalResult);
@@ -160,7 +195,7 @@ export async function POST(request: NextRequest) {
     const { error: trackingError } = await supabase
       .from('notification_queue')
       .insert({
-        clerk_user_id: userId,
+        clerk_user_id: targetUserId,
         onesignal_notification_id: oneSignalResult.id,
         title: notification.headings?.en || 'Notification',
         body: notification.contents?.en || 'You have a notification',
@@ -187,7 +222,6 @@ export async function POST(request: NextRequest) {
     console.error('❌ Notification sending error:', error);
     return NextResponse.json({ 
       error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 } 

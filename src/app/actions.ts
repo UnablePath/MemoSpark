@@ -1,6 +1,8 @@
 'use server'
 
 import { oneSignalService } from '@/lib/notifications/OneSignalService';
+import { createAuthenticatedSupabaseClient } from '@/lib/supabase/client';
+import { wrapClerkTokenForSupabase } from '@/lib/clerk/clerkSupabaseToken';
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
 
@@ -264,25 +266,51 @@ export async function getUserNotificationCategories(): Promise<ActionResult> {
   return { success: true, data: categories };
 }
 
+const DEFAULT_NOTIF_PREFS: Record<string, { enabled: boolean; quietHours: boolean }> = {
+  task_reminders: { enabled: true, quietHours: false },
+  achievements: { enabled: true, quietHours: false },
+  study_breaks: { enabled: true, quietHours: true },
+  streaks: { enabled: true, quietHours: false },
+  general: { enabled: true, quietHours: true },
+  social: { enabled: true, quietHours: false },
+};
+
 export async function getUserNotificationPreferences(): Promise<ActionResult> {
   try {
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
     
     if (!userId) {
       return { success: false, error: 'User not authenticated' };
     }
 
-    // OneSignal manages preferences through their dashboard
-    // Return default preferences structure for compatibility
-    const preferences = {
-      task_reminders: { enabled: true, quietHours: false },
-      achievements: { enabled: true, quietHours: false },
-      study_breaks: { enabled: true, quietHours: true },
-      streaks: { enabled: true, quietHours: false },
-      general: { enabled: true, quietHours: true },
-    };
+    const supabase = createAuthenticatedSupabaseClient(
+      wrapClerkTokenForSupabase(getToken),
+    );
+    if (!supabase) {
+      return { success: true, data: DEFAULT_NOTIF_PREFS };
+    }
 
-    return { success: true, data: preferences };
+    const { data: row, error } = await supabase
+      .from('clerk_notification_preferences')
+      .select('categories')
+      .eq('clerk_user_id', userId)
+      .maybeSingle();
+
+    if (error || !row?.categories) {
+      return { success: true, data: { ...DEFAULT_NOTIF_PREFS } };
+    }
+
+    const raw = row.categories as Record<string, { enabled?: boolean; quietHours?: boolean }>;
+    const merged = { ...DEFAULT_NOTIF_PREFS };
+    for (const [k, v] of Object.entries(raw)) {
+      if (v && typeof v === 'object') {
+        merged[k] = {
+          enabled: v.enabled !== false,
+          quietHours: Boolean(v.quietHours),
+        };
+      }
+    }
+    return { success: true, data: merged };
   } catch (error) {
     console.error('Error in getUserNotificationPreferences action:', error);
     return { success: false, error: 'Failed to get notification preferences' };
@@ -297,17 +325,53 @@ export async function updateNotificationPreferences(
   }
 ): Promise<ActionResult> {
   try {
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
     
     if (!userId) {
       return { success: false, error: 'User not authenticated' };
     }
 
-    // OneSignal manages preferences through their dashboard
-    // This is a placeholder for compatibility
-    console.log('Notification preferences update requested:', { userId, categoryId, preferences });
+    const supabase = createAuthenticatedSupabaseClient(
+      wrapClerkTokenForSupabase(getToken),
+    );
+    if (!supabase) {
+      return { success: false, error: 'Database not configured' };
+    }
 
-    return { success: true, data: { updated: true, message: 'Preferences managed by OneSignal dashboard' } };
+    const { data: row } = await supabase
+      .from('clerk_notification_preferences')
+      .select('categories')
+      .eq('clerk_user_id', userId)
+      .maybeSingle();
+
+    const prev = (row?.categories as Record<string, { enabled: boolean; quietHours: boolean }>) ?? {};
+    const next = {
+      ...DEFAULT_NOTIF_PREFS,
+      ...prev,
+      [categoryId]: {
+        enabled: preferences.enabled !== false,
+        quietHours: Boolean(preferences.quietHours),
+      },
+    };
+
+    const { error } = await supabase
+      .from('clerk_notification_preferences')
+      .upsert(
+        {
+          clerk_user_id: userId,
+          categories: next,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'clerk_user_id' },
+      );
+
+    if (error) {
+      console.error('clerk_notification_preferences upsert:', error);
+      return { success: false, error: 'Failed to save notification preferences' };
+    }
+
+    revalidatePath('/settings');
+    return { success: true, data: { updated: true, message: 'Preferences saved' } };
   } catch (error) {
     console.error('Error in updateNotificationPreferences action:', error);
     return { success: false, error: 'Failed to update notification preferences' };

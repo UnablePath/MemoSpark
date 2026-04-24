@@ -178,14 +178,30 @@ export const AIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   }, [isGenerating, patternEngine, authUserId, userPreferences]);
 
   const acceptSuggestion = useCallback((suggestionId: string) => {
+    const suggestion = suggestions.find((s) => s.id === suggestionId);
     setSuggestions(prev => prev.filter(s => s.id !== suggestionId));
-    patternEngine.trackFeedback(suggestionId, true);
-  }, [patternEngine]);
+    patternEngine.trackFeedback(
+      suggestionId,
+      true,
+      authUserId,
+      suggestion
+        ? { type: suggestion.type, title: suggestion.title, source: suggestion.source }
+        : undefined,
+    );
+  }, [patternEngine, authUserId, suggestions]);
 
   const rejectSuggestion = useCallback((suggestionId: string) => {
+    const suggestion = suggestions.find((s) => s.id === suggestionId);
     setSuggestions(prev => prev.filter(s => s.id !== suggestionId));
-    patternEngine.trackFeedback(suggestionId, false);
-  }, [patternEngine]);
+    patternEngine.trackFeedback(
+      suggestionId,
+      false,
+      authUserId,
+      suggestion
+        ? { type: suggestion.type, title: suggestion.title, source: suggestion.source }
+        : undefined,
+    );
+  }, [patternEngine, authUserId, suggestions]);
 
   // Effect to fetch preferences from Supabase when authUserId becomes available
   useEffect(() => {
