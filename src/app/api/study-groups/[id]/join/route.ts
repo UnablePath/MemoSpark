@@ -31,7 +31,7 @@ export async function POST(
 
     // Check privacy level
     const privacyLevel = group.privacy_level || group.metadata?.privacy_level || 'public';
-    if (privacyLevel === 'private') {
+    if (privacyLevel === 'private' || privacyLevel === 'invite_only') {
       return NextResponse.json({ 
         error: 'This group is private. You need an invitation to join.' 
       }, { status: 403 });
@@ -66,13 +66,21 @@ export async function POST(
       }
     }
 
+    // Fetch role_id for member
+    const { data: roleData } = await supabase
+      .from('group_roles')
+      .select('id')
+      .eq('name', 'member')
+      .maybeSingle();
+
     // Add user as member
     const { data: membership, error: joinError } = await supabase
       .from('study_group_members')
       .insert({
         group_id: groupId,
         user_id: userId,
-        role: 'member'
+        role: 'member',
+        role_id: roleData?.id ?? null
       })
       .select()
       .single();
@@ -87,12 +95,19 @@ export async function POST(
 
     // Add user to group conversation if it exists
     if (group.conversation_id) {
-      await supabase
+      const { error: convError } = await supabase
         .from('conversation_participants')
         .insert({
           conversation_id: group.conversation_id,
           user_id: userId
         });
+
+      if (convError && (convError as any).code !== '23505') {
+        console.error('Error adding user to conversation:', convError);
+        // We don't necessarily want to fail the whole join if the chat sync fails,
+        // but for high-end collaborative apps, the chat is essential.
+        // We will return a partial success or warning if needed, but here we'll log it.
+      }
     }
 
     return NextResponse.json({ 

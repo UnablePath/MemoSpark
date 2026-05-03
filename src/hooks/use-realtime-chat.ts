@@ -91,6 +91,7 @@ export function useRealtimeChat({
   >([]);
 
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const presencePeersRef = useRef<{ key: string; name: string }[]>([]);
   const typingClearRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
     new Map(),
   );
@@ -137,7 +138,6 @@ export function useRealtimeChat({
       channel = client
         .channel(roomName, {
           config: {
-            private: true,
             broadcast: { ack: true },
             presence: { key: userId },
           },
@@ -193,6 +193,7 @@ export function useRealtimeChat({
             const first = presences?.[0];
             peers.push({ key, name: first?.name || first?.userId || key });
           }
+          presencePeersRef.current = peers;
           setPresencePeers(peers);
         })
         .on(
@@ -211,15 +212,35 @@ export function useRealtimeChat({
               created_at: string;
             };
             if (!row?.id) return;
+            
             setMessages((prev) => {
               if (prev.some((m) => m.id === row.id)) return prev;
+              
+              // Resolve sender name:
+              // 1. Current user? Use local userDisplayName
+              // 2. Already in history? Use that name
+              // 3. Currently online (Presence)? Use presence name
+              // 4. Fallback to UUID
+              let resolvedName = row.sender_id;
+              if (row.sender_id === userId) {
+                resolvedName = userDisplayName;
+              } else {
+                const historicalMatch = prev.find((m) => m.senderId === row.sender_id && m.user.name !== row.sender_id);
+                if (historicalMatch) {
+                  resolvedName = historicalMatch.user.name;
+                } else {
+                  // Check presence ref (sync state)
+                  const presenceMatch = presencePeersRef.current.find(p => p.key === row.sender_id);
+                  if (presenceMatch) {
+                    resolvedName = presenceMatch.name;
+                  }
+                }
+              }
+
               return mergeById(prev, {
                 id: row.id,
                 content: row.content,
-                user: {
-                  name:
-                    row.sender_id === userId ? userDisplayName : row.sender_id,
-                },
+                user: { name: resolvedName },
                 createdAt: row.created_at,
                 senderId: row.sender_id,
               });
@@ -284,28 +305,52 @@ export function useRealtimeChat({
     async (raw: string) => {
       const text = raw.trim();
       if (!text || !conversationId) return;
-      const saved = await messaging.sendMessage({
-        userId,
-        conversationId,
-        content: text,
-        recipientId: userId,
-      });
-      const chatMsg = fromInsertRow(saved, userDisplayName);
-      setMessages((prev) => mergeById(prev, chatMsg));
 
+      // 1. Optimistic UI Update with True UUID (Prevents duplicate messages on postgres_changes)
+      const messageId = crypto.randomUUID();
+      const optimisticMsg: RealtimeChatMessage = {
+        id: messageId,
+        content: text,
+        user: { name: userDisplayName },
+        createdAt: new Date().toISOString(),
+        senderId: userId,
+      };
+
+      setMessages((prev) => mergeById(prev, optimisticMsg));
+
+      // 2. Broadcast immediately to peers
       const ch = channelRef.current;
       if (ch) {
         void ch.send({
           type: "broadcast",
           event: "message",
           payload: {
-            id: saved.id,
-            content: saved.content,
-            userName: chatMsg.user.name,
-            createdAt: saved.created_at,
+            id: messageId,
+            content: text,
+            userName: userDisplayName,
+            createdAt: optimisticMsg.createdAt,
             senderId: userId,
           },
         });
+      }
+
+      try {
+        // 3. Persist to database in background WITH the predefined ID
+        const saved = await messaging.sendMessage({
+          id: messageId,
+          userId,
+          conversationId,
+          content: text,
+        });
+
+        // 4. Swap optimistic ID with real DB ID (though they are now identical, this updates status)
+        setMessages((prev) => 
+          prev.map((msg) => msg.id === messageId ? fromInsertRow(saved, userDisplayName) : msg)
+        );
+      } catch (error) {
+        console.error("Failed to send message:", error);
+        // Rollback optimistic message on failure
+        setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
       }
     },
     [conversationId, messaging, userDisplayName, userId],

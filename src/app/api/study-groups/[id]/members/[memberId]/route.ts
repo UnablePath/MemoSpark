@@ -138,6 +138,21 @@ export async function DELETE(
       return NextResponse.json({ error: 'Failed to remove member' }, { status: 500 });
     }
 
+    // Also remove them from the conversation if one exists
+    const { data: group } = await supabase
+      .from('study_groups')
+      .select('conversation_id')
+      .eq('id', groupId)
+      .single();
+
+    if (group?.conversation_id) {
+      await supabase
+        .from('conversation_participants')
+        .delete()
+        .eq('conversation_id', group.conversation_id)
+        .eq('user_id', memberId);
+    }
+
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('Error in DELETE /api/study-groups/[id]/members/[memberId]:', error);

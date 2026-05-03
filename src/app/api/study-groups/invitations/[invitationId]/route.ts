@@ -70,6 +70,12 @@ export async function POST(
         .eq('user_id', userId)
         .maybeSingle();
 
+      const { data: roleData } = await supabase
+        .from('group_roles')
+        .select('id')
+        .eq('name', 'member')
+        .maybeSingle();
+
       // Add user to group
       const { error: memberError } = existingMembership
         ? { error: null }
@@ -78,7 +84,8 @@ export async function POST(
             .insert({
               group_id: invitation.group_id,
               user_id: userId,
-              role: 'member'
+              role: 'member',
+              role_id: roleData?.id ?? null
             });
 
       if (memberError) {

@@ -251,6 +251,7 @@ export class MessagingService {
   }
 
   async sendMessage(params: {
+    id?: string;
     userId: string;
     recipientId?: string;
     content: string;
@@ -261,6 +262,7 @@ export class MessagingService {
     metadata?: Record<string, unknown>;
   }): Promise<Message> {
     const {
+      id,
       userId,
       recipientId,
       content,
@@ -286,8 +288,9 @@ export class MessagingService {
       const finalContent = encrypted ? this.encrypt(content) : content;
 
       const messageToInsert: MessageInsert = {
+        ...(id ? { id } : {}),
         sender_id: userId,
-        recipient_id: recipientId ?? userId,
+        recipient_id: recipientId ?? null,
         conversation_id: finalConversationId,
         content: finalContent,
         message_type: messageType,

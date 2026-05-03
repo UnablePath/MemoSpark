@@ -178,9 +178,6 @@ export const StudyGroupHub: React.FC = () => {
 
   useEffect(() => {
     if (!isPopoverOpen || !selectedGroupId) return;
-    // #region agent log
-    fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'members-tab-debug',hypothesisId:'H1',location:'StudyGroupHub.tsx:164',message:'members query state changed',data:{selectedGroupId,membersStatus:membersQuery.status,membersFetchStatus:membersQuery.fetchStatus,membersLength:groupMembers.length,hasSelectedGroup:Boolean(selectedGroup)},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
   }, [isPopoverOpen, selectedGroupId, selectedGroup, membersQuery.status, membersQuery.fetchStatus, groupMembers.length]);
 
   useEffect(() => {

@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
     if (!name || typeof name !== 'string' || !name.trim()) {
       return NextResponse.json({ error: 'Group name is required' }, { status: 400 });
     }
-    if (!['public', 'private'].includes(String(privacy_level))) {
+    if (!['public', 'private', 'invite_only'].includes(String(privacy_level))) {
       return NextResponse.json({ error: 'Invalid privacy_level' }, { status: 400 });
     }
     if (max_members !== null && (!Number.isInteger(max_members) || max_members < 2)) {
@@ -172,18 +172,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create group' }, { status: 500 });
     }
 
+    // Fetch role_id for owner
+    const { data: roleData } = await supabase
+      .from('group_roles')
+      .select('id')
+      .eq('name', 'owner')
+      .maybeSingle();
+
     // Add creator as first member with admin role
     const { error: memberError } = await supabase
       .from('study_group_members')
       .insert({
         group_id: group.id,
         user_id: userId,
-        role: 'owner'
+        role: 'owner',
+        role_id: roleData?.id ?? null
       });
 
     if (memberError) {
       console.error('Error adding creator as member:', memberError);
-      // Don't fail the request, but log the error
+      return NextResponse.json({ error: 'Failed to initialize group membership' }, { status: 500 });
     }
 
     // Create a conversation for the group chat
@@ -198,7 +206,14 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (!conversationError && conversation) {
+    if (conversationError) {
+      console.error('Error creating conversation:', conversationError);
+      // We still return 201 but the group might be missing a chat. 
+      // Ideally we'd fail here too to ensure consistent collaboration.
+      return NextResponse.json({ error: 'Failed to create group chat' }, { status: 500 });
+    }
+
+    if (conversation) {
       // Update group with conversation_id
       await supabase
         .from('study_groups')
@@ -206,12 +221,16 @@ export async function POST(request: NextRequest) {
         .eq('id', group.id);
 
       // Add creator as conversation participant
-      await supabase
+      const { error: partError } = await supabase
         .from('conversation_participants')
         .insert({
           conversation_id: conversation.id,
           user_id: userId
         });
+        
+      if (partError) {
+        console.error('Error adding creator to conversation:', partError);
+      }
     }
 
     return NextResponse.json({ 

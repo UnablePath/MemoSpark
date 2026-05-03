@@ -137,7 +137,7 @@ export async function PUT(
     if (name) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (privacy_level) {
-      updateData.metadata = { privacy_level };
+      updateData.privacy_level = privacy_level;
     }
 
     const { data: group, error: updateError } = await supabase
@@ -179,7 +179,7 @@ export async function DELETE(
     // Check if user is the creator/owner (delete is owner-only).
     const { data: group, error: groupError } = await supabase
       .from('study_groups')
-      .select('created_by')
+      .select('created_by, conversation_id')
       .eq('id', groupId)
       .single();
 
@@ -199,7 +199,7 @@ export async function DELETE(
       }
     }
 
-    // Delete the group (cascade will handle related records)
+    // Delete the group (cascade will handle related records in study_group_members, etc.)
     const { error: deleteError } = await supabase
       .from('study_groups')
       .delete()
@@ -208,6 +208,14 @@ export async function DELETE(
     if (deleteError) {
       console.error('Error deleting group:', deleteError);
       return NextResponse.json({ error: 'Failed to delete group' }, { status: 500 });
+    }
+
+    // Delete associated conversation if it exists
+    if (group.conversation_id) {
+      await supabase
+        .from('conversations')
+        .delete()
+        .eq('id', group.conversation_id);
     }
 
     return NextResponse.json({ message: 'Group deleted successfully' });

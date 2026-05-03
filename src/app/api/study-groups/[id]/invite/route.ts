@@ -27,7 +27,10 @@ export async function POST(
 
     const groupId = params.id;
     const body = await request.json();
-    const { invitee_email, invitee_id } = body;
+    const invitee_email = body.invitee_email || body.inviteeEmail;
+    const invitee_id = body.invitee_id || body.inviteeId;
+    const invitee_name = body.invitee_name || body.inviteeName;
+    const message = body.message;
     // #region agent log
     fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'invite-debug-1',hypothesisId:'H1',location:'src/app/api/study-groups/[id]/invite/route.ts:30',message:'invite request received',data:{groupId,hasInviteeEmail:Boolean(invitee_email),hasInviteeId:Boolean(invitee_id),inviteeEmailDomain:typeof invitee_email==='string'&&invitee_email.includes('@')?invitee_email.split('@')[1]:null},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
@@ -187,6 +190,9 @@ export async function POST(
         group_id: groupId,
         inviter_id: userId,
         invitee_id: targetUserId,
+        invitee_email: invitee_email || null,
+        invitee_name: invitee_name || null,
+        message: message || null,
         status: 'pending'
       })
       .select()

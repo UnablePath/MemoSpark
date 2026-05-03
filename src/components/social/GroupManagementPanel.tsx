@@ -99,9 +99,6 @@ export default function GroupManagementPanel({
 
   useEffect(() => {
     if (!groupId) return;
-    // #region agent log
-    fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'manage-tab-debug',hypothesisId:'H2',location:'GroupManagementPanel.tsx:95',message:'manage panel state',data:{groupId,activeTab,membersLoading,membersCount:members?.length ?? 0,currentUserId:user?.id ?? null,currentUserRole:currentUserRole ?? null,canInvite,canManageMembers,canChangeRoles},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
   }, [groupId, activeTab, membersLoading, members?.length, user?.id, currentUserRole, canInvite, canManageMembers, canChangeRoles]);
 
   const renderPermissionBadges = (permissions: any) => {
@@ -463,8 +460,8 @@ export default function GroupManagementPanel({
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="font-medium">{invitation.invitee_name}</p>
-                            <p className="text-sm text-muted-foreground">{invitation.invitee_email}</p>
+                            <p className="font-medium">{invitation.invitee?.full_name || 'Unknown User'}</p>
+                            <p className="text-sm text-muted-foreground">{invitation.invitee?.email || 'Unknown Email'}</p>
                             {invitation.message && (
                               <p className="text-sm text-muted-foreground mt-1">"{invitation.message}"</p>
                             )}

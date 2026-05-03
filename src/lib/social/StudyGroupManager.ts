@@ -80,7 +80,7 @@ export class StudyGroupManager {
         body: JSON.stringify({
           name,
           description,
-          privacy_level: privacy_level === 'invite_only' ? 'private' : privacy_level,
+          privacy_level,
           category_id: category_id ?? null,
         })
       });
@@ -355,9 +355,7 @@ export class StudyGroupManager {
    */
   async getGroupMembersWithNames(groupId: string): Promise<StudyGroupMemberWithName[]> {
     try {
-      // #region agent log
-      fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'members-tab-debug',hypothesisId:'H2',location:'StudyGroupManager.ts:359',message:'fetching group members with names',data:{groupId},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
+
       const { data, error } = await this.db()
         .from('study_group_members')
         .select(`
@@ -368,15 +366,11 @@ export class StudyGroupManager {
 
       if (error) {
         console.error('Error fetching group members:', error);
-        // #region agent log
-        fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'members-tab-debug',hypothesisId:'H2',location:'StudyGroupManager.ts:369',message:'group members query failed',data:{groupId,errorCode:(error as any)?.code ?? null,errorMessage:(error as any)?.message ?? 'unknown'},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
+
         return [];
       }
 
-      // #region agent log
-      fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'members-tab-debug',hypothesisId:'H2',location:'StudyGroupManager.ts:374',message:'group members query succeeded',data:{groupId,rowCount:Array.isArray(data)?data.length:0},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
+
 
       return data?.map((member: any) => ({
         ...member,
