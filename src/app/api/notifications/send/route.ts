@@ -1,31 +1,19 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseServerAdmin } from '@/lib/supabase/server';
 
-// Validate required environment variables
+// Standardized Supabase admin client
+const supabase = supabaseServerAdmin;
+
+// Validate required environment variables for OneSignal
 const requiredEnvVars = {
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   NEXT_PUBLIC_ONESIGNAL_APP_ID: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
   ONESIGNAL_REST_API_KEY: process.env.ONESIGNAL_REST_API_KEY
 };
 
-// Check for missing environment variables
 const missingEnvVars = Object.entries(requiredEnvVars)
   .filter(([_, value]) => !value)
   .map(([key, _]) => key);
-
-if (missingEnvVars.length > 0) {
-  console.error('❌ Missing required environment variables:', missingEnvVars);
-}
-
-// Use service role for database operations (only if available)
-const supabase = requiredEnvVars.NEXT_PUBLIC_SUPABASE_URL && requiredEnvVars.SUPABASE_SERVICE_ROLE_KEY
-  ? createClient(
-      requiredEnvVars.NEXT_PUBLIC_SUPABASE_URL,
-      requiredEnvVars.SUPABASE_SERVICE_ROLE_KEY
-    )
-  : null;
 
 export async function POST(request: NextRequest) {
   try {
@@ -123,7 +111,7 @@ export async function POST(request: NextRequest) {
 
     // Prepare OneSignal notification payload according to REST API docs
     const oneSignalPayload = {
-      app_id: requiredEnvVars.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
+      app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
       include_player_ids: [playerId],
       contents: notification.contents || { en: 'You have a new notification' },
       headings: notification.headings || { en: 'MemoSpark' },
@@ -170,7 +158,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Basic ${requiredEnvVars.ONESIGNAL_REST_API_KEY!}`,
+        'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY!}`,
       },
       body: JSON.stringify(oneSignalPayload)
     });

@@ -40,24 +40,9 @@ export const StudyGroupChatTab: React.FC<StudyGroupChatTabProps> = ({
           selectedGroup.description ?? undefined,
           selectedGroup.id,
         );
-        const ok = await studyGroupManager.attachConversationToGroup(
-          selectedGroup.id,
-          conversationId,
-        );
-        if (!ok) {
-          toast.error("Could not link chat to this group");
-          return;
-        }
         onConversationLinked(conversationId);
       }
-      try {
-        await messagingService.addConversationParticipant(
-          conversationId,
-          userId,
-        );
-      } catch {
-        /* may already be a participant */
-      }
+      toast.success("Group chat is ready");
       toast.success("Group chat is ready");
     } catch (e) {
       console.error(e);

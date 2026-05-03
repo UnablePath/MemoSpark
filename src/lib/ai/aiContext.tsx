@@ -3,6 +3,7 @@
 import type React from 'react';
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react'
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useAuth } from '@clerk/nextjs';
 import { supabase, supabaseHelpers } from '../supabase/client';
 import { PatternRecognitionEngine } from '../ai/patternEngine'; // Import the main engine
 import type { AISuggestion } from '@/types/ai'; // Import AISuggestion from centralized types
@@ -57,24 +58,13 @@ export const AIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     defaultUserAIPreferences
   );
   const [authUserId, setAuthUserId] = useState<string | undefined>(undefined);
+  const { userId, isLoaded: isAuthLoaded } = useAuth();
 
   useEffect(() => {
-    const getAuthUser = async () => {
-      if (!supabase) return;
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          setAuthUserId(user.id);
-        } else {
-          setAuthUserId(undefined); // Explicitly set to undefined if no user
-        }
-      } catch (error) {
-        console.error("Error fetching auth user:", error);
-        setAuthUserId(undefined);
-      }
-    };
-    getAuthUser();
-  }, []);
+    if (isAuthLoaded) {
+      setAuthUserId(userId || undefined);
+    }
+  }, [userId, isAuthLoaded]);
 
   // Pass supabase client to PatternRecognitionEngine constructor
   const patternEngine = useMemo(() => new PatternRecognitionEngine(supabase), [supabase]);

@@ -1,9 +1,10 @@
 import { auth } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseServerAdmin, createServerSupabaseWithClerkJwt } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { generatePostgresBackedSuggestions, generatePremiumFeature } from '@/lib/ai/serverSuggestionPipeline';
 import type { AIFeatureType } from '@/types/ai';
 import type { SubscriptionTier } from '@/types/subscription';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Type guard to check if a string is a valid AIFeatureType
 function isAIFeatureType(feature: string): feature is AIFeatureType {
@@ -25,9 +26,12 @@ function isAIFeatureType(feature: string): feature is AIFeatureType {
  * Generate AI suggestions with tier-aware processing
  */
 export async function POST(request: Request) {
+  let userId: string | null = null;
   try {
     // Get Clerk authentication
-    const { userId, getToken } = await auth();
+    const authResult = await auth();
+    userId = authResult.userId;
+    const getToken = authResult.getToken;
     
     if (!userId) {
       console.log('AI Suggestions API: No userId provided');
@@ -46,7 +50,10 @@ export async function POST(request: Request) {
       }
       body = JSON.parse(text);
     } catch (parseError) {
-      console.error('AI Suggestions API: Invalid JSON in request body:', parseError);
+      console.error('[AI Suggestions API] Invalid JSON in request body:', {
+        message: parseError instanceof Error ? parseError.message : 'Unknown error',
+        error: parseError
+      });
       return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
     }
     
@@ -78,22 +85,20 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Authentication token required' }, { status: 401 });
       }
     } catch (tokenError) {
-      console.error('AI Suggestions API: Error getting Clerk token:', tokenError);
+      console.error('[AI Suggestions API] Error getting Clerk token:', {
+        message: tokenError instanceof Error ? tokenError.message : 'Unknown error',
+        error: tokenError,
+        userId
+      });
       return NextResponse.json({ error: 'Token retrieval failed' }, { status: 401 });
     }
 
     // Create Supabase client with Clerk integration
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-      global: {
-        headers: {
-          Authorization: `Bearer ${clerkToken}`,
-        },
-      },
-    });
+    const supabase = createServerSupabaseWithClerkJwt(clerkToken);
+    
+    if (!supabase) {
+      return NextResponse.json({ error: 'Supabase client initialization failed' }, { status: 500 });
+    }
 
     // Check user subscription status with better error handling
     let userTier: SubscriptionTier = 'free';
@@ -116,20 +121,26 @@ export async function POST(request: Request) {
         // No subscription found, user needs to be created with default free tier
         console.log('AI Suggestions API: No subscription found for user, creating default free subscription');
         try {
-          await supabase
-            .from('user_subscriptions')
-            .insert({
-              clerk_user_id: userId,
-              tier_id: 'free',
-              status: 'active'
-            });
-          console.log('AI Suggestions API: Created default free subscription for user');
+          // Use admin client to create initial subscription
+          if (supabaseServerAdmin) {
+            await supabaseServerAdmin
+              .from('user_subscriptions')
+              .insert({
+                clerk_user_id: userId,
+                tier_id: 'free',
+                status: 'active'
+              });
+            console.log('AI Suggestions API: Created default free subscription for user');
+          }
         } catch (insertError) {
           console.log('AI Suggestions API: Failed to create default subscription, continuing with free tier');
         }
       }
     } catch (subscriptionError) {
-      console.error('AI Suggestions API: Subscription check failed:', subscriptionError);
+      console.error('[AI Suggestions API] Subscription check failed for user:', userId, {
+        message: subscriptionError instanceof Error ? subscriptionError.message : 'Unknown error',
+        error: subscriptionError
+      });
       // Continue with free tier as fallback
     }
 
@@ -161,7 +172,10 @@ export async function POST(request: Request) {
         requestsToday = usage?.ai_requests_count || 0;
       }
     } catch (usageError) {
-      console.error('AI Suggestions API: Usage check failed:', usageError);
+      console.error('[AI Suggestions API] Usage check failed for user:', userId, {
+        message: usageError instanceof Error ? usageError.message : 'Unknown error',
+        error: usageError
+      });
       // Continue with 0 requests as fallback
     }
 
@@ -251,7 +265,7 @@ export async function POST(request: Request) {
     
     // Track usage if successful
     if (aiResult.success) {
-      await trackUsage(supabase, userId, feature);
+      await trackUsage(userId, feature);
     }
 
     // Get updated usage info
@@ -285,7 +299,11 @@ export async function POST(request: Request) {
     });
 
   } catch (error: any) {
-    console.error('AI suggestions API error:', error);
+    console.error('[AI Suggestions API] Critical error processing AI request:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      error,
+      userId
+    });
     return NextResponse.json({
       success: false,
       error: 'AI service temporarily unavailable',
@@ -302,7 +320,7 @@ async function processAIRequest(
   tasks: any[],
   userId: string,
   context: any,
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   effectiveTier: SubscriptionTier,
 ): Promise<{ success: boolean; data?: any; message?: string }> {
   try {
@@ -338,7 +356,10 @@ async function processAIRequest(
         };
     }
   } catch (error: any) {
-    console.error(`Error processing ${feature}:`, error);
+    console.error(`[AI Suggestions API] Error processing feature ${feature} for user ${userId}:`, {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      error
+    });
     return {
       success: false,
       message: `Failed to process ${feature}: ${error.message}`
@@ -353,7 +374,7 @@ async function generateBasicSuggestions(
   tasks: any[],
   userId: string,
   context: any,
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   effectiveTier: SubscriptionTier,
 ) {
   const tier = effectiveTier === 'premium' ? 'premium' : 'free';
@@ -378,7 +399,7 @@ async function generateAdvancedSuggestions(
   tasks: any[],
   userId: string,
   context: any,
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   effectiveTier: SubscriptionTier,
 ) {
   const tier = effectiveTier === 'premium' ? 'premium' : 'free';
@@ -398,9 +419,12 @@ async function generateAdvancedSuggestions(
 
 
 /**
- * Track usage in the database
+ * Track usage in the database bypassing RLS
  */
-async function trackUsage(supabase: any, userId: string, feature: string) {
+async function trackUsage(userId: string, feature: string) {
+  const supabase = supabaseServerAdmin;
+  if (!supabase) return;
+
   const today = new Date().toISOString().split('T')[0];
 
   try {
@@ -410,12 +434,12 @@ async function trackUsage(supabase: any, userId: string, feature: string) {
       .select('*')
       .eq('clerk_user_id', userId)
       .eq('usage_date', today)
-      .single();
+      .maybeSingle();
 
     if (existingUsage) {
       // Update existing record
-      const newCount = (existingUsage.ai_requests_count || 0) + 1;
-      const featureUsage = existingUsage.feature_usage || {};
+      const newCount = (Number(existingUsage.ai_requests_count) || 0) + 1;
+      const featureUsage = (existingUsage.feature_usage as Record<string, number>) || {};
       featureUsage[feature] = (featureUsage[feature] || 0) + 1;
 
       await supabase
@@ -439,7 +463,12 @@ async function trackUsage(supabase: any, userId: string, feature: string) {
         });
     }
   } catch (error) {
-    console.error('Error tracking usage:', error);
+    console.error('[AI Suggestions API] Error tracking usage in database:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      error,
+      userId,
+      feature
+    });
     // Don't throw error, just log it
   }
 } 

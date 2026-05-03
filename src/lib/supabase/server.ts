@@ -19,8 +19,9 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 export const supabaseServer = (supabaseUrl && supabaseAnonKey) 
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
-        persistSession: false, // Server doesn't need session persistence
+        persistSession: false,
         autoRefreshToken: false,
+        detectSessionInUrl: false,
       },
     })
   : null;
@@ -31,6 +32,7 @@ export const supabaseServerAdmin = (supabaseUrl && supabaseServiceRoleKey)
       auth: {
         persistSession: false,
         autoRefreshToken: false,
+        detectSessionInUrl: false,
       },
     })
   : null;
@@ -45,6 +47,7 @@ export function createServerSupabaseWithClerkJwt(clerkJwt: string) {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
+      detectSessionInUrl: false,
     },
     global: {
       headers: {

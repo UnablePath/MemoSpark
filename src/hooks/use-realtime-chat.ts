@@ -92,14 +92,15 @@ export function useRealtimeChat({
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const presencePeersRef = useRef<{ key: string; name: string }[]>([]);
-  const typingClearRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
-    new Map(),
-  );
-
+  
   const loadHistory = useCallback(async () => {
     if (!conversationId || !userId) return;
-    const rows = await messaging.getMessages(conversationId, userId, 80, 0);
-    setMessages(sortChronological(rows.map(toChatMessage)));
+    try {
+      const rows = await messaging.getMessages(conversationId, userId, 80, 0);
+      setMessages(sortChronological(rows.map(toChatMessage)));
+    } catch (err) {
+      console.error("[RealtimeChat] Failed to load history:", err);
+    }
   }, [conversationId, messaging, userId]);
 
   useEffect(() => {
@@ -120,53 +121,34 @@ export function useRealtimeChat({
 
     const setup = async () => {
       setStatus("connecting");
-      try {
-        const jwt = await getJwt();
-        const rt = client.realtime as unknown as {
-          setAuth?: (t: string) => void;
-        };
-        if (jwt && typeof rt.setAuth === "function") {
-          rt.setAuth(jwt);
-        }
-      } catch {
-        /* continue */
-      }
-
+      
+      // 1. Pre-load history
       await loadHistory();
       if (cancelled) return;
 
-      channel = client
-        .channel(roomName, {
-          config: {
-            broadcast: { ack: true },
-            presence: { key: userId },
-          },
-        })
+      // 2. Initialize Channel
+      channel = client.channel(roomName, {
+        config: {
+          broadcast: { ack: true },
+          presence: { key: userId },
+        },
+      });
+
+      // 3. Setup Listeners
+      channel
         .on(
           "broadcast",
           { event: "message" },
-          ({
-            payload,
-          }: {
-            payload: {
-              id: string;
-              content: string;
-              userName: string;
-              createdAt: string;
-              senderId?: string;
-            };
-          }) => {
+          ({ payload }: { payload: any }) => {
             if (!payload?.id) return;
-            setMessages((prev) =>
-              mergeById(prev, {
-                id: payload.id,
-                content: payload.content,
-                user: { name: payload.userName },
-                createdAt: payload.createdAt,
-                senderId: payload.senderId,
-              }),
-            );
-          },
+            setMessages((prev) => mergeById(prev, {
+              id: payload.id,
+              content: payload.content,
+              user: { name: payload.userName },
+              createdAt: payload.createdAt,
+              senderId: payload.senderId,
+            }));
+          }
         )
         .on(
           "broadcast",
@@ -179,17 +161,15 @@ export function useRealtimeChat({
               else n.delete(payload.userId);
               return n;
             });
-          },
+          }
         )
         .on("presence", { event: "sync" }, () => {
-          if (!channel) return;
-          const state = channel.presenceState();
+          const state = channel?.presenceState();
+          if (!state) return;
+          
           const peers: { key: string; name: string }[] = [];
           for (const key of Object.keys(state)) {
-            const presences = state[key] as {
-              userId?: string;
-              name?: string;
-            }[];
+            const presences = state[key] as any[];
             const first = presences?.[0];
             peers.push({ key, name: first?.name || first?.userId || key });
           }
@@ -205,22 +185,12 @@ export function useRealtimeChat({
             filter: `conversation_id=eq.${conversationId}`,
           },
           (payload) => {
-            const row = payload.new as {
-              id: string;
-              content: string;
-              sender_id: string;
-              created_at: string;
-            };
+            const row = payload.new as any;
             if (!row?.id) return;
             
             setMessages((prev) => {
               if (prev.some((m) => m.id === row.id)) return prev;
               
-              // Resolve sender name:
-              // 1. Current user? Use local userDisplayName
-              // 2. Already in history? Use that name
-              // 3. Currently online (Presence)? Use presence name
-              // 4. Fallback to UUID
               let resolvedName = row.sender_id;
               if (row.sender_id === userId) {
                 resolvedName = userDisplayName;
@@ -229,11 +199,8 @@ export function useRealtimeChat({
                 if (historicalMatch) {
                   resolvedName = historicalMatch.user.name;
                 } else {
-                  // Check presence ref (sync state)
                   const presenceMatch = presencePeersRef.current.find(p => p.key === row.sender_id);
-                  if (presenceMatch) {
-                    resolvedName = presenceMatch.name;
-                  }
+                  if (presenceMatch) resolvedName = presenceMatch.name;
                 }
               }
 
@@ -245,17 +212,26 @@ export function useRealtimeChat({
                 senderId: row.sender_id,
               });
             });
-          },
+          }
         );
 
       channelRef.current = channel;
 
+      // 4. Subscribe with Auth
+      const jwt = await getJwt();
+      if (jwt) {
+        // Explicitly set auth for the realtime socket
+        (client.realtime as any).setAuth(jwt);
+      }
+
       channel.subscribe(async (subStatus) => {
         if (cancelled || !channel) return;
+        
         if (subStatus === "SUBSCRIBED") {
           setStatus("subscribed");
           await channel.track({ userId, name: userDisplayName });
         } else if (subStatus === "CHANNEL_ERROR" || subStatus === "TIMED_OUT") {
+          console.error(`[RealtimeChat] Channel status: ${subStatus}`);
           setStatus("error");
         }
       });
@@ -265,40 +241,24 @@ export function useRealtimeChat({
 
     return () => {
       cancelled = true;
-      for (const t of typingClearRef.current.values()) {
-        clearTimeout(t);
-      }
-      typingClearRef.current.clear();
-      channelRef.current = null;
       if (channel) {
-        try {
-          void client.removeChannel(channel);
-        } catch {
-          /* ignore */
-        }
+        void client.removeChannel(channel);
       }
+      channelRef.current = null;
     };
-  }, [
-    conversationId,
-    enabled,
-    getJwt,
-    loadHistory,
-    roomName,
-    userDisplayName,
-    userId,
-  ]);
+  }, [conversationId, enabled, getJwt, loadHistory, roomName, userDisplayName, userId]);
 
   const sendTyping = useCallback(
     (isTyping: boolean) => {
       const ch = channelRef.current;
-      if (!ch) return;
+      if (!ch || status !== "subscribed") return;
       void ch.send({
         type: "broadcast",
         event: "typing",
         payload: { userId, isTyping },
       });
     },
-    [userId],
+    [userId, status],
   );
 
   const sendMessage = useCallback(
@@ -306,7 +266,6 @@ export function useRealtimeChat({
       const text = raw.trim();
       if (!text || !conversationId) return;
 
-      // 1. Optimistic UI Update with True UUID (Prevents duplicate messages on postgres_changes)
       const messageId = crypto.randomUUID();
       const optimisticMsg: RealtimeChatMessage = {
         id: messageId,
@@ -316,11 +275,12 @@ export function useRealtimeChat({
         senderId: userId,
       };
 
+      // Apply optimistic update
       setMessages((prev) => mergeById(prev, optimisticMsg));
 
-      // 2. Broadcast immediately to peers
+      // Broadcast to online peers for instant gratification
       const ch = channelRef.current;
-      if (ch) {
+      if (ch && status === "subscribed") {
         void ch.send({
           type: "broadcast",
           event: "message",
@@ -335,25 +295,20 @@ export function useRealtimeChat({
       }
 
       try {
-        // 3. Persist to database in background WITH the predefined ID
-        const saved = await messaging.sendMessage({
+        await messaging.sendMessage({
           id: messageId,
           userId,
           conversationId,
           content: text,
         });
-
-        // 4. Swap optimistic ID with real DB ID (though they are now identical, this updates status)
-        setMessages((prev) => 
-          prev.map((msg) => msg.id === messageId ? fromInsertRow(saved, userDisplayName) : msg)
-        );
+        // Success: the postgres_changes listener will handle the official row swap if needed,
+        // but since we used the same ID, mergeById will handle it.
       } catch (error) {
-        console.error("Failed to send message:", error);
-        // Rollback optimistic message on failure
+        console.error("[RealtimeChat] Failed to persist message:", error);
         setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
       }
     },
-    [conversationId, messaging, userDisplayName, userId],
+    [conversationId, messaging, userDisplayName, userId, status],
   );
 
   return {

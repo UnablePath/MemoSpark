@@ -1,6 +1,4 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase/client';
-import { tryGetSupabaseUrl, tryGetSupabaseAnonKey } from '@/lib/supabase/env';
+import { type SupabaseClient } from '@supabase/supabase-js';
 
 declare global {
   interface Window {
@@ -70,15 +68,17 @@ export class OneSignalService {
   private isInitialized = false;
 
   private get supabase(): SupabaseClient {
-    if (!this._supabase) {
-      const url = tryGetSupabaseUrl();
-      const key = tryGetSupabaseAnonKey();
-      if (!url || !key) throw new Error('Supabase env vars missing');
-      this._supabase = createClient(url, key, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
+    if (typeof window !== 'undefined') {
+      // Client-side: use the standard singleton
+      const { supabase } = require('@/lib/supabase/client');
+      if (!supabase) throw new Error('Supabase client singleton not available');
+      return supabase;
+    } else {
+      // Server-side: use the admin client for system-level notifications
+      const { supabaseServerAdmin } = require('@/lib/supabase/server');
+      if (!supabaseServerAdmin) throw new Error('Supabase server admin client not available');
+      return supabaseServerAdmin;
     }
-    return this._supabase;
   }
 
   constructor() {
@@ -229,7 +229,7 @@ export class OneSignalService {
       const { error } = await this.supabase
         .from('push_subscriptions')
         .upsert({
-          user_id: clerkUserId, // Using auth.users(id) - will be mapped via RLS
+          clerk_user_id: clerkUserId, // Using clerk_user_id consistently
           external_user_id: clerkUserId, // Clerk user ID
           onesignal_player_id: playerId,
           device_type: 'web',

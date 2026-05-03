@@ -36,6 +36,7 @@ export class TutorialActionDetector {
    * Initialize action detection for a user
    */
   public initialize(userId: string): void {
+    console.log('[TutorialActionDetector] Initializing for user:', userId);
     this.userId = userId;
     this.cleanup(); // Clean up any existing listeners
     this.setupGlobalActionListeners();
@@ -69,8 +70,11 @@ export class TutorialActionDetector {
     action: string,
     config: TutorialActionDetectionConfig
   ): Promise<void> {
-    if (this.activeListeners.has(action)) {
-      this.cleanup();
+    // Clean up existing listener for THIS action if it exists
+    const existing = this.activeListeners.get(action);
+    if (existing) {
+      existing.cleanup();
+      this.activeListeners.delete(action);
     }
 
     const listeners: (() => void)[] = [];
@@ -216,7 +220,10 @@ export class TutorialActionDetector {
       try {
         return element.matches(selector) || element.closest(selector) !== null;
       } catch (error) {
-        console.warn(`Invalid selector: ${selector}`, error);
+        console.warn(`[TutorialActionDetector] Invalid selector "${selector}":`, {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          error
+        });
         return false;
       }
     });
@@ -351,12 +358,17 @@ export class TutorialActionDetector {
       // Reset retry count
       this.retryAttempts.delete(action);
 
-      console.log(`Tutorial action completed: ${action}`);
+      console.log(`[TutorialActionDetector] Action completed: ${action}`);
       
       await this.tutorialManager.markActionCompleted(this.userId, action);
       await this.tutorialManager.resumeTutorial(this.userId);
     } catch (error) {
-      console.error('Error handling action completion:', error);
+      console.error('[TutorialActionDetector] Error handling action completion:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error,
+        action,
+        userId: this.userId
+      });
       const tutorialError = this.errorHandler.createError(
         TUTORIAL_ERROR_CODES.STEP_VALIDATION_FAILED,
         `Failed to process completed action: ${action}`,
@@ -377,7 +389,7 @@ export class TutorialActionDetector {
     if (retryCount < this.maxRetries && config.retries !== 0) {
       // Retry the action detection
       this.retryAttempts.set(action, retryCount + 1);
-      console.log(`Retrying action detection for ${action} (attempt ${retryCount + 1})`);
+      console.log(`[TutorialActionDetector] Retrying detection for ${action} (attempt ${retryCount + 1}/${this.maxRetries})`);
       
       // Wait a bit before retrying
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -423,7 +435,8 @@ export class TutorialActionDetector {
         }
       } else if (retryCount >= this.maxRetries) {
         console.warn(
-          `[tutorial] Giving up on action "${action}" after ${retryCount} attempts; tearing down detector to prevent loop.`,
+          `[TutorialActionDetector] Max retries reached for action "${action}". Cleaning up to prevent loops.`,
+          { retryCount, error: error.message || error }
         );
         const listener = this.activeListeners.get(action);
         if (listener) {
@@ -437,7 +450,11 @@ export class TutorialActionDetector {
         detail: { error, recovery }
       }));
     } catch (recoveryError) {
-      console.error('Error during recovery:', recoveryError);
+      console.error('[TutorialActionDetector] Error during recovery process:', {
+        message: recoveryError instanceof Error ? recoveryError.message : 'Unknown error',
+        error: recoveryError,
+        action
+      });
     }
   }
 
@@ -459,8 +476,18 @@ export class TutorialActionDetector {
    */
   private setupTabClickListener(): void {
     const config: TutorialActionDetectionConfig = {
-      selectors: ['[role="tablist"] [role="tab"]', '.tab-navigation .tab', '[data-tab]'],
-      fallbackSelectors: ['[class*="tab"]', 'button[data-testid*="tab"]'],
+      selectors: [
+        '[role="tablist"] [role="tab"]',
+        '.tab-navigation .tab',
+        '[data-tab]',
+        'button.tab-btn',
+        '[data-testid^="tab-"]'
+      ],
+      fallbackSelectors: [
+        '[class*="tab"]',
+        'button[data-testid*="tab"]',
+        'nav button'
+      ],
       events: ['click', 'keydown'],
       customEventName: 'tutorialTabChange',
       timeout: 15000,

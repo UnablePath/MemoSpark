@@ -96,17 +96,20 @@ export interface MessageWithDetails extends Message {
 export type ConversationSubscriptionCallbacks = {
   onMessage?: (message: Message) => void;
   onTyping?: (typing: TypingIndicator[]) => void;
-  onReaction?: (reaction: MessageReaction) => void;
+  onReaction?: (reaction: MessageReaction, event: 'INSERT' | 'UPDATE' | 'DELETE') => void;
   onMessageUpdate?: (message: Message) => void;
 };
 
 const LOG_PREFIX = '[MessagingService]';
 
 function logError(context: string, error: unknown, extra: Record<string, unknown> = {}) {
-  const message = error instanceof Error ? error.message : JSON.stringify(error);
-  if (process.env.NODE_ENV === 'development') {
-    console.error(`${LOG_PREFIX}/${context}`, message, { error, ...extra });
-  }
+  const message = error instanceof Error ? error.message : 'Unknown error';
+  console.error(`${LOG_PREFIX} ${context} failed:`, {
+    message,
+    error,
+    ...extra,
+    timestamp: new Date().toISOString()
+  });
 }
 
 export class MessagingService {
@@ -218,19 +221,18 @@ export class MessagingService {
         studyGroupId != null && studyGroupId !== ''
           ? { study_group_id: studyGroupId }
           : {};
-      const { data, error } = await this.supabase
-        .from('conversations')
-        .insert({
-          name,
-          description,
-          created_by: userId,
-          conversation_type: 'group',
-          metadata,
-        })
-        .select('id')
-        .single();
+
+      // Pass userId as p_user_id and include p_description
+      const { data, error } = await this.supabase.rpc('create_group_chat_atomic', {
+        p_name: name,
+        p_user_id: userId,
+        p_description: description || null,
+        p_metadata: metadata,
+        p_study_group_id: studyGroupId || null,
+      });
+
       if (error) throw error;
-      return data.id;
+      return data as string;
     } catch (error) {
       logError('createGroupConversation', error, { name, userId, description });
       throw error;
@@ -606,17 +608,19 @@ export class MessagingService {
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'message_reactions' },
-        async (payload) => {
-          const row = (payload.new || payload.old) as MessageReaction | null;
-          if (!row?.message_id) return;
-          const { data: msg, error } = await this.supabase
-            .from('messages')
-            .select('conversation_id')
-            .eq('id', row.message_id)
-            .maybeSingle();
-          if (error || !msg || msg.conversation_id !== conversationId) return;
-          if (payload.new) callbacks.onReaction?.(payload.new as MessageReaction);
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'message_reactions',
+          filter: `conversation_id=eq.${conversationId}` // Now works thanks to the new column
+        },
+        (payload) => {
+          const eventType = payload.eventType;
+          const reaction = (payload.new || payload.old) as MessageReaction;
+          
+          if (reaction) {
+            callbacks.onReaction?.(reaction, eventType as 'INSERT' | 'DELETE');
+          }
         },
       );
 

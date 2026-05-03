@@ -384,8 +384,8 @@ export class TutorialManager {
         console.log('Tutorial progress: Using cached result for user:', userId);
         return cached.data;
       }
-        // Remove expired cache entry
-        this.progressCache.delete(cacheKey);
+      // Remove expired cache entry
+      this.progressCache.delete(cacheKey);
     }
     
     // Check if there's already a pending request for this user

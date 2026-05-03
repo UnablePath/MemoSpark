@@ -360,7 +360,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const userConversations = await messagingService.getConversations(user.id);
       setConversations(userConversations);
     } catch (error) {
-      console.error('Error loading conversations:', error);
+      console.error('[ChatInterface] Error loading conversations:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error,
+        userId: user?.id
+      });
     } finally {
       setIsLoading(false);
     }
@@ -380,7 +384,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         }
       }
     } catch (error) {
-      console.error('Error loading messages:', error);
+      console.error('[ChatInterface] Error loading messages:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error,
+        conversationId,
+        userId: user?.id
+      });
     } finally {
       setIsLoading(false);
     }
@@ -410,9 +419,28 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         const otherUsersTyping = typing.filter(t => t.user_id !== user?.id);
         setTypingUsers(otherUsersTyping);
       },
-      onReaction: () => {
-        // Reload messages to get updated reactions
-        loadMessages(conversationId);
+      onReaction: (reaction: MessageReaction, event: 'INSERT' | 'UPDATE' | 'DELETE') => {
+        setMessages(prev => 
+          prev.map(msg => {
+            if (msg.id === reaction.message_id) {
+              const currentReactions = msg.reactions || [];
+              if (event === 'INSERT') {
+                // Avoid duplicates
+                if (!currentReactions.some(r => r.id === reaction.id)) {
+                  return { ...msg, reactions: [...currentReactions, reaction] };
+                }
+              } else if (event === 'DELETE') {
+                return { ...msg, reactions: currentReactions.filter(r => r.id !== reaction.id) };
+              } else if (event === 'UPDATE') {
+                return { 
+                  ...msg, 
+                  reactions: currentReactions.map(r => r.id === reaction.id ? reaction : r) 
+                };
+              }
+            }
+            return msg;
+          })
+        );
       },
       onMessageUpdate: (updatedMessage: Message) => {
         setMessages(prev => 
@@ -461,7 +489,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setReplyToMessage(null);
       scrollToBottom();
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('[ChatInterface] Error sending message:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error,
+        conversationId: selectedConversation,
+        userId: user?.id
+      });
     }
   }, [newMessage, selectedConversation, user?.id, conversations, messagingService, replyToMessage, scrollToBottom]);
 
@@ -499,7 +532,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         setEditingContent('');
       }
     } catch (error) {
-      console.error('Error editing message:', error);
+      console.error('[ChatInterface] Error editing message:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error,
+        messageId,
+        userId: user?.id
+      });
     }
   }, [messagingService, user?.id]);
 
@@ -510,7 +548,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         await messagingService.deleteMessage(messageId, user.id);
       }
     } catch (error) {
-      console.error('Error deleting message:', error);
+      console.error('[ChatInterface] Error deleting message:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error,
+        messageId,
+        userId: user?.id
+      });
     }
   }, [messagingService, user?.id]);
 
@@ -521,7 +564,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         await messagingService.addReaction(messageId, user.id, reactionType);
       }
     } catch (error) {
-      console.error('Error adding reaction:', error);
+      console.error('[ChatInterface] Error adding/toggling reaction:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error,
+        messageId,
+        userId: user?.id,
+        reactionType
+      });
     }
   }, [messagingService, user?.id]);
 

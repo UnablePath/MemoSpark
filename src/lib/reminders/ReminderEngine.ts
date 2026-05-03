@@ -1,5 +1,5 @@
 import { taskReminderService } from '@/lib/notifications/TaskReminderService';
-import { createServiceRoleClient, supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { StuCelebration, type CelebrationType } from '@/lib/stu/StuCelebration';
 
 interface Task {
@@ -109,15 +109,9 @@ export class ReminderEngine {
       } as unknown as StuCelebration;
     }
     
-    // Try service role client first, fallback to regular client
-    this.supabaseService = createServiceRoleClient();
+    // Use regular Supabase client (Clerk-authenticated)
+    this.supabaseService = null; // No service role client on client side for security
     this.fallbackClient = supabase;
-    
-    if (!this.supabaseService) {
-      console.warn('⚠️ Service role client not available. Using regular client with limited permissions.');
-      console.warn('📋 To fix: Add SUPABASE_SERVICE_ROLE_KEY to your .env.local file');
-      console.warn('🔑 Get the key from: https://supabase.com/dashboard/project/pexqavlkabbguaqjdfce/settings/api');
-    }
   }
 
   static getInstance(): ReminderEngine {

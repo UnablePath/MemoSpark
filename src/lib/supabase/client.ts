@@ -14,7 +14,6 @@ export { createClient };
 // Supabase configuration, trim to guard against trailing newlines from env pipelines
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 
 // Default AI configuration
 const DEFAULT_AI_CONFIG: SupabaseAIConfig = {
@@ -37,65 +36,81 @@ function createSupabaseClient() {
 
   return createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
-      persistSession: false, // Clerk handles session persistence
-      autoRefreshToken: false, // Clerk handles token refresh
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storage: {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+      },
     },
     global: {
-      headers: {
-        'Authorization': `Bearer ${supabaseAnonKey}`, // Default to anon key
+      fetch: async (url, options = {}) => {
+        const token = typeof currentTokenProvider === 'function' ? await currentTokenProvider() : null;
+        const headers = new Headers(options.headers);
+
+        if (token) {
+          headers.set('Authorization', `Bearer ${token}`);
+        } else {
+          headers.set('Authorization', `Bearer ${supabaseAnonKey}`);
+        }
+
+        return fetch(url, {
+          ...options,
+          headers,
+        });
       },
     },
     realtime: {
       params: {
-        eventsPerSecond: 10, // Higher throughput for bursty realtime updates
+        eventsPerSecond: 10,
       },
     },
   });
 }
 
+
 // Create base Supabase client
 export const supabase = createSupabaseClient();
 
-/**
- * Create Supabase client with service role key for bypassing RLS
- * Only use this for server-side operations that need elevated permissions
- */
-export function createServiceRoleClient() {
-  if (!supabaseUrl || !supabaseServiceKey) {
-    console.warn('Service role configuration missing. Please set SUPABASE_SERVICE_ROLE_KEY');
-    return null;
-  }
-
-  return createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
-}
+let cachedAuthenticatedClient: ReturnType<typeof createClient> | null = null;
+let currentTokenProvider: (() => Promise<string | null>) | null = null;
 
 /**
- * Create authenticated Supabase client using Clerk session tokens.
- *
- * **Do not cache** instances keyed by `getToken.toString()`, every
- * `() => getClerkSupabaseJwt(getToken)` has the same string form, so a singleton
- * would pin the first session's closure and break auth (401 / PGRST301) for
- * other users or after sign-in/out. Creating a client per call is cheap.
+ * Create or return a singleton authenticated Supabase client.
+ * Uses a dynamic token provider to ensure auth stays current without
+ * re-instantiating the entire client (which triggers GoTrue warnings).
  */
 export function createAuthenticatedSupabaseClient(getToken?: () => Promise<string | null>) {
   if (!supabaseUrl || !supabaseAnonKey) {
     return null;
   }
 
-  const client = createClient(supabaseUrl, supabaseAnonKey, {
+  // Update the token provider if a new one is provided
+  if (getToken) {
+    currentTokenProvider = getToken;
+  }
+
+  if (cachedAuthenticatedClient) {
+    return cachedAuthenticatedClient;
+  }
+
+  cachedAuthenticatedClient = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
-      persistSession: false, // Clerk handles session persistence
-      autoRefreshToken: false, // Clerk handles token refresh
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storage: {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+      },
     },
     global: {
-      // Override fetch to add Authorization header with Clerk token
       fetch: async (url, options = {}) => {
-                 const token = getToken ? await getToken() : null;
+        // Always use the latest token provider
+        const token = typeof currentTokenProvider === 'function' ? await currentTokenProvider() : null;
         
         const headers = new Headers(options.headers);
         if (token) {
@@ -112,13 +127,14 @@ export function createAuthenticatedSupabaseClient(getToken?: () => Promise<strin
     },
     realtime: {
       params: {
-        eventsPerSecond: 10, // Higher throughput for bursty realtime updates
+        eventsPerSecond: 10,
       },
     },
   });
 
-  return client;
+  return cachedAuthenticatedClient;
 }
+
 
 // AI configuration management
 class SupabaseAIConfigManager {

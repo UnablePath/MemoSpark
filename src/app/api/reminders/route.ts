@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/client';
+import { supabaseServerAdmin } from '@/lib/supabase/server';
 import type { NextRequest } from 'next/server';
 
 export async function GET() {
@@ -13,7 +13,7 @@ export async function GET() {
     }
 
     // Create Supabase client with service role
-    const supabase = createServiceRoleClient();
+    const supabase = supabaseServerAdmin;
     if (!supabase) {
       return NextResponse.json({ error: 'Database not available' }, { status: 500 });
     }
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create Supabase client with service role
-    const supabase = createServiceRoleClient();
+    const supabase = supabaseServerAdmin;
     if (!supabase) {
       return NextResponse.json({ error: 'Database not available' }, { status: 500 });
     }
@@ -169,7 +169,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Create Supabase client with service role
-    const supabase = createServiceRoleClient();
+    const supabase = supabaseServerAdmin;
     if (!supabase) {
       return NextResponse.json({ error: 'Database not available' }, { status: 500 });
     }
