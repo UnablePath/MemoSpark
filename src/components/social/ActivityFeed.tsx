@@ -48,8 +48,9 @@ function lineForEvent(row: {
 }
 
 /**
- * Social activity feed with manual refresh.
- * Display names are also refreshed in the background (pg_cron).
+ * Social activity feed — shows events from the current student's connections
+ * and connection events involving them.  Display names are backfilled every
+ * 2 minutes via pg_cron; manual refresh also triggers the maintenance RPC.
  */
 export const ActivityFeed: React.FC = () => {
   const reduceMotion = useReducedMotion();
@@ -146,8 +147,8 @@ export const ActivityFeed: React.FC = () => {
                   &lt; NO RECENT ACTIVITY /&gt;
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Nothing yet. Join a group, start a session, or connect with
-                  someone and it will show up here.
+                  Nothing from your connections yet. Connect with a classmate
+                  and their activity will show up here.
                 </p>
               </div>
               <motion.span

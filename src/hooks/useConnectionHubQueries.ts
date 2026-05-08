@@ -1,6 +1,7 @@
 "use client";
 
 import { studyGroupKeys } from "@/hooks/useStudyGroupQueries";
+import { createAuthenticatedSupabaseClient } from "@/lib/supabase/client";
 import { StudentDiscovery } from "@/lib/social/StudentDiscovery";
 import { StudyGroupManager } from "@/lib/social/StudyGroupManager";
 import { useAuth } from "@clerk/nextjs";
@@ -111,4 +112,84 @@ export function useConnectionHubOutgoing(
     },
     enabled: Boolean(userId && studentDiscovery),
   });
+}
+
+/**
+ * Subscribes to Supabase Realtime for the connections table so the UI
+ * updates immediately when a request is sent, accepted, or declined —
+ * without requiring a manual page refresh.
+ *
+ * Invalidates all three connection query keys on any INSERT or UPDATE.
+ */
+export function useConnectionsRealtime(userId: string | null | undefined) {
+  const { getToken } = useAuth();
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    if (!userId) return;
+
+    let channel: ReturnType<ReturnType<typeof createAuthenticatedSupabaseClient>["channel"]> | null = null;
+    let client: ReturnType<typeof createAuthenticatedSupabaseClient> = null;
+
+    try {
+      client = createAuthenticatedSupabaseClient(getToken);
+      if (!client) return;
+
+      // Single channel covering both directions (requester & receiver) because
+      // Supabase Realtime `filter` only supports one condition per channel.
+      // RLS enforces row-level visibility server-side.
+      channel = client
+        .channel(`connections-realtime:${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "connections",
+            filter: `receiver_id=eq.${userId}`,
+          },
+          () => {
+            void qc.invalidateQueries({ queryKey: connectionHubKeys.incoming(userId) });
+            void qc.invalidateQueries({ queryKey: ["social-activity"] });
+          },
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "connections",
+            filter: `requester_id=eq.${userId}`,
+          },
+          () => {
+            void qc.invalidateQueries({ queryKey: connectionHubKeys.connections(userId) });
+            void qc.invalidateQueries({ queryKey: connectionHubKeys.outgoing(userId) });
+            void qc.invalidateQueries({ queryKey: ["social-activity"] });
+          },
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "connections",
+            filter: `receiver_id=eq.${userId}`,
+          },
+          () => {
+            void qc.invalidateQueries({ queryKey: connectionHubKeys.incoming(userId) });
+            void qc.invalidateQueries({ queryKey: connectionHubKeys.connections(userId) });
+            void qc.invalidateQueries({ queryKey: ["social-activity"] });
+          },
+        )
+        .subscribe();
+    } catch (err) {
+      console.error("[social:realtime] Failed to subscribe to connections:", err);
+    }
+
+    return () => {
+      if (channel && client) {
+        void client.removeChannel(channel);
+      }
+    };
+  }, [userId, getToken, qc]);
 }

@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (groupError) {
-      console.error('Error creating group:', groupError);
+      console.error('[social:createGroup] Failed to insert group:', groupError);
       return NextResponse.json({ error: 'Failed to create group' }, { status: 500 });
     }
 
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
       .eq('name', 'owner')
       .maybeSingle();
 
-    // Add creator as first member with admin role
+    // Add creator as first member with owner role
     const { error: memberError } = await supabase
       .from('study_group_members')
       .insert({
@@ -191,13 +191,15 @@ export async function POST(request: NextRequest) {
       });
 
     if (memberError) {
-      console.error('Error adding creator as member:', memberError);
+      // Rollback: remove the orphaned group row so we don't leave partial state
+      await supabase.from('study_groups').delete().eq('id', group.id);
+      console.error('[social:createGroup] Failed to add creator as member:', memberError);
       return NextResponse.json({ error: 'Failed to initialize group membership' }, { status: 500 });
     }
 
-    // Create a conversation using the atomic RPC so the unique index on
-    // metadata->>'study_group_id' is satisfied and the study_groups row is
-    // linked in a single transaction.
+    // Create the group conversation atomically.  The RPC is idempotent and
+    // runs SECURITY DEFINER, so it can link the study_groups row without
+    // hitting RLS conflicts.
     const { data: conversationId, error: conversationError } = await supabase.rpc(
       'create_group_chat_atomic',
       {
@@ -210,6 +212,9 @@ export async function POST(request: NextRequest) {
     );
 
     if (conversationError) {
+      // Rollback: remove member + group rows so UI won't show an unchattable group
+      await supabase.from('study_group_members').delete().eq('group_id', group.id);
+      await supabase.from('study_groups').delete().eq('id', group.id);
       console.error('[social:createGroup] Failed to create group chat:', conversationError);
       return NextResponse.json({ error: 'Failed to create group chat' }, { status: 500 });
     }

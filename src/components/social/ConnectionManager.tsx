@@ -22,6 +22,7 @@ import {
   useConnectionHubConnections,
   useConnectionHubIncoming,
   useConnectionHubOutgoing,
+  useConnectionsRealtime,
 } from "@/hooks/useConnectionHubQueries";
 import { MessagingService } from "@/lib/messaging/MessagingService";
 import {
@@ -255,6 +256,9 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
   const connectionsQuery = useConnectionHubConnections(user?.id, studentDiscovery);
   const incomingQuery = useConnectionHubIncoming(user?.id, studentDiscovery);
   const outgoingQuery = useConnectionHubOutgoing(user?.id, studentDiscovery);
+
+  // Live updates — no refresh needed when a request arrives or is accepted
+  useConnectionsRealtime(user?.id);
   const connections = connectionsQuery.data ?? [];
   const incomingRequests = incomingQuery.data ?? [];
   const outgoingRequests = outgoingQuery.data ?? [];
@@ -277,8 +281,13 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
       setSearchResults([]);
       return;
     }
-    const results = await studentDiscovery.searchUsers(searchTerm, user.id);
-    setSearchResults(results);
+    try {
+      const results = await studentDiscovery.searchUsers(searchTerm, user.id);
+      setSearchResults(results);
+    } catch (err) {
+      console.error("[social:search]", err);
+      toast.error("Search failed. Check your connection and try again.");
+    }
   }, [studentDiscovery, searchTerm, user]);
 
   useEffect(() => {
@@ -348,48 +357,59 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
 
   const handleAcceptRequest = async (requesterId: string) => {
     if (!user) return;
-    await studentDiscovery.acceptConnectionRequest(requesterId, user.id);
     try {
-      await fetch("/api/notifications/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: requesterId,
-          notification: {
-            app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
-            headings: { en: "Request accepted" },
-            contents: {
-              en: `${user.firstName ?? "Your connection"} accepted your request`,
+      await studentDiscovery.acceptConnectionRequest(requesterId, user.id);
+      toast.success("Connection accepted.");
+      try {
+        await fetch("/api/notifications/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: requesterId,
+            notification: {
+              app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
+              headings: { en: "Request accepted" },
+              contents: {
+                en: `${user.firstName ?? "Your connection"} accepted your request`,
+              },
+              data: { type: "connection_accept" },
             },
-            data: { type: "connection_accept" },
-          },
+          }),
+        });
+      } catch {}
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: connectionHubKeys.connections(user.id),
         }),
-      });
-    } catch {}
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: connectionHubKeys.connections(user.id),
-      }),
-      queryClient.invalidateQueries({
-        queryKey: connectionHubKeys.incoming(user.id),
-      }),
-      queryClient.invalidateQueries({
-        queryKey: connectionHubKeys.outgoing(user.id),
-      }),
-    ]);
+        queryClient.invalidateQueries({
+          queryKey: connectionHubKeys.incoming(user.id),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: connectionHubKeys.outgoing(user.id),
+        }),
+      ]);
+    } catch (err) {
+      console.error("[social:acceptRequest]", err);
+      toast.error("Couldn't accept the request. Check your connection and try again.");
+    }
   };
 
   const handleRejectRequest = async (requesterId: string) => {
     if (!user) return;
-    await studentDiscovery.rejectConnectionRequest(requesterId, user.id);
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: connectionHubKeys.incoming(user.id),
-      }),
-      queryClient.invalidateQueries({
-        queryKey: connectionHubKeys.outgoing(user.id),
-      }),
-    ]);
+    try {
+      await studentDiscovery.rejectConnectionRequest(requesterId, user.id);
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: connectionHubKeys.incoming(user.id),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: connectionHubKeys.outgoing(user.id),
+        }),
+      ]);
+    } catch (err) {
+      console.error("[social:rejectRequest]", err);
+      toast.error("Couldn't decline the request. Check your connection and try again.");
+    }
   };
 
   const handleCancelOutgoing = async (receiverId: string) => {
@@ -490,8 +510,9 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
         full_name: otherUser.full_name ?? undefined,
         avatar_url: otherUser.avatar_url ?? undefined,
       });
-    } catch (error) {
-      console.error("Error starting chat:", error);
+    } catch (err) {
+      console.error("[social:startChat]", err);
+      toast.error("Couldn't open the chat. Check your connection and try again.");
     }
   };
 
