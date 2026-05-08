@@ -10,6 +10,12 @@ interface StudyGroupRealtimeChatProps {
   conversationId: string;
   groupName: string;
   isMember: boolean;
+  /**
+   * ISO timestamp: when set, messages before this date are hidden.
+   * Passed by StudyGroupChatTab when history_visible_to_new_members=false
+   * and the current user is not an admin.
+   */
+  historyNotBefore?: string;
   className?: string;
 }
 
@@ -17,6 +23,7 @@ export const StudyGroupRealtimeChat: React.FC<StudyGroupRealtimeChatProps> = ({
   conversationId,
   groupName,
   isMember,
+  historyNotBefore,
   className,
 }) => {
   const { getToken } = useAuth();
@@ -45,6 +52,7 @@ export const StudyGroupRealtimeChat: React.FC<StudyGroupRealtimeChatProps> = ({
     userDisplayName: displayName,
     getToken,
     enabled: Boolean(isMember && user?.id && conversationId),
+    historyNotBefore,
   });
 
   const typingLabel = useMemo(() => {

@@ -1,5 +1,4 @@
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
-import * as CryptoJS from 'crypto-js';
 import { createAuthenticatedSupabaseClient } from '@/lib/supabase/client';
 import { wrapClerkTokenForSupabase } from '@/lib/clerk/clerkSupabaseToken';
 import type { Database, Json } from '@/types/database';
@@ -116,7 +115,6 @@ export class MessagingService {
   private readonly getJwt: () => Promise<string | null>;
   private supabase: Supabase;
   private readonly channels = new Map<string, RealtimeChannel>();
-  private readonly encryptionKey = process.env.NEXT_PUBLIC_MESSAGING_ENCRYPTION_KEY || '';
   private readonly typingTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(getToken?: ClerkGetToken) {
@@ -128,37 +126,23 @@ export class MessagingService {
     this.supabase = client as Supabase;
   }
 
-  private encrypt(text: string): string {
-    if (!this.encryptionKey) {
-      throw new Error(`${LOG_PREFIX} Encryption requested but NEXT_PUBLIC_MESSAGING_ENCRYPTION_KEY is not set.`);
-    }
-    return CryptoJS.AES.encrypt(text, this.encryptionKey).toString();
-  }
-
-  private decrypt(encryptedText: string): string {
-    if (!this.encryptionKey) {
-      return encryptedText;
-    }
-    const bytes = CryptoJS.AES.decrypt(encryptedText, this.encryptionKey);
-    return bytes.toString(CryptoJS.enc.Utf8);
-  }
-
   private mapRowToMessage(row: MessageRow): Message {
-    const encrypted = Boolean(row.encrypted);
-    const content = encrypted ? this.decrypt(row.content) : row.content;
     return {
       id: row.id,
       sender_id: row.sender_id,
       recipient_id: row.recipient_id,
       conversation_id: row.conversation_id ?? undefined,
-      content,
+      // Content is stored and returned as plain text.
+      // Server-side encryption (if needed) belongs in /api/messages with MESSAGING_ENCRYPTION_KEY
+      // — never NEXT_PUBLIC_, which exposes the key in the client bundle.
+      content: row.content,
       message_type: (row.message_type as Message['message_type']) || 'text',
       thread_id: row.thread_id ?? undefined,
       reply_to_id: row.reply_to_id ?? undefined,
       edited_at: row.edited_at ?? undefined,
       deleted_at: row.deleted_at ?? undefined,
       metadata: (row.metadata as Record<string, unknown>) || {},
-      encrypted,
+      encrypted: false,
       delivery_status: (row.delivery_status as Message['delivery_status']) || 'sent',
       created_at: row.created_at || new Date().toISOString(),
       read: Boolean(row.read),
@@ -260,7 +244,6 @@ export class MessagingService {
     messageType?: Message['message_type'];
     conversationId?: string;
     replyToId?: string;
-    encrypted?: boolean;
     metadata?: Record<string, unknown>;
   }): Promise<Message> {
     const {
@@ -271,7 +254,6 @@ export class MessagingService {
       messageType = 'text',
       conversationId,
       replyToId,
-      encrypted = false,
       metadata = {},
     } = params;
 
@@ -284,20 +266,15 @@ export class MessagingService {
         finalConversationId = await this.getOrCreateDirectConversation(userId, recipientId);
       }
 
-      if (encrypted && !this.encryptionKey) {
-        throw new Error('Encrypted messages require NEXT_PUBLIC_MESSAGING_ENCRYPTION_KEY.');
-      }
-      const finalContent = encrypted ? this.encrypt(content) : content;
-
       const messageToInsert: MessageInsert = {
         ...(id ? { id } : {}),
         sender_id: userId,
         recipient_id: recipientId ?? null,
         conversation_id: finalConversationId,
-        content: finalContent,
+        content,
         message_type: messageType,
         reply_to_id: replyToId,
-        encrypted,
+        encrypted: false,
         metadata: metadata as MessageInsert['metadata'],
         delivery_status: 'sent',
       };
@@ -313,47 +290,41 @@ export class MessagingService {
     }
   }
 
+  /**
+   * Ensure a study group member is registered in conversation_participants so that
+   * the messages RLS policy (which checks conversation_participants) allows reads.
+   * Uses a SECURITY DEFINER RPC to bypass RLS on the insert safely.
+   */
+  async ensureGroupChatParticipant(conversationId: string, clerkUserId: string): Promise<void> {
+    try {
+      await this.supabase.rpc('ensure_group_chat_participant', {
+        _conversation_id: conversationId,
+        _clerk_user_id: clerkUserId,
+      });
+    } catch (err) {
+      console.error('[messaging:ensureGroupChatParticipant]', err);
+    }
+  }
+
   async getMessages(
     conversationId: string,
     requestingUserId?: string,
     limit = 50,
     offset = 0,
+    /** ISO date string: only return messages on or after this timestamp (for history visibility) */
+    notBefore?: string,
   ): Promise<MessageWithDetails[]> {
     try {
-      if (requestingUserId) {
-        const { data: conversationData, error: convError } = await this.supabase
-          .from('conversations')
-          .select('id, metadata')
-          .eq('id', conversationId)
-          .single();
-        if (convError) throw convError;
+      // RLS on `messages` now handles access control via conversation_participants AND
+      // study_group_members (text-cast). The previous app-level UUID check was broken
+      // because study_group_members.user_id is UUID but Clerk IDs are text — it always
+      // failed, silently returning empty history for non-creator group members.
+      //
+      // If the requesting user should be auto-enrolled as a participant (study group
+      // members who haven't been added to conversation_participants yet), call
+      // ensureGroupChatParticipant() before getMessages() at the call site.
 
-        const metadata = conversationData?.metadata as Record<string, unknown> | null;
-        const studyGroupId = (metadata?.study_group_id ?? metadata?.group_id) as string | undefined;
-        if (studyGroupId) {
-          const { data: memberData, error: memberError } = await this.supabase
-            .from('study_group_members')
-            .select('id')
-            .eq('group_id', studyGroupId)
-            .eq('user_id', requestingUserId)
-            .single();
-          if (memberError || !memberData) {
-            throw new Error('Access denied: You must be a member of this group to view messages');
-          }
-        } else {
-          const { data: participantData, error: participantError } = await this.supabase
-            .from('conversation_participants')
-            .select('id')
-            .eq('conversation_id', conversationId)
-            .eq('user_id', requestingUserId)
-            .single();
-          if (participantError || !participantData) {
-            throw new Error('Access denied: You are not a participant in this conversation');
-          }
-        }
-      }
-
-      const { data, error } = await this.supabase
+      let query = this.supabase
         .from('messages')
         .select(
           `
@@ -366,13 +337,19 @@ export class MessagingService {
         )
         .eq('conversation_id', conversationId)
         .is('deleted_at', null)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+        .order('created_at', { ascending: false });
 
+      if (notBefore) {
+        query = query.gte('created_at', notBefore);
+      }
+
+      query = query.range(offset, offset + limit - 1);
+
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []).map((row) => this.mapJoinedToMessageWithDetails(row as Record<string, unknown>));
     } catch (error) {
-      logError('getMessages', error, { conversationId });
+      logError('getMessages', error, { conversationId, requestingUserId });
       throw error;
     }
   }

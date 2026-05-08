@@ -74,7 +74,15 @@ export interface UseRealtimeChatOptions {
   userDisplayName: string;
   getToken: ClerkGetToken;
   enabled: boolean;
+  /**
+   * When set, history is filtered to only show messages from this ISO timestamp onward.
+   * Used when history_visible_to_new_members=false to show only post-join messages.
+   */
+  historyNotBefore?: string;
 }
+
+// Keep a module-level singleton per conversationId so refreshing does not double-subscribe.
+const activeChannels = new Map<string, RealtimeChannel>();
 
 export function useRealtimeChat({
   roomName,
@@ -83,6 +91,7 @@ export function useRealtimeChat({
   userDisplayName,
   getToken,
   enabled,
+  historyNotBefore,
 }: UseRealtimeChatOptions) {
   const getJwt = useMemo(() => wrapClerkTokenForSupabase(getToken), [getToken]);
   const messaging = useMemo(() => new MessagingService(getToken), [getToken]);
@@ -96,16 +105,31 @@ export function useRealtimeChat({
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const presencePeersRef = useRef<{ key: string; name: string }[]>([]);
-  
+  // Track whether a history load is in flight so reconnections don't double-load.
+  const historyLoadingRef = useRef(false);
+
   const loadHistory = useCallback(async () => {
-    if (!conversationId || !userId) return;
+    if (!conversationId || !userId || historyLoadingRef.current) return;
+    historyLoadingRef.current = true;
     try {
-      const rows = await messaging.getMessages(conversationId, userId, 80, 0);
+      // Ensure user is in conversation_participants before querying.
+      // This resolves the race where study group members haven't been added yet.
+      await messaging.ensureGroupChatParticipant(conversationId, userId);
+
+      const rows = await messaging.getMessages(
+        conversationId,
+        userId,
+        80,
+        0,
+        historyNotBefore,
+      );
       setMessages(sortChronological(rows.map(toChatMessage)));
     } catch (err) {
-      console.error("[RealtimeChat] Failed to load history:", err);
+      console.error("[social:chat] Failed to load history:", err);
+    } finally {
+      historyLoadingRef.current = false;
     }
-  }, [conversationId, messaging, userId]);
+  }, [conversationId, messaging, userId, historyNotBefore]);
 
   useEffect(() => {
     if (!enabled || !conversationId || !userId || !roomName) {
@@ -125,12 +149,12 @@ export function useRealtimeChat({
 
     const setup = async () => {
       setStatus("connecting");
-      
-      // 1. Pre-load history
+
+      // 1. Ensure participant + pre-load history before subscribing.
       await loadHistory();
       if (cancelled) return;
 
-      // 2. Initialize Channel
+      // 2. Initialize channel.
       channel = client.channel(roomName, {
         config: {
           broadcast: { ack: true },
@@ -138,46 +162,58 @@ export function useRealtimeChat({
         },
       });
 
-      // 3. Setup Listeners
+      // 3. Set up listeners.
       channel
         .on(
           "broadcast",
           { event: "message" },
-          ({ payload }: { payload: any }) => {
+          ({ payload }: { payload: Record<string, unknown> }) => {
             if (!payload?.id) return;
-            setMessages((prev) => mergeById(prev, {
-              id: payload.id,
-              content: payload.content,
-              user: { name: payload.userName },
-              createdAt: payload.createdAt,
-              senderId: payload.senderId,
-              replyToId: payload.replyToId,
-              read: payload.read,
-            }));
-          }
+            setMessages((prev) =>
+              mergeById(prev, {
+                id: payload.id as string,
+                content: payload.content as string,
+                user: { name: payload.userName as string },
+                createdAt: payload.createdAt as string,
+                senderId: payload.senderId as string | undefined,
+                replyToId: payload.replyToId as string | undefined,
+                read: Boolean(payload.read),
+              }),
+            );
+          },
         )
         .on(
           "broadcast",
           { event: "typing" },
-          ({ payload }: { payload: { userId: string; isTyping: boolean } }) => {
+          ({
+            payload,
+          }: {
+            payload: { userId: string; isTyping: boolean };
+          }) => {
             if (!payload?.userId) return;
             setTypingUserIds((prev) => {
-              const n = new Set(prev);
-              if (payload.isTyping) n.add(payload.userId);
-              else n.delete(payload.userId);
-              return n;
+              const next = new Set(prev);
+              if (payload.isTyping) next.add(payload.userId);
+              else next.delete(payload.userId);
+              return next;
             });
-          }
+          },
         )
         .on("presence", { event: "sync" }, () => {
           const state = channel?.presenceState();
           if (!state) return;
-          
+
           const peers: { key: string; name: string }[] = [];
           for (const key of Object.keys(state)) {
-            const presences = state[key] as any[];
+            const presences = state[key] as Record<string, unknown>[];
             const first = presences?.[0];
-            peers.push({ key, name: first?.name || first?.userId || key });
+            peers.push({
+              key,
+              name:
+                (first?.name as string) ||
+                (first?.userId as string) ||
+                key,
+            });
           }
           presencePeersRef.current = peers;
           setPresencePeers(peers);
@@ -191,36 +227,52 @@ export function useRealtimeChat({
             filter: `conversation_id=eq.${conversationId}`,
           },
           (payload) => {
-            const row = payload.new as any;
+            const row = payload.new as Record<string, unknown>;
             if (!row?.id) return;
-            
+
+            // Respect history cutoff for postgres_changes too.
+            if (
+              historyNotBefore &&
+              new Date(row.created_at as string) <
+                new Date(historyNotBefore)
+            ) {
+              return;
+            }
+
             setMessages((prev) => {
               if (prev.some((m) => m.id === row.id)) return prev;
-              
-              let resolvedName = row.sender_id;
+
+              // Resolve display name: own message, historical match, or presence.
+              let resolvedName = row.sender_id as string;
               if (row.sender_id === userId) {
                 resolvedName = userDisplayName;
               } else {
-                const historicalMatch = prev.find((m) => m.senderId === row.sender_id && m.user.name !== row.sender_id);
+                const historicalMatch = prev.find(
+                  (m) =>
+                    m.senderId === row.sender_id &&
+                    m.user.name !== row.sender_id,
+                );
                 if (historicalMatch) {
                   resolvedName = historicalMatch.user.name;
                 } else {
-                  const presenceMatch = presencePeersRef.current.find(p => p.key === row.sender_id);
+                  const presenceMatch = presencePeersRef.current.find(
+                    (p) => p.key === row.sender_id,
+                  );
                   if (presenceMatch) resolvedName = presenceMatch.name;
                 }
               }
 
               return mergeById(prev, {
-                id: row.id,
-                content: row.content,
+                id: row.id as string,
+                content: row.content as string,
                 user: { name: resolvedName },
-                createdAt: row.created_at,
-                senderId: row.sender_id,
-                replyToId: row.reply_to_id,
-                read: row.read,
+                createdAt: row.created_at as string,
+                senderId: row.sender_id as string,
+                replyToId: row.reply_to_id as string | undefined,
+                read: Boolean(row.read),
               });
             });
-          }
+          },
         )
         .on(
           "postgres_changes",
@@ -231,31 +283,40 @@ export function useRealtimeChat({
             filter: `conversation_id=eq.${conversationId}`,
           },
           (payload) => {
-            const row = payload.new as any;
+            const row = payload.new as Record<string, unknown>;
             if (!row?.id) return;
-            setMessages((prev) => 
-              prev.map(m => m.id === row.id ? { ...m, read: row.read } : m)
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === row.id ? { ...m, read: Boolean(row.read) } : m,
+              ),
             );
-          }
+          },
         );
 
       channelRef.current = channel;
+      activeChannels.set(roomName, channel);
 
-      // 4. Subscribe with Auth
+      // 4. Subscribe with auth — set JWT on the Realtime socket before subscribing.
       const jwt = await getJwt();
       if (jwt) {
-        // Explicitly set auth for the realtime socket
-        (client.realtime as any).setAuth(jwt);
+        (client.realtime as unknown as { setAuth: (t: string) => void }).setAuth(
+          jwt,
+        );
       }
 
       channel.subscribe(async (subStatus) => {
         if (cancelled || !channel) return;
-        
+
         if (subStatus === "SUBSCRIBED") {
           setStatus("subscribed");
           await channel.track({ userId, name: userDisplayName });
-        } else if (subStatus === "CHANNEL_ERROR" || subStatus === "TIMED_OUT") {
-          console.error(`[RealtimeChat] Channel status: ${subStatus}`);
+          // Reload history on each successful subscribe (handles refresh + reconnect).
+          void loadHistory();
+        } else if (
+          subStatus === "CHANNEL_ERROR" ||
+          subStatus === "TIMED_OUT"
+        ) {
+          console.error(`[social:chat] Channel status: ${subStatus}`);
           setStatus("error");
         }
       });
@@ -266,11 +327,21 @@ export function useRealtimeChat({
     return () => {
       cancelled = true;
       if (channel) {
+        activeChannels.delete(roomName);
         void client.removeChannel(channel);
       }
       channelRef.current = null;
     };
-  }, [conversationId, enabled, getJwt, loadHistory, roomName, userDisplayName, userId]);
+  }, [
+    conversationId,
+    enabled,
+    getJwt,
+    historyNotBefore,
+    loadHistory,
+    roomName,
+    userDisplayName,
+    userId,
+  ]);
 
   const sendTyping = useCallback(
     (isTyping: boolean) => {
@@ -301,10 +372,8 @@ export function useRealtimeChat({
         read: false,
       };
 
-      // Apply optimistic update
       setMessages((prev) => mergeById(prev, optimisticMsg));
 
-      // Broadcast to online peers for instant gratification
       const ch = channelRef.current;
       if (ch && status === "subscribed") {
         void ch.send({
@@ -330,10 +399,8 @@ export function useRealtimeChat({
           content: text,
           replyToId,
         });
-        // Success: the postgres_changes listener will handle the official row swap if needed,
-        // but since we used the same ID, mergeById will handle it.
       } catch (error) {
-        console.error("[RealtimeChat] Failed to persist message:", error);
+        console.error("[social:chat] Failed to persist message:", error);
         setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
       }
     },
@@ -346,14 +413,14 @@ export function useRealtimeChat({
         await messaging.markMessageAsRead(messageId, userId);
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === messageId ? { ...msg, read: true } : msg
-          )
+            msg.id === messageId ? { ...msg, read: true } : msg,
+          ),
         );
       } catch (error) {
-        console.error("[RealtimeChat] Failed to mark message as read:", error);
+        console.error("[social:chat] Failed to mark message as read:", error);
       }
     },
-    [messaging, userId]
+    [messaging, userId],
   );
 
   return {

@@ -1023,6 +1023,7 @@ export const StudyGroupHub: React.FC = () => {
                                   selectedGroup={selectedGroup}
                                   userId={user.id}
                                   isMember={!!membershipStatus[selectedGroup.id]}
+                                  isAdmin={user.id === selectedGroup.created_by}
                                   messagingService={messagingService}
                                   studyGroupManager={studyGroupManager}
                                   onConversationLinked={(conversationId) => {
