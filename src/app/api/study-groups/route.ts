@@ -195,50 +195,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to initialize group membership' }, { status: 500 });
     }
 
-    // Create a conversation for the group chat
-    const { data: conversation, error: conversationError } = await supabase
-      .from('conversations')
-      .insert({
-        conversation_type: 'group',
-        name: `${name} Chat`,
-        created_by: userId,
-        metadata: { group_id: group.id }
-      })
-      .select()
-      .single();
+    // Create a conversation using the atomic RPC so the unique index on
+    // metadata->>'study_group_id' is satisfied and the study_groups row is
+    // linked in a single transaction.
+    const { data: conversationId, error: conversationError } = await supabase.rpc(
+      'create_group_chat_atomic',
+      {
+        p_name: `${name.trim()} Chat`,
+        p_user_id: userId,
+        p_description: description ?? null,
+        p_metadata: {},
+        p_study_group_id: group.id,
+      },
+    );
 
     if (conversationError) {
-      console.error('Error creating conversation:', conversationError);
-      // We still return 201 but the group might be missing a chat. 
-      // Ideally we'd fail here too to ensure consistent collaboration.
+      console.error('[social:createGroup] Failed to create group chat:', conversationError);
       return NextResponse.json({ error: 'Failed to create group chat' }, { status: 500 });
     }
 
-    if (conversation) {
-      // Update group with conversation_id
-      await supabase
-        .from('study_groups')
-        .update({ conversation_id: conversation.id })
-        .eq('id', group.id);
-
-      // Add creator as conversation participant
-      const { error: partError } = await supabase
-        .from('conversation_participants')
-        .insert({
-          conversation_id: conversation.id,
-          user_id: userId
-        });
-        
-      if (partError) {
-        console.error('Error adding creator to conversation:', partError);
-      }
-    }
-
-    return NextResponse.json({ 
+    return NextResponse.json({
       group: {
         ...group,
-        conversation_id: conversation?.id
-      }
+        conversation_id: conversationId as string,
+      },
     }, { status: 201 });
   } catch (error) {
     console.error('Error in POST /api/study-groups:', error);
