@@ -25,6 +25,7 @@ import {
   useConnectionsRealtime,
 } from "@/hooks/useConnectionHubQueries";
 import { MessagingService } from "@/lib/messaging/MessagingService";
+import { submitSocialReport } from "@/lib/social/submitSocialReport";
 import {
   StudentDiscovery,
   type UserSearchResult,
@@ -35,6 +36,7 @@ import {
   Chat as ChatIcon,
   Check,
   DotsThreeVertical,
+  Flag,
   Prohibit,
   UserMinus,
   UserPlus,
@@ -438,26 +440,14 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
 
   const handleUnfriend = async (otherId: string) => {
     if (!user) return;
+    const shouldUnfriend = window.confirm(
+      "Unfriend this student? Your direct chat history will stay available, but they will leave your active connections.",
+    );
+    if (!shouldUnfriend) return;
     setActionLoadingId(otherId);
     try {
       const ok = await studentDiscovery.removeConnection(user.id, otherId);
-      if (ok) toast.success("Channel closed");
-      await queryClient.invalidateQueries({
-        queryKey: connectionHubKeys.connections(user.id),
-      });
-    } catch {
-      toast.error("Disconnect failed");
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
-
-  const handleBlock = async (otherId: string) => {
-    if (!user) return;
-    setActionLoadingId(otherId);
-    try {
-      await studentDiscovery.blockUser(user.id, otherId);
-      toast.success("Signal blocked");
+      if (ok) toast.success("Connection removed. Chat history is preserved.");
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: connectionHubKeys.connections(user.id),
@@ -465,11 +455,66 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
         queryClient.invalidateQueries({
           queryKey: connectionHubKeys.incoming(user.id),
         }),
+        queryClient.invalidateQueries({
+          queryKey: connectionHubKeys.outgoing(user.id),
+        }),
+        queryClient.invalidateQueries({ queryKey: ["social-activity"] }),
       ]);
-    } catch {
-      toast.error("Block failed");
+    } catch (err) {
+      console.error("[social:unfriend]", err);
+      toast.error("Couldn't remove this connection. Try again.");
     } finally {
       setActionLoadingId(null);
+    }
+  };
+
+  const handleBlock = async (otherId: string) => {
+    if (!user) return;
+    const shouldBlock = window.confirm(
+      "Block this student? This removes them from your connections and prevents future connection requests where blocking is enforced.",
+    );
+    if (!shouldBlock) return;
+    setActionLoadingId(otherId);
+    try {
+      await studentDiscovery.blockUser(user.id, otherId);
+      toast.success("Student blocked.");
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: connectionHubKeys.connections(user.id),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: connectionHubKeys.incoming(user.id),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: connectionHubKeys.outgoing(user.id),
+        }),
+        queryClient.invalidateQueries({ queryKey: ["social-activity"] }),
+      ]);
+    } catch (err) {
+      console.error("[social:block]", err);
+      toast.error("Couldn't block this student. Try again.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleReportStudent = async (otherId: string, displayName?: string | null) => {
+    const reason = window.prompt(
+      `Tell us what happened with ${displayName || "this student"}. Reports are reviewed for safety.`,
+    );
+    if (!reason?.trim()) return;
+
+    try {
+      await submitSocialReport({
+        targetType: "student",
+        targetId: otherId,
+        reason: reason.trim(),
+        context: { source: "connection_manager" },
+      });
+      toast.success("Report sent. Thanks for helping keep MemoSpark safe.");
+    } catch (err) {
+      console.error("[social:reportStudent]", err);
+      toast.error("Couldn't send the report right now. Try again.");
     }
   };
 
@@ -796,7 +841,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
                               className="mr-2 h-3.5 w-3.5"
                               weight="bold"
                             />
-                            UNLINK
+                            UNFRIEND
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-xs uppercase tracking-[0.12em] text-destructive"
@@ -806,7 +851,22 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
                               className="mr-2 h-3.5 w-3.5"
                               weight="bold"
                             />
-                            BLOCK
+                            BLOCK STUDENT
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-xs uppercase tracking-[0.12em]"
+                            onClick={() =>
+                              handleReportStudent(
+                                profile.clerk_user_id,
+                                profile.full_name,
+                              )
+                            }
+                          >
+                            <Flag
+                              className="mr-2 h-3.5 w-3.5"
+                              weight="bold"
+                            />
+                            REPORT
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

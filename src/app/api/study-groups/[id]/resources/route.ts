@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getSupabaseWithClerkAuth } from '@/lib/supabase/server-auth';
+import { supabaseServerAdmin } from '@/lib/supabase/server';
 
+const RESOURCE_BUCKET = 'study-group-resources';
 const ALLOWED_RESOURCE_TYPES = new Set(['link', 'file', 'note', 'past_question', 'document']);
 
 function isAdminLike(role: string | null | undefined): boolean {
@@ -51,10 +53,25 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch resources' }, { status: 500 });
     }
 
-    const resourcesWithUser = resources?.map(resource => ({
-      ...resource,
-      user_name: resource.profiles?.full_name || 'Unknown'
-    })) || [];
+    const resourcesWithUser = await Promise.all((resources ?? []).map(async (resource) => {
+      let signedUrl: string | null = null;
+      if (resource.resource_type === 'file' && resource.file_path && supabaseServerAdmin) {
+        const { data, error } = await supabaseServerAdmin.storage
+          .from(RESOURCE_BUCKET)
+          .createSignedUrl(resource.file_path, 60 * 60);
+        if (error) {
+          console.error('[social:resourceSignedUrl]', error);
+        } else {
+          signedUrl = data?.signedUrl ?? null;
+        }
+      }
+
+      return {
+        ...resource,
+        signed_url: signedUrl,
+        user_name: resource.profiles?.full_name || 'Unknown'
+      };
+    }));
 
     return NextResponse.json({ resources: resourcesWithUser });
   } catch (error) {
@@ -99,6 +116,18 @@ export async function POST(
       } catch {
         return NextResponse.json({ error: 'Invalid url' }, { status: 400 });
       }
+    }
+    if (resource_type === 'file') {
+      const path = String(file_path || '');
+      if (!path.startsWith(`groups/${groupId}/`)) {
+        return NextResponse.json({ error: 'Invalid file path' }, { status: 400 });
+      }
+    }
+    if (resource_type === 'link' && !url) {
+      return NextResponse.json({ error: 'Link resources need a URL' }, { status: 400 });
+    }
+    if (resource_type === 'note' && !description) {
+      return NextResponse.json({ error: 'Note resources need content' }, { status: 400 });
     }
     if (!url && !file_path && !description) {
       return NextResponse.json(
@@ -186,7 +215,7 @@ export async function DELETE(
 
     const { data: resource } = await supabase
       .from('study_group_resources')
-      .select('id, user_id')
+      .select('id, user_id, resource_type, file_path')
       .eq('id', resourceId)
       .eq('group_id', groupId)
       .maybeSingle();
@@ -205,6 +234,14 @@ export async function DELETE(
     if (error) {
       console.error('Error deleting resource:', error);
       return NextResponse.json({ error: 'Failed to delete resource' }, { status: 500 });
+    }
+    if (resource.resource_type === 'file' && resource.file_path && supabaseServerAdmin) {
+      const { error: removeObjectError } = await supabaseServerAdmin.storage
+        .from(RESOURCE_BUCKET)
+        .remove([resource.file_path]);
+      if (removeObjectError) {
+        console.error('[social:deleteResourceFile]', removeObjectError);
+      }
     }
     return NextResponse.json({ deleted: true });
   } catch (error) {

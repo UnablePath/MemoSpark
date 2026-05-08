@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { submitSocialReport } from '@/lib/social/submitSocialReport';
 import {
   QUICK_REACTIONS,
   type RealtimeChatMessage,
@@ -11,10 +12,12 @@ import {
   Check,
   Checks,
   DotsThreeVertical,
+  Flag,
   PencilSimple,
   Smiley,
   Trash,
 } from '@phosphor-icons/react';
+import { toast } from 'sonner';
 import { useEffect, useRef, useState } from 'react';
 
 interface ChatMessageItemProps {
@@ -122,6 +125,27 @@ export function ChatMessageItem({
   const handleDelete = () => {
     setShowActions(false);
     onDelete?.(message.id);
+  };
+
+  const handleReport = async () => {
+    const reason = window.prompt('Report this message? Tell us what needs review.');
+    if (!reason?.trim()) return;
+
+    try {
+      await submitSocialReport({
+        targetType: 'message',
+        targetId: message.id,
+        reason: reason.trim(),
+        context: {
+          source: 'realtime_chat',
+          sender_id: message.senderId,
+        },
+      });
+      toast.success('Message report sent.');
+    } catch (error) {
+      console.error('[social:reportMessage]', error);
+      toast.error("Couldn't report this message right now. Try again.");
+    }
   };
 
   return (
@@ -252,6 +276,17 @@ export function ChatMessageItem({
                   aria-label="Reply to message"
                 >
                   <ArrowBendUpLeft weight="bold" className="h-3.5 w-3.5" aria-hidden />
+                </button>
+              )}
+
+              {!isOwnMessage && (
+                <button
+                  type="button"
+                  onClick={() => void handleReport()}
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted/60 hover:text-foreground"
+                  aria-label="Report message"
+                >
+                  <Flag weight="bold" className="h-3.5 w-3.5" aria-hidden />
                 </button>
               )}
 

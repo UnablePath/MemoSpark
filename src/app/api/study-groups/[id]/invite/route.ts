@@ -31,9 +31,6 @@ export async function POST(
     const invitee_id = body.invitee_id || body.inviteeId;
     const invitee_name = body.invitee_name || body.inviteeName;
     const message = body.message;
-    // #region agent log
-    fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'invite-debug-1',hypothesisId:'H1',location:'src/app/api/study-groups/[id]/invite/route.ts:30',message:'invite request received',data:{groupId,hasInviteeEmail:Boolean(invitee_email),hasInviteeId:Boolean(invitee_id),inviteeEmailDomain:typeof invitee_email==='string'&&invitee_email.includes('@')?invitee_email.split('@')[1]:null},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
 
     if (!invitee_email && !invitee_id) {
       return NextResponse.json({ 
@@ -54,9 +51,6 @@ export async function POST(
       .eq('group_id', groupId)
       .eq('user_id', userId)
       .maybeSingle<GroupMembership>();
-    // #region agent log
-    fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'invite-debug-1',hypothesisId:'H2',location:'src/app/api/study-groups/[id]/invite/route.ts:49',message:'membership check',data:{groupId,userId,membershipRole:membership?.role??null,membershipErrorCode:membershipError?.code??null},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
 
     if (membershipError || !membership) {
       return NextResponse.json({ error: 'You must be a member to invite others' }, { status: 403 });
@@ -68,10 +62,6 @@ export async function POST(
       .select('metadata, created_by')
       .eq('id', groupId)
       .single();
-    // #region agent log
-    fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'invite-debug-1',hypothesisId:'H3',location:'src/app/api/study-groups/[id]/invite/route.ts:60',message:'group lookup',data:{groupId,groupFound:Boolean(group),groupErrorCode:groupError?.code??null,createdBy:group?.created_by??null,privacy:group?.metadata?.privacy_level??'public'},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-
     if (groupError) {
       return NextResponse.json({ error: 'Group not found' }, { status: 404 });
     }
@@ -93,9 +83,6 @@ export async function POST(
         .select('clerk_user_id')
         .ilike('email', normalizedEmail)
         .maybeSingle();
-      // #region agent log
-      fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'invite-debug-1',hypothesisId:'H4',location:'src/app/api/study-groups/[id]/invite/route.ts:81',message:'profile lookup by email',data:{inviteeEmailDomain:typeof invitee_email==='string'&&invitee_email.includes('@')?invitee_email.split('@')[1]:null,profileFound:Boolean(profile),profileErrorCode:profileError?.code??null},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
 
       if (profileError) {
         return NextResponse.json({ error: 'Failed to resolve invitee' }, { status: 500 });
@@ -148,9 +135,6 @@ export async function POST(
         error: 'User not found with that email address',
       }, { status: 404 });
     }
-    if (!targetUserId) {
-      return NextResponse.json({ error: 'Unable to resolve invite target' }, { status: 400 });
-    }
     if (targetUserId === userId) {
       return NextResponse.json({ error: 'You cannot invite yourself' }, { status: 400 });
     }
@@ -197,9 +181,6 @@ export async function POST(
       })
       .select()
       .single();
-    // #region agent log
-    fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'invite-debug-1',hypothesisId:'H5',location:'src/app/api/study-groups/[id]/invite/route.ts:136',message:'invitation create attempt',data:{groupId,targetUserId,created:Boolean(invitation),createErrorCode:createInviteError?.code??null},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
 
     if (createInviteError) {
       console.error('Error creating invitation:', createInviteError);

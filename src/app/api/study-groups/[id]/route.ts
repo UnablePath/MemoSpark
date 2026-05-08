@@ -176,10 +176,10 @@ export async function DELETE(
 
     const groupId = params.id;
 
-    // Check if user is the creator/owner (delete is owner-only).
+    // Check if user is the creator/owner (archive is owner-only).
     const { data: group, error: groupError } = await supabase
       .from('study_groups')
-      .select('created_by, conversation_id')
+      .select('created_by, metadata')
       .eq('id', groupId)
       .single();
 
@@ -195,32 +195,35 @@ export async function DELETE(
         .eq('user_id', userId)
         .maybeSingle();
       if (memberError || membership?.role !== 'owner') {
-        return NextResponse.json({ error: 'Only the group owner can delete the group' }, { status: 403 });
+        return NextResponse.json({ error: 'Only the group owner can archive the group' }, { status: 403 });
       }
     }
 
-    // Delete the group (cascade will handle related records in study_group_members, etc.)
-    const { error: deleteError } = await supabase
+    const archiveMetadata = {
+      ...((group.metadata && typeof group.metadata === 'object' && !Array.isArray(group.metadata))
+        ? group.metadata
+        : {}),
+      archived_by: userId,
+      archived_at: new Date().toISOString(),
+      visibility_state: 'archived',
+    };
+
+    const { error: archiveError } = await supabase
       .from('study_groups')
-      .delete()
+      .update({
+        is_archived: true,
+        metadata: archiveMetadata,
+      })
       .eq('id', groupId);
 
-    if (deleteError) {
-      console.error('Error deleting group:', deleteError);
-      return NextResponse.json({ error: 'Failed to delete group' }, { status: 500 });
+    if (archiveError) {
+      console.error('[social:archiveGroup]', archiveError);
+      return NextResponse.json({ error: 'Failed to archive group' }, { status: 500 });
     }
 
-    // Delete associated conversation if it exists
-    if (group.conversation_id) {
-      await supabase
-        .from('conversations')
-        .delete()
-        .eq('id', group.conversation_id);
-    }
-
-    return NextResponse.json({ message: 'Group deleted successfully' });
+    return NextResponse.json({ message: 'Group archived successfully', archived: true });
   } catch (error) {
-    console.error('Error in DELETE /api/study-groups/[id]:', error);
+    console.error('[social:archiveGroup]', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

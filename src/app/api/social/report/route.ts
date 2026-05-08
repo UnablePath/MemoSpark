@@ -12,12 +12,21 @@ export async function POST(request: NextRequest) {
     }
 
     const body = (await request.json()) as {
+      targetType?: string;
       reportedId?: string;
       reason?: string;
       context?: Record<string, unknown>;
     };
+    const targetType = body.targetType?.trim() || 'student';
+    if (!['student', 'group', 'message', 'resource'].includes(targetType)) {
+      return NextResponse.json(
+        { error: "Invalid report target" },
+        { status: 400 },
+      );
+    }
+
     const reportedId = body.reportedId?.trim();
-    if (!reportedId || reportedId === userId) {
+    if (!reportedId || (targetType === 'student' && reportedId === userId)) {
       return NextResponse.json(
         { error: "Invalid report" },
         { status: 400 },
@@ -28,16 +37,19 @@ export async function POST(request: NextRequest) {
       reporter_id: userId,
       reported_id: reportedId,
       reason: body.reason?.slice(0, 2000) ?? null,
-      context: body.context ?? {},
+      context: {
+        ...(body.context ?? {}),
+        target_type: targetType,
+      },
     });
     if (error) {
-      console.error("user_reports insert:", error);
+      console.error("[social:report]", error);
       return NextResponse.json({ error: "Failed to submit report" }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true });
   } catch (e) {
-    console.error("POST /api/social/report:", e);
+    console.error("[social:report]", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -115,20 +115,16 @@ export const useSendGroupInvitation = () => {
       inviteeName?: string; 
       message?: string; 
     }) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'manage-actions-debug',hypothesisId:'H1',location:'useStudyGroupQueries.ts:118',message:'send invitation requested',data:{groupId,inviteeEmail},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
-      void inviteeName;
-      void message;
       const response = await fetch(`/api/study-groups/${groupId}/invite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invitee_email: inviteeEmail }),
+        body: JSON.stringify({
+          invitee_email: inviteeEmail,
+          invitee_name: inviteeName ?? undefined,
+          message: message ?? undefined,
+        }),
       });
       const payload = await response.json().catch(() => ({}));
-      // #region agent log
-      fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'manage-actions-debug',hypothesisId:'H1',location:'useStudyGroupQueries.ts:127',message:'send invitation response',data:{groupId,status:response.status,ok:response.ok,error:payload?.error ?? null},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       if (!response.ok) throw new Error(payload.error ?? 'Failed to send invitation');
       return payload;
     },
@@ -183,18 +179,12 @@ export const useChangeMemberRole = () => {
       memberId: string; 
       newRoleId: string; 
     }) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'manage-actions-debug',hypothesisId:'H2',location:'useStudyGroupQueries.ts:180',message:'change role requested',data:{groupId,memberId,newRoleId},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       const response = await fetch(`/api/study-groups/${groupId}/members/${memberId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roleName: newRoleId }),
       });
       const payload = await response.json().catch(() => ({}));
-      // #region agent log
-      fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'manage-actions-debug',hypothesisId:'H2',location:'useStudyGroupQueries.ts:187',message:'change role api result',data:{groupId,memberId,newRoleId,status:response.status,ok:response.ok,error:payload?.error ?? null},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
 
       if (!response.ok) throw new Error(payload.error ?? 'Failed to change member role');
       return payload;
@@ -218,17 +208,11 @@ export const useRemoveGroupMember = () => {
       groupId: string; 
       memberId: string; 
     }) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'manage-actions-debug',hypothesisId:'H3',location:'useStudyGroupQueries.ts:208',message:'remove member requested',data:{groupId,memberId},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       const response = await fetch(`/api/study-groups/${groupId}/members/${memberId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
       });
       const payload = await response.json().catch(() => ({}));
-      // #region agent log
-      fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'manage-actions-debug',hypothesisId:'H3',location:'useStudyGroupQueries.ts:214',message:'remove member api result',data:{groupId,memberId,status:response.status,ok:response.ok,error:payload?.error ?? null},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
 
       if (!response.ok) throw new Error(payload.error ?? 'Failed to remove member');
       return payload;
@@ -361,13 +345,15 @@ export function useUserStudyGroups(getToken: () => Promise<string | null>, userI
         }),
       );
       const counts = Object.fromEntries(countEntries) as Record<string, number | null>;
-      return groups.map((group: any) => ({
-        ...group,
-        member_count:
-          typeof counts[group.id] === 'number'
-            ? counts[group.id]
-            : group.member_count ?? null,
-      }));
+      return groups
+        .filter((group: any) => !group.is_archived)
+        .map((group: any) => ({
+          ...group,
+          member_count:
+            typeof counts[group.id] === 'number'
+              ? counts[group.id]
+              : group.member_count ?? null,
+        }));
     },
     enabled: Boolean(userId),
     staleTime: 30_000,

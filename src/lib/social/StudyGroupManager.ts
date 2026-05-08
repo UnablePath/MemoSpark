@@ -147,6 +147,30 @@ export class StudyGroupManager {
   }
 
   /**
+   * Archive a study group without deleting chat, resources, or membership history.
+   */
+  static async archiveGroup(groupId: string): Promise<boolean> {
+    try {
+      const response = await fetch(`/api/study-groups/${groupId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to archive group');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('[social:archiveGroup]', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get user's study groups (static method)
    */
   static async getUserGroups(): Promise<StudyGroupWithMembers[]> {
@@ -290,7 +314,7 @@ export class StudyGroupManager {
       }
 
       const data = await response.json();
-      return data.groups || [];
+      return (data.groups || []).filter((group: StudyGroupWithMembers) => !group.is_archived);
     } catch (error) {
       console.error('Error in getUserGroups:', error);
       return [];
@@ -315,7 +339,7 @@ export class StudyGroupManager {
       }
 
       const data = await response.json();
-      return data.groups || [];
+      return (data.groups || []).filter((group: StudyGroupWithMembers) => !group.is_archived);
     } catch (error) {
       console.error('Error in getAllGroups:', error);
       return [];
@@ -388,24 +412,13 @@ export class StudyGroupManager {
    */
   async getResources(groupId: string): Promise<StudyGroupResourceWithUser[]> {
     try {
-      const { data, error } = await this.db()
-        .from('study_group_resources')
-        .select(`
-          *,
-          profiles(full_name)
-        `)
-        .eq('group_id', groupId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching group resources:', error);
+      const response = await fetch(`/api/study-groups/${groupId}/resources`);
+      if (!response.ok) {
+        console.error('Error fetching group resources:', response.statusText);
         return [];
       }
-
-      return data?.map((resource: any) => ({
-        ...resource,
-        user_name: resource.profiles?.full_name
-      })) || [];
+      const data = await response.json();
+      return data.resources || [];
     } catch (error) {
       console.error('Error in getResources:', error);
       return [];
@@ -422,23 +435,21 @@ export class StudyGroupManager {
     file_path?: string;
     resource_type: string;
   }): Promise<StudyGroupResource | null> {
+    void userId;
     try {
-      const { data, error } = await this.db()
-        .from('study_group_resources')
-        .insert({
-          group_id: groupId,
-          user_id: userId,
-          ...resource
-        })
-        .select()
-        .single();
+      const response = await fetch(`/api/study-groups/${groupId}/resources`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(resource),
+      });
 
-      if (error) {
-        console.error('Error adding resource:', error);
+      if (!response.ok) {
+        console.error('Error adding resource:', response.statusText);
         return null;
       }
 
-      return data;
+      const data = await response.json();
+      return data.resource ?? null;
     } catch (error) {
       console.error('Error in addResource:', error);
       return null;
@@ -507,6 +518,10 @@ export class StudyGroupManager {
       options?.privacy_level ?? 'public',
       options?.category_id,
     );
+  }
+
+  async archiveGroup(groupId: string): Promise<boolean> {
+    return StudyGroupManager.archiveGroup(groupId);
   }
 
   /**

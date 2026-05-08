@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to fetch groups' }, { status: 500 });
       }
       
-      groups = data || [];
+      groups = (data || []).filter((group: { is_archived?: boolean | null }) => !group.is_archived);
     } else {
       // Simplified query to avoid complex joins that cause timeouts
       let query_builder = supabase

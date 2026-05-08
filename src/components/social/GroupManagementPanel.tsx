@@ -1,7 +1,7 @@
 'use client';
 
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { 
   useGroupMembers, 
@@ -46,9 +46,11 @@ import {
   CheckCircle, 
   XCircle,
   Settings,
-  History
+  History,
+  Flag
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { submitSocialReport } from '@/lib/social/submitSocialReport';
 
 interface GroupManagementPanelProps {
   groupId: string;
@@ -96,10 +98,6 @@ export default function GroupManagementPanel({
   const canInvite = Boolean(isOwner || currentUserPermissions.can_invite);
   const canManageMembers = Boolean(isOwner || currentUserPermissions.can_manage_members);
   const canChangeRoles = Boolean(isOwner || currentUserPermissions.can_change_roles);
-
-  useEffect(() => {
-    if (!groupId) return;
-  }, [groupId, activeTab, membersLoading, members?.length, user?.id, currentUserRole, canInvite, canManageMembers, canChangeRoles]);
 
   const renderPermissionBadges = (permissions: any) => {
     if (!permissions) return null;
@@ -191,6 +189,30 @@ export default function GroupManagementPanel({
     } catch (error) {
       toast.error('Failed to remove member');
       console.error(error);
+    }
+  };
+
+  const handleReportMember = async (memberId: string, memberName: string) => {
+    const reason = window.prompt(
+      `Report ${memberName}? Tell us what needs review.`,
+    );
+    if (!reason?.trim()) return;
+
+    try {
+      await submitSocialReport({
+        targetType: 'student',
+        targetId: memberId,
+        reason: reason.trim(),
+        context: {
+          source: 'group_management_panel',
+          group_id: groupId,
+          group_name: groupName,
+        },
+      });
+      toast.success('Report sent. Thanks for helping keep this group safe.');
+    } catch (error) {
+      console.error('[social:reportMember]', error);
+      toast.error("Couldn't send the report right now. Try again.");
     }
   };
 
@@ -432,6 +454,18 @@ export default function GroupManagementPanel({
                               <UserMinus className="w-4 h-4" />
                             </Button>
                           )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              handleReportMember(
+                                member.user_id,
+                                member.profiles?.full_name || 'Unknown',
+                              )
+                            }
+                          >
+                            <Flag className="w-4 h-4" />
+                          </Button>
                         </div>
                       )}
                     </div>

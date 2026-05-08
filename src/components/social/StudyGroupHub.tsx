@@ -5,12 +5,9 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { StudyGroupManager, type StudyGroup, type StudyGroupMember, type StudyGroupResource } from '@/lib/social/StudyGroupManager';
 import { MessagingService } from '@/lib/messaging/MessagingService';
+import { createAuthenticatedSupabaseClient } from '@/lib/supabase/client';
+import { wrapClerkTokenForSupabase } from '@/lib/clerk/clerkSupabaseToken';
 import {
-  useStudySessions,
-  useCreateSession,
-  useSessionParticipants,
-  useJoinSession,
-  useLeaveSession,
   useGroupCategories,
   useDiscoverGroups,
   useStudyGroupHubRealtime,
@@ -19,20 +16,15 @@ import {
   useUserStudyGroups,
   studyGroupKeys,
 } from '@/hooks/useStudyGroupQueries';
-import { StudySessionManager } from '@/lib/social/StudySessionManager';
-import { createAuthenticatedSupabaseClient } from '@/lib/supabase/client';
-import { wrapClerkTokenForSupabase } from '@/lib/clerk/clerkSupabaseToken';
 import { useQueryClient } from '@tanstack/react-query';
-import type { StudySession } from '@/lib/social/StudySessionManager';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { 
   Users, 
-  PlusCircle, 
   UserPlus, 
   MessageSquare, 
   BookOpen, 
@@ -43,12 +35,12 @@ import {
   Shield,
   User,
   FileText,
+  Flag,
   Link,
-  Upload,
   MoreVertical,
+  Trash2,
   X,
   UserMinus,
-  Calendar
 } from 'lucide-react';
 import {
   Dialog,
@@ -86,6 +78,7 @@ import { cn } from "@/lib/utils";
 import GroupManagementPanel from './GroupManagementPanel';
 import { StudyGroupChatTab } from '@/components/social/study-group/StudyGroupChatTab';
 import { GroupsBento } from './group/GroupsBento';
+import { submitSocialReport } from '@/lib/social/submitSocialReport';
 
 /** Matches Groups lane bento: diffused scrim, not flat `bg-black/80`. */
 const GROUPS_HUB_OVERLAY = cn(
@@ -133,26 +126,12 @@ export const StudyGroupHub: React.FC = () => {
   const [newResourceTitle, setNewResourceTitle] = useState("");
   const [newResourceContent, setNewResourceContent] = useState("");
   const [newResourceUrl, setNewResourceUrl] = useState("");
+  const [newResourceFile, setNewResourceFile] = useState<File | null>(null);
   const [newResourceType, setNewResourceType] = useState<string>("note");
   // Discovery data
   const categoriesQuery = useGroupCategories(getToken);
   const discoveryQuery = useDiscoverGroups(getToken, { q: searchQuery, categoryId: selectedCategory });
 
-  // Sessions UI state
-  const [newSession, setNewSession] = useState<{
-    title: string;
-    description: string;
-    start_time: string;
-    end_time: string;
-    max_participants?: number | null;
-  }>({ title: '', description: '', start_time: '', end_time: '', max_participants: null });
-
-  const sessionsQuery = useStudySessions(getToken, selectedGroup?.id || '');
-  const createSession = useCreateSession(getToken, selectedGroup?.id || '');
-  const [sessionDetailsId, setSessionDetailsId] = useState<string | null>(null);
-  const participantsQuery = useSessionParticipants(getToken, sessionDetailsId || '');
-  const joinSession = useJoinSession(getToken, selectedGroup?.id || '');
-  const leaveSession = useLeaveSession(getToken, selectedGroup?.id || '');
   const queryClient = useQueryClient();
 
   const selectedGroupId = selectedGroup?.id ?? '';
@@ -175,10 +154,6 @@ export const StudyGroupHub: React.FC = () => {
       // Ignore cache read errors.
     }
   }, []);
-
-  useEffect(() => {
-    if (!isPopoverOpen || !selectedGroupId) return;
-  }, [isPopoverOpen, selectedGroupId, selectedGroup, membersQuery.status, membersQuery.fetchStatus, groupMembers.length]);
 
   useEffect(() => {
     if (!selectedGroupId || !Array.isArray(membersQuery.data)) return;
@@ -213,68 +188,6 @@ export const StudyGroupHub: React.FC = () => {
       // Ignore cache write errors.
     }
   }, [knownMemberCounts]);
-
-  // Resolve participant names
-  const [participantNames, setParticipantNames] = useState<Record<string, string>>({});
-  useEffect(() => {
-    const loadNames = async () => {
-      if (!participantsQuery.data || participantsQuery.data.length === 0) {
-        setParticipantNames({});
-        return;
-      }
-      try {
-        const uniqueIds = Array.from(
-          new Set(
-            participantsQuery.data
-              .map((p) => p.user_id)
-              .filter((id): id is string => Boolean(id)),
-          ),
-        );
-        const client = createAuthenticatedSupabaseClient(
-          wrapClerkTokenForSupabase(getToken),
-        );
-        if (!client) {
-          setParticipantNames({});
-          return;
-        }
-        const { data, error } = await client
-          .from("profiles")
-          .select("clerk_user_id, full_name, email, username")
-          .in("clerk_user_id", uniqueIds);
-        if (error) throw error;
-        const names: Record<string, string> = {};
-        for (const row of data ?? []) {
-          const id = row.clerk_user_id;
-          names[id] =
-            row.full_name?.trim() ||
-            row.username?.trim() ||
-            (row.email ? row.email.split("@")[0] : null) ||
-            id.slice(0, 8);
-        }
-        setParticipantNames(names);
-      } catch {
-        setParticipantNames({});
-      }
-    };
-    void loadNames();
-  }, [participantsQuery.data, getToken]);
-
-  // Realtime subscription for session details dialog
-  useEffect(() => {
-    if (!sessionDetailsId) return;
-    const mgr = new StudySessionManager(getToken);
-    const unsubscribe = mgr.subscribeToSession(sessionDetailsId, {
-      onSessionUpdate: () => {
-        if (selectedGroup?.id) {
-          queryClient.invalidateQueries({ queryKey: ['studyGroups', 'sessions', selectedGroup.id] });
-        }
-      },
-      onParticipantChange: () => {
-        queryClient.invalidateQueries({ queryKey: ['studyGroups', 'participants', sessionDetailsId] });
-      }
-    });
-    return unsubscribe;
-  }, [sessionDetailsId, getToken, queryClient, selectedGroup?.id]);
 
   // Load all groups for browsing
   const loadAllGroups = useCallback(async () => {
@@ -412,22 +325,167 @@ export const StudyGroupHub: React.FC = () => {
     }
   };
 
+  const handleArchiveGroup = async (groupId: string) => {
+    if (!user) return;
+    const shouldArchive = window.confirm(
+      "Archive this group? It will disappear from group lists, but its chat and resources will stay preserved for admin review.",
+    );
+    if (!shouldArchive) return;
+
+    try {
+      await studyGroupManager.archiveGroup(groupId);
+      setMembershipStatus((prev) => {
+        const next = { ...prev };
+        delete next[groupId];
+        return next;
+      });
+      setAllGroups((prev) => prev.filter((group) => group.id !== groupId));
+      setSelectedGroup(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: studyGroupKeys.userGroups(user.id) }),
+        queryClient.invalidateQueries({ queryKey: studyGroupKeys.discovery({ q: searchQuery, categoryId: selectedCategory }) }),
+      ]);
+      toast.success("Group archived. Its chat and resources are preserved.");
+    } catch (error) {
+      console.error("[social:archiveGroup]", error);
+      toast.error("Couldn't archive this group right now. Try again.");
+    }
+  };
+
+  const handleReportGroup = async (group: StudyGroup) => {
+    const reason = window.prompt(
+      `Report ${group.name}? Tell us what needs review.`,
+    );
+    if (!reason?.trim()) return;
+
+    try {
+      await submitSocialReport({
+        targetType: 'group',
+        targetId: group.id,
+        reason: reason.trim(),
+        context: { source: 'study_group_hub', group_name: group.name },
+      });
+      toast.success('Report sent. Thanks for keeping MemoSpark safe.');
+    } catch (error) {
+      console.error('[social:reportGroup]', error);
+      toast.error("Couldn't send the report right now. Try again.");
+    }
+  };
+
+  const handleReportResource = async (resource: StudyGroupResource) => {
+    const reason = window.prompt(
+      `Report "${resource.title}"? Tell us what needs review.`,
+    );
+    if (!reason?.trim()) return;
+
+    try {
+      await submitSocialReport({
+        targetType: 'resource',
+        targetId: resource.id,
+        reason: reason.trim(),
+        context: {
+          source: 'study_group_resource',
+          group_id: resource.group_id,
+          resource_type: resource.resource_type,
+        },
+      });
+      toast.success('Resource report sent.');
+    } catch (error) {
+      console.error('[social:reportResource]', error);
+      toast.error("Couldn't report this resource right now. Try again.");
+    }
+  };
+
+  const handleDeleteResource = async (resource: StudyGroupResource) => {
+    if (!selectedGroup) return;
+    const shouldDelete = window.confirm(`Delete "${resource.title}" from this group?`);
+    if (!shouldDelete) return;
+
+    try {
+      const response = await fetch(
+        `/api/study-groups/${selectedGroup.id}/resources?resourceId=${resource.id}`,
+        { method: 'DELETE' },
+      );
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Failed to delete resource');
+      }
+      await queryClient.invalidateQueries({
+        queryKey: studyGroupKeys.groupResources(selectedGroup.id),
+      });
+      toast.success('Resource removed.');
+    } catch (error) {
+      console.error('[social:deleteResource]', error);
+      toast.error("Couldn't remove this resource right now. Try again.");
+    }
+  };
+
   // Resource management
   const handleAddResource = async () => {
     if (!selectedGroup || !user || !newResourceTitle.trim()) return;
     
     try {
-      await studyGroupManager.addResource(selectedGroup.id, user.id, {
+      let uploadedFilePath: string | undefined;
+
+      if (newResourceType === 'file') {
+        if (!newResourceFile) {
+          toast.error('Choose a file before adding this resource.');
+          return;
+        }
+
+        const uploadResponse = await fetch(
+          `/api/study-groups/${selectedGroup.id}/resources/upload`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName: newResourceFile.name,
+              contentType: newResourceFile.type,
+              fileSize: newResourceFile.size,
+            }),
+          },
+        );
+        const uploadPayload = await uploadResponse.json().catch(() => ({}));
+        if (!uploadResponse.ok) {
+          throw new Error(uploadPayload.error ?? 'Failed to prepare file upload');
+        }
+
+        const client = createAuthenticatedSupabaseClient(
+          wrapClerkTokenForSupabase(getToken),
+        );
+        if (!client) {
+          throw new Error('Storage client unavailable');
+        }
+
+        const { error: uploadError } = await client.storage
+          .from(uploadPayload.bucket)
+          .uploadToSignedUrl(
+            uploadPayload.path,
+            uploadPayload.token,
+            newResourceFile,
+          );
+
+        if (uploadError) {
+          throw uploadError;
+        }
+        uploadedFilePath = uploadPayload.path;
+      }
+
+      const savedResource = await studyGroupManager.addResource(selectedGroup.id, user.id, {
         resource_type: newResourceType,
         title: newResourceTitle,
         description: newResourceContent || undefined,
-        url: newResourceUrl || undefined,
-        file_path: undefined
+        url: newResourceType === 'link' ? newResourceUrl || undefined : undefined,
+        file_path: uploadedFilePath
       });
+      if (!savedResource) {
+        throw new Error('Resource did not save');
+      }
       
       setNewResourceTitle("");
       setNewResourceContent("");
       setNewResourceUrl("");
+      setNewResourceFile(null);
       setNewResourceType("note");
       void queryClient.invalidateQueries({ queryKey: studyGroupKeys.groupResources(selectedGroup.id) });
       toast.success("Resource added successfully!");
@@ -472,64 +530,11 @@ export const StudyGroupHub: React.FC = () => {
   const getResourceIcon = (type: string) => {
     switch (type) {
       case 'link': return <Link className="h-4 w-4" />;
-      case 'file': return <Upload className="h-4 w-4" />;
       default: return <FileText className="h-4 w-4" />;
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
-
   const [groupTab, setGroupTab] = useState('chat');
-  const [selectedSession, setSelectedSession] = useState<StudySession | null>(null);
-  const [newSessionTitle, setNewSessionTitle] = useState('');
-  const [newSessionDescription, setNewSessionDescription] = useState('');
-  const [newSessionStart, setNewSessionStart] = useState('');
-  const [newSessionEnd, setNewSessionEnd] = useState('');
-  const [newSessionMaxParticipants, setNewSessionMaxParticipants] = useState<number | ''>('');
-
-  const handleCreateSession = async () => {
-    if (!selectedGroup || !user) return;
-    if (!newSessionTitle || !newSessionStart || !newSessionEnd) {
-      toast.error('Please fill title, start and end times');
-      return;
-    }
-    
-    // Validate end time is after start time
-    if (new Date(newSessionEnd) <= new Date(newSessionStart)) {
-      toast.error('End time must be after start time');
-      return;
-    }
-
-    try {
-      await createSession.mutateAsync({
-        // createSession expects payload matching StudySession fields with creatorId
-        creatorId: user.id,
-        title: newSessionTitle,
-        description: newSessionDescription,
-        start_time: newSessionStart,
-        end_time: newSessionEnd,
-        max_participants: newSessionMaxParticipants ? Number(newSessionMaxParticipants) : null,
-        session_type: 'general',
-        status: 'scheduled',
-        metadata: {}
-      } as any);
-      
-      setNewSessionTitle('');
-      setNewSessionDescription('');
-      setNewSessionStart('');
-      setNewSessionEnd('');
-      setNewSessionMaxParticipants('');
-      toast.success('Session created successfully');
-    } catch (error) {
-      console.error('Failed to create session:', error);
-      toast.error('Failed to create session');
-    }
-  };
-
-  const sessions = sessionsQuery.data;
-  const sessionsLoading = sessionsQuery.isLoading;
 
   return (
     <div className="relative space-y-6">
@@ -944,6 +949,29 @@ export const StudyGroupHub: React.FC = () => {
                                     Join
                                   </Button>
                                 )}
+                                {user?.id === selectedGroup.created_by && (
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="sm"
+                                    className="h-10 rounded-full px-4"
+                                    onClick={() => handleArchiveGroup(selectedGroup.id)}
+                                  >
+                                    Archive
+                                  </Button>
+                                )}
+                                {user?.id !== selectedGroup.created_by && (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-10 rounded-full px-4"
+                                    onClick={() => handleReportGroup(selectedGroup)}
+                                  >
+                                    <Flag className="mr-2 h-4 w-4" />
+                                    Report
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -955,9 +983,6 @@ export const StudyGroupHub: React.FC = () => {
                         value={groupTab}
                         onValueChange={(value) => {
                           setGroupTab(value);
-                          // #region agent log
-                          fetch('http://127.0.0.1:7398/ingest/7639c4aa-a48b-4a9d-a431-e9f3a0abb933',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8f8d91'},body:JSON.stringify({sessionId:'8f8d91',runId:'members-tab-debug',hypothesisId:'H3',location:'StudyGroupHub.tsx:905',message:'group detail tab changed',data:{tab:value,selectedGroupId,currentMembersLength:groupMembers.length},timestamp:Date.now()})}).catch(()=>{});
-                          // #endregion
                         }}
                         className="flex min-h-0 flex-1 flex-col"
                       >
@@ -994,16 +1019,6 @@ export const StudyGroupHub: React.FC = () => {
                               {groupMembers.length}
                             </span>
                           </TabsTrigger>
-                          <TabsTrigger
-                            value="sessions"
-                            className="rounded-xl data-[state=active]:bg-primary/12"
-                          >
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Sessions
-                            <span className="ml-1 rounded-full bg-muted px-1.5 text-[10px] leading-5">
-                              {sessionsQuery.data?.length ?? 0}
-                            </span>
-                          </TabsTrigger>
                           {user?.id === selectedGroup.created_by && (
                             <TabsTrigger
                               value="manage"
@@ -1037,219 +1052,6 @@ export const StudyGroupHub: React.FC = () => {
                           </div>
                         </TabsContent>
 
-                        {/* Sessions Tab */}
-                        <TabsContent value="sessions" className="flex-1 m-0">
-                          <div className="p-4 space-y-4">
-                              <Card>
-                              <CardHeader>
-                                <CardTitle>Create Session</CardTitle>
-                                <CardDescription>Schedule a new study session for this group</CardDescription>
-                              </CardHeader>
-                              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input
-                                  placeholder="Title"
-                                  value={newSession.title}
-                                  onChange={(e) => setNewSession(s => ({ ...s, title: e.target.value }))}
-                                />
-                                <Input
-                                  type="datetime-local"
-                                  placeholder="Start time (YYYY-MM-DD HH:mm)"
-                                  value={newSession.start_time}
-                                  onChange={(e) => setNewSession(s => ({ ...s, start_time: e.target.value }))}
-                                />
-                                <Textarea
-                                  placeholder="Description"
-                                  value={newSession.description}
-                                  onChange={(e) => setNewSession(s => ({ ...s, description: e.target.value }))}
-                                />
-                                <Input
-                                  type="datetime-local"
-                                  placeholder="End time (YYYY-MM-DD HH:mm)"
-                                  value={newSession.end_time}
-                                  onChange={(e) => setNewSession(s => ({ ...s, end_time: e.target.value }))}
-                                />
-                                <Input
-                                  placeholder="Max participants (optional)"
-                                  type="number"
-                                  min={1}
-                                  value={newSession.max_participants ?? ''}
-                                  onChange={(e) => setNewSession(s => ({ ...s, max_participants: e.target.value ? Number(e.target.value) : null }))}
-                                />
-                              </CardContent>
-                              <CardFooter>
-                                <Button
-                                  disabled={!selectedGroup || !user || createSession.isPending}
-                                  onClick={() => {
-                                    if (!selectedGroup || !user) return;
-                                    if (!newSession.title || !newSession.start_time || !newSession.end_time) {
-                                      toast.error('Please fill title, start and end times');
-                                      return;
-                                    }
-                                    createSession.mutate({
-                                      creatorId: user.id,
-                                      title: newSession.title,
-                                      description: newSession.description,
-                                      start_time: newSession.start_time,
-                                      end_time: newSession.end_time,
-                                      session_type: 'general',
-                                      max_participants: newSession.max_participants ?? null,
-                                      status: 'scheduled',
-                                      metadata: {},
-                                    } as any, {
-                                      onSuccess: () => {
-                                        toast.success('Session created');
-                                        setNewSession({ title: '', description: '', start_time: '', end_time: '', max_participants: null });
-                                      },
-                                      onError: () => toast.error('Failed to create session'),
-                                    } as any);
-                                  }}
-                                >
-                                  {createSession.isPending ? 'Creating...' : 'Create Session'}
-                                </Button>
-                              </CardFooter>
-                            </Card>
-
-                            <Card>
-                              <CardHeader>
-                                <CardTitle>Sessions</CardTitle>
-                                <CardDescription>Active and upcoming sessions for this group</CardDescription>
-                              </CardHeader>
-                              <CardContent>
-                                {sessionsQuery.isLoading ? (
-                                  <p className="text-sm text-muted-foreground">Loading sessions...</p>
-                                ) : (sessionsQuery.data?.length ? (
-                                  <div className="space-y-3">
-                                    {/* Active */}
-                                    {sessionsQuery.data.filter(s => s.status === 'active').length > 0 && (
-                                      <div>
-                                        <div className="text-xs uppercase text-muted-foreground mb-2">Active</div>
-                                        <div className="space-y-2">
-                                          {sessionsQuery.data.filter(s => s.status === 'active').map(s => (
-                                            <button key={s.id} type="button" className="w-full text-left rounded-md border p-3 bg-green-50/5 hover:bg-green-100/5 transition" onClick={() => setSessionDetailsId(s.id)}>
-                                              <div className="flex items-center justify-between">
-                                                <div>
-                                                  <div className="font-medium">{s.title}</div>
-                                                  <div className="text-xs text-muted-foreground">{new Date(s.start_time).toLocaleTimeString()} • In progress</div>
-                                                </div>
-                                                <div className="text-sm text-muted-foreground">{s.current_participants}/{s.max_participants ?? '∞'}</div>
-                                              </div>
-                                            </button>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                    {/* Upcoming */}
-                                    {sessionsQuery.data.filter(s => s.status !== 'active').length > 0 && (
-                                      <div>
-                                        <div className="text-xs uppercase text-muted-foreground mb-2">Upcoming</div>
-                                        <div className="space-y-2">
-                                          {sessionsQuery.data.filter(s => s.status !== 'active').map(s => (
-                                      <button
-                                        type="button"
-                                        key={s.id}
-                                        className="w-full text-left rounded-md border p-3 hover:bg-muted/50 transition"
-                                        onClick={() => setSessionDetailsId(s.id)}
-                                      >
-                                        <div className="flex items-center justify-between">
-                                          <div>
-                                            <div className="font-medium">{s.title}</div>
-                                            <div className="text-xs text-muted-foreground">
-                                              {new Date(s.start_time).toLocaleString()} → {new Date(s.end_time).toLocaleString()} • {s.status}
-                                            </div>
-                                          </div>
-                                          <div className="text-sm text-muted-foreground">{s.current_participants}/{s.max_participants ?? '∞'}</div>
-                                        </div>
-                                      </button>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <p className="text-sm text-muted-foreground">No upcoming sessions yet.</p>
-                                ))}
-                              </CardContent>
-                            </Card>
-                          </div>
-                        </TabsContent>
-
-                        <Dialog open={Boolean(sessionDetailsId)} onOpenChange={(open) => !open && setSessionDetailsId(null)}>
-                          <DialogContent
-                            overlayClassName={GROUPS_HUB_OVERLAY}
-                            className="max-w-md rounded-[1.25rem] border-border/55 bg-card/98 ring-1 ring-border/35"
-                          >
-                            <DialogHeader>
-                              <DialogTitle className="text-xl font-semibold tracking-tight">
-                                Session
-                              </DialogTitle>
-                              <DialogDescription className="sr-only">
-                                Participants and join or leave.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              {participantsQuery.isLoading ? (
-                                <p className="text-sm text-muted-foreground">Loading participants...</p>
-                              ) : (
-                                <div>
-                                  <div className="font-medium mb-2">Participants</div>
-                                  <div className="space-y-2 max-h-60 overflow-auto pr-2">
-                                    {(participantsQuery.data ?? []).map(p => (
-                                      <div key={p.id} className="flex items-center justify-between text-sm">
-                                        <span className="truncate">{participantNames[p.user_id] || p.user_id}</span>
-                                        <span className="text-muted-foreground">{p.status}</span>
-                                      </div>
-                                    ))}
-                                    {participantsQuery.data?.length === 0 && (
-                                      <p className="text-sm text-muted-foreground">No participants yet.</p>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                            <DialogFooter>
-                              <div className="flex w-full justify-between">
-                                <Button
-                                  variant="secondary"
-                                  onClick={() => setSessionDetailsId(null)}
-                                >
-                                  Close
-                                </Button>
-                                {user && sessionDetailsId && (
-                                  <div className="space-x-2">
-                                    {/* Conditional Join/Leave based on participation */}
-                                    {participantsQuery.data?.some(p => p.user_id === user.id) ? (
-                                      <Button
-                                        variant="ghost"
-                                        onClick={() => {
-                                          if (!user || !sessionDetailsId) return;
-                                          leaveSession.mutate({ sessionId: sessionDetailsId, userId: user.id }, {
-                                            onSuccess: () => toast.success('Left session'),
-                                            onError: () => toast.error('Failed to leave session'),
-                                          });
-                                        }}
-                                      >
-                                        Leave Session
-                                      </Button>
-                                    ) : (
-                                      <Button
-                                        onClick={() => {
-                                          if (!user || !sessionDetailsId) return;
-                                          joinSession.mutate({ sessionId: sessionDetailsId, userId: user.id }, {
-                                            onSuccess: () => toast.success('Joined session'),
-                                            onError: () => toast.error('Failed to join session'),
-                                          });
-                                        }}
-                                      >
-                                        Join Session
-                                      </Button>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-
                         <TabsContent value="resources" className="flex-1 m-0 p-4">
                           <div className="space-y-4">
                             {membershipStatus[selectedGroup.id] && (
@@ -1281,6 +1083,24 @@ export const StudyGroupHub: React.FC = () => {
                                       value={newResourceUrl}
                                       onChange={(e) => setNewResourceUrl(e.target.value)}
                                     />
+                                  ) : newResourceType === 'file' ? (
+                                    <div className="space-y-2">
+                                      <Input
+                                        type="file"
+                                        accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx"
+                                        onChange={(event) =>
+                                          setNewResourceFile(event.target.files?.[0] ?? null)
+                                        }
+                                      />
+                                      <p className="text-xs text-muted-foreground">
+                                        PDF, image, text, and Word files up to 10MB.
+                                      </p>
+                                      <Textarea
+                                        placeholder="Optional note for classmates"
+                                        value={newResourceContent}
+                                        onChange={(e) => setNewResourceContent(e.target.value)}
+                                      />
+                                    </div>
                                   ) : (
                                     <Textarea
                                       placeholder="Content"
@@ -1320,6 +1140,44 @@ export const StudyGroupHub: React.FC = () => {
                                               {resource.url}
                                             </a>
                                           )}
+                                          {resource.resource_type === 'file' && (
+                                            <a
+                                              href={(resource as StudyGroupResource & { signed_url?: string | null }).signed_url ?? '#'}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-xs text-blue-500 hover:underline mt-1 block"
+                                              aria-disabled={!(resource as StudyGroupResource & { signed_url?: string | null }).signed_url}
+                                            >
+                                              {(resource as StudyGroupResource & { signed_url?: string | null }).signed_url
+                                                ? 'Open file'
+                                                : 'File link is preparing'}
+                                            </a>
+                                          )}
+                                        </div>
+                                        <div className="flex shrink-0 items-center gap-2">
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 px-2 text-xs"
+                                            onClick={() => handleReportResource(resource)}
+                                          >
+                                            <Flag className="mr-1 h-3.5 w-3.5" />
+                                            Report
+                                          </Button>
+                                          {(resource.user_id === user?.id ||
+                                            user?.id === selectedGroup.created_by) && (
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-8 px-2 text-xs text-destructive"
+                                              onClick={() => handleDeleteResource(resource)}
+                                            >
+                                              <Trash2 className="mr-1 h-3.5 w-3.5" />
+                                              Delete
+                                            </Button>
+                                          )}
                                         </div>
                                       </div>
                                     </CardContent>
@@ -1333,7 +1191,7 @@ export const StudyGroupHub: React.FC = () => {
                         <TabsContent value="members" className="flex-1 m-0 p-4">
                           <div className="rounded-md border p-4">
                             <div className="space-y-2">
-                              {groupMembers.map((member) => (
+                              {groupMembers.map((member: StudyGroupMember & { user_name: string }) => (
                                 <Card key={member.id}>
                                   <CardContent className="p-3">
                                     <div className="flex items-center justify-between">

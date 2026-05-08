@@ -5,6 +5,7 @@ import { createAuthenticatedSupabaseClient } from "@/lib/supabase/client";
 import { StudentDiscovery } from "@/lib/social/StudentDiscovery";
 import { StudyGroupManager } from "@/lib/social/StudyGroupManager";
 import { useAuth } from "@clerk/nextjs";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 
@@ -119,7 +120,7 @@ export function useConnectionHubOutgoing(
  * updates immediately when a request is sent, accepted, or declined —
  * without requiring a manual page refresh.
  *
- * Invalidates all three connection query keys on any INSERT or UPDATE.
+ * Invalidates connection query keys on INSERT, UPDATE, and DELETE.
  */
 export function useConnectionsRealtime(userId: string | null | undefined) {
   const { getToken } = useAuth();
@@ -128,7 +129,7 @@ export function useConnectionsRealtime(userId: string | null | undefined) {
   useEffect(() => {
     if (!userId) return;
 
-    let channel: ReturnType<ReturnType<typeof createAuthenticatedSupabaseClient>["channel"]> | null = null;
+    let channel: RealtimeChannel | null = null;
     let client: ReturnType<typeof createAuthenticatedSupabaseClient> = null;
 
     try {
@@ -150,6 +151,19 @@ export function useConnectionsRealtime(userId: string | null | undefined) {
           },
           () => {
             void qc.invalidateQueries({ queryKey: connectionHubKeys.incoming(userId) });
+            void qc.invalidateQueries({ queryKey: ["social-activity"] });
+          },
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "connections",
+            filter: `requester_id=eq.${userId}`,
+          },
+          () => {
+            void qc.invalidateQueries({ queryKey: connectionHubKeys.outgoing(userId) });
             void qc.invalidateQueries({ queryKey: ["social-activity"] });
           },
         )
@@ -178,6 +192,34 @@ export function useConnectionsRealtime(userId: string | null | undefined) {
           () => {
             void qc.invalidateQueries({ queryKey: connectionHubKeys.incoming(userId) });
             void qc.invalidateQueries({ queryKey: connectionHubKeys.connections(userId) });
+            void qc.invalidateQueries({ queryKey: ["social-activity"] });
+          },
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "DELETE",
+            schema: "public",
+            table: "connections",
+            filter: `requester_id=eq.${userId}`,
+          },
+          () => {
+            void qc.invalidateQueries({ queryKey: connectionHubKeys.connections(userId) });
+            void qc.invalidateQueries({ queryKey: connectionHubKeys.outgoing(userId) });
+            void qc.invalidateQueries({ queryKey: ["social-activity"] });
+          },
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "DELETE",
+            schema: "public",
+            table: "connections",
+            filter: `receiver_id=eq.${userId}`,
+          },
+          () => {
+            void qc.invalidateQueries({ queryKey: connectionHubKeys.connections(userId) });
+            void qc.invalidateQueries({ queryKey: connectionHubKeys.incoming(userId) });
             void qc.invalidateQueries({ queryKey: ["social-activity"] });
           },
         )
