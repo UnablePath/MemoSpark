@@ -260,3 +260,77 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const { supabase, userId } = await getSupabaseWithClerkAuth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!supabase) {
+      return NextResponse.json({ error: 'Database unavailable' }, { status: 503 });
+    }
+
+    const body = await request.json();
+    const { id: messageId, content } = body as {
+      id?: string;
+      content?: string;
+    };
+
+    if (!messageId || typeof content !== 'string' || !content.trim()) {
+      return NextResponse.json({ error: 'Message ID and content are required' }, { status: 400 });
+    }
+
+    // Verify ownership and get conversation_id
+    const { data: existing, error: fetchError } = await supabase
+      .from('messages')
+      .select('conversation_id, sender_id')
+      .eq('id', messageId)
+      .single();
+
+    if (fetchError || !existing) {
+      return NextResponse.json({ error: 'Message not found' }, { status: 404 });
+    }
+
+    if (existing.sender_id !== userId) {
+      return NextResponse.json({ error: 'Not authorized to edit this message' }, { status: 403 });
+    }
+
+    const { content: storedContent, encrypted } = encryptIfConfigured(content.trim());
+
+    const { data: message, error: updateError } = await supabase
+      .from('messages')
+      .update({
+        content: storedContent,
+        encrypted,
+        edited_at: new Date().toISOString(),
+      })
+      .eq('id', messageId)
+      .select(
+        `
+        *,
+        sender:profiles!messages_sender_id_fkey(clerk_user_id, full_name, avatar_url),
+        reactions:message_reactions(*),
+        read_receipts:message_read_receipts(*),
+        attachments:message_attachments(*)
+      `,
+      )
+      .single();
+
+    if (updateError) {
+      console.error('[messaging:editMessage]', updateError);
+      return NextResponse.json({ error: 'Could not update this message. Try again.' }, { status: 500 });
+    }
+
+    const formattedMessage = rowToClientPayload(message as MessageRow);
+
+    return NextResponse.json({
+      message: formattedMessage,
+      atRestEncryptionEnabled: isMessagingAtRestEncryptionConfigured(),
+    });
+  } catch (error) {
+    console.error('[messaging:editMessage]', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

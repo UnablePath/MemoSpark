@@ -1016,8 +1016,8 @@ export const StudyGroupHub: React.FC = () => {
                         </TabsList>
 
                         <TabsContent value="chat" className="flex-1 m-0 flex min-h-0 flex-col">
-                          <div className="min-h-0 flex-1 p-4">
-                            <div className="overflow-hidden rounded-md border">
+                          <div className="flex min-h-0 flex-1 flex-col p-2 sm:p-4">
+                            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border">
                               {user ? (
                                 <StudyGroupChatTab
                                   selectedGroup={selectedGroup}

@@ -6,24 +6,28 @@ import { useAuth, useUser } from '@clerk/nextjs';
 import type React from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 
-interface StudyGroupRealtimeChatProps {
+interface DirectMessageChatProps {
+  /** UUID of the direct (one-on-one) conversation. */
   conversationId: string;
-  groupName: string;
-  isMember: boolean;
-  /**
-   * ISO timestamp: when set, messages before this date are hidden.
-   * Passed by StudyGroupChatTab when history_visible_to_new_members=false
-   * and the current user is not an admin.
-   */
-  historyNotBefore?: string;
+  /** Display name of the recipient (used in header + composer placeholder). */
+  recipientName: string;
+  /** Disable composer when set (e.g., recipient blocked). */
+  disabled?: boolean;
   className?: string;
 }
 
-export const StudyGroupRealtimeChat: React.FC<StudyGroupRealtimeChatProps> = ({
+/**
+ * Direct-message variant of the realtime chat. Single conversation, no sidebar.
+ *
+ * - Uses a dedicated room name (`dm:<conversationId>`) so it never collides with
+ *   group chats — preserving privacy between conversation types.
+ * - Skips the group-chat participant-ensure RPC (DMs already register both
+ *   participants at conversation creation in `get_or_create_direct_conversation`).
+ */
+export const DirectMessageChat: React.FC<DirectMessageChatProps> = ({
   conversationId,
-  groupName,
-  isMember,
-  historyNotBefore,
+  recipientName,
+  disabled,
   className,
 }) => {
   const { getToken } = useAuth();
@@ -32,9 +36,8 @@ export const StudyGroupRealtimeChat: React.FC<StudyGroupRealtimeChatProps> = ({
     user?.fullName || user?.firstName || user?.username || 'You';
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Use a clearly different namespace from DM rooms — privacy by separation.
   const realtimeRoomName = useMemo(
-    () => `group-chat:${conversationId}`,
+    () => `dm:${conversationId}`,
     [conversationId],
   );
 
@@ -42,7 +45,6 @@ export const StudyGroupRealtimeChat: React.FC<StudyGroupRealtimeChatProps> = ({
     messages,
     status,
     typingUserIds,
-    presencePeers,
     sendMessage,
     sendTyping,
     markAsRead,
@@ -55,26 +57,15 @@ export const StudyGroupRealtimeChat: React.FC<StudyGroupRealtimeChatProps> = ({
     userId: user?.id || '',
     userDisplayName: displayName,
     getToken,
-    enabled: Boolean(isMember && user?.id && conversationId),
-    historyNotBefore,
-    ensureParticipant: true,
+    enabled: Boolean(user?.id && conversationId),
+    ensureParticipant: false,
   });
 
   const typingLabel = useMemo(() => {
     const others = [...typingUserIds].filter((id) => id !== user?.id);
     if (others.length === 0) return '';
-    return others.length === 1
-      ? 'Someone is typing…'
-      : 'Several people are typing…';
-  }, [typingUserIds, user?.id]);
-
-  const presenceSummary = useMemo(() => {
-    if (presencePeers.length <= 1) return '';
-    const names = presencePeers.map((p) => p.name).filter(Boolean);
-    return `${names.length} here: ${names.slice(0, 4).join(', ')}${
-      names.length > 4 ? '…' : ''
-    }`;
-  }, [presencePeers]);
+    return `${recipientName} is typing…`;
+  }, [recipientName, typingUserIds, user?.id]);
 
   useEffect(() => {
     return () => {
@@ -95,7 +86,7 @@ export const StudyGroupRealtimeChat: React.FC<StudyGroupRealtimeChatProps> = ({
   return (
     <RealtimeChat
       className={className}
-      title={groupName}
+      title={recipientName}
       username={displayName}
       currentUserId={user.id}
       messages={messages}
@@ -107,10 +98,9 @@ export const StudyGroupRealtimeChat: React.FC<StudyGroupRealtimeChatProps> = ({
       onDelete={deleteMessage}
       typingLabel={typingLabel}
       status={status}
-      presenceSummary={presenceSummary}
-      composerPlaceholder={`Message ${groupName}`}
-      emptyStateCopy="Nothing yet. Be the first to share."
-      disabled={!isMember}
+      composerPlaceholder={`Message ${recipientName}`}
+      emptyStateCopy={`Start the conversation with ${recipientName}.`}
+      disabled={disabled}
     />
   );
 };

@@ -1,29 +1,62 @@
-"use client";
+'use client';
 
 /**
- * Supabase Realtime Chat transport: Broadcast (+ optional postgres_changes on `messages`).
+ * Supabase Realtime Chat transport: Broadcast (typing/presence/optimistic msg) +
+ * postgres_changes on `messages` and `message_reactions` for authoritative state.
+ *
  * @see https://supabase.com/ui/docs/nextjs/realtime-chat
  * @see https://supabase.com/docs/guides/realtime/broadcast
  */
 
 import type {
+  ReactionGroup,
   RealtimeChatMessage,
   RealtimeConnectionStatus,
-} from "@/components/social/chat/realtime-chat-types";
-import { wrapClerkTokenForSupabase } from "@/lib/clerk/clerkSupabaseToken";
-import { isLikelyAtRestCiphertext } from "@/lib/messaging/atRestEnvelopeShared";
+} from '@/components/social/chat/realtime-chat-types';
+import { wrapClerkTokenForSupabase } from '@/lib/clerk/clerkSupabaseToken';
+import { isLikelyAtRestCiphertext } from '@/lib/messaging/atRestEnvelopeShared';
 import type {
   ClerkGetToken,
   Message,
+  MessageReaction,
   MessageWithDetails,
-} from "@/lib/messaging/MessagingService";
-import { MessagingService } from "@/lib/messaging/MessagingService";
-import { createAuthenticatedSupabaseClient } from "@/lib/supabase/client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+} from '@/lib/messaging/MessagingService';
+import { MessagingService } from '@/lib/messaging/MessagingService';
+import { createAuthenticatedSupabaseClient } from '@/lib/supabase/client';
+import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-function toChatMessage(m: MessageWithDetails): RealtimeChatMessage {
+interface RawReaction {
+  emoji: string;
+  userId: string;
+}
+
+function aggregateReactions(
+  raw: RawReaction[],
+  viewerUserId: string,
+): ReactionGroup[] {
+  if (!raw.length) return [];
+  const map = new Map<string, { count: number; byMe: boolean }>();
+  for (const r of raw) {
+    const entry = map.get(r.emoji) ?? { count: 0, byMe: false };
+    entry.count += 1;
+    if (r.userId === viewerUserId) entry.byMe = true;
+    map.set(r.emoji, entry);
+  }
+  return [...map.entries()]
+    .map(([emoji, { count, byMe }]) => ({ emoji, count, byMe }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function toChatMessage(
+  m: MessageWithDetails,
+  viewerUserId: string,
+): RealtimeChatMessage {
   const name = m.sender?.full_name || m.sender_id;
+  const raw: RawReaction[] = (m.reactions || []).map((r) => ({
+    emoji: r.reaction_type,
+    userId: r.user_id,
+  }));
   return {
     id: m.id,
     content: m.content,
@@ -32,13 +65,13 @@ function toChatMessage(m: MessageWithDetails): RealtimeChatMessage {
     senderId: m.sender_id,
     replyToId: m.reply_to_id,
     read: m.read,
+    editedAt: m.edited_at,
+    deletedAt: m.deleted_at,
+    reactions: aggregateReactions(raw, viewerUserId),
   };
 }
 
-function fromInsertRow(
-  saved: Message,
-  displayName: string,
-): RealtimeChatMessage {
+function fromInsertRow(saved: Message, displayName: string): RealtimeChatMessage {
   return {
     id: saved.id,
     content: saved.content,
@@ -47,12 +80,11 @@ function fromInsertRow(
     senderId: saved.sender_id,
     replyToId: saved.reply_to_id,
     read: saved.read,
+    reactions: [],
   };
 }
 
-function sortChronological(
-  items: RealtimeChatMessage[],
-): RealtimeChatMessage[] {
+function sortChronological(items: RealtimeChatMessage[]): RealtimeChatMessage[] {
   return [...items].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
@@ -65,6 +97,9 @@ function mergeById(
   if (existing.some((m) => m.id === next.id)) return existing;
   return sortChronological([...existing, next]);
 }
+
+/** Internal: track raw (emoji, userId) tuples per message so we can aggregate per viewer. */
+type RawReactionState = Map<string, RawReaction[]>;
 
 export interface UseRealtimeChatOptions {
   /** Topic for `supabase.channel(roomName)`, must be unique per room (Supabase UI contract). */
@@ -80,9 +115,14 @@ export interface UseRealtimeChatOptions {
    * Used when history_visible_to_new_members=false to show only post-join messages.
    */
   historyNotBefore?: string;
+  /**
+   * For non-group conversations, the participant-ensure RPC is a no-op. Set to false
+   * to skip the call entirely on direct conversations and reduce roundtrips.
+   */
+  ensureParticipant?: boolean;
 }
 
-// Keep a module-level singleton per conversationId so refreshing does not double-subscribe.
+// Module-level singleton per conversationId so refreshing does not double-subscribe.
 const activeChannels = new Map<string, RealtimeChannel>();
 
 export function useRealtimeChat({
@@ -93,29 +133,38 @@ export function useRealtimeChat({
   getToken,
   enabled,
   historyNotBefore,
+  ensureParticipant = true,
 }: UseRealtimeChatOptions) {
   const getJwt = useMemo(() => wrapClerkTokenForSupabase(getToken), [getToken]);
   const messaging = useMemo(() => new MessagingService(getToken), [getToken]);
 
   const [messages, setMessages] = useState<RealtimeChatMessage[]>([]);
-  const [status, setStatus] = useState<RealtimeConnectionStatus>("idle");
+  const [status, setStatus] = useState<RealtimeConnectionStatus>('idle');
   const [typingUserIds, setTypingUserIds] = useState<Set<string>>(new Set());
-  const [presencePeers, setPresencePeers] = useState<
-    { key: string; name: string }[]
-  >([]);
+  const [presencePeers, setPresencePeers] = useState<{ key: string; name: string }[]>([]);
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const presencePeersRef = useRef<{ key: string; name: string }[]>([]);
-  // Track whether a history load is in flight so reconnections don't double-load.
   const historyLoadingRef = useRef(false);
+  const reactionStateRef = useRef<RawReactionState>(new Map());
+
+  // Re-aggregate reactions from raw state and merge into messages.
+  const refreshReactionsFromState = useCallback(() => {
+    setMessages((prev) =>
+      prev.map((m) => {
+        const raw = reactionStateRef.current.get(m.id) ?? [];
+        return { ...m, reactions: aggregateReactions(raw, userId) };
+      }),
+    );
+  }, [userId]);
 
   const loadHistory = useCallback(async () => {
     if (!conversationId || !userId || historyLoadingRef.current) return;
     historyLoadingRef.current = true;
     try {
-      // Ensure user is in conversation_participants before querying.
-      // This resolves the race where study group members haven't been added yet.
-      await messaging.ensureGroupChatParticipant(conversationId, userId);
+      if (ensureParticipant) {
+        await messaging.ensureGroupChatParticipant(conversationId, userId);
+      }
 
       const rows = await messaging.getMessages(
         conversationId,
@@ -124,38 +173,51 @@ export function useRealtimeChat({
         0,
         historyNotBefore,
       );
-      setMessages(sortChronological(rows.map(toChatMessage)));
+
+      // Seed reaction state from history.
+      const state: RawReactionState = new Map();
+      for (const row of rows) {
+        const list: RawReaction[] = (row.reactions || []).map((r) => ({
+          emoji: r.reaction_type,
+          userId: r.user_id,
+        }));
+        state.set(row.id, list);
+      }
+      reactionStateRef.current = state;
+
+      setMessages(
+        sortChronological(rows.map((r) => toChatMessage(r, userId))),
+      );
     } catch (err) {
-      console.error("[social:chat] Failed to load history:", err);
+      console.error('[social:chat] Failed to load history:', err);
     } finally {
       historyLoadingRef.current = false;
     }
-  }, [conversationId, messaging, userId, historyNotBefore]);
+  }, [conversationId, ensureParticipant, historyNotBefore, messaging, userId]);
 
   useEffect(() => {
     if (!enabled || !conversationId || !userId || !roomName) {
       setMessages([]);
-      setStatus("idle");
+      setStatus('idle');
+      reactionStateRef.current = new Map();
       return;
     }
 
     let cancelled = false;
     const client = createAuthenticatedSupabaseClient(getJwt);
     if (!client) {
-      setStatus("error");
+      setStatus('error');
       return;
     }
 
     let channel: RealtimeChannel | null = null;
 
     const setup = async () => {
-      setStatus("connecting");
+      setStatus('connecting');
 
-      // 1. Ensure participant + pre-load history before subscribing.
       await loadHistory();
       if (cancelled) return;
 
-      // 2. Initialize channel.
       channel = client.channel(roomName, {
         config: {
           broadcast: { ack: true },
@@ -163,11 +225,10 @@ export function useRealtimeChat({
         },
       });
 
-      // 3. Set up listeners.
       channel
         .on(
-          "broadcast",
-          { event: "message" },
+          'broadcast',
+          { event: 'message' },
           ({ payload }: { payload: Record<string, unknown> }) => {
             if (!payload?.id) return;
             setMessages((prev) =>
@@ -179,18 +240,15 @@ export function useRealtimeChat({
                 senderId: payload.senderId as string | undefined,
                 replyToId: payload.replyToId as string | undefined,
                 read: Boolean(payload.read),
+                reactions: [],
               }),
             );
           },
         )
         .on(
-          "broadcast",
-          { event: "typing" },
-          ({
-            payload,
-          }: {
-            payload: { userId: string; isTyping: boolean };
-          }) => {
+          'broadcast',
+          { event: 'typing' },
+          ({ payload }: { payload: { userId: string; isTyping: boolean } }) => {
             if (!payload?.userId) return;
             setTypingUserIds((prev) => {
               const next = new Set(prev);
@@ -200,10 +258,9 @@ export function useRealtimeChat({
             });
           },
         )
-        .on("presence", { event: "sync" }, () => {
+        .on('presence', { event: 'sync' }, () => {
           const state = channel?.presenceState();
           if (!state) return;
-
           const peers: { key: string; name: string }[] = [];
           for (const key of Object.keys(state)) {
             const presences = state[key] as Record<string, unknown>[];
@@ -220,11 +277,11 @@ export function useRealtimeChat({
           setPresencePeers(peers);
         })
         .on(
-          "postgres_changes",
+          'postgres_changes',
           {
-            event: "INSERT",
-            schema: "public",
-            table: "messages",
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
             filter: `conversation_id=eq.${conversationId}`,
           },
           (payload) => {
@@ -233,17 +290,15 @@ export function useRealtimeChat({
 
             if (
               row.encrypted === true ||
-              isLikelyAtRestCiphertext(String(row.content ?? ""))
+              isLikelyAtRestCiphertext(String(row.content ?? ''))
             ) {
               void loadHistory();
               return;
             }
 
-            // Respect history cutoff for postgres_changes too.
             if (
               historyNotBefore &&
-              new Date(row.created_at as string) <
-                new Date(historyNotBefore)
+              new Date(row.created_at as string) < new Date(historyNotBefore)
             ) {
               return;
             }
@@ -251,7 +306,6 @@ export function useRealtimeChat({
             setMessages((prev) => {
               if (prev.some((m) => m.id === row.id)) return prev;
 
-              // Resolve display name: own message, historical match, or presence.
               let resolvedName = row.sender_id as string;
               if (row.sender_id === userId) {
                 resolvedName = userDisplayName;
@@ -279,54 +333,117 @@ export function useRealtimeChat({
                 senderId: row.sender_id as string,
                 replyToId: row.reply_to_id as string | undefined,
                 read: Boolean(row.read),
+                reactions: [],
               });
             });
           },
         )
         .on(
-          "postgres_changes",
+          'postgres_changes',
           {
-            event: "UPDATE",
-            schema: "public",
-            table: "messages",
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'messages',
             filter: `conversation_id=eq.${conversationId}`,
           },
           (payload) => {
             const row = payload.new as Record<string, unknown>;
             if (!row?.id) return;
+
+            // If the new content is an encrypted envelope, force a history reload
+            // so the API decrypts it server-side.
+            if (
+              row.encrypted === true ||
+              isLikelyAtRestCiphertext(String(row.content ?? ''))
+            ) {
+              void loadHistory();
+              return;
+            }
+
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === row.id ? { ...m, read: Boolean(row.read) } : m,
+                m.id === row.id
+                  ? {
+                      ...m,
+                      read: Boolean(row.read),
+                      content: String(row.content ?? m.content),
+                      editedAt: (row.edited_at as string | null) ?? m.editedAt,
+                      deletedAt:
+                        (row.deleted_at as string | null) ?? m.deletedAt,
+                    }
+                  : m,
               ),
             );
+          },
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'message_reactions',
+            filter: `conversation_id=eq.${conversationId}`,
+          },
+          (payload) => {
+            const row = payload.new as Record<string, unknown>;
+            const messageId = String(row.message_id ?? '');
+            const emoji = String(row.reaction_type ?? '');
+            const reactor = String(row.user_id ?? '');
+            if (!messageId || !emoji || !reactor) return;
+
+            const list = reactionStateRef.current.get(messageId) ?? [];
+            // Idempotent: dedupe (emoji, userId).
+            if (
+              !list.some((r) => r.emoji === emoji && r.userId === reactor)
+            ) {
+              list.push({ emoji, userId: reactor });
+              reactionStateRef.current.set(messageId, list);
+            }
+            refreshReactionsFromState();
+          },
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'message_reactions',
+            filter: `conversation_id=eq.${conversationId}`,
+          },
+          (payload) => {
+            const row = payload.old as Record<string, unknown>;
+            const messageId = String(row.message_id ?? '');
+            const emoji = String(row.reaction_type ?? '');
+            const reactor = String(row.user_id ?? '');
+            if (!messageId || !emoji || !reactor) return;
+
+            const list = reactionStateRef.current.get(messageId) ?? [];
+            const next = list.filter(
+              (r) => !(r.emoji === emoji && r.userId === reactor),
+            );
+            reactionStateRef.current.set(messageId, next);
+            refreshReactionsFromState();
           },
         );
 
       channelRef.current = channel;
       activeChannels.set(roomName, channel);
 
-      // 4. Subscribe with auth — set JWT on the Realtime socket before subscribing.
       const jwt = await getJwt();
       if (jwt) {
-        (client.realtime as unknown as { setAuth: (t: string) => void }).setAuth(
-          jwt,
-        );
+        (client.realtime as unknown as { setAuth: (t: string) => void }).setAuth(jwt);
       }
 
       channel.subscribe(async (subStatus) => {
         if (cancelled || !channel) return;
 
-        if (subStatus === "SUBSCRIBED") {
-          setStatus("subscribed");
+        if (subStatus === 'SUBSCRIBED') {
+          setStatus('subscribed');
           await channel.track({ userId, name: userDisplayName });
-          // Reload history on each successful subscribe (handles refresh + reconnect).
           void loadHistory();
-        } else if (
-          subStatus === "CHANNEL_ERROR" ||
-          subStatus === "TIMED_OUT"
-        ) {
+        } else if (subStatus === 'CHANNEL_ERROR' || subStatus === 'TIMED_OUT') {
           console.error(`[social:chat] Channel status: ${subStatus}`);
-          setStatus("error");
+          setStatus('error');
         }
       });
     };
@@ -347,6 +464,7 @@ export function useRealtimeChat({
     getJwt,
     historyNotBefore,
     loadHistory,
+    refreshReactionsFromState,
     roomName,
     userDisplayName,
     userId,
@@ -355,10 +473,10 @@ export function useRealtimeChat({
   const sendTyping = useCallback(
     (isTyping: boolean) => {
       const ch = channelRef.current;
-      if (!ch || status !== "subscribed") return;
+      if (!ch || status !== 'subscribed') return;
       void ch.send({
-        type: "broadcast",
-        event: "typing",
+        type: 'broadcast',
+        event: 'typing',
         payload: { userId, isTyping },
       });
     },
@@ -379,15 +497,16 @@ export function useRealtimeChat({
         senderId: userId,
         replyToId,
         read: false,
+        reactions: [],
       };
 
       setMessages((prev) => mergeById(prev, optimisticMsg));
 
       const ch = channelRef.current;
-      if (ch && status === "subscribed") {
+      if (ch && status === 'subscribed') {
         void ch.send({
-          type: "broadcast",
-          event: "message",
+          type: 'broadcast',
+          event: 'message',
           payload: {
             id: messageId,
             content: text,
@@ -409,7 +528,7 @@ export function useRealtimeChat({
           replyToId,
         });
       } catch (error) {
-        console.error("[social:chat] Failed to persist message:", error);
+        console.error('[social:chat] Failed to persist message:', error);
         setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
       }
     },
@@ -426,10 +545,80 @@ export function useRealtimeChat({
           ),
         );
       } catch (error) {
-        console.error("[social:chat] Failed to mark message as read:", error);
+        console.error('[social:chat] Failed to mark message as read:', error);
       }
     },
     [messaging, userId],
+  );
+
+  const toggleReaction = useCallback(
+    async (messageId: string, emoji: string) => {
+      const list = reactionStateRef.current.get(messageId) ?? [];
+      const has = list.some((r) => r.emoji === emoji && r.userId === userId);
+
+      // Optimistic update.
+      const nextList = has
+        ? list.filter((r) => !(r.emoji === emoji && r.userId === userId))
+        : [...list, { emoji, userId }];
+      reactionStateRef.current.set(messageId, nextList);
+      refreshReactionsFromState();
+
+      try {
+        if (has) {
+          await messaging.removeReaction(messageId, userId, emoji);
+        } else {
+          await messaging.addReaction(messageId, userId, emoji);
+        }
+      } catch (error) {
+        console.error('[social:chat] Failed to toggle reaction:', error);
+        // Roll back optimistic state.
+        reactionStateRef.current.set(messageId, list);
+        refreshReactionsFromState();
+      }
+    },
+    [messaging, refreshReactionsFromState, userId],
+  );
+
+  const editMessage = useCallback(
+    async (messageId: string, newContent: string) => {
+      const text = newContent.trim();
+      if (!text) return;
+
+      // Optimistic update of content + editedAt.
+      const editedAt = new Date().toISOString();
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId ? { ...m, content: text, editedAt } : m,
+        ),
+      );
+
+      try {
+        await messaging.editMessage(messageId, text, userId);
+      } catch (error) {
+        console.error('[social:chat] Failed to edit message:', error);
+        // Force a reload to revert.
+        void loadHistory();
+      }
+    },
+    [loadHistory, messaging, userId],
+  );
+
+  const deleteMessage = useCallback(
+    async (messageId: string) => {
+      const deletedAt = new Date().toISOString();
+      // Optimistic.
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? { ...m, deletedAt } : m)),
+      );
+
+      try {
+        await messaging.deleteMessage(messageId, userId);
+      } catch (error) {
+        console.error('[social:chat] Failed to delete message:', error);
+        void loadHistory();
+      }
+    },
+    [loadHistory, messaging, userId],
   );
 
   return {
@@ -441,13 +630,21 @@ export function useRealtimeChat({
     sendTyping,
     reload: loadHistory,
     markAsRead,
+    toggleReaction,
+    editMessage,
+    deleteMessage,
   };
 }
 
 /** @deprecated Use `useRealtimeChat` with `roomName: \`group-chat:${conversationId}\``. */
 export function useRealtimeGroupChat(
-  opts: Omit<UseRealtimeChatOptions, "roomName"> & { conversationId: string },
+  opts: Omit<UseRealtimeChatOptions, 'roomName'> & { conversationId: string },
 ) {
   const roomName = `group-chat:${opts.conversationId}`;
   return useRealtimeChat({ ...opts, roomName });
 }
+
+// Re-export for callers; avoid a stale unused import warning.
+export type { RealtimeChatMessage, RealtimeConnectionStatus };
+// Silence unused import for `fromInsertRow` if removed in future refactor.
+void fromInsertRow;

@@ -253,6 +253,20 @@ export class MessagingService {
     return withDetails;
   }
 
+  private async editMessageViaHttp(messageId: string, newContent: string): Promise<void> {
+    const res = await fetch('/api/messages', {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: messageId, content: newContent }),
+    });
+
+    if (!res.ok) {
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(json.error || "Couldn't update this message. Try again.");
+    }
+  }
+
   private async getMessagesViaHttp(
     conversationId: string,
     limit: number,
@@ -642,6 +656,10 @@ export class MessagingService {
 
   async editMessage(messageId: string, newContent: string, userId: string): Promise<void> {
     try {
+      if (typeof window !== 'undefined') {
+        return await this.editMessageViaHttp(messageId, newContent);
+      }
+
       const { error } = await this.supabase
         .from('messages')
         .update({

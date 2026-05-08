@@ -16,7 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChatInterface } from "@/components/messaging/ChatInterface";
+import { DirectMessageChat } from "@/components/social/chat/DirectMessageChat";
 import {
   connectionHubKeys,
   useConnectionHubConnections,
@@ -710,7 +710,14 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
                       }
                       statusDot="online"
                     >
-                      <Dialog>
+                      <Dialog
+                        onOpenChange={(open) => {
+                          if (!open) {
+                            setChatConversationId(null);
+                            setChatUser(null);
+                          }
+                        }}
+                      >
                         <DialogTrigger asChild>
                           <SquareBtn
                             tone="default"
@@ -721,22 +728,32 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
                             <span className="hidden sm:inline">CHAT</span>
                           </SquareBtn>
                         </DialogTrigger>
-                        <DialogContent className="flex h-[600px] max-w-2xl flex-col">
-                          <DialogHeader>
-                            <DialogTitle className="font-mono uppercase tracking-[0.12em]">
+                        <DialogContent
+                          className="flex w-full max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:h-[640px] h-[100dvh] max-h-[100dvh] sm:max-h-[85vh] sm:rounded-2xl rounded-none"
+                          onOpenAutoFocus={(e) => e.preventDefault()}
+                        >
+                          <DialogHeader className="shrink-0 space-y-0.5 border-b border-border/60 bg-muted/20 px-4 py-3 pr-12 text-left sm:text-left">
+                            <DialogTitle className="font-mono text-xs uppercase tracking-[0.12em] text-foreground">
                               CH / {profile.full_name}
                             </DialogTitle>
-                            <DialogDescription>
+                            <DialogDescription className="text-[11px] text-muted-foreground/70">
                               Direct channel with your connection
                             </DialogDescription>
                           </DialogHeader>
                           {chatConversationId && chatUser ? (
-                            <div className="flex-1">
-                              <ChatInterface
-                                initialConversationId={chatConversationId}
+                            <div className="flex min-h-0 flex-1 flex-col">
+                              <DirectMessageChat
+                                conversationId={chatConversationId}
+                                recipientName={
+                                  chatUser.full_name || profile.full_name || "this connection"
+                                }
                               />
                             </div>
-                          ) : null}
+                          ) : (
+                            <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
+                              Opening channel…
+                            </div>
+                          )}
                         </DialogContent>
                       </Dialog>
 

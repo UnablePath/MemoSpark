@@ -199,17 +199,17 @@ export const StudyGroupChatTab: React.FC<StudyGroupChatTabProps> = ({
       : undefined;
 
   return (
-    <div className="flex flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       {/* Admin: history visibility toggle */}
       {isAdmin && (
-        <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-muted/20 px-4 py-2.5">
-          <div className="flex items-center gap-2 min-w-0">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/60 bg-muted/20 px-4 py-2.5">
+          <div className="flex min-w-0 items-center gap-2">
             <ClockCounterClockwise
               weight="duotone"
               className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
               aria-hidden
             />
-            <span className="text-xs text-muted-foreground truncate">
+            <span className="truncate text-xs text-muted-foreground">
               New members see full history
             </span>
           </div>
@@ -222,7 +222,9 @@ export const StudyGroupChatTab: React.FC<StudyGroupChatTabProps> = ({
                 ? "Disable history for new members"
                 : "Enable history for new members"
             }
-            className="shrink-0 text-[#1a9e6e] transition-opacity disabled:opacity-40"
+            aria-pressed={settings.historyVisibleToNewMembers}
+            className="shrink-0 transition-opacity disabled:opacity-40"
+            style={{ color: "#1a9e6e" }}
             title={
               settings.historyVisibleToNewMembers
                 ? "Click to hide history from new members"
@@ -232,19 +234,23 @@ export const StudyGroupChatTab: React.FC<StudyGroupChatTabProps> = ({
             {settings.historyVisibleToNewMembers ? (
               <ToggleRight weight="fill" className="h-6 w-6" />
             ) : (
-              <ToggleLeft weight="fill" className="h-6 w-6 text-muted-foreground" />
+              <ToggleLeft
+                weight="fill"
+                className="h-6 w-6 text-muted-foreground"
+              />
             )}
           </button>
         </div>
       )}
 
-      <StudyGroupRealtimeChat
-        className="min-h-[320px]"
-        conversationId={selectedGroup.conversation_id}
-        groupName={selectedGroup.name}
-        isMember={isMember}
-        historyNotBefore={historyNotBefore}
-      />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <StudyGroupRealtimeChat
+          conversationId={selectedGroup.conversation_id}
+          groupName={selectedGroup.name}
+          isMember={isMember}
+          historyNotBefore={historyNotBefore}
+        />
+      </div>
     </div>
   );
 };

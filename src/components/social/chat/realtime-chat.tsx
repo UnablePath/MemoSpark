@@ -1,19 +1,38 @@
-"use client";
+'use client';
 
-import { ChatMessageItem } from "@/components/social/chat/chat-message";
-import type {
-  RealtimeChatMessage,
-  RealtimeConnectionStatus,
-} from "@/components/social/chat/realtime-chat-types";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useChatScroll } from "@/hooks/use-chat-scroll";
-import { cn } from "@/lib/utils";
-import { ArrowUp, Circle, ChatCircle } from "@phosphor-icons/react";
-import type React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChatMessageItem } from '@/components/social/chat/chat-message';
+import {
+  COMPOSER_EMOJI_GRID,
+  type RealtimeChatMessage,
+  type RealtimeConnectionStatus,
+} from '@/components/social/chat/realtime-chat-types';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useChatScroll } from '@/hooks/use-chat-scroll';
+import { cn } from '@/lib/utils';
+import {
+  ArrowUp,
+  ChatCircle,
+  Circle,
+  Smiley,
+  X,
+} from '@phosphor-icons/react';
+import type React from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+
+const ACCENT = '#1a9e6e';
 
 /**
  * Presentational shell for Supabase Realtime Chat (Broadcast + scroll).
+ *
+ * Layout contract: PARENT must constrain height (e.g., `h-[600px]` or `flex-1 min-h-0`).
+ * This shell internally pins composer to bottom and scrolls only the messages area.
+ *
  * @see https://supabase.com/ui/docs/nextjs/realtime-chat
  */
 export interface RealtimeChatProps {
@@ -24,10 +43,17 @@ export interface RealtimeChatProps {
   onSend: (text: string, replyToId?: string) => void | Promise<void>;
   onMarkRead?: (messageId: string) => void;
   onTyping?: (isTyping: boolean) => void;
+  onReact?: (messageId: string, emoji: string) => void;
+  onEdit?: (messageId: string, newContent: string) => void;
+  onDelete?: (messageId: string) => void;
   typingLabel?: string;
   status?: RealtimeConnectionStatus;
   presenceSummary?: string;
   disabled?: boolean;
+  /** Placeholder for the composer textarea. */
+  composerPlaceholder?: string;
+  /** Empty-state copy when there are no messages. */
+  emptyStateCopy?: string;
   className?: string;
 }
 
@@ -39,16 +65,23 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
   onSend,
   onMarkRead,
   onTyping,
+  onReact,
+  onEdit,
+  onDelete,
   typingLabel,
-  status = "idle",
+  status = 'idle',
   presenceSummary,
   disabled,
+  composerPlaceholder = 'Message',
+  emptyStateCopy = 'No messages yet. Be the first to say something.',
   className,
 }) => {
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState('');
   const [replyToId, setReplyToId] = useState<string | undefined>();
+  const [showEmojiGrid, setShowEmojiGrid] = useState(false);
   const { endRef, scrollToBottom } = useChatScroll([messages.length, title]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const emojiPanelRef = useRef<HTMLDivElement>(null);
 
   const repliedMessage = useMemo(
     () => (replyToId ? messages.find((m) => m.id === replyToId) : undefined),
@@ -63,45 +96,77 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
       .forEach((m) => onMarkRead(m.id));
   }, [messages, currentUserId, onMarkRead]);
 
-  // Auto-resize textarea.
+  // Auto-resize textarea on content change.
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 132)}px`;
   }, [draft]);
 
+  // Close emoji picker on outside click.
+  useEffect(() => {
+    if (!showEmojiGrid) return;
+    const handler = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (emojiPanelRef.current && !emojiPanelRef.current.contains(t)) {
+        setShowEmojiGrid(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showEmojiGrid]);
+
   const statusDot = useMemo(() => {
-    if (status === "subscribed") return { color: "text-emerald-500", label: "Live" };
-    if (status === "connecting") return { color: "text-amber-400", label: "Connecting…" };
-    if (status === "error") return { color: "text-red-400", label: "Reconnecting…" };
+    if (status === 'subscribed') return { color: 'text-emerald-500', label: 'Live' };
+    if (status === 'connecting') return { color: 'text-amber-400', label: 'Connecting…' };
+    if (status === 'error') return { color: 'text-red-400', label: 'Reconnecting…' };
     return null;
   }, [status]);
 
-  const handleReply = useCallback(
-    (id: string, content: string) => {
-      setReplyToId(id);
-      textareaRef.current?.focus();
-    },
-    [],
-  );
+  const handleReply = useCallback((id: string) => {
+    setReplyToId(id);
+    textareaRef.current?.focus();
+  }, []);
 
   const cancelReply = useCallback(() => setReplyToId(undefined), []);
+
+  const insertEmoji = useCallback(
+    (emoji: string) => {
+      const el = textareaRef.current;
+      if (!el) {
+        setDraft((d) => d + emoji);
+        return;
+      }
+      const start = el.selectionStart ?? draft.length;
+      const end = el.selectionEnd ?? draft.length;
+      const next = draft.slice(0, start) + emoji + draft.slice(end);
+      setDraft(next);
+      // Restore caret after the inserted emoji.
+      requestAnimationFrame(() => {
+        el.focus();
+        const caret = start + emoji.length;
+        el.setSelectionRange(caret, caret);
+      });
+    },
+    [draft],
+  );
 
   const submit = useCallback(async () => {
     const text = draft.trim();
     if (!text || disabled) return;
-    setDraft("");
+    setDraft('');
+    setShowEmojiGrid(false);
     const replyId = replyToId;
     setReplyToId(undefined);
     onTyping?.(false);
     await onSend(text, replyId);
-    scrollToBottom("smooth");
+    scrollToBottom('smooth');
   }, [disabled, draft, onSend, onTyping, scrollToBottom, replyToId]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === "Enter" && !e.shiftKey) {
+      if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         void submit();
       }
@@ -112,14 +177,19 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
   return (
     <div
       className={cn(
-        "flex h-full min-h-[280px] flex-col bg-background",
+        'flex h-full min-h-0 w-full flex-col overflow-hidden bg-background',
         className,
       )}
     >
       {/* ── Header ── */}
-      <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-2.5">
-        <div className="flex items-center gap-2 min-w-0">
-          <ChatCircle weight="duotone" className="h-4 w-4 shrink-0 text-[#1a9e6e]" aria-hidden />
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/60 px-4 py-2.5">
+        <div className="flex min-w-0 items-center gap-2">
+          <ChatCircle
+            weight="duotone"
+            className="h-4 w-4 shrink-0"
+            style={{ color: ACCENT }}
+            aria-hidden
+          />
           <span className="truncate text-sm font-semibold text-foreground">
             {title}
           </span>
@@ -127,7 +197,7 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
 
         <div className="flex shrink-0 items-center gap-3">
           {presenceSummary && (
-            <span className="text-[11px] text-muted-foreground/70 truncate max-w-[140px]">
+            <span className="hidden max-w-[160px] truncate text-[11px] text-muted-foreground/70 sm:inline">
               {presenceSummary}
             </span>
           )}
@@ -135,7 +205,7 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
             <div className="flex items-center gap-1">
               <Circle
                 weight="fill"
-                className={cn("h-2 w-2 animate-pulse", statusDot.color)}
+                className={cn('h-2 w-2 animate-pulse', statusDot.color)}
                 aria-hidden
               />
               <span className="text-[11px] font-medium text-muted-foreground tabular-nums">
@@ -146,16 +216,20 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
         </div>
       </div>
 
-      {/* ── Messages ── */}
-      <ScrollArea className="flex-1">
+      {/* ── Messages (scrolls) ── */}
+      <ScrollArea className="flex-1 min-h-0">
         <div className="px-2 py-3">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/50">
-                <ChatCircle weight="duotone" className="h-6 w-6 text-muted-foreground/50" aria-hidden />
+                <ChatCircle
+                  weight="duotone"
+                  className="h-6 w-6 text-muted-foreground/50"
+                  aria-hidden
+                />
               </div>
-              <p className="text-sm text-muted-foreground/70 max-w-[200px]">
-                No conversations yet. Be the first to say something.
+              <p className="max-w-[220px] text-sm text-muted-foreground/70">
+                {emptyStateCopy}
               </p>
             </div>
           ) : (
@@ -177,6 +251,10 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
                   isOwnMessage={isOwn}
                   showHeader={showHeader}
                   onReply={handleReply}
+                  onReact={onReact}
+                  onEdit={isOwn ? onEdit : undefined}
+                  onDelete={isOwn ? onDelete : undefined}
+                  readOnly={disabled}
                   repliedMessageContent={
                     message.replyToId
                       ? messages.find((m) => m.id === message.replyToId)?.content
@@ -192,29 +270,33 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
 
       {/* ── Typing indicator ── */}
       {typingLabel && (
-        <div className="flex items-center gap-1.5 px-4 py-1">
+        <div className="flex shrink-0 items-center gap-1.5 border-t border-border/40 px-4 py-1">
           <span className="flex gap-0.5">
             {[0, 1, 2].map((i) => (
               <span
                 key={i}
-                className="inline-block h-1 w-1 rounded-full bg-muted-foreground/50 animate-bounce"
+                className="inline-block h-1 w-1 animate-bounce rounded-full bg-muted-foreground/50"
                 style={{ animationDelay: `${i * 150}ms` }}
               />
             ))}
           </span>
-          <span className="text-[11px] text-muted-foreground/60">
-            {typingLabel}
-          </span>
+          <span className="text-[11px] text-muted-foreground/60">{typingLabel}</span>
         </div>
       )}
 
       {/* ── Reply preview ── */}
       {repliedMessage && (
-        <div className="flex items-center gap-2 border-t border-border/60 bg-muted/30 px-4 py-2">
-          <div className="h-4 w-0.5 shrink-0 rounded-full bg-[#1a9e6e]" />
+        <div className="flex shrink-0 items-center gap-2 border-t border-border/60 bg-muted/30 px-4 py-2">
+          <div
+            className="h-4 w-0.5 shrink-0 rounded-full"
+            style={{ backgroundColor: ACCENT }}
+          />
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold text-[#1a9e6e] leading-none mb-0.5">
-              {repliedMessage.user.name}
+            <p
+              className="mb-0.5 text-[10px] font-semibold leading-none"
+              style={{ color: ACCENT }}
+            >
+              Replying to {repliedMessage.user.name}
             </p>
             <p className="truncate text-[11px] text-muted-foreground">
               {repliedMessage.content}
@@ -223,36 +305,61 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
           <button
             type="button"
             onClick={cancelReply}
-            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-muted-foreground/60 hover:bg-muted/60 hover:text-muted-foreground transition-colors"
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-muted/60 hover:text-muted-foreground"
             aria-label="Cancel reply"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="10"
-              height="10"
-              viewBox="0 0 10 10"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              aria-hidden
-            >
-              <line x1="1" y1="1" x2="9" y2="9" />
-              <line x1="9" y1="1" x2="1" y2="9" />
-            </svg>
+            <X weight="bold" className="h-3 w-3" aria-hidden />
           </button>
         </div>
       )}
 
       {/* ── Composer ── */}
-      <div className="border-t border-border/60 px-3 py-2.5">
+      <div className="relative shrink-0 border-t border-border/60 bg-background px-3 py-2.5 [padding-bottom:max(0.625rem,env(safe-area-inset-bottom))]">
+        {showEmojiGrid && (
+          <div
+            ref={emojiPanelRef}
+            role="dialog"
+            aria-label="Emoji picker"
+            className="absolute bottom-full left-3 right-3 z-10 mb-2 grid grid-cols-6 gap-1 rounded-2xl border border-border/60 bg-background/95 p-2 shadow-xl backdrop-blur-md"
+          >
+            {COMPOSER_EMOJI_GRID.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => insertEmoji(emoji)}
+                className="flex h-9 w-full items-center justify-center rounded-lg text-lg transition-all hover:scale-110 hover:bg-muted/60 active:scale-95"
+                aria-label={`Insert ${emoji}`}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div
           className={cn(
-            "flex items-end gap-2 rounded-2xl border border-border/60 bg-muted/30 px-3 py-2",
-            "transition-shadow focus-within:border-[#1a9e6e]/40 focus-within:shadow-[0_0_0_3px_rgba(26,158,110,0.08)]",
-            disabled && "opacity-50 pointer-events-none",
+            'flex items-end gap-2 rounded-2xl border border-border/60 bg-muted/30 px-2.5 py-1.5',
+            'transition-shadow focus-within:border-[color:var(--ms-chat-accent)]/40 focus-within:shadow-[0_0_0_3px_rgba(26,158,110,0.08)]',
+            disabled && 'pointer-events-none opacity-50',
           )}
+          style={{ ['--ms-chat-accent' as string]: ACCENT }}
         >
+          <button
+            type="button"
+            onClick={() => setShowEmojiGrid((v) => !v)}
+            disabled={disabled}
+            aria-label="Insert emoji"
+            aria-expanded={showEmojiGrid}
+            className={cn(
+              'mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors',
+              showEmojiGrid
+                ? 'bg-muted/70 text-foreground'
+                : 'text-muted-foreground/60 hover:bg-muted/50 hover:text-foreground',
+            )}
+          >
+            <Smiley weight="bold" className="h-4 w-4" aria-hidden />
+          </button>
+
           <textarea
             ref={textareaRef}
             rows={1}
@@ -263,32 +370,42 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
             }}
             onBlur={() => onTyping?.(false)}
             onKeyDown={handleKeyDown}
-            placeholder="Message the group"
+            placeholder={composerPlaceholder}
             disabled={disabled}
             aria-label="Message input"
             className={cn(
-              "flex-1 resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50",
-              "outline-none min-h-[22px] max-h-[120px] leading-relaxed",
-              "scrollbar-hide",
+              'flex-1 resize-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/50',
+              'min-h-[22px] max-h-[132px] leading-relaxed',
+              'scrollbar-hide',
             )}
-            style={{ overflowY: "hidden" }}
+            style={{ overflowY: 'hidden' }}
           />
+
           <button
             type="button"
             onClick={() => void submit()}
             disabled={disabled || !draft.trim()}
             aria-label="Send message"
             className={cn(
-              "mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all",
+              'mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all',
               draft.trim()
-                ? "bg-[#1a9e6e] text-white shadow-sm shadow-[#1a9e6e]/30 hover:bg-[#168a5e] active:scale-95"
-                : "bg-muted/60 text-muted-foreground/40 cursor-not-allowed",
+                ? 'text-white shadow-sm active:scale-95'
+                : 'cursor-not-allowed bg-muted/60 text-muted-foreground/40',
             )}
+            style={
+              draft.trim()
+                ? {
+                    backgroundColor: ACCENT,
+                    boxShadow: `0 1px 2px ${ACCENT}4d`,
+                  }
+                : undefined
+            }
           >
             <ArrowUp weight="bold" className="h-4 w-4" aria-hidden />
           </button>
         </div>
-        <p className="mt-1.5 px-1 text-[10px] text-muted-foreground/40">
+
+        <p className="mt-1.5 hidden px-1 text-[10px] text-muted-foreground/40 sm:block">
           Enter to send · Shift+Enter for new line
         </p>
       </div>
