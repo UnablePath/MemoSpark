@@ -1,4 +1,5 @@
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
+import { isLikelyAtRestCiphertext } from '@/lib/messaging/atRestEnvelopeShared';
 import { createAuthenticatedSupabaseClient } from '@/lib/supabase/client';
 import { wrapClerkTokenForSupabase } from '@/lib/clerk/clerkSupabaseToken';
 import type { Database, Json } from '@/types/database';
@@ -127,26 +128,164 @@ export class MessagingService {
   }
 
   private mapRowToMessage(row: MessageRow): Message {
+    const storedEncrypted =
+      Boolean(row.encrypted) || isLikelyAtRestCiphertext(row.content ?? '');
+    let displayContent = row.content ?? '';
+    if (typeof window !== 'undefined' && isLikelyAtRestCiphertext(displayContent)) {
+      displayContent = 'Open chat to read this message.';
+    }
     return {
       id: row.id,
       sender_id: row.sender_id,
       recipient_id: row.recipient_id,
       conversation_id: row.conversation_id ?? undefined,
-      // Content is stored and returned as plain text.
-      // Server-side encryption (if needed) belongs in /api/messages with MESSAGING_ENCRYPTION_KEY
-      // — never NEXT_PUBLIC_, which exposes the key in the client bundle.
-      content: row.content,
+      content: displayContent,
       message_type: (row.message_type as Message['message_type']) || 'text',
       thread_id: row.thread_id ?? undefined,
       reply_to_id: row.reply_to_id ?? undefined,
       edited_at: row.edited_at ?? undefined,
       deleted_at: row.deleted_at ?? undefined,
       metadata: (row.metadata as Record<string, unknown>) || {},
-      encrypted: false,
+      encrypted: storedEncrypted,
       delivery_status: (row.delivery_status as Message['delivery_status']) || 'sent',
       created_at: row.created_at || new Date().toISOString(),
       read: Boolean(row.read),
     };
+  }
+
+  private mapApiRecordToMessageWithDetails(raw: Record<string, unknown>): MessageWithDetails {
+    const senderRaw = raw.sender as Record<string, unknown> | undefined;
+    const sender: MessageWithDetails['sender'] = senderRaw
+      ? {
+          id: String(senderRaw.id ?? ''),
+          full_name: senderRaw.full_name as string | undefined,
+          avatar_url: senderRaw.avatar_url as string | undefined,
+        }
+      : undefined;
+    return {
+      id: String(raw.id),
+      sender_id: String(raw.sender_id),
+      recipient_id: String(raw.recipient_id ?? ''),
+      conversation_id: raw.conversation_id ? String(raw.conversation_id) : undefined,
+      content: String(raw.content ?? ''),
+      message_type: (raw.message_type as Message['message_type']) || 'text',
+      thread_id: raw.thread_id ? String(raw.thread_id) : undefined,
+      reply_to_id: raw.reply_to_id ? String(raw.reply_to_id) : undefined,
+      edited_at: raw.edited_at ? String(raw.edited_at) : undefined,
+      deleted_at: raw.deleted_at ? String(raw.deleted_at) : undefined,
+      metadata: (raw.metadata as Record<string, unknown>) || {},
+      encrypted: Boolean(raw.encrypted),
+      delivery_status: (raw.delivery_status as Message['delivery_status']) || 'sent',
+      created_at: String(raw.created_at ?? new Date().toISOString()),
+      read: Boolean(raw.read),
+      sender,
+      reactions: Array.isArray(raw.reactions) ? (raw.reactions as MessageReaction[]) : [],
+      read_receipts: Array.isArray(raw.read_receipts)
+        ? (raw.read_receipts as MessageWithDetails['read_receipts'])
+        : [],
+      attachments: Array.isArray(raw.attachments)
+        ? (raw.attachments as MessageWithDetails['attachments'])
+        : [],
+    };
+  }
+
+  private async sendMessageViaHttp(params: {
+    id?: string;
+    userId: string;
+    recipientId?: string;
+    content: string;
+    messageType?: Message['message_type'];
+    conversationId?: string;
+    replyToId?: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<Message> {
+    const {
+      id,
+      userId,
+      recipientId,
+      content,
+      messageType = 'text',
+      conversationId,
+      replyToId,
+      metadata = {},
+    } = params;
+
+    let finalConversationId = conversationId;
+    if (!finalConversationId) {
+      if (!recipientId) {
+        throw new Error('Either conversationId or recipientId must be provided.');
+      }
+      finalConversationId = await this.getOrCreateDirectConversation(userId, recipientId);
+    }
+
+    const res = await fetch('/api/messages', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversationId: finalConversationId,
+        content,
+        messageType,
+        metadata,
+        id,
+        replyToId,
+        recipientId: recipientId ?? null,
+      }),
+    });
+
+    const json = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      message?: Record<string, unknown>;
+    };
+    if (!res.ok) {
+      throw new Error(
+        typeof json.error === 'string'
+          ? json.error
+          : "Couldn't save this message. Try again.",
+      );
+    }
+
+    await this.updateTypingIndicator(finalConversationId, userId, false);
+    if (!json.message) {
+      throw new Error("Couldn't save this message. Try again.");
+    }
+    const withDetails = this.mapApiRecordToMessageWithDetails(json.message);
+    return withDetails;
+  }
+
+  private async getMessagesViaHttp(
+    conversationId: string,
+    limit: number,
+    offset: number,
+    notBefore?: string,
+  ): Promise<MessageWithDetails[]> {
+    const params = new URLSearchParams({
+      conversationId,
+      limit: String(limit),
+      offset: String(offset),
+    });
+    if (notBefore) params.set('notBefore', notBefore);
+
+    const res = await fetch(`/api/messages?${params.toString()}`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    const json = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      messages?: Record<string, unknown>[];
+    };
+
+    if (!res.ok) {
+      throw new Error(
+        typeof json.error === 'string'
+          ? json.error
+          : "Couldn't load messages right now. Try again.",
+      );
+    }
+
+    const rows = Array.isArray(json.messages) ? json.messages : [];
+    return rows.map((r) => this.mapApiRecordToMessageWithDetails(r));
   }
 
   private mapJoinedToMessageWithDetails(raw: Record<string, unknown>): MessageWithDetails {
@@ -258,6 +397,10 @@ export class MessagingService {
     } = params;
 
     try {
+      if (typeof window !== 'undefined') {
+        return await this.sendMessageViaHttp(params);
+      }
+
       let finalConversationId = conversationId;
       if (!finalConversationId) {
         if (!recipientId) {
@@ -315,14 +458,9 @@ export class MessagingService {
     notBefore?: string,
   ): Promise<MessageWithDetails[]> {
     try {
-      // RLS on `messages` now handles access control via conversation_participants AND
-      // study_group_members (text-cast). The previous app-level UUID check was broken
-      // because study_group_members.user_id is UUID but Clerk IDs are text — it always
-      // failed, silently returning empty history for non-creator group members.
-      //
-      // If the requesting user should be auto-enrolled as a participant (study group
-      // members who haven't been added to conversation_participants yet), call
-      // ensureGroupChatParticipant() before getMessages() at the call site.
+      if (typeof window !== 'undefined') {
+        return await this.getMessagesViaHttp(conversationId, limit, offset, notBefore);
+      }
 
       let query = this.supabase
         .from('messages')

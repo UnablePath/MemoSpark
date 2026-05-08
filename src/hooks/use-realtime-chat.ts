@@ -11,6 +11,7 @@ import type {
   RealtimeConnectionStatus,
 } from "@/components/social/chat/realtime-chat-types";
 import { wrapClerkTokenForSupabase } from "@/lib/clerk/clerkSupabaseToken";
+import { isLikelyAtRestCiphertext } from "@/lib/messaging/atRestEnvelopeShared";
 import type {
   ClerkGetToken,
   Message,
@@ -229,6 +230,14 @@ export function useRealtimeChat({
           (payload) => {
             const row = payload.new as Record<string, unknown>;
             if (!row?.id) return;
+
+            if (
+              row.encrypted === true ||
+              isLikelyAtRestCiphertext(String(row.content ?? ""))
+            ) {
+              void loadHistory();
+              return;
+            }
 
             // Respect history cutoff for postgres_changes too.
             if (
