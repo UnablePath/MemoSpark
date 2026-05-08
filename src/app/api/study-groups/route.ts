@@ -63,7 +63,8 @@ export async function GET(request: NextRequest) {
           created_at,
           created_by,
           privacy_level,
-          max_members
+          max_members,
+          conversation_id
         `)
         .range(offset, offset + limit - 1)
         .order('created_at', { ascending: false });
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
 
       // Get member counts separately to avoid complex joins
       const groupIds = data?.map(group => group.id) || [];
-      let memberCounts = {};
+      let memberCounts: Record<string, number> = {};
       
       if (groupIds.length > 0) {
         const { data: memberData } = await supabase

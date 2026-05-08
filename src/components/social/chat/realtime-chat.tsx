@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useChatScroll } from "@/hooks/use-chat-scroll";
 import { cn } from "@/lib/utils";
 import type React from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 /**
  * Presentational shell for Supabase Realtime Chat (Broadcast + scroll).
@@ -23,7 +23,8 @@ export interface RealtimeChatProps {
   username: string;
   currentUserId: string;
   messages: RealtimeChatMessage[];
-  onSend: (text: string) => void | Promise<void>;
+  onSend: (text: string, replyToId?: string) => void | Promise<void>;
+  onMarkRead?: (messageId: string) => void;
   onTyping?: (isTyping: boolean) => void;
   typingLabel?: string;
   status?: RealtimeConnectionStatus;
@@ -38,6 +39,7 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
   currentUserId,
   messages,
   onSend,
+  onMarkRead,
   onTyping,
   typingLabel,
   status = "idle",
@@ -46,7 +48,21 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
   className,
 }) => {
   const [draft, setDraft] = useState("");
+  const [replyToId, setReplyToId] = useState<string | undefined>();
   const { endRef, scrollToBottom } = useChatScroll([messages.length, title]);
+
+  const repliedMessage = useMemo(() => {
+    return replyToId ? messages.find(m => m.id === replyToId) : undefined;
+  }, [messages, replyToId]);
+
+  // Mark unread messages from others as read
+  useEffect(() => {
+    if (!onMarkRead) return;
+    const unreadFromOthers = messages.filter(
+      (m) => m.senderId !== currentUserId && !m.read
+    );
+    unreadFromOthers.forEach((m) => onMarkRead(m.id));
+  }, [messages, currentUserId, onMarkRead]);
 
   const statusLabel = useMemo(() => {
     if (status === "subscribed") return "Live";
@@ -59,10 +75,12 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
     const text = draft.trim();
     if (!text || disabled) return;
     setDraft("");
+    const replyId = replyToId;
+    setReplyToId(undefined);
     onTyping?.(false);
-    await onSend(text);
+    await onSend(text, replyId);
     scrollToBottom("smooth");
-  }, [disabled, draft, onSend, onTyping, scrollToBottom]);
+  }, [disabled, draft, onSend, onTyping, scrollToBottom, replyToId]);
 
   return (
     <div className={cn("flex h-full min-h-[280px] flex-col", className)}>
@@ -99,6 +117,8 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
                   message={message}
                   isOwnMessage={isOwn}
                   showHeader={showHeader}
+                  onReply={(id) => setReplyToId(id)}
+                  repliedMessageContent={message.replyToId ? messages.find(m => m.id === message.replyToId)?.content : undefined}
                 />
               );
             })
@@ -111,6 +131,19 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
           {typingLabel}
         </div>
       ) : null}
+      
+      {repliedMessage && (
+        <div className="px-3 py-2 bg-muted/50 border-t flex items-center justify-between text-xs">
+          <div className="truncate flex-1">
+            <span className="font-semibold mr-2">Replying to {repliedMessage.user.name}:</span>
+            <span className="text-muted-foreground">{repliedMessage.content}</span>
+          </div>
+          <button onClick={() => setReplyToId(undefined)} className="p-1 hover:bg-muted rounded-full">
+             ✕
+          </button>
+        </div>
+      )}
+
       <div className="flex gap-2 border-t p-3">
         <Input
           value={draft}

@@ -29,6 +29,8 @@ function toChatMessage(m: MessageWithDetails): RealtimeChatMessage {
     user: { name },
     createdAt: m.created_at,
     senderId: m.sender_id,
+    replyToId: m.reply_to_id,
+    read: m.read,
   };
 }
 
@@ -42,6 +44,8 @@ function fromInsertRow(
     user: { name: displayName },
     createdAt: saved.created_at,
     senderId: saved.sender_id,
+    replyToId: saved.reply_to_id,
+    read: saved.read,
   };
 }
 
@@ -147,6 +151,8 @@ export function useRealtimeChat({
               user: { name: payload.userName },
               createdAt: payload.createdAt,
               senderId: payload.senderId,
+              replyToId: payload.replyToId,
+              read: payload.read,
             }));
           }
         )
@@ -210,8 +216,26 @@ export function useRealtimeChat({
                 user: { name: resolvedName },
                 createdAt: row.created_at,
                 senderId: row.sender_id,
+                replyToId: row.reply_to_id,
+                read: row.read,
               });
             });
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "messages",
+            filter: `conversation_id=eq.${conversationId}`,
+          },
+          (payload) => {
+            const row = payload.new as any;
+            if (!row?.id) return;
+            setMessages((prev) => 
+              prev.map(m => m.id === row.id ? { ...m, read: row.read } : m)
+            );
           }
         );
 
@@ -262,7 +286,7 @@ export function useRealtimeChat({
   );
 
   const sendMessage = useCallback(
-    async (raw: string) => {
+    async (raw: string, replyToId?: string) => {
       const text = raw.trim();
       if (!text || !conversationId) return;
 
@@ -273,6 +297,8 @@ export function useRealtimeChat({
         user: { name: userDisplayName },
         createdAt: new Date().toISOString(),
         senderId: userId,
+        replyToId,
+        read: false,
       };
 
       // Apply optimistic update
@@ -290,6 +316,8 @@ export function useRealtimeChat({
             userName: userDisplayName,
             createdAt: optimisticMsg.createdAt,
             senderId: userId,
+            replyToId,
+            read: false,
           },
         });
       }
@@ -300,6 +328,7 @@ export function useRealtimeChat({
           userId,
           conversationId,
           content: text,
+          replyToId,
         });
         // Success: the postgres_changes listener will handle the official row swap if needed,
         // but since we used the same ID, mergeById will handle it.
@@ -311,6 +340,22 @@ export function useRealtimeChat({
     [conversationId, messaging, userDisplayName, userId, status],
   );
 
+  const markAsRead = useCallback(
+    async (messageId: string) => {
+      try {
+        await messaging.markMessageAsRead(messageId, userId);
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === messageId ? { ...msg, read: true } : msg
+          )
+        );
+      } catch (error) {
+        console.error("[RealtimeChat] Failed to mark message as read:", error);
+      }
+    },
+    [messaging, userId]
+  );
+
   return {
     messages,
     status,
@@ -319,6 +364,7 @@ export function useRealtimeChat({
     sendMessage,
     sendTyping,
     reload: loadHistory,
+    markAsRead,
   };
 }
 

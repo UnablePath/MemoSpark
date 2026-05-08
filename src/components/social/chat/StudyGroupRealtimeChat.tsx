@@ -37,6 +37,7 @@ export const StudyGroupRealtimeChat: React.FC<StudyGroupRealtimeChatProps> = ({
     presencePeers,
     sendMessage,
     sendTyping,
+    markAsRead,
   } = useRealtimeChat({
     roomName: realtimeRoomName,
     conversationId,
@@ -83,7 +84,8 @@ export const StudyGroupRealtimeChat: React.FC<StudyGroupRealtimeChatProps> = ({
       username={displayName}
       currentUserId={user.id}
       messages={messages}
-      onSend={(text) => sendMessage(text)}
+      onSend={(text, replyToId) => sendMessage(text, replyToId)}
+      onMarkRead={markAsRead}
       onTyping={handleTyping}
       typingLabel={typingLabel}
       status={status}
