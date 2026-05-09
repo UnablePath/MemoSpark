@@ -24,7 +24,6 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HubLaneBackdrop } from "./_shared/HubLaneBackdrop";
-import { ActivityFeed } from "./ActivityFeed";
 import { ConnectionManager } from "./ConnectionManager";
 import { StudyGroupHub } from "./StudyGroupHub";
 import { SwipeInterface } from "./SwipeInterface";
@@ -232,14 +231,13 @@ export const ConnectionInterface: React.FC<ConnectionInterfaceProps> = ({
                 : { duration: 0.24, ease: [0.22, 1, 0.36, 1] }
             }
           >
-            <TabsContent value="discover" className="mt-0 outline-none" forceMount={false}>
+            <TabsContent value="discover" className="mt-0 outline-none">
               <SwipeInterface onSwipeModeChange={onSwipeModeChange} />
             </TabsContent>
 
             <TabsContent
               value="connect"
               className="mt-0 space-y-5 outline-none"
-              forceMount={false}
             >
               <div className="relative">
                 <MagnifyingGlass
@@ -266,12 +264,9 @@ export const ConnectionInterface: React.FC<ConnectionInterfaceProps> = ({
               <StudyGroupErrorBoundary>
                 <ConnectionManager searchTerm={searchTerm} />
               </StudyGroupErrorBoundary>
-              <StudyGroupErrorBoundary>
-                <ActivityFeed />
-              </StudyGroupErrorBoundary>
             </TabsContent>
 
-            <TabsContent value="groups" className="mt-0 outline-none" forceMount={false}>
+            <TabsContent value="groups" className="mt-0 outline-none">
               <StudyGroupErrorBoundary>
                 <StudyGroupHub />
               </StudyGroupErrorBoundary>

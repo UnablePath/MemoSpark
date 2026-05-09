@@ -41,6 +41,7 @@ import {
   Trash2,
   X,
   UserMinus,
+  ChevronLeft,
 } from 'lucide-react';
 import {
   Dialog,
@@ -77,8 +78,9 @@ import { cn } from "@/lib/utils";
 
 import GroupManagementPanel from './GroupManagementPanel';
 import { StudyGroupChatTab } from '@/components/social/study-group/StudyGroupChatTab';
-import { GroupsBento } from './group/GroupsBento';
+import { GroupsBento, type CreateGroupBentoPayload } from './group/GroupsBento';
 import { submitSocialReport } from '@/lib/social/submitSocialReport';
+import { formatStudyGroupActivityLabel } from '@/lib/social/groupDisplay';
 
 /** Matches Groups lane bento: diffused scrim, not flat `bg-black/80`. */
 const GROUPS_HUB_OVERLAY = cn(
@@ -93,7 +95,7 @@ const GROUPS_HUB_SHELL = cn(
   "gap-0 border-0 p-0 shadow-none flex flex-col overflow-hidden",
   "w-full max-w-none rounded-none bg-transparent",
   "h-[100dvh] max-h-[100dvh] min-h-0 sm:h-[min(82vh,880px)] sm:max-h-[85vh] sm:max-w-[1100px] sm:w-[min(1100px,calc(100vw-1.25rem))]",
-  "sm:rounded-[1.75rem] sm:border sm:border-border/55 sm:bg-card/96 sm:shadow-[0_40px_96px_-48px_hsl(var(--foreground)/0.42)] sm:ring-1 sm:ring-border/35",
+  "sm:rounded-[1.75rem] sm:border sm:border-border/55 sm:bg-card sm:shadow-[0_40px_96px_-48px_hsl(var(--foreground)/0.42)] sm:ring-1 sm:ring-border/35",
 );
 
 const MEMBER_COUNT_CACHE_KEY = 'study-group-known-member-counts';
@@ -218,9 +220,24 @@ export const StudyGroupHub: React.FC = () => {
     }
   }, [studyGroupManager, user]);
 
-  const loadGroupDetails = useCallback((group: StudyGroup) => {
-    setSelectedGroup(group);
-  }, []);
+  const loadGroupDetails = useCallback(
+    async (group: StudyGroup) => {
+      const groupId = group.id;
+      setSelectedGroup(group);
+      try {
+        const fresh = await studyGroupManager.getGroup(groupId);
+        if (!fresh) return;
+        setSelectedGroup((prev) => {
+          if (prev?.id !== groupId) return prev;
+          const { members: _m, member_count: _mc, ...studyGroupRow } = fresh;
+          return { ...prev, ...studyGroupRow };
+        });
+      } catch (err) {
+        console.error('[studyGroup:fetchDetail]', err);
+      }
+    },
+    [studyGroupManager],
+  );
 
   // Effects
   useEffect(() => {
@@ -253,18 +270,25 @@ export const StudyGroupHub: React.FC = () => {
   };
 
   // Bento morph create path: take explicit values so the surface owns its form state.
-  const handleCreateGroupFromBento = async ({
-    name,
-    description,
-  }: { name: string; description: string }) => {
+  const handleCreateGroupFromBento = async (
+    payload: CreateGroupBentoPayload,
+  ) => {
     if (!user) return;
-    const trimmed = name.trim();
+    const trimmed = payload.name.trim();
     if (!trimmed) {
       toast.error("Give the group a name");
       return;
     }
     try {
-      await studyGroupManager.createGroup(trimmed, user.id, description);
+      await studyGroupManager.createGroup(
+        trimmed,
+        user.id,
+        payload.description,
+        {
+          privacy_level: payload.privacy,
+          category_id: payload.categoryId,
+        },
+      );
       void queryClient.invalidateQueries({
         queryKey: studyGroupKeys.userGroups(user.id),
       });
@@ -352,48 +376,57 @@ export const StudyGroupHub: React.FC = () => {
     }
   };
 
-  const handleReportGroup = async (group: StudyGroup) => {
-    const reason = window.prompt(
-      `Report ${group.name}? Tell us what needs review.`,
-    );
-    if (!reason?.trim()) return;
-
+  const submitGroupReport = async () => {
+    if (!groupReportTarget || !groupReportReason.trim()) return;
     try {
       await submitSocialReport({
         targetType: 'group',
-        targetId: group.id,
-        reason: reason.trim(),
-        context: { source: 'study_group_hub', group_name: group.name },
+        targetId: groupReportTarget.id,
+        reason: groupReportReason.trim(),
+        context: {
+          source: 'study_group_hub',
+          group_name: groupReportTarget.name,
+        },
       });
       toast.success('Report sent. Thanks for keeping MemoSpark safe.');
+      setGroupReportTarget(null);
+      setGroupReportReason('');
     } catch (error) {
       console.error('[social:reportGroup]', error);
       toast.error("Couldn't send the report right now. Try again.");
     }
   };
 
-  const handleReportResource = async (resource: StudyGroupResource) => {
-    const reason = window.prompt(
-      `Report "${resource.title}"? Tell us what needs review.`,
-    );
-    if (!reason?.trim()) return;
+  const openGroupReport = (group: StudyGroup) => {
+    setGroupReportTarget(group);
+    setGroupReportReason('');
+  };
 
+  const submitResourceReport = async () => {
+    if (!resourceReportTarget || !resourceReportReason.trim()) return;
     try {
       await submitSocialReport({
         targetType: 'resource',
-        targetId: resource.id,
-        reason: reason.trim(),
+        targetId: resourceReportTarget.id,
+        reason: resourceReportReason.trim(),
         context: {
           source: 'study_group_resource',
-          group_id: resource.group_id,
-          resource_type: resource.resource_type,
+          group_id: resourceReportTarget.group_id,
+          resource_type: resourceReportTarget.resource_type,
         },
       });
       toast.success('Resource report sent.');
+      setResourceReportTarget(null);
+      setResourceReportReason('');
     } catch (error) {
       console.error('[social:reportResource]', error);
       toast.error("Couldn't report this resource right now. Try again.");
     }
+  };
+
+  const openResourceReport = (resource: StudyGroupResource) => {
+    setResourceReportTarget(resource);
+    setResourceReportReason('');
   };
 
   const handleDeleteResource = async (resource: StudyGroupResource) => {
@@ -535,14 +568,22 @@ export const StudyGroupHub: React.FC = () => {
   };
 
   const [groupTab, setGroupTab] = useState('chat');
+  const [groupReportTarget, setGroupReportTarget] = useState<StudyGroup | null>(
+    null,
+  );
+  const [groupReportReason, setGroupReportReason] = useState("");
+  const [resourceReportTarget, setResourceReportTarget] =
+    useState<StudyGroupResource | null>(null);
+  const [resourceReportReason, setResourceReportReason] = useState('');
 
   return (
     <div className="relative space-y-6">
       <GroupsBento
         groups={userGroups}
         memberCounts={groupMemberCounts}
+        categories={categoriesQuery.data ?? []}
         onOpenGroup={(g) => {
-          setSelectedGroup(g);
+          void loadGroupDetails(g);
           setIsPopoverOpen(true);
         }}
         onCreateGroup={handleCreateGroupFromBento}
@@ -561,11 +602,11 @@ export const StudyGroupHub: React.FC = () => {
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           )}
         >
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-card/98 sm:bg-transparent">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-card">
             {/* Header */}
             <div
               className={cn(
-                "flex-shrink-0 border-b border-border/50 bg-background/90 px-4 py-3 sm:px-5 sm:py-4",
+                "flex-shrink-0 border-b border-border/50 bg-card px-4 py-3 sm:px-5 sm:py-4",
                 "safe-area-top",
               )}
             >
@@ -593,7 +634,7 @@ export const StudyGroupHub: React.FC = () => {
                     <TabsList
                       className={cn(
                         "sticky top-0 z-20 mx-3 mt-3 grid h-11 grid-cols-2 gap-1 rounded-2xl p-1",
-                        "border border-border/50 bg-background/90 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)]",
+                        "border border-border/50 bg-muted/40 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)]",
                         "sm:mx-4 sm:mt-4",
                       )}
                     >
@@ -655,9 +696,12 @@ export const StudyGroupHub: React.FC = () => {
                             </Button>
                           </DialogTrigger>
                           <DialogContent
-                            overlayClassName={GROUPS_HUB_OVERLAY}
+                            overlayClassName={cn(
+                              GROUPS_HUB_OVERLAY,
+                              "z-[13500]",
+                            )}
                             className={cn(
-                              "max-w-md rounded-[1.35rem] border-border/55 bg-card/98 p-6 shadow-[0_32px_64px_-40px_hsl(var(--foreground)/0.45)] ring-1 ring-border/35",
+                              "z-[13501] max-w-md rounded-[1.35rem] border border-border/55 bg-card p-6 shadow-[0_32px_64px_-40px_hsl(var(--foreground)/0.45)] ring-1 ring-border/35",
                             )}
                           >
                             <DialogHeader>
@@ -786,11 +830,13 @@ export const StudyGroupHub: React.FC = () => {
                                   selectedGroup?.id === group.id &&
                                     "border-primary/35 bg-primary/8",
                                 )}
-                                onClick={() => loadGroupDetails(group)}
+                                onClick={() => {
+                                  void loadGroupDetails(group);
+                                }}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter" || e.key === " ") {
                                     e.preventDefault();
-                                    loadGroupDetails(group);
+                                    void loadGroupDetails(group);
                                   }
                                 }}
                               >
@@ -803,10 +849,7 @@ export const StudyGroupHub: React.FC = () => {
                                         {group.description}
                                       </p>
                                       <div className="mt-2 text-[0.65rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                                        Updated{" "}
-                                        {group.updated_at
-                                          ? new Date(group.updated_at).toLocaleDateString()
-                                          : "unknown"}
+                                        Active {formatStudyGroupActivityLabel(group)}
                                       </div>
                                     </div>
                                     <div className="flex shrink-0 items-center gap-2">
@@ -843,57 +886,68 @@ export const StudyGroupHub: React.FC = () => {
                           {userGroups.map((group) => (
                             <div
                               key={group.id}
-                              role="button"
-                              tabIndex={0}
                               className={cn(
-                                "flex w-full items-center gap-3 rounded-2xl border border-border/45 bg-card/85 p-3 text-left transition-colors",
-                                "hover:border-border/70 hover:bg-muted/35",
-                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                                selectedGroup?.id === group.id && "border-primary/35 bg-primary/8",
+                                "flex w-full items-stretch gap-1 rounded-2xl border border-border/45 bg-card transition-colors",
+                                " hover:border-border/70 hover:bg-muted/20",
+                                selectedGroup?.id === group.id &&
+                                  "border-primary/35 bg-primary/8",
                               )}
-                              onClick={() => loadGroupDetails(group)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  loadGroupDetails(group);
-                                }
-                              }}
                             >
-                                  <div className="min-w-0 flex-1">
-                                    <h4 className="truncate text-sm font-semibold tracking-tight">
-                                      {group.name}
-                                    </h4>
-                                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                                      {group.description}
-                                    </p>
-                                  </div>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-10 w-10 shrink-0 rounded-full"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <MoreVertical className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="rounded-xl">
-                                      <DropdownMenuItem onClick={() => loadGroupDetails(group)}>
-                                        <Settings className="mr-2 h-4 w-4" />
-                                        Open
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem 
-                                        className="text-destructive"
-                                        onClick={() => handleLeaveGroup(group.id)}
-                                      >
-                                        <UserMinus className="mr-2 h-4 w-4" />
-                                        Leave
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
+                              <button
+                                type="button"
+                                className={cn(
+                                  "min-w-0 flex-1 px-3 py-3 text-left transition-colors",
+                                  "rounded-2xl rounded-e-md",
+                                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                                )}
+                                onClick={() => {
+                                  void loadGroupDetails(group);
+                                }}
+                              >
+                                <h4 className="truncate text-sm font-semibold tracking-tight">
+                                  {group.name}
+                                </h4>
+                                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                                  {group.description}
+                                </p>
+                                <p className="mt-1.5 text-[0.65rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                                  Active {formatStudyGroupActivityLabel(group)}
+                                </p>
+                              </button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-11 w-11 shrink-0 self-center rounded-xl text-muted-foreground hover:text-foreground"
+                                    aria-label={`More actions for ${group.name}`}
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="min-w-[11rem] rounded-xl"
+                                >
+                                  <DropdownMenuItem
+                                    onSelect={() => {
+                                      void loadGroupDetails(group);
+                                    }}
+                                  >
+                                    <Settings className="mr-2 h-4 w-4" />
+                                    Open group
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onSelect={() => handleLeaveGroup(group.id)}
+                                  >
+                                    <UserMinus className="mr-2 h-4 w-4" />
+                                    Leave group
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           ))}
                         </div>
@@ -909,70 +963,93 @@ export const StudyGroupHub: React.FC = () => {
                 )}>
                   {selectedGroup ? (
                     <>
-                      {/* Group Header */}
-                      <div className="border-b border-border/50 bg-background/60 px-4 py-3 sm:px-5">
-                        <div className="flex items-start gap-3">
+                      {/* Group Header — title block + meta toolbar (badge + actions) */}
+                      <div className="border-b border-border/50 bg-card px-4 py-4 sm:px-5">
+                        <div className="sm:hidden">
                           <Button
                             type="button"
                             variant="ghost"
-                            size="icon"
-                            className="mt-0.5 h-11 w-11 shrink-0 rounded-xl sm:hidden"
+                            size="sm"
+                            className="mb-3 -ml-2 h-9 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
                             onClick={() => setSelectedGroup(null)}
-                            aria-label="Back to list"
+                            aria-label="Back to your groups"
                           >
-                            <X className="h-5 w-5" />
+                            <ChevronLeft className="h-4 w-4 shrink-0" aria-hidden />
+                            Your groups
                           </Button>
-                          
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                              <div className="min-w-0">
-                                <h3 className="text-base font-semibold tracking-tight sm:text-lg">
-                                  {selectedGroup.name}
-                                </h3>
-                                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                                  {selectedGroup.description}
-                                </p>
-                              </div>
-                              <div className="flex shrink-0 flex-wrap items-center gap-2">
-                                <Badge variant="secondary" className="rounded-full text-xs">
-                                  {groupMembers.length}{" "}
-                                  {groupMembers.length !== 1 ? "people" : "person"}
-                                </Badge>
-                                {!membershipStatus[selectedGroup.id] && (
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    className="h-10 rounded-full px-4"
-                                    onClick={() => handleJoinGroup(selectedGroup.id)}
-                                  >
-                                    <UserPlus className="mr-2 h-4 w-4" />
-                                    Join
-                                  </Button>
-                                )}
-                                {user?.id === selectedGroup.created_by && (
-                                  <Button
-                                    type="button"
-                                    variant="destructive"
-                                    size="sm"
-                                    className="h-10 rounded-full px-4"
-                                    onClick={() => handleArchiveGroup(selectedGroup.id)}
-                                  >
-                                    Archive
-                                  </Button>
-                                )}
-                                {user?.id !== selectedGroup.created_by && (
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-10 rounded-full px-4"
-                                    onClick={() => handleReportGroup(selectedGroup)}
-                                  >
-                                    <Flag className="mr-2 h-4 w-4" />
-                                    Report
-                                  </Button>
-                                )}
-                              </div>
+                        </div>
+
+                        <div className="flex flex-col gap-4">
+                          <div className="min-w-0 space-y-1.5">
+                            <h3 className="truncate text-lg font-semibold leading-tight tracking-tight text-foreground sm:text-xl">
+                              {selectedGroup.name}
+                            </h3>
+                            {selectedGroup.description ? (
+                              <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+                                {selectedGroup.description}
+                              </p>
+                            ) : null}
+                          </div>
+
+                          <div
+                            className={cn(
+                              "flex flex-col gap-3 border-t border-border/45 pt-3",
+                              "sm:flex-row sm:items-center sm:justify-between sm:gap-4",
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "inline-flex h-9 w-fit shrink-0 items-center gap-2 rounded-full",
+                                "border border-border/50 bg-muted/40 px-3.5 text-xs font-medium",
+                                "text-foreground/80",
+                              )}
+                              aria-label={`${groupMembers.length} ${groupMembers.length !== 1 ? "members" : "member"}`}
+                            >
+                              <Users className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+                              <span className="tabular-nums">
+                                {groupMembers.length}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {groupMembers.length !== 1 ? "members" : "member"}
+                              </span>
+                            </span>
+
+                            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                              {!membershipStatus[selectedGroup.id] ? (
+                                <Button
+                                  type="button"
+                                  variant="default"
+                                  size="sm"
+                                  className="h-10 shrink-0 gap-2 rounded-xl px-4 text-sm font-medium"
+                                  onClick={() => handleJoinGroup(selectedGroup.id)}
+                                >
+                                  <UserPlus className="h-4 w-4" aria-hidden />
+                                  Join
+                                </Button>
+                              ) : null}
+                              {user?.id === selectedGroup.created_by ? (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-10 shrink-0 rounded-xl border-destructive/35 px-4 text-sm font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  onClick={() => handleArchiveGroup(selectedGroup.id)}
+                                >
+                                  Archive
+                                </Button>
+                              ) : null}
+                              {user?.id !== selectedGroup.created_by ? (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-10 shrink-0 gap-2 rounded-xl border-border/60 px-4 text-sm font-medium text-muted-foreground hover:text-foreground"
+                                  onClick={() => openGroupReport(selectedGroup)}
+                                >
+                                  <Flag className="h-4 w-4" aria-hidden />
+                                  Report
+                                </Button>
+                              ) : null}
                             </div>
                           </div>
                         </div>
@@ -988,43 +1065,42 @@ export const StudyGroupHub: React.FC = () => {
                       >
                           <TabsList
                             className={cn(
-                              "sticky top-0 z-10 mx-3 mt-2 flex h-auto min-h-11 flex-wrap gap-1 rounded-2xl border border-border/50 bg-background/90 p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)] sm:mx-4",
-                              "supports-[backdrop-filter]:bg-background/80",
+                              "sticky top-0 z-10 mx-3 mt-2 flex h-auto min-h-11 flex-wrap gap-1 rounded-2xl border border-border/50 bg-muted/35 p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)] sm:mx-4",
                             )}
                           >
                           <TabsTrigger
                             value="chat"
-                            className="rounded-xl data-[state=active]:bg-primary/12"
+                            className="gap-2 rounded-xl text-muted-foreground data-[state=active]:bg-background data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                           >
-                            <MessageSquare className="mr-2 h-4 w-4" />
+                            <MessageSquare className="h-4 w-4 shrink-0" />
                             Chat
                           </TabsTrigger>
                           <TabsTrigger
                             value="resources"
-                            className="rounded-xl data-[state=active]:bg-primary/12"
+                            className="gap-2 rounded-xl text-muted-foreground data-[state=active]:bg-background data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                           >
-                            <BookOpen className="mr-2 h-4 w-4" />
+                            <BookOpen className="h-4 w-4 shrink-0" />
                             Resources
-                            <span className="ml-1 rounded-full bg-muted px-1.5 text-[10px] leading-5">
+                            <span className="ml-0.5 rounded-full bg-muted px-1.5 text-[10px] leading-5 tabular-nums">
                               {groupResources.length}
                             </span>
                           </TabsTrigger>
                           <TabsTrigger
                             value="members"
-                            className="rounded-xl data-[state=active]:bg-primary/12"
+                            className="gap-2 rounded-xl text-muted-foreground data-[state=active]:bg-background data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                           >
-                            <Users className="mr-2 h-4 w-4" />
+                            <Users className="h-4 w-4 shrink-0" />
                             Members
-                            <span className="ml-1 rounded-full bg-muted px-1.5 text-[10px] leading-5">
+                            <span className="ml-0.5 rounded-full bg-muted px-1.5 text-[10px] leading-5 tabular-nums">
                               {groupMembers.length}
                             </span>
                           </TabsTrigger>
                           {user?.id === selectedGroup.created_by && (
                             <TabsTrigger
                               value="manage"
-                              className="rounded-xl data-[state=active]:bg-primary/12"
+                              className="gap-2 rounded-xl text-muted-foreground data-[state=active]:bg-background data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                             >
-                              <Settings className="mr-2 h-4 w-4" />
+                              <Settings className="h-4 w-4 shrink-0" />
                               Manage
                             </TabsTrigger>
                           )}
@@ -1032,7 +1108,7 @@ export const StudyGroupHub: React.FC = () => {
 
                         <TabsContent value="chat" className="flex-1 m-0 flex min-h-0 flex-col">
                           <div className="flex min-h-0 flex-1 flex-col p-2 sm:p-4">
-                            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border">
+                            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/60 bg-card/30">
                               {user ? (
                                 <StudyGroupChatTab
                                   selectedGroup={selectedGroup}
@@ -1160,7 +1236,7 @@ export const StudyGroupHub: React.FC = () => {
                                             variant="ghost"
                                             size="sm"
                                             className="h-8 px-2 text-xs"
-                                            onClick={() => handleReportResource(resource)}
+                                            onClick={() => openResourceReport(resource)}
                                           >
                                             <Flag className="mr-1 h-3.5 w-3.5" />
                                             Report
@@ -1250,6 +1326,120 @@ export const StudyGroupHub: React.FC = () => {
               </div>
             </div>
             </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={groupReportTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setGroupReportTarget(null);
+            setGroupReportReason("");
+          }
+        }}
+      >
+        <DialogContent
+          overlayClassName="z-[14000]"
+          className="z-[14001] max-w-md rounded-2xl"
+        >
+          <DialogHeader>
+            <DialogTitle>Report this group</DialogTitle>
+            <DialogDescription>
+              Tell us what needs review for{" "}
+              <span className="font-medium text-foreground">
+                {groupReportTarget?.name}
+              </span>
+              .
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="group-report-reason">What happened?</Label>
+            <Textarea
+              id="group-report-reason"
+              value={groupReportReason}
+              onChange={(e) => setGroupReportReason(e.target.value)}
+              placeholder="A few clear sentences help us review quickly."
+              className="min-h-[100px] rounded-xl"
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => {
+                setGroupReportTarget(null);
+                setGroupReportReason("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl"
+              disabled={!groupReportReason.trim()}
+              onClick={() => void submitGroupReport()}
+            >
+              Send report
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={resourceReportTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setResourceReportTarget(null);
+            setResourceReportReason('');
+          }
+        }}
+      >
+        <DialogContent
+          overlayClassName="z-[14000]"
+          className="z-[14001] max-w-md rounded-2xl"
+        >
+          <DialogHeader>
+            <DialogTitle>Report this resource</DialogTitle>
+            <DialogDescription>
+              Tell us what needs review for{' '}
+              <span className="font-medium text-foreground">
+                {resourceReportTarget?.title}
+              </span>
+              .
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="resource-report-reason">What happened?</Label>
+            <Textarea
+              id="resource-report-reason"
+              value={resourceReportReason}
+              onChange={(e) => setResourceReportReason(e.target.value)}
+              placeholder="A few clear sentences help us review quickly."
+              className="min-h-[100px] rounded-xl"
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => {
+                setResourceReportTarget(null);
+                setResourceReportReason('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl"
+              disabled={!resourceReportReason.trim()}
+              onClick={() => void submitResourceReport()}
+            >
+              Send report
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

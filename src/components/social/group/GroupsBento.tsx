@@ -2,8 +2,16 @@
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { StudyGroup } from "@/lib/social/StudyGroupManager";
+import { formatStudyGroupActivityLabel } from "@/lib/social/groupDisplay";
 import { cn } from "@/lib/utils";
 import {
   ArrowUpRight,
@@ -27,15 +35,21 @@ import { createPortal } from "react-dom";
 
 /* ─────────────── types ─────────────── */
 
+export type CreateGroupBentoPayload = {
+  name: string;
+  description: string;
+  categoryId: string | null;
+  privacy: "public" | "private" | "invite_only";
+};
+
 interface GroupsBentoProps {
   groups: StudyGroup[];
   /** Optional map of `groupId -> member count` when available on the caller. */
   memberCounts?: Record<string, number>;
+  /** Categories for “new group” (same options as Discover tab). */
+  categories?: { id: string; name: string }[];
   onOpenGroup: (group: StudyGroup) => void;
-  onCreateGroup: (payload: {
-    name: string;
-    description: string;
-  }) => Promise<void> | void;
+  onCreateGroup: (payload: CreateGroupBentoPayload) => Promise<void> | void;
   onDiscover: () => void;
 }
 
@@ -56,6 +70,66 @@ const SPRING = {
   damping: 34,
   mass: 0.7,
 };
+
+/** Outer double-shell for the groups stage — keeps the lane visually anchored. */
+function GroupsBentoShell({
+  eyebrow,
+  title,
+  trailing,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  trailing?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-[2rem] border border-border/55 bg-card/45 p-1.5",
+        "shadow-[0_28px_64px_-36px_hsl(var(--foreground)/0.38)]",
+      )}
+    >
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-0 rounded-[2rem]",
+          "bg-[radial-gradient(ellipse_88%_56%_at_18%_-8%,hsl(var(--primary)/0.14),transparent_55%)]",
+          "opacity-90",
+        )}
+      />
+      <div
+        className={cn(
+          "relative rounded-[calc(2rem-0.375rem)] border border-border/40 bg-background/75",
+          "shadow-[inset_0_1px_0_hsl(var(--foreground)/0.045)]",
+        )}
+      >
+        <header
+          className={cn(
+            "flex flex-col gap-3 border-b border-border/35 px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-6 sm:py-5",
+          )}
+        >
+          <div className="min-w-0 space-y-1.5">
+            <p
+              className={cn(
+                "text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground",
+              )}
+            >
+              {eyebrow}
+            </p>
+            <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+              {title}
+            </h2>
+          </div>
+          {trailing ? (
+            <div className="flex shrink-0 items-center gap-2">{trailing}</div>
+          ) : null}
+        </header>
+        <div className="p-4 sm:p-5 lg:p-6">{children}</div>
+      </div>
+    </div>
+  );
+}
 
 /* ─────────────── shared tile chrome ─────────────── */
 
@@ -111,28 +185,17 @@ const PrivacyBadge: React.FC<{ level?: string | null }> = ({ level }) => {
   );
 };
 
-function formatUpdated(iso: string | null | undefined) {
-  if (!iso) return "Just now";
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "Just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d ago`;
-  return new Date(iso).toLocaleDateString();
-}
-
 /* ─────────────── group tile ─────────────── */
 
 const GroupTile: React.FC<{
   group: StudyGroup;
   hero?: boolean;
+  /** Secondary row: denser card, less vertical drama. */
+  compact?: boolean;
   index: number;
   memberCount?: number | null;
   onClick: () => void;
-}> = ({ group, hero = false, index, memberCount, onClick }) => {
+}> = ({ group, hero = false, compact = false, index, memberCount, onClick }) => {
   const { sx, sy, onPointerMove, reduceMotion } = useSpotlight();
 
   return (
@@ -151,19 +214,22 @@ const GroupTile: React.FC<{
       whileHover={reduceMotion ? undefined : { y: -2 }}
       whileTap={reduceMotion ? undefined : { scale: 0.985 }}
       className={cn(
-        "group relative isolate overflow-hidden rounded-[1.5rem]",
-        "border border-border/60 bg-card/60 p-1.5 text-left",
+        "group relative isolate h-full overflow-hidden rounded-[1.5rem] text-left",
+        "border border-border/60 bg-card/80 p-1.5",
         "shadow-[0_24px_48px_-32px_hsl(var(--foreground)/0.3)]",
-        "backdrop-blur-[1px] focus:outline-none",
-        "focus-visible:ring-2 focus-visible:ring-primary/50",
-        hero ? "min-h-[220px]" : "min-h-[160px]",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+        compact ? "min-h-[132px] sm:min-h-[140px]" : "min-h-[168px]",
+        hero && "min-h-[200px] sm:min-h-[240px]",
       )}
     >
       {/* cursor spotlight */}
       {!reduceMotion ? (
         <motion.span
           aria-hidden
-          className="pointer-events-none absolute -inset-px rounded-[1.5rem] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+          className={cn(
+            "pointer-events-none absolute -inset-px rounded-[1.5rem] opacity-0",
+            "transition-opacity duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:opacity-100",
+          )}
           style={{
             background: `radial-gradient(
               240px circle at ${sx.get()}% ${sy.get()}%,
@@ -177,9 +243,10 @@ const GroupTile: React.FC<{
       {/* inner core */}
       <div
         className={cn(
-          "relative flex h-full flex-col rounded-[calc(1.5rem-0.375rem)]",
-          "border border-border/40 bg-background/70 p-4 sm:p-5",
+          "relative flex h-full min-h-0 flex-col rounded-[calc(1.5rem-0.375rem)]",
+          "border border-border/40 bg-background/80 p-4 sm:p-5",
           "shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)]",
+          compact && "p-3.5 sm:p-4",
         )}
       >
         <div className="flex items-start justify-between gap-3">
@@ -190,9 +257,11 @@ const GroupTile: React.FC<{
             <h3
               className={cn(
                 "truncate text-foreground",
-                hero
-                  ? "text-xl font-semibold tracking-tight sm:text-2xl"
-                  : "text-base font-semibold tracking-tight",
+                compact && "text-sm font-semibold tracking-tight sm:text-base",
+                !compact &&
+                  (hero
+                    ? "text-xl font-semibold tracking-tight sm:text-2xl"
+                    : "text-base font-semibold tracking-tight"),
               )}
             >
               {group.name}
@@ -201,7 +270,11 @@ const GroupTile: React.FC<{
               <p
                 className={cn(
                   "mt-1.5 text-muted-foreground",
-                  hero ? "line-clamp-3 text-sm" : "line-clamp-2 text-xs",
+                  compact && "line-clamp-1 text-xs",
+                  !compact &&
+                    (hero
+                      ? "line-clamp-3 text-sm"
+                      : "line-clamp-2 text-xs"),
                 )}
               >
                 {group.description}
@@ -211,7 +284,12 @@ const GroupTile: React.FC<{
           <PrivacyBadge level={group.privacy_level as string | null} />
         </div>
 
-        <div className="mt-auto flex items-end justify-between gap-3 pt-4">
+        <div
+          className={cn(
+            "mt-auto flex items-end justify-between gap-3",
+            compact ? "pt-3" : "pt-4",
+          )}
+        >
           <div className="flex items-center gap-2 text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground">
             <UsersThree className="h-3.5 w-3.5" weight="bold" />
             <span className="tabular-nums">
@@ -220,14 +298,15 @@ const GroupTile: React.FC<{
             <span aria-hidden className="opacity-40">
               ·
             </span>
-            <span>{formatUpdated(group.updated_at)}</span>
+            <span>{formatStudyGroupActivityLabel(group)}</span>
           </div>
 
           <span
             className={cn(
               "inline-flex h-8 w-8 items-center justify-center rounded-full",
               "border border-border/60 bg-muted/40 text-foreground/70",
-              "transition-all duration-300 group-hover:border-primary/60",
+              "duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+              "transition-[transform,border-color,background-color,color] group-hover:border-primary/60",
               "group-hover:bg-primary/10 group-hover:text-primary",
               "group-hover:translate-x-0.5 group-hover:-translate-y-0.5",
             )}
@@ -244,11 +323,16 @@ const GroupTile: React.FC<{
 
 const CreateGroupMorph: React.FC<{
   onCreate: GroupsBentoProps["onCreateGroup"];
-}> = ({ onCreate }) => {
+  categories?: { id: string; name: string }[];
+}> = ({ onCreate, categories = [] }) => {
   const reduceMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [privacy, setPrivacy] = useState<
+    "public" | "private" | "invite_only"
+  >("public");
   const [submitting, setSubmitting] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -260,9 +344,16 @@ const CreateGroupMorph: React.FC<{
     if (!name.trim() || submitting) return;
     setSubmitting(true);
     try {
-      await onCreate({ name: name.trim(), description: description.trim() });
+      await onCreate({
+        name: name.trim(),
+        description: description.trim(),
+        categoryId,
+        privacy,
+      });
       setName("");
       setDescription("");
+      setCategoryId(null);
+      setPrivacy("public");
       setOpen(false);
     } finally {
       setSubmitting(false);
@@ -277,14 +368,16 @@ const CreateGroupMorph: React.FC<{
         onClick={() => setOpen(true)}
         whileHover={reduceMotion ? undefined : { y: -2 }}
         whileTap={reduceMotion ? undefined : { scale: 0.985 }}
-        className={cn(
-          "group relative flex min-h-[160px] flex-col items-start justify-between overflow-hidden",
-          "rounded-[1.5rem] border border-dashed border-border/60 bg-card/30 p-5 text-left",
-          "shadow-[inset_0_1px_0_hsl(var(--foreground)/0.03)]",
-          "transition-[border-color,background] duration-300",
-          "hover:border-primary/60 hover:bg-primary/5",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-        )}
+      className={cn(
+        "group relative flex h-full min-h-[168px] w-full flex-col items-start justify-between overflow-hidden",
+        "rounded-[1.5rem] border border-dashed border-border/60 bg-card/30 p-5 text-left",
+        "shadow-[inset_0_1px_0_hsl(var(--foreground)/0.03)]",
+        "duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+        "transition-[border-color,background-color,transform]",
+        "hover:border-primary/60 hover:bg-primary/5",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+        "lg:min-h-[200px]",
+      )}
       >
         <p className="mt-auto text-lg font-semibold tracking-tight text-foreground">
           New group
@@ -293,7 +386,8 @@ const CreateGroupMorph: React.FC<{
           className={cn(
             "absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full",
             "border border-border/60 bg-background/80 text-foreground/70",
-            "transition-all duration-300",
+            "duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+            "transition-[transform,border-color,background-color,color]",
             "group-hover:border-primary/60 group-hover:bg-primary group-hover:text-primary-foreground",
             "group-hover:translate-x-0.5 group-hover:-translate-y-0.5",
           )}
@@ -308,7 +402,7 @@ const CreateGroupMorph: React.FC<{
         {open ? (
           <motion.div
             key="create-overlay"
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+            className="fixed inset-0 z-[14400] flex items-center justify-center p-4 sm:p-6"
             initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
@@ -318,7 +412,7 @@ const CreateGroupMorph: React.FC<{
               type="button"
               aria-label="Close"
               onClick={() => setOpen(false)}
-              className="absolute inset-0 bg-background/85 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/65"
+              className="absolute inset-0 z-0 bg-background/94 backdrop-blur-md"
               initial={reduceMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={reduceMotion ? undefined : { opacity: 0 }}
@@ -327,14 +421,13 @@ const CreateGroupMorph: React.FC<{
               layoutId="create-group-morph"
               className={cn(
                 "relative z-10 w-full max-w-lg overflow-hidden rounded-[1.75rem]",
-                "border border-border/60 bg-card p-1.5",
-                "shadow-[0_40px_90px_-24px_hsl(var(--foreground)/0.45)]",
+                "border border-border/60 bg-card shadow-[0_40px_90px_-24px_hsl(var(--foreground)/0.45)]",
               )}
             >
               <div
                 className={cn(
-                  "rounded-[calc(1.75rem-0.375rem)] border border-border/40 bg-background/95",
-                  "shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)] p-6",
+                  "rounded-[calc(1.75rem-0.375rem)] border border-border/40 bg-background p-6",
+                  "shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)]",
                 )}
               >
                 <div className="flex items-start justify-between">
@@ -384,6 +477,49 @@ const CreateGroupMorph: React.FC<{
                       rows={3}
                       className="rounded-xl"
                     />
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Category</Label>
+                      <Select
+                        value={categoryId ?? "__none__"}
+                        onValueChange={(v) =>
+                          setCategoryId(v === "__none__" ? null : v)
+                        }
+                      >
+                        <SelectTrigger className="h-11 rounded-xl">
+                          <SelectValue placeholder="Optional" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">No category</SelectItem>
+                          {categories.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Privacy</Label>
+                      <Select
+                        value={privacy}
+                        onValueChange={(v) =>
+                          setPrivacy(
+                            v as "public" | "private" | "invite_only",
+                          )
+                        }
+                      >
+                        <SelectTrigger className="h-11 rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="public">Public</SelectItem>
+                          <SelectItem value="private">Private</SelectItem>
+                          <SelectItem value="invite_only">Invite only</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 
@@ -447,11 +583,11 @@ const DiscoverTile: React.FC<{ onClick: () => void; count?: number }> = ({
       whileHover={reduceMotion ? undefined : { y: -2 }}
       whileTap={reduceMotion ? undefined : { scale: 0.985 }}
       className={cn(
-        "group relative flex min-h-[160px] flex-col items-start justify-between overflow-hidden",
+        "group relative flex h-full min-h-[168px] w-full flex-col items-start justify-between overflow-hidden",
         "rounded-[1.5rem] border border-border/60 p-5 text-left",
         "bg-gradient-to-br from-primary/10 via-card/60 to-card/60",
         "shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)]",
-        "transition-[transform] duration-300",
+        "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
       )}
     >
@@ -473,7 +609,8 @@ const DiscoverTile: React.FC<{ onClick: () => void; count?: number }> = ({
         className={cn(
           "absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full",
           "border border-primary/30 bg-primary/15 text-primary",
-          "transition-all duration-300",
+          "duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+          "transition-[transform,border-color,background-color,color]",
           "group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:bg-primary group-hover:text-primary-foreground",
         )}
       >
@@ -488,35 +625,37 @@ const DiscoverTile: React.FC<{ onClick: () => void; count?: number }> = ({
 const EmptyBentoState: React.FC<{
   onCreate: GroupsBentoProps["onCreateGroup"];
   onDiscover: () => void;
-}> = ({ onCreate, onDiscover }) => {
+  categories?: { id: string; name: string }[];
+}> = ({ onCreate, onDiscover, categories }) => {
   const reduceMotion = useReducedMotion();
   return (
     <motion.div
       initial={reduceMotion ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={SPRING}
-      className={cn(
-        "relative overflow-hidden rounded-[2rem] border border-border/60 bg-card/60 p-1.5",
-        "shadow-[0_24px_48px_-32px_hsl(var(--foreground)/0.3)]",
-      )}
     >
-      <div
-        className={cn(
-          "rounded-[calc(2rem-0.375rem)] border border-border/40 bg-background/80 px-6 py-10",
-          "shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)]",
-        )}
+      <GroupsBentoShell
+        eyebrow="Connections"
+        title="No groups yet"
+        trailing={
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-3 py-1",
+              "text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-primary",
+            )}
+          >
+            Start here
+          </span>
+        }
       >
-        <h2 className="text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          No groups yet
-        </h2>
-        <p className="mt-2 max-w-[52ch] text-sm leading-relaxed text-muted-foreground">
-          Create one or browse open groups below.
+        <p className="max-w-[52ch] text-sm leading-relaxed text-muted-foreground">
+          Create a crew for your course, or browse open groups and jump in.
         </p>
-      </div>
-      <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 sm:gap-4 sm:p-4">
-        <CreateGroupMorph onCreate={onCreate} />
-        <DiscoverTile onClick={onDiscover} />
-      </div>
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+          <CreateGroupMorph onCreate={onCreate} categories={categories} />
+          <DiscoverTile onClick={onDiscover} />
+        </div>
+      </GroupsBentoShell>
     </motion.div>
   );
 };
@@ -550,7 +689,7 @@ const GroupDetailPanel: React.FC<{
         type="button"
         aria-label="Close"
         onClick={onClose}
-        className="absolute inset-0 bg-background/85 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/65"
+        className="absolute inset-0 z-0 bg-background/94 backdrop-blur-md"
         initial={reduceMotion ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={reduceMotion ? undefined : { opacity: 0 }}
@@ -565,7 +704,7 @@ const GroupDetailPanel: React.FC<{
       >
         <div
           className={cn(
-            "rounded-[calc(1.75rem-0.375rem)] border border-border/40 bg-background/95 p-6",
+            "rounded-[calc(1.75rem-0.375rem)] border border-border/40 bg-background p-6",
             "shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)]",
           )}
         >
@@ -594,14 +733,17 @@ const GroupDetailPanel: React.FC<{
             </button>
           </div>
 
-          <dl className="mt-6 grid grid-cols-3 gap-3 text-center">
+          <dl
+            className="mt-6 divide-y divide-border/45 border-y border-border/45"
+            aria-label="Group statistics"
+          >
             {[
               {
                 label: "Members",
                 value:
                   typeof memberCount === "number" ? memberCount : "-",
               },
-              { label: "Last active", value: formatUpdated(group.updated_at) },
+              { label: "Last active", value: formatStudyGroupActivityLabel(group) },
               {
                 label: "Privacy",
                 value: (group.privacy_level as string) ?? "public",
@@ -609,15 +751,12 @@ const GroupDetailPanel: React.FC<{
             ].map((stat) => (
               <div
                 key={stat.label}
-                className={cn(
-                  "rounded-2xl border border-border/50 bg-card/60 p-3",
-                  "shadow-[inset_0_1px_0_hsl(var(--foreground)/0.03)]",
-                )}
+                className="flex items-baseline justify-between gap-4 py-3 first:pt-2 last:pb-2"
               >
-                <dt className="text-[0.58rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                <dt className="text-[0.65rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                   {stat.label}
                 </dt>
-                <dd className="mt-1 truncate text-sm font-semibold capitalize text-foreground">
+                <dd className="truncate text-sm font-semibold capitalize text-foreground tabular-nums">
                   {stat.value}
                 </dd>
               </div>
@@ -672,6 +811,7 @@ const GroupDetailPanel: React.FC<{
 export const GroupsBento: React.FC<GroupsBentoProps> = ({
   groups,
   memberCounts,
+  categories = [],
   onOpenGroup,
   onCreateGroup,
   onDiscover,
@@ -704,58 +844,108 @@ export const GroupsBento: React.FC<GroupsBentoProps> = ({
   if (groups.length === 0) {
     return (
       <LayoutGroup>
-        <EmptyBentoState onCreate={onCreateGroup} onDiscover={onDiscover} />
+        <EmptyBentoState
+          onCreate={onCreateGroup}
+          onDiscover={onDiscover}
+          categories={categories}
+        />
       </LayoutGroup>
     );
   }
 
-  const [hero, ...rest] = groups;
+  const [featured, ...others] = groups;
 
   return (
     <LayoutGroup>
-      <div
-        className={cn(
-          "grid gap-3 sm:gap-4",
-          "grid-cols-2",
-          "md:grid-cols-4 md:grid-rows-[minmax(160px,_1fr)_minmax(160px,_1fr)]",
-        )}
+      <GroupsBentoShell
+        eyebrow="Connections"
+        title="Your groups"
+        trailing={
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full border border-border/55 bg-muted/40 px-3 py-1",
+              "text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground tabular-nums",
+            )}
+          >
+            {groups.length} joined
+          </span>
+        }
       >
-        {hero ? (
-          <div className="col-span-2 md:col-span-2 md:row-span-2">
+        {/*
+          Mobile: featured → actions → other groups (thumb-friendly CTAs).
+          lg+: explicit 2-column grid — primary column (featured + stack), action rail row-spans 2.
+        */}
+        <div
+          className={cn(
+            "flex flex-col gap-5",
+            "lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(17.5rem,21rem)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-6",
+          )}
+        >
+          <div className="order-1 lg:col-start-1 lg:row-start-1">
             <GroupTile
-              group={hero}
+              group={featured}
               hero
               index={0}
-              memberCount={readCount(memberCounts, hero.id)}
-              onClick={() => setSelected(hero)}
+              memberCount={readCount(memberCounts, featured.id)}
+              onClick={() => setSelected(featured)}
             />
           </div>
-        ) : null}
 
-        {rest.slice(0, 2).map((group, i) => (
-          <GroupTile
-            key={group.id}
-            group={group}
-            index={i + 1}
-            memberCount={readCount(memberCounts, group.id)}
-            onClick={() => setSelected(group)}
-          />
-        ))}
-
-        <CreateGroupMorph onCreate={onCreateGroup} />
-        <DiscoverTile onClick={onDiscover} />
-
-        {rest.slice(2).map((group, i) => (
-          <div key={group.id} className="col-span-2 md:col-span-1">
-            <GroupTile
-              group={group}
-              index={i + 3}
-              memberCount={readCount(memberCounts, group.id)}
-              onClick={() => setSelected(group)}
+          <div
+            className={cn(
+              "order-2 flex flex-col gap-3 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:sticky lg:top-3 lg:self-start",
+            )}
+          >
+            <CreateGroupMorph
+              onCreate={onCreateGroup}
+              categories={categories}
             />
+            <DiscoverTile onClick={onDiscover} />
           </div>
-        ))}
-      </div>
+
+          {others.length > 0 ? (
+            <div
+              className={cn(
+                "order-3 flex flex-col gap-3 lg:col-start-1 lg:row-start-2",
+              )}
+            >
+              <p
+                className={cn(
+                  "text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-muted-foreground",
+                )}
+              >
+                More crews
+              </p>
+              <div
+                className={cn(
+                  "flex gap-3 overflow-x-auto overscroll-x-contain pb-0.5",
+                  "snap-x snap-mandatory [-webkit-overflow-scrolling:touch]",
+                  "sm:grid sm:snap-none sm:overflow-visible sm:pb-0",
+                  others.length === 1 ? "sm:grid-cols-1" : "sm:grid-cols-2",
+                  "xl:grid-cols-2",
+                )}
+              >
+                {others.map((group, i) => (
+                  <div
+                    key={group.id}
+                    className={cn(
+                      "min-w-[min(100%,17rem)] shrink-0 snap-start sm:min-w-0",
+                    )}
+                  >
+                    <GroupTile
+                      group={group}
+                      compact
+                      index={i + 1}
+                      memberCount={readCount(memberCounts, group.id)}
+                      onClick={() => setSelected(group)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </GroupsBentoShell>
 
       <AnimatePresence>
         {selected ? (

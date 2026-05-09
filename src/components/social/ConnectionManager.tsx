@@ -2,13 +2,15 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -25,6 +27,10 @@ import {
   useConnectionsRealtime,
 } from "@/hooks/useConnectionHubQueries";
 import { MessagingService } from "@/lib/messaging/MessagingService";
+import {
+  connectionAvatarHue,
+  connectionDisplayInitials,
+} from "@/lib/social/connectionDisplay";
 import { submitSocialReport } from "@/lib/social/submitSocialReport";
 import {
   StudentDiscovery,
@@ -147,9 +153,11 @@ const TelemetryRow: React.FC<{
   name: string;
   unit: string;
   meta: string;
+  /** Stable id for avatar color (e.g. Clerk user id). */
+  hueKey?: string | null;
   statusDot?: "online" | "idle" | "alert" | null;
   children?: React.ReactNode;
-}> = ({ avatarUrl, fallback, name, unit, meta, statusDot, children }) => {
+}> = ({ avatarUrl, fallback, name, unit, meta, hueKey, statusDot, children }) => {
   return (
     <div
       className={cn(
@@ -166,7 +174,12 @@ const TelemetryRow: React.FC<{
       <div className="relative">
         <Avatar className="h-11 w-11 rounded-none ring-1 ring-border/70">
           <AvatarImage src={avatarUrl || ""} className="rounded-none" />
-          <AvatarFallback className="rounded-none bg-muted font-mono text-sm uppercase">
+          <AvatarFallback
+            className="rounded-none font-mono text-xs font-semibold uppercase text-white"
+            style={{
+              backgroundColor: `hsl(${connectionAvatarHue(hueKey ?? `${name}:${unit}`)} 36% 36%)`,
+            }}
+          >
             {fallback}
           </AvatarFallback>
         </Avatar>
@@ -277,6 +290,12 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
   const [chatConversationId, setChatConversationId] = useState<string | null>(
     null,
   );
+  const [chatSheetOpen, setChatSheetOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{
+    id: string;
+    name: string | null;
+  } | null>(null);
+  const [reportBody, setReportBody] = useState("");
 
   const handleSearch = useCallback(async () => {
     if (!user || !searchTerm.trim()) {
@@ -498,24 +517,27 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
     }
   };
 
-  const handleReportStudent = async (otherId: string, displayName?: string | null) => {
-    const reason = window.prompt(
-      `Tell us what happened with ${displayName || "this student"}. Reports are reviewed for safety.`,
-    );
-    if (!reason?.trim()) return;
-
+  const handleReportStudent = async () => {
+    if (!reportTarget?.id || !reportBody.trim()) return;
     try {
       await submitSocialReport({
         targetType: "student",
-        targetId: otherId,
-        reason: reason.trim(),
+        targetId: reportTarget.id,
+        reason: reportBody.trim(),
         context: { source: "connection_manager" },
       });
       toast.success("Report sent. Thanks for helping keep MemoSpark safe.");
+      setReportTarget(null);
+      setReportBody("");
     } catch (err) {
       console.error("[social:reportStudent]", err);
       toast.error("Couldn't send the report right now. Try again.");
     }
+  };
+
+  const openReportStudent = (otherId: string, displayName?: string | null) => {
+    setReportTarget({ id: otherId, name: displayName ?? null });
+    setReportBody("");
   };
 
   const getConnectionProfile = (connection: {
@@ -555,6 +577,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
         full_name: otherUser.full_name ?? undefined,
         avatar_url: otherUser.avatar_url ?? undefined,
       });
+      setChatSheetOpen(true);
     } catch (err) {
       console.error("[social:startChat]", err);
       toast.error("Couldn't open the chat. Check your connection and try again.");
@@ -608,9 +631,10 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
                       <motion.div key={result.clerk_user_id} {...rowMotion}>
                         <TelemetryRow
                           avatarUrl={result.avatar_url}
-                          fallback={
-                            result.full_name?.charAt(0)?.toUpperCase() ?? "?"
-                          }
+                          fallback={connectionDisplayInitials(
+                            result.full_name,
+                          )}
+                          hueKey={result.clerk_user_id}
                           name={result.full_name ?? "Unknown"}
                           unit={unitId(result.clerk_user_id)}
                           meta={
@@ -677,9 +701,10 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
                     <motion.div key={request.id} {...rowMotion}>
                       <TelemetryRow
                         avatarUrl={request.requester?.avatar_url}
-                        fallback={
-                          request.requester?.full_name?.charAt(0) ?? "?"
-                        }
+                        fallback={connectionDisplayInitials(
+                          request.requester?.full_name,
+                        )}
+                        hueKey={request.requester_id}
                         name={request.requester?.full_name ?? "Unknown"}
                         unit={unitId(request.requester_id)}
                         meta={`REQ ${formatRelative(request.created_at)}`}
@@ -723,7 +748,10 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
                     <motion.div key={request.id} {...rowMotion}>
                       <TelemetryRow
                         avatarUrl={request.receiver?.avatar_url}
-                        fallback={request.receiver?.full_name?.charAt(0) ?? "?"}
+                        fallback={connectionDisplayInitials(
+                          request.receiver?.full_name,
+                        )}
+                        hueKey={request.receiver_id}
                         name={request.receiver?.full_name ?? "Unknown"}
                         unit={unitId(request.receiver_id)}
                         meta={`SENT ${formatRelative(request.created_at)}`}
@@ -751,135 +779,246 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
         </Chrome>
       </div>
 
-      {/* CONNECTED */}
+      {/* CONNECTED — bento grid + single chat surface */}
       <Chrome>
         <div className="px-3 pt-3 sm:px-4">
           <SectionHead label="CONNECTED" count={connections.length} />
         </div>
-        <div className="divide-y divide-border/50">
+        <div className="p-3 sm:p-4">
           {connections.length > 0 ? (
-            <AnimatePresence initial={false}>
-              {connections.map((connection) => {
-                const profile = getConnectionProfile(connection);
-                if (!profile) return null;
-                return (
-                  <motion.div key={connection.id} {...rowMotion}>
-                    <TelemetryRow
-                      avatarUrl={profile.avatar_url}
-                      fallback={profile.full_name?.charAt(0) ?? "?"}
-                      name={profile.full_name ?? "Unknown"}
-                      unit={unitId(profile.clerk_user_id)}
-                      meta={
-                        profile.year_of_study
-                          ? profile.year_of_study.toUpperCase()
-                          : "CHANNEL OPEN"
-                      }
-                      statusDot="online"
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <AnimatePresence initial={false}>
+                {connections.map((connection) => {
+                  const profile = getConnectionProfile(connection);
+                  if (!profile) return null;
+                  const glyph = connectionDisplayInitials(profile.full_name);
+                  const hue = connectionAvatarHue(profile.clerk_user_id);
+                  return (
+                    <motion.div
+                      key={connection.id}
+                      {...rowMotion}
+                      className="h-full"
                     >
-                      <Dialog
-                        onOpenChange={(open) => {
-                          if (!open) {
-                            setChatConversationId(null);
-                            setChatUser(null);
-                          }
-                        }}
+                      <div
+                        className={cn(
+                          "flex h-full flex-col gap-3 rounded-2xl border border-border/55 bg-card/85 p-4",
+                          "shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)]",
+                        )}
                       >
-                        <DialogTrigger asChild>
-                          <SquareBtn
-                            tone="default"
-                            onClick={() => startChat(profile)}
+                        <div className="flex items-start gap-3">
+                          <div className="relative shrink-0">
+                            <Avatar className="h-12 w-12 rounded-xl ring-1 ring-border/60">
+                              <AvatarImage
+                                src={profile.avatar_url || ""}
+                                className="rounded-xl object-cover"
+                                alt=""
+                              />
+                              <AvatarFallback
+                                className="rounded-xl text-xs font-semibold uppercase text-white"
+                                style={{
+                                  backgroundColor: `hsl(${hue} 38% 38%)`,
+                                }}
+                              >
+                                {glyph}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span
+                              aria-hidden
+                              className={cn(
+                                "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-card",
+                                "bg-primary",
+                              )}
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-foreground">
+                              {profile.full_name ?? "Unknown"}
+                            </p>
+                            <p className="truncate font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted-foreground">
+                              {unitId(profile.clerk_user_id)}
+                            </p>
+                            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground/90">
+                              {profile.year_of_study
+                                ? profile.year_of_study.toUpperCase()
+                                : "Open channel"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-auto flex min-h-[44px] items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="default"
+                            className="h-11 min-h-11 min-w-0 flex-1 gap-2 rounded-xl text-sm font-medium"
+                            onClick={() => void startChat(profile)}
                             aria-label={`Open chat with ${profile.full_name}`}
                           >
-                            <ChatIcon className="h-3.5 w-3.5" weight="bold" />
-                            <span className="hidden sm:inline">CHAT</span>
-                          </SquareBtn>
-                        </DialogTrigger>
-                        <DialogContent
-                          className="flex w-full max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:h-[640px] h-[100dvh] max-h-[100dvh] sm:max-h-[85vh] sm:rounded-2xl rounded-none"
-                          onOpenAutoFocus={(e) => e.preventDefault()}
-                        >
-                          <DialogHeader className="shrink-0 space-y-0.5 border-b border-border/60 bg-muted/20 px-4 py-3 pr-12 text-left sm:text-left">
-                            <DialogTitle className="font-mono text-xs uppercase tracking-[0.12em] text-foreground">
-                              CH / {profile.full_name}
-                            </DialogTitle>
-                            <DialogDescription className="text-[11px] text-muted-foreground/70">
-                              Direct channel with your connection
-                            </DialogDescription>
-                          </DialogHeader>
-                          {chatConversationId && chatUser ? (
-                            <div className="flex min-h-0 flex-1 flex-col">
-                              <DirectMessageChat
-                                conversationId={chatConversationId}
-                                recipientName={
-                                  chatUser.full_name || profile.full_name || "this connection"
+                            <ChatIcon className="h-4 w-4" weight="bold" />
+                            Chat
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="h-11 w-11 shrink-0 rounded-xl"
+                                aria-label="More actions for this connection"
+                              >
+                                <DotsThreeVertical
+                                  className="h-4 w-4"
+                                  weight="bold"
+                                />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              className="min-w-[12rem] rounded-xl"
+                            >
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleUnfriend(profile.clerk_user_id)
                                 }
-                              />
-                            </div>
-                          ) : (
-                            <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
-                              Opening channel…
-                            </div>
-                          )}
-                        </DialogContent>
-                      </Dialog>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <SquareBtn tone="ghost" aria-label="More actions">
-                            <DotsThreeVertical
-                              className="h-4 w-4"
-                              weight="bold"
-                            />
-                          </SquareBtn>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="font-mono">
-                          <DropdownMenuItem
-                            onClick={() => handleUnfriend(profile.clerk_user_id)}
-                            className="text-xs uppercase tracking-[0.12em]"
-                          >
-                            <UserMinus
-                              className="mr-2 h-3.5 w-3.5"
-                              weight="bold"
-                            />
-                            UNFRIEND
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-xs uppercase tracking-[0.12em] text-destructive"
-                            onClick={() => handleBlock(profile.clerk_user_id)}
-                          >
-                            <Prohibit
-                              className="mr-2 h-3.5 w-3.5"
-                              weight="bold"
-                            />
-                            BLOCK STUDENT
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-xs uppercase tracking-[0.12em]"
-                            onClick={() =>
-                              handleReportStudent(
-                                profile.clerk_user_id,
-                                profile.full_name,
-                              )
-                            }
-                          >
-                            <Flag
-                              className="mr-2 h-3.5 w-3.5"
-                              weight="bold"
-                            />
-                            REPORT
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TelemetryRow>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
+                              >
+                                <UserMinus
+                                  className="mr-2 h-4 w-4"
+                                  weight="bold"
+                                />
+                                Unfriend
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => handleBlock(profile.clerk_user_id)}
+                              >
+                                <Prohibit
+                                  className="mr-2 h-4 w-4"
+                                  weight="bold"
+                                />
+                                Block
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  openReportStudent(
+                                    profile.clerk_user_id,
+                                    profile.full_name,
+                                  )
+                                }
+                              >
+                                <Flag
+                                  className="mr-2 h-4 w-4"
+                                  weight="bold"
+                                />
+                                Report
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
           ) : (
             <NoSignal label="NO ACTIVE CHANNELS" />
           )}
         </div>
       </Chrome>
+
+      <Dialog
+        open={chatSheetOpen}
+        onOpenChange={(open) => {
+          setChatSheetOpen(open);
+          if (!open) {
+            setChatConversationId(null);
+            setChatUser(null);
+          }
+        }}
+      >
+        <DialogContent
+          className="flex h-[100dvh] max-h-[100dvh] w-full max-w-2xl flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-[min(640px,85vh)] sm:max-h-[85vh] sm:rounded-2xl"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          <DialogHeader className="shrink-0 space-y-1 border-b border-border/60 bg-background px-4 py-3 pr-14 text-left">
+            <DialogTitle className="text-base font-semibold tracking-tight text-foreground">
+              {chatUser?.full_name
+                ? `Chat · ${chatUser.full_name}`
+                : "Direct chat"}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Messages stay in this thread with your connection.
+            </DialogDescription>
+          </DialogHeader>
+          {chatConversationId && chatUser ? (
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
+              <DirectMessageChat
+                conversationId={chatConversationId}
+                className="min-h-0 flex-1 border-0 bg-transparent"
+                recipientName={
+                  chatUser.full_name ?? chatUser.clerk_user_id ?? "Connection"
+                }
+              />
+            </div>
+          ) : (
+            <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
+              Opening channel…
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={reportTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReportTarget(null);
+            setReportBody("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Report a student</DialogTitle>
+            <DialogDescription>
+              Tell us what needs review for{" "}
+              <span className="font-medium text-foreground">
+                {reportTarget?.name ?? "this student"}
+              </span>
+              . Your report is reviewed for safety.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="report-reason">What happened?</Label>
+            <Textarea
+              id="report-reason"
+              value={reportBody}
+              onChange={(e) => setReportBody(e.target.value)}
+              placeholder="A few clear sentences help us act quickly."
+              className="min-h-[100px] rounded-xl"
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => {
+                setReportTarget(null);
+                setReportBody("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl"
+              disabled={!reportBody.trim()}
+              onClick={() => void handleReportStudent()}
+            >
+              Send report
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

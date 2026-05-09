@@ -17,7 +17,8 @@ export const studyGroupKeys = {
   discovery: (filters: { q?: string; categoryId?: string | null }) => [...studyGroupKeys.all, 'discovery', filters.q || '', filters.categoryId || ''] as const,
   groupMembers: (groupId: string) => [...studyGroupKeys.all, 'groupMembers', groupId] as const,
   groupInvitations: (groupId: string) => [...studyGroupKeys.all, 'groupInvitations', groupId] as const,
-  userInvitations: () => [...studyGroupKeys.all, 'userInvitations'] as const,
+  userInvitations: (inviteeId?: string | null) =>
+    [...studyGroupKeys.all, 'userInvitations', inviteeId ?? '__anon__'] as const,
   groupRoles: () => [...studyGroupKeys.all, 'groupRoles'] as const,
   groupAuditLog: (groupId: string) => [...studyGroupKeys.all, 'groupAuditLog', groupId] as const,
   userGroups: (userId: string) => [...studyGroupKeys.all, 'userGroups', userId] as const,
@@ -104,22 +105,31 @@ export const useSendGroupInvitation = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ 
-      groupId, 
-      inviteeEmail, 
-      inviteeName, 
-      message 
-    }: { 
-      groupId: string; 
-      inviteeEmail: string; 
-      inviteeName?: string; 
-      message?: string; 
+    mutationFn: async ({
+      groupId,
+      inviteeEmail,
+      inviteeId,
+      inviteeName,
+      message,
+    }: {
+      groupId: string;
+      /** Resolved Clerk user id — preferred when picking someone from search. */
+      inviteeId?: string;
+      /** Fallback when inviting by email only. */
+      inviteeEmail?: string;
+      inviteeName?: string;
+      message?: string;
     }) => {
+      if (!inviteeId && !inviteeEmail?.trim()) {
+        throw new Error('Pick someone to invite or enter their email.');
+      }
       const response = await fetch(`/api/study-groups/${groupId}/invite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          invitee_email: inviteeEmail,
+          ...(inviteeId
+            ? { invitee_id: inviteeId }
+            : { invitee_email: inviteeEmail!.trim() }),
           invitee_name: inviteeName ?? undefined,
           message: message ?? undefined,
         }),
@@ -296,27 +306,52 @@ export const useGroupInvitations = (groupId: string) => {
 
 export const useUserInvitations = (inviteeId?: string | null) => {
   return useQuery({
-    queryKey: studyGroupKeys.userInvitations(),
+    queryKey: studyGroupKeys.userInvitations(inviteeId),
+    enabled: Boolean(inviteeId),
+    staleTime: 30_000,
     queryFn: async () => {
-      let query = sb
+      // study_group_invitations has no FK to study_groups in this project, so
+      // PostgREST cannot resolve `study_groups:group_id (...)` and returns 400.
+      // Fetch invitations first, then look up the related groups in one batch.
+      const { data: invitations, error: invitationsError } = await sb
         .from('study_group_invitations')
-        .select(`
-          *,
-          study_groups:group_id (
-            id,
-            name,
-            description
-          )
-        `)
+        .select('*')
         .eq('status', 'pending')
+        .eq('invitee_id', inviteeId as string)
         .order('created_at', { ascending: false });
 
-      if (inviteeId) {
-        query = query.eq('invitee_id', inviteeId);
+      if (invitationsError) throw invitationsError;
+      if (!invitations || invitations.length === 0) return [];
+
+      const groupIds = Array.from(
+        new Set(
+          invitations
+            .map((row) => (row as { group_id?: string | null }).group_id)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      );
+
+      let groupsById: Record<string, { id: string; name: string | null; description: string | null }> = {};
+      if (groupIds.length > 0) {
+        const { data: groups, error: groupsError } = await sb
+          .from('study_groups')
+          .select('id, name, description')
+          .in('id', groupIds);
+
+        if (groupsError) throw groupsError;
+
+        groupsById = Object.fromEntries(
+          (groups ?? []).map((g) => [g.id, g] as const),
+        );
       }
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+
+      return invitations.map((invitation) => {
+        const groupId = (invitation as { group_id?: string | null }).group_id;
+        return {
+          ...invitation,
+          study_groups: groupId ? groupsById[groupId] ?? null : null,
+        };
+      });
     },
   });
 };

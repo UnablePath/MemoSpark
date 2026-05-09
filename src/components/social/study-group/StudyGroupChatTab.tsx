@@ -160,11 +160,11 @@ export const StudyGroupChatTab: React.FC<StudyGroupChatTabProps> = ({
   if (!selectedGroup.conversation_id) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 px-4 py-12 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/50">
-          <ChatCircle weight="duotone" className="h-6 w-6 text-muted-foreground/50" aria-hidden />
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/50 bg-muted/30">
+          <ChatCircle weight="duotone" className="h-6 w-6 text-muted-foreground" aria-hidden />
         </div>
-        <p className="max-w-xs text-sm text-muted-foreground">
-          Start a shared chat for this group. Messages are saved so you can
+        <p className="max-w-[22rem] text-sm leading-relaxed text-muted-foreground">
+          Start a shared chat for this group. Messages stay here so everyone can
           catch up later.
         </p>
         {isMember ? (
@@ -172,13 +172,14 @@ export const StudyGroupChatTab: React.FC<StudyGroupChatTabProps> = ({
             type="button"
             onClick={() => void ensureConversation()}
             disabled={ensuring}
-            size="sm"
+            variant="default"
+            className="h-10 rounded-xl px-5"
           >
             {ensuring ? "Starting…" : "Start group chat"}
           </Button>
         ) : (
-          <p className="text-xs text-muted-foreground/70">
-            Join this group to use chat.
+          <p className="text-xs text-muted-foreground">
+            Join this group to open chat.
           </p>
         )}
       </div>

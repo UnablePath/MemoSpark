@@ -1,7 +1,23 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import {
+  connectionAvatarHue,
+  connectionDisplayInitials,
+  connectionSenderTail,
+} from '@/lib/social/connectionDisplay';
 import { submitSocialReport } from '@/lib/social/submitSocialReport';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   QUICK_REACTIONS,
   type RealtimeChatMessage,
@@ -48,6 +64,8 @@ export function ChatMessageItem({
 }: ChatMessageItemProps) {
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(message.content);
   const reactionPickerRef = useRef<HTMLDivElement>(null);
@@ -127,28 +145,39 @@ export function ChatMessageItem({
     onDelete?.(message.id);
   };
 
-  const handleReport = async () => {
-    const reason = window.prompt('Report this message? Tell us what needs review.');
-    if (!reason?.trim()) return;
-
+  const submitMessageReport = async () => {
+    if (!reportReason.trim()) return;
     try {
       await submitSocialReport({
         targetType: 'message',
         targetId: message.id,
-        reason: reason.trim(),
+        reason: reportReason.trim(),
         context: {
           source: 'realtime_chat',
           sender_id: message.senderId,
         },
       });
       toast.success('Message report sent.');
+      setReportOpen(false);
+      setReportReason('');
     } catch (error) {
       console.error('[social:reportMessage]', error);
       toast.error("Couldn't report this message right now. Try again.");
     }
   };
 
+  const avatarHue = connectionAvatarHue(
+    message.senderId ?? message.user.name ?? '',
+  );
+  const avatarGlyph = connectionDisplayInitials(message.user.name);
+  const senderTail = connectionSenderTail(message.senderId);
+  const avatarLabel =
+    senderTail && message.senderId
+      ? `${message.user.name} · ${senderTail}`
+      : message.user.name;
+
   return (
+    <>
     <div
       className={cn(
         'group flex gap-2 px-1',
@@ -156,22 +185,38 @@ export function ChatMessageItem({
         showHeader ? 'mt-4' : 'mt-0.5',
       )}
     >
-      {/* Avatar initial */}
+      {/* Avatar + disambiguator */}
       {showHeader ? (
-        <div
-          className={cn(
-            'flex h-7 w-7 shrink-0 select-none items-center justify-center rounded-full text-[11px] font-semibold uppercase',
-            isOwnMessage
-              ? 'bg-[color:var(--ms-chat-accent)]/20 text-[color:var(--ms-chat-accent)]'
-              : 'bg-muted/80 text-muted-foreground',
-          )}
-          style={{ ['--ms-chat-accent' as string]: ACCENT }}
-          aria-hidden
-        >
-          {message.user.name.charAt(0)}
+        <div className="flex w-8 shrink-0 flex-col items-center gap-0.5">
+          <div
+            className={cn(
+              'flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full text-[10px] font-semibold uppercase tracking-tight text-white',
+              isOwnMessage
+                ? 'ring-1 ring-[color:var(--ms-chat-accent)]/35'
+                : 'ring-1 ring-border/40',
+            )}
+            style={{
+              ['--ms-chat-accent' as string]: ACCENT,
+              backgroundColor: isOwnMessage
+                ? `color-mix(in srgb, ${ACCENT} 85%, black)`
+                : `hsl(${avatarHue} 38% 38%)`,
+            }}
+            aria-label={avatarLabel}
+            title={avatarLabel}
+          >
+            {avatarGlyph}
+          </div>
+          {senderTail ? (
+            <span
+              className="max-w-[2.25rem] truncate text-center text-[8px] font-mono leading-none text-muted-foreground tabular-nums"
+              aria-hidden
+            >
+              {senderTail}
+            </span>
+          ) : null}
         </div>
       ) : (
-        <div className="w-7 shrink-0" aria-hidden />
+        <div className="w-8 shrink-0" aria-hidden />
       )}
 
       <div
@@ -215,20 +260,18 @@ export function ChatMessageItem({
           </div>
         )}
 
-        {/* Bubble + inline actions */}
-        <div
-          className={cn(
-            'flex items-end gap-1.5',
-            isOwnMessage ? 'flex-row-reverse' : 'flex-row',
-          )}
-        >
-          {/* Hover action cluster (desktop) */}
-          {!readOnly && !isDeleted && !isEditing && (
+        {/* Message actions — above bubble so the row never overlaps the bubble */}
+        {!readOnly && !isDeleted && !isEditing && (
+          <div
+            className={cn(
+              'flex w-full min-h-[28px] items-center gap-0.5 opacity-0 transition-opacity',
+              'group-hover:opacity-100 group-focus-within:opacity-100',
+              isOwnMessage ? 'justify-end' : 'justify-start',
+            )}
+          >
             <div
               className={cn(
-                'mb-1 flex shrink-0 items-center gap-0.5 rounded-full border border-border/50 bg-background/80 p-0.5 opacity-0 backdrop-blur-sm transition-all',
-                'group-hover:opacity-100 focus-within:opacity-100',
-                'sm:scale-100 scale-95',
+                'flex items-center gap-0.5 rounded-full border border-border/50 bg-background/95 px-1 py-0.5 shadow-sm backdrop-blur-sm',
               )}
             >
               {onReact && (
@@ -236,11 +279,11 @@ export function ChatMessageItem({
                   <button
                     type="button"
                     onClick={() => setShowReactionPicker((v) => !v)}
-                    className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted/60 hover:text-foreground"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground/80 transition-colors hover:bg-muted/60 hover:text-foreground"
                     aria-label="Add reaction"
                     aria-expanded={showReactionPicker}
                   >
-                    <Smiley weight="bold" className="h-3.5 w-3.5" aria-hidden />
+                    <Smiley weight="bold" className="h-4 w-4" aria-hidden />
                   </button>
 
                   {showReactionPicker && (
@@ -248,8 +291,8 @@ export function ChatMessageItem({
                       role="dialog"
                       aria-label="Reactions"
                       className={cn(
-                        'absolute z-20 flex gap-0.5 rounded-full border border-border/60 bg-background/95 p-1 shadow-lg backdrop-blur',
-                        'bottom-full mb-1.5',
+                        'absolute z-[13020] flex gap-0.5 rounded-full border border-border/60 bg-background/98 p-1 shadow-lg backdrop-blur',
+                        'top-full mt-1.5',
                         isOwnMessage ? 'right-0' : 'left-0',
                       )}
                     >
@@ -258,7 +301,7 @@ export function ChatMessageItem({
                           key={emoji}
                           type="button"
                           onClick={() => handleSelectReaction(emoji)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full text-base transition-transform hover:scale-110 hover:bg-muted/60 active:scale-95"
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-base transition-transform hover:scale-110 hover:bg-muted/60 active:scale-95"
                         >
                           {emoji}
                         </button>
@@ -272,21 +315,24 @@ export function ChatMessageItem({
                 <button
                   type="button"
                   onClick={() => onReply(message.id, message.content)}
-                  className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted/60 hover:text-foreground"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground/80 transition-colors hover:bg-muted/60 hover:text-foreground"
                   aria-label="Reply to message"
                 >
-                  <ArrowBendUpLeft weight="bold" className="h-3.5 w-3.5" aria-hidden />
+                  <ArrowBendUpLeft weight="bold" className="h-4 w-4" aria-hidden />
                 </button>
               )}
 
               {!isOwnMessage && (
                 <button
                   type="button"
-                  onClick={() => void handleReport()}
-                  className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted/60 hover:text-foreground"
+                  onClick={() => {
+                    setReportOpen(true);
+                    setReportReason('');
+                  }}
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground/80 transition-colors hover:bg-muted/60 hover:text-foreground"
                   aria-label="Report message"
                 >
-                  <Flag weight="bold" className="h-3.5 w-3.5" aria-hidden />
+                  <Flag weight="bold" className="h-4 w-4" aria-hidden />
                 </button>
               )}
 
@@ -295,19 +341,19 @@ export function ChatMessageItem({
                   <button
                     type="button"
                     onClick={() => setShowActions((v) => !v)}
-                    className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted/60 hover:text-foreground"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground/80 transition-colors hover:bg-muted/60 hover:text-foreground"
                     aria-label="More actions"
                     aria-expanded={showActions}
                   >
-                    <DotsThreeVertical weight="bold" className="h-3.5 w-3.5" aria-hidden />
+                    <DotsThreeVertical weight="bold" className="h-4 w-4" aria-hidden />
                   </button>
 
                   {showActions && (
                     <div
                       role="menu"
                       className={cn(
-                        'absolute z-20 min-w-[120px] rounded-lg border border-border/60 bg-background/95 py-1 shadow-lg backdrop-blur',
-                        'bottom-full mb-1.5',
+                        'absolute z-[13020] min-w-[128px] rounded-lg border border-border/60 bg-background/98 py-1 shadow-lg backdrop-blur',
+                        'top-full mt-1.5',
                         isOwnMessage ? 'right-0' : 'left-0',
                       )}
                     >
@@ -316,7 +362,7 @@ export function ChatMessageItem({
                           type="button"
                           role="menuitem"
                           onClick={handleStartEdit}
-                          className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-muted/60"
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-foreground transition-colors hover:bg-muted/60"
                         >
                           <PencilSimple weight="bold" className="h-3.5 w-3.5" aria-hidden />
                           Edit
@@ -327,7 +373,7 @@ export function ChatMessageItem({
                           type="button"
                           role="menuitem"
                           onClick={handleDelete}
-                          className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-red-500 transition-colors hover:bg-red-500/10"
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-red-500 transition-colors hover:bg-red-500/10"
                         >
                           <Trash weight="bold" className="h-3.5 w-3.5" aria-hidden />
                           Delete
@@ -338,10 +384,11 @@ export function ChatMessageItem({
                 </div>
               )}
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Message bubble */}
-          {isEditing ? (
+        {/* Message bubble */}
+        {isEditing ? (
             <div
               className={cn(
                 'flex flex-col gap-1 rounded-2xl border border-border/60 bg-muted/40 p-2',
@@ -445,7 +492,6 @@ export function ChatMessageItem({
               )}
             </div>
           )}
-        </div>
 
         {/* Reactions row */}
         {!isDeleted && message.reactions && message.reactions.length > 0 && (
@@ -481,5 +527,59 @@ export function ChatMessageItem({
         )}
       </div>
     </div>
+
+    <Dialog
+      open={reportOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          setReportOpen(false);
+          setReportReason('');
+        }
+      }}
+    >
+      <DialogContent
+        overlayClassName="z-[14000]"
+        className="z-[14001] max-w-md rounded-2xl"
+      >
+        <DialogHeader>
+          <DialogTitle>Report this message</DialogTitle>
+          <DialogDescription>
+            Tell us what needs review. We read every report.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor={`message-report-${message.id}`}>What happened?</Label>
+          <Textarea
+            id={`message-report-${message.id}`}
+            value={reportReason}
+            onChange={(e) => setReportReason(e.target.value)}
+            placeholder="A few clear sentences help us review quickly."
+            className="min-h-[100px] rounded-xl"
+          />
+        </div>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-xl"
+            onClick={() => {
+              setReportOpen(false);
+              setReportReason('');
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            className="rounded-xl"
+            disabled={!reportReason.trim()}
+            onClick={() => void submitMessageReport()}
+          >
+            Send report
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

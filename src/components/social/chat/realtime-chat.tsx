@@ -12,7 +12,6 @@ import { cn } from '@/lib/utils';
 import {
   ArrowUp,
   ChatCircle,
-  Circle,
   Smiley,
   X,
 } from '@phosphor-icons/react';
@@ -23,9 +22,69 @@ import {
   useMemo,
   useRef,
   useState,
+  memo,
 } from 'react';
 
 const ACCENT = '#1a9e6e';
+
+interface RealtimeChatMessageListProps {
+  messages: RealtimeChatMessage[];
+  currentUserId: string;
+  username: string;
+  disabled?: boolean;
+  onReply: (messageId: string) => void;
+  onReact?: (messageId: string, emoji: string) => void;
+  onEdit?: (messageId: string, newContent: string) => void;
+  onDelete?: (messageId: string) => void;
+  replyContentById: Map<string, string>;
+}
+
+const RealtimeChatMessageList = memo(function RealtimeChatMessageList({
+  messages,
+  currentUserId,
+  username,
+  disabled,
+  onReply,
+  onReact,
+  onEdit,
+  onDelete,
+  replyContentById,
+}: RealtimeChatMessageListProps) {
+  return (
+    <>
+      {messages.map((message, index) => {
+        const prev = messages[index - 1];
+        const showHeader =
+          index === 0 ||
+          prev.user.name !== message.user.name ||
+          new Date(message.createdAt).getTime() -
+            new Date(prev.createdAt).getTime() >
+            120_000;
+        const isOwn = message.senderId
+          ? message.senderId === currentUserId
+          : message.user.name === username;
+        return (
+          <ChatMessageItem
+            key={message.id}
+            message={message}
+            isOwnMessage={isOwn}
+            showHeader={showHeader}
+            onReply={onReply}
+            onReact={onReact}
+            onEdit={isOwn ? onEdit : undefined}
+            onDelete={isOwn ? onDelete : undefined}
+            readOnly={disabled}
+            repliedMessageContent={
+              message.replyToId
+                ? replyContentById.get(message.replyToId)
+                : undefined
+            }
+          />
+        );
+      })}
+    </>
+  );
+});
 
 /**
  * Presentational shell for Supabase Realtime Chat (Broadcast + scroll).
@@ -83,6 +142,23 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiPanelRef = useRef<HTMLDivElement>(null);
 
+  const replyContentById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const msg of messages) {
+      m.set(msg.id, msg.content);
+    }
+    return m;
+  }, [messages]);
+
+  const statusMeta = useMemo(() => {
+    const parts: string[] = [];
+    if (presenceSummary) parts.push(presenceSummary);
+    if (status === 'subscribed') parts.push('Live');
+    else if (status === 'connecting') parts.push('Connecting…');
+    else if (status === 'error') parts.push('Reconnecting…');
+    return parts.join(' · ');
+  }, [presenceSummary, status]);
+
   const repliedMessage = useMemo(
     () => (replyToId ? messages.find((m) => m.id === replyToId) : undefined),
     [messages, replyToId],
@@ -116,13 +192,6 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showEmojiGrid]);
-
-  const statusDot = useMemo(() => {
-    if (status === 'subscribed') return { color: 'text-emerald-500', label: 'Live' };
-    if (status === 'connecting') return { color: 'text-amber-400', label: 'Connecting…' };
-    if (status === 'error') return { color: 'text-red-400', label: 'Reconnecting…' };
-    return null;
-  }, [status]);
 
   const handleReply = useCallback((id: string) => {
     setReplyToId(id);
@@ -182,8 +251,8 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
       )}
     >
       {/* ── Header ── */}
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/60 px-4 py-2.5">
-        <div className="flex min-w-0 items-center gap-2">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/60 px-3 py-2 sm:px-4">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <ChatCircle
             weight="duotone"
             className="h-4 w-4 shrink-0"
@@ -195,25 +264,11 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
           </span>
         </div>
 
-        <div className="flex shrink-0 items-center gap-3">
-          {presenceSummary && (
-            <span className="hidden max-w-[160px] truncate text-[11px] text-muted-foreground/70 sm:inline">
-              {presenceSummary}
-            </span>
-          )}
-          {statusDot && (
-            <div className="flex items-center gap-1">
-              <Circle
-                weight="fill"
-                className={cn('h-2 w-2 animate-pulse', statusDot.color)}
-                aria-hidden
-              />
-              <span className="text-[11px] font-medium text-muted-foreground tabular-nums">
-                {statusDot.label}
-              </span>
-            </div>
-          )}
-        </div>
+        {statusMeta ? (
+          <p className="max-w-[45%] shrink-0 truncate text-end text-[10px] leading-snug text-muted-foreground sm:max-w-[55%] sm:text-[11px]">
+            {statusMeta}
+          </p>
+        ) : null}
       </div>
 
       {/* ── Messages (scrolls) ── */}
@@ -233,36 +288,17 @@ export const RealtimeChat: React.FC<RealtimeChatProps> = ({
               </p>
             </div>
           ) : (
-            messages.map((message, index) => {
-              const prev = messages[index - 1];
-              const showHeader =
-                index === 0 ||
-                prev.user.name !== message.user.name ||
-                new Date(message.createdAt).getTime() -
-                  new Date(prev.createdAt).getTime() >
-                  120_000;
-              const isOwn = message.senderId
-                ? message.senderId === currentUserId
-                : message.user.name === username;
-              return (
-                <ChatMessageItem
-                  key={message.id}
-                  message={message}
-                  isOwnMessage={isOwn}
-                  showHeader={showHeader}
-                  onReply={handleReply}
-                  onReact={onReact}
-                  onEdit={isOwn ? onEdit : undefined}
-                  onDelete={isOwn ? onDelete : undefined}
-                  readOnly={disabled}
-                  repliedMessageContent={
-                    message.replyToId
-                      ? messages.find((m) => m.id === message.replyToId)?.content
-                      : undefined
-                  }
-                />
-              );
-            })
+            <RealtimeChatMessageList
+              messages={messages}
+              currentUserId={currentUserId}
+              username={username}
+              disabled={disabled}
+              onReply={handleReply}
+              onReact={onReact}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              replyContentById={replyContentById}
+            />
           )}
           <div ref={endRef} />
         </div>
