@@ -58,7 +58,10 @@ import {
   Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { submitSocialReport } from '@/lib/social/submitSocialReport';
+import {
+  createMemoSparkReportMailtoHref,
+  openMemoSparkSupportMailHref,
+} from '@/lib/support/memosparkSupportEmail';
 
 function inviteeDisambigLine(
   email: string | null | undefined,
@@ -270,25 +273,33 @@ export default function GroupManagementPanel({
     }
   };
 
-  const submitMemberReport = async () => {
+  const submitMemberReport = () => {
     if (!memberReportTarget || !memberReportReason.trim()) return;
     try {
-      await submitSocialReport({
-        targetType: 'student',
-        targetId: memberReportTarget.userId,
-        reason: memberReportReason.trim(),
-        context: {
-          source: 'group_management_panel',
-          group_id: groupId,
-          group_name: groupName,
-        },
+      const href = createMemoSparkReportMailtoHref({
+        subjectDetail: `Group member · ${memberReportTarget.displayName}`,
+        studentWrittenReport: memberReportReason.trim(),
+        contextLines: [
+          'Report type: Group member safety',
+          `Reported Clerk user ID: ${memberReportTarget.userId}`,
+          `Group ID: ${groupId}`,
+          `Group name: ${groupName}`,
+        ],
+        pageUrl:
+          typeof window !== 'undefined' ? window.location.href : undefined,
       });
-      toast.success('Report sent. Thanks for helping keep this group safe.');
+      openMemoSparkSupportMailHref(href);
+      toast.success('Opening your email app…', {
+        description:
+          'Send the message when it looks right. We review reports to keep groups safe.',
+      });
       setMemberReportTarget(null);
       setMemberReportReason('');
     } catch (error) {
       console.error('[social:reportMember]', error);
-      toast.error("Couldn't send the report right now. Try again.");
+      toast.error(
+        'Could not open email for this report. Mail support@memospark.live manually.',
+      );
     }
   };
 
@@ -849,7 +860,7 @@ export default function GroupManagementPanel({
               <span className="font-medium text-foreground">
                 {memberReportTarget?.displayName}
               </span>
-              .
+              . This opens your email app with a draft to MemoSpark support.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -878,9 +889,9 @@ export default function GroupManagementPanel({
               type="button"
               className="rounded-xl"
               disabled={!memberReportReason.trim()}
-              onClick={() => void submitMemberReport()}
+              onClick={submitMemberReport}
             >
-              Send report
+              Email support
             </Button>
           </DialogFooter>
         </DialogContent>

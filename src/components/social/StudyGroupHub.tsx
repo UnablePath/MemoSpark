@@ -79,7 +79,10 @@ import { cn } from "@/lib/utils";
 import GroupManagementPanel from './GroupManagementPanel';
 import { StudyGroupChatTab } from '@/components/social/study-group/StudyGroupChatTab';
 import { GroupsBento, type CreateGroupBentoPayload } from './group/GroupsBento';
-import { submitSocialReport } from '@/lib/social/submitSocialReport';
+import {
+  createMemoSparkReportMailtoHref,
+  openMemoSparkSupportMailHref,
+} from '@/lib/support/memosparkSupportEmail';
 import { formatStudyGroupActivityLabel } from '@/lib/social/groupDisplay';
 
 /** Matches Groups lane bento: diffused scrim, not flat `bg-black/80`. */
@@ -376,24 +379,32 @@ export const StudyGroupHub: React.FC = () => {
     }
   };
 
-  const submitGroupReport = async () => {
+  const submitGroupReport = () => {
     if (!groupReportTarget || !groupReportReason.trim()) return;
     try {
-      await submitSocialReport({
-        targetType: 'group',
-        targetId: groupReportTarget.id,
-        reason: groupReportReason.trim(),
-        context: {
-          source: 'study_group_hub',
-          group_name: groupReportTarget.name,
-        },
+      const href = createMemoSparkReportMailtoHref({
+        subjectDetail: `Study group · ${groupReportTarget.name}`,
+        studentWrittenReport: groupReportReason.trim(),
+        contextLines: [
+          'Report type: Study group',
+          `Group ID: ${groupReportTarget.id}`,
+          `Group name: ${groupReportTarget.name}`,
+        ],
+        pageUrl:
+          typeof window !== 'undefined' ? window.location.href : undefined,
       });
-      toast.success('Report sent. Thanks for keeping MemoSpark safe.');
+      openMemoSparkSupportMailHref(href);
+      toast.success('Opening your email app…', {
+        description:
+          'Send the message when it looks right. Thanks for helping keep MemoSpark safe.',
+      });
       setGroupReportTarget(null);
       setGroupReportReason('');
     } catch (error) {
       console.error('[social:reportGroup]', error);
-      toast.error("Couldn't send the report right now. Try again.");
+      toast.error(
+        'Could not open email for this report. Mail support@memospark.live manually.',
+      );
     }
   };
 
@@ -402,25 +413,33 @@ export const StudyGroupHub: React.FC = () => {
     setGroupReportReason('');
   };
 
-  const submitResourceReport = async () => {
+  const submitResourceReport = () => {
     if (!resourceReportTarget || !resourceReportReason.trim()) return;
     try {
-      await submitSocialReport({
-        targetType: 'resource',
-        targetId: resourceReportTarget.id,
-        reason: resourceReportReason.trim(),
-        context: {
-          source: 'study_group_resource',
-          group_id: resourceReportTarget.group_id,
-          resource_type: resourceReportTarget.resource_type,
-        },
+      const href = createMemoSparkReportMailtoHref({
+        subjectDetail: `Group resource · ${resourceReportTarget.title ?? resourceReportTarget.id}`,
+        studentWrittenReport: resourceReportReason.trim(),
+        contextLines: [
+          'Report type: Study group shared resource',
+          `Resource ID: ${resourceReportTarget.id}`,
+          `Group ID: ${resourceReportTarget.group_id}`,
+          `Resource kind: ${resourceReportTarget.resource_type}`,
+        ],
+        pageUrl:
+          typeof window !== 'undefined' ? window.location.href : undefined,
       });
-      toast.success('Resource report sent.');
+      openMemoSparkSupportMailHref(href);
+      toast.success('Opening your email app…', {
+        description:
+          'Send the message when it looks right.',
+      });
       setResourceReportTarget(null);
       setResourceReportReason('');
     } catch (error) {
       console.error('[social:reportResource]', error);
-      toast.error("Couldn't report this resource right now. Try again.");
+      toast.error(
+        'Could not open email for this report. Mail support@memospark.live manually.',
+      );
     }
   };
 
@@ -1349,7 +1368,7 @@ export const StudyGroupHub: React.FC = () => {
               <span className="font-medium text-foreground">
                 {groupReportTarget?.name}
               </span>
-              .
+              . This opens your email app with a draft to MemoSpark support.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -1378,9 +1397,9 @@ export const StudyGroupHub: React.FC = () => {
               type="button"
               className="rounded-xl"
               disabled={!groupReportReason.trim()}
-              onClick={() => void submitGroupReport()}
+              onClick={submitGroupReport}
             >
-              Send report
+              Email support
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1406,7 +1425,7 @@ export const StudyGroupHub: React.FC = () => {
               <span className="font-medium text-foreground">
                 {resourceReportTarget?.title}
               </span>
-              .
+              . This opens your email app with a draft to MemoSpark support.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -1435,9 +1454,9 @@ export const StudyGroupHub: React.FC = () => {
               type="button"
               className="rounded-xl"
               disabled={!resourceReportReason.trim()}
-              onClick={() => void submitResourceReport()}
+              onClick={submitResourceReport}
             >
-              Send report
+              Email support
             </Button>
           </DialogFooter>
         </DialogContent>

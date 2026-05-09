@@ -1,18 +1,6 @@
-'use client';
+"use client";
 
-import type React from 'react';
-import { useMemo, useState, useRef, lazy, Suspense } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { parseISO, isToday, isBefore, startOfDay, format } from 'date-fns';
-import {
-  Calendar as CalendarIcon,
-  Plus,
-  ChevronDown,
-  ListTodo,
-  GraduationCap,
-  Clock,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,20 +8,32 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
-import { TaskRow } from './TaskRow';
-import { StuNudge } from './StuNudge';
+} from "@/components/ui/dropdown-menu";
 import {
+  type TimeOfDay,
   timeOfDayFor,
   timeOfDayLabel,
-  type TimeOfDay,
-} from '@/lib/tasks/formatting';
-import type { Task } from '@/types/taskTypes';
-import type { AISuggestion } from '@/types/ai';
+} from "@/lib/tasks/formatting";
+import { cn } from "@/lib/utils";
+import type { AISuggestion } from "@/types/ai";
+import type { Task } from "@/types/taskTypes";
+import { format, isBefore, isToday, parseISO, startOfDay } from "date-fns";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import {
+  Calendar as CalendarIcon,
+  ChevronDown,
+  Clock,
+  GraduationCap,
+  ListTodo,
+  Plus,
+} from "lucide-react";
+import type React from "react";
+import { Suspense, lazy, useMemo, useRef, useState } from "react";
+import { StuNudge } from "./StuNudge";
+import { TaskRow } from "./TaskRow";
 
 const SmartScheduleView = lazy(() =>
-  import('@/components/scheduling/SmartScheduleView').then((m) => ({
+  import("@/components/scheduling/SmartScheduleView").then((m) => ({
     default: m.SmartScheduleView,
   })),
 );
@@ -42,7 +42,10 @@ export interface TodayViewProps {
   tasks: Task[];
   suggestions: AISuggestion[];
   userFirstName?: string;
-  tierBadge?: { tier: 'free' | 'premium' | 'enterprise'; remaining: number } | null;
+  tierBadge?: {
+    tier: "free" | "premium" | "enterprise";
+    remaining: number;
+  } | null;
   isLoading?: boolean;
   onCreateTask: () => void;
   onQuickCreate?: (title: string) => Promise<void> | void;
@@ -91,7 +94,7 @@ function groupTasks(tasks: Task[]): GroupedTasks {
     }
     if (isToday(due)) {
       const bucket = timeOfDayFor(task.due_date);
-      if (bucket === 'overdue' || bucket === 'later') {
+      if (bucket === "overdue" || bucket === "later") {
         groups.later.push(task);
       } else {
         groups[bucket].push(task);
@@ -112,7 +115,7 @@ function groupTasks(tasks: Task[]): GroupedTasks {
 }
 
 function greeting(hour: number, name?: string): string {
-  const who = name ? `, ${name}` : '';
+  const who = name ? `, ${name}` : "";
   if (hour < 5) return `Still up${who}?`;
   if (hour < 12) return `Good morning${who}`;
   if (hour < 17) return `Good afternoon${who}`;
@@ -137,7 +140,7 @@ function QuickCapture({
   onShowSuggestedSchedule?: () => void;
   showSuggestedScheduleOption?: boolean;
 }) {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -148,7 +151,7 @@ function QuickCapture({
     setSubmitting(true);
     try {
       await onSubmit(trimmed);
-      setValue('');
+      setValue("");
       inputRef.current?.focus();
     } finally {
       setSubmitting(false);
@@ -159,9 +162,9 @@ function QuickCapture({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        'flex flex-col gap-2 rounded-xl border border-border/70 bg-card/95 px-3 py-2.5 shadow-sm',
-        'focus-within:border-primary/50 sm:flex-row sm:items-center sm:gap-2 sm:py-2',
-        'backdrop-blur-[2px] transition-colors',
+        "flex flex-col gap-2 rounded-xl border border-border/70 bg-card/95 px-3 py-2.5 shadow-sm",
+        "focus-within:border-primary/50 sm:flex-row sm:items-center sm:gap-2 sm:py-2",
+        "backdrop-blur-[2px] transition-colors",
       )}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -177,8 +180,8 @@ function QuickCapture({
           onChange={(e) => setValue(e.target.value)}
           placeholder="Add a task, then press Enter to save"
           className={cn(
-            'min-w-0 flex-1 bg-transparent text-base leading-normal placeholder:text-muted-foreground sm:text-sm',
-            'focus:outline-none',
+            "min-w-0 flex-1 bg-transparent text-base leading-normal placeholder:text-muted-foreground sm:text-sm",
+            "focus:outline-none",
           )}
           aria-label="Quick capture task title"
           disabled={submitting}
@@ -190,16 +193,20 @@ function QuickCapture({
           <button
             type="button"
             className={cn(
-              'flex h-11 w-full shrink-0 items-center justify-center gap-1 rounded-md px-3 text-xs font-medium text-muted-foreground',
-              'hover:bg-muted hover:text-foreground sm:h-auto sm:w-auto sm:justify-start sm:px-2 sm:py-1',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              'data-[state=open]:bg-muted data-[state=open]:text-foreground',
-              'touch-manipulation active:scale-[0.99]',
+              "flex h-11 w-full shrink-0 items-center justify-center gap-1 rounded-md px-3 text-xs font-medium text-muted-foreground",
+              "hover:bg-muted hover:text-foreground sm:h-auto sm:w-auto sm:justify-start sm:px-2 sm:py-1",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "data-[state=open]:bg-muted data-[state=open]:text-foreground",
+              "touch-manipulation active:scale-[0.99]",
             )}
             aria-label="More capture options"
           >
             More options
-            <ChevronDown className="h-3 w-3 opacity-70" strokeWidth={2} aria-hidden />
+            <ChevronDown
+              className="h-3 w-3 opacity-70"
+              strokeWidth={2}
+              aria-hidden
+            />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
@@ -249,14 +256,14 @@ function TaskGroup({
   onEdit,
   onDelete,
   onToggleCompletion,
-  tone = 'default',
+  tone = "default",
 }: {
   label: string;
   tasks: Task[];
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => Promise<void> | void;
   onToggleCompletion: (taskId: string) => Promise<void> | void;
-  tone?: 'default' | 'warning';
+  tone?: "default" | "warning";
 }) {
   if (tasks.length === 0) return null;
   return (
@@ -264,8 +271,8 @@ function TaskGroup({
       <div className="flex items-center gap-2 px-1">
         <h3
           className={cn(
-            'text-[0.72rem] font-semibold tracking-[0.14em] uppercase',
-            tone === 'warning' ? 'text-destructive' : 'text-muted-foreground',
+            "text-[0.72rem] font-semibold tracking-[0.14em] uppercase",
+            tone === "warning" ? "text-destructive" : "text-muted-foreground",
           )}
         >
           {label}
@@ -326,7 +333,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
     0;
 
   const pendingSuggestions = suggestions
-    .filter((s) => s.acceptanceStatus === 'pending')
+    .filter((s) => s.acceptanceStatus === "pending")
     .slice(0, 2);
 
   if (isLoading) {
@@ -347,10 +354,10 @@ export const TodayView: React.FC<TodayViewProps> = ({
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-5 px-0 pb-10 sm:space-y-6 sm:px-1 sm:pb-12">
+    <div className="mx-auto w-full max-w-3xl space-y-5 px-0 pb-14 sm:space-y-6 sm:px-1 sm:pb-16 md:pb-20">
       <header className="space-y-2">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground tabular-nums">
-          {format(now, 'EEEE · MMMM d')}
+          {format(now, "EEEE · MMMM d")}
         </p>
         <h1 className="text-responsive-xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl sm:leading-tight">
           {greeting(hour, userFirstName)}
@@ -372,8 +379,8 @@ export const TodayView: React.FC<TodayViewProps> = ({
                     grouped.afternoon.length +
                     grouped.evening.length ===
                   1
-                    ? ''
-                    : 's'
+                    ? ""
+                    : "s"
                 } on deck for today.`}
           </p>
         ) : (
@@ -396,8 +403,8 @@ export const TodayView: React.FC<TodayViewProps> = ({
             setShowSchedule(true);
             window.setTimeout(() => {
               scheduleSectionRef.current?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest',
+                behavior: "smooth",
+                block: "nearest",
               });
             }, 200);
           }}
@@ -497,20 +504,20 @@ export const TodayView: React.FC<TodayViewProps> = ({
             type="button"
             onClick={() => setShowSchedule((v) => !v)}
             className={cn(
-              'inline-flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium',
-              'text-muted-foreground hover:text-foreground',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              'active:scale-[0.98] transition-[color,transform]',
+              "inline-flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium",
+              "text-muted-foreground hover:text-foreground",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "active:scale-[0.98] transition-[color,transform]",
             )}
             aria-expanded={showSchedule}
             aria-controls="today-smart-schedule"
           >
             <CalendarIcon className="h-4 w-4" strokeWidth={1.5} />
-            {showSchedule ? 'Hide suggested schedule' : 'Suggested time blocks'}
+            {showSchedule ? "Hide suggested schedule" : "Suggested time blocks"}
             <ChevronDown
               className={cn(
-                'h-4 w-4 transition-transform duration-200',
-                showSchedule && 'rotate-180',
+                "h-4 w-4 transition-transform duration-200",
+                showSchedule && "rotate-180",
               )}
               strokeWidth={1.5}
             />
@@ -520,15 +527,13 @@ export const TodayView: React.FC<TodayViewProps> = ({
               <motion.div
                 id="today-smart-schedule"
                 initial={reducedMotion ? false : { opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
+                animate={{ opacity: 1, height: "auto" }}
                 exit={reducedMotion ? undefined : { opacity: 0, height: 0 }}
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                 className="mt-4 overflow-hidden rounded-2xl border border-border/70 bg-card"
               >
                 <Suspense
-                  fallback={
-                    <div className="h-40 animate-pulse bg-muted/60" />
-                  }
+                  fallback={<div className="h-40 animate-pulse bg-muted/60" />}
                 >
                   <SmartScheduleView />
                 </Suspense>

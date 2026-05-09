@@ -31,7 +31,10 @@ import {
   connectionAvatarHue,
   connectionDisplayInitials,
 } from "@/lib/social/connectionDisplay";
-import { submitSocialReport } from "@/lib/social/submitSocialReport";
+import {
+  createMemoSparkReportMailtoHref,
+  openMemoSparkSupportMailHref,
+} from "@/lib/support/memosparkSupportEmail";
 import {
   StudentDiscovery,
   type UserSearchResult,
@@ -517,21 +520,34 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
     }
   };
 
-  const handleReportStudent = async () => {
+  const handleReportStudent = () => {
     if (!reportTarget?.id || !reportBody.trim()) return;
     try {
-      await submitSocialReport({
-        targetType: "student",
-        targetId: reportTarget.id,
-        reason: reportBody.trim(),
-        context: { source: "connection_manager" },
+      const href = createMemoSparkReportMailtoHref({
+        subjectDetail: `Student · ${reportTarget.name ?? reportTarget.id}`,
+        studentWrittenReport: reportBody.trim(),
+        contextLines: [
+          "Report type: Student safety (connections)",
+          `Reported Clerk user ID: ${reportTarget.id}`,
+          ...(reportTarget.name
+            ? [`Display name as shown in MemoSpark: ${reportTarget.name}`]
+            : []),
+        ],
+        pageUrl:
+          typeof window !== "undefined" ? window.location.href : undefined,
       });
-      toast.success("Report sent. Thanks for helping keep MemoSpark safe.");
+      openMemoSparkSupportMailHref(href);
+      toast.success("Opening your email app…", {
+        description:
+          "Send the message when it looks right. We review every report.",
+      });
       setReportTarget(null);
       setReportBody("");
     } catch (err) {
       console.error("[social:reportStudent]", err);
-      toast.error("Couldn't send the report right now. Try again.");
+      toast.error(
+        "Could not open email for this report. Mail support@memospark.live manually.",
+      );
     }
   };
 
@@ -983,7 +999,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
               <span className="font-medium text-foreground">
                 {reportTarget?.name ?? "this student"}
               </span>
-              . Your report is reviewed for safety.
+              . Tap below to open your email app with a draft to MemoSpark support.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -1012,9 +1028,9 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
               type="button"
               className="rounded-xl"
               disabled={!reportBody.trim()}
-              onClick={() => void handleReportStudent()}
+              onClick={handleReportStudent}
             >
-              Send report
+              Email support
             </Button>
           </DialogFooter>
         </DialogContent>

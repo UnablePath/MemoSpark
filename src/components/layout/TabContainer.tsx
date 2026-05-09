@@ -1,8 +1,9 @@
 'use client';
 
+import { SiteSupportReportCorner } from '@/components/support/SiteSupportReportCorner';
 import type React from 'react';
 import { useState, Children, isValidElement, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useSwipeable, type SwipeEventData } from 'react-swipeable';
 
 interface TabContainerProps {
@@ -91,7 +92,7 @@ export function TabContainer({
         role="tabpanel"
         id={panelIds?.[currentIndex]}
         aria-labelledby={tabIds?.[currentIndex]}
-        className="w-full h-full overflow-y-auto overflow-x-hidden safe-scroll-area"
+        className="relative z-0 w-full h-full overflow-y-auto overflow-x-hidden safe-scroll-area"
         initial={{ opacity: 0, x: direction > 0 ? 20 : -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
@@ -100,6 +101,7 @@ export function TabContainer({
           {activeTabContent}
         </div>
       </motion.div>
+      <SiteSupportReportCorner placement="panel" />
     </div>
   );
 } 

@@ -2,9 +2,8 @@ import { AIStructuredData } from '@/components/seo/AIOptimizedMeta';
 import { organizationSchema } from '@/lib/seo/structuredData';
 import { HomepageNavbar } from '@/components/layout/HomepageNavbar';
 import { ContactForm } from '@/components/contact/ContactForm';
+import { MEMOSPARK_SUPPORT_EMAIL } from '@/lib/support/memosparkSupportEmail';
 import type { Metadata } from 'next';
-
-const SUPPORT_EMAIL = 'support@memospark.app';
 
 export const metadata: Metadata = {
   title: 'Contact | MemoSpark',
@@ -47,7 +46,7 @@ export default function ContactPage() {
 
               <div className="grid gap-6 lg:grid-cols-12">
                 <div className="rounded-3xl border border-border/70 bg-card p-6 shadow-sm md:p-8 lg:col-span-7">
-                  <ContactForm supportEmail={SUPPORT_EMAIL} />
+                  <ContactForm supportEmail={MEMOSPARK_SUPPORT_EMAIL} />
                 </div>
 
                 <aside className="rounded-3xl border border-border/70 bg-card p-6 md:p-8 lg:col-span-5">
@@ -69,9 +68,9 @@ export default function ContactPage() {
                       Prefer email? Write us at{' '}
                       <a
                         className="text-foreground underline underline-offset-4"
-                        href={`mailto:${SUPPORT_EMAIL}`}
+                        href={`mailto:${MEMOSPARK_SUPPORT_EMAIL}`}
                       >
-                        {SUPPORT_EMAIL}
+                        {MEMOSPARK_SUPPORT_EMAIL}
                       </a>
                       .
                     </p>

@@ -1,8 +1,10 @@
 "use client";
 
+import { SiteSupportReportCorner } from "@/components/support/SiteSupportReportCorner";
 import { Toaster } from "@/components/ui/sonner";
 import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 import { UpdateAvailable } from '@/components/pwa/UpdateAvailable';
+import { usePathname } from "next/navigation";
 import { useEffect } from 'react';
 
 interface DevHelpers {
@@ -28,6 +30,8 @@ interface ClientBodyProps {
 }
 
 export default function ClientBody({ children }: ClientBodyProps) {
+  const pathname = usePathname();
+  const showViewportHelpTab = !pathname.startsWith("/dashboard");
 
   // Load development helpers in development mode
   useEffect(() => {
@@ -175,6 +179,9 @@ devHelpers.help()          - Show this help message
       {children}
       <InstallPrompt />
       <UpdateAvailable />
+      {showViewportHelpTab ? (
+        <SiteSupportReportCorner placement="viewport" />
+      ) : null}
       <Toaster />
     </>
   );

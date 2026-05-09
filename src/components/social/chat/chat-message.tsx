@@ -6,7 +6,10 @@ import {
   connectionDisplayInitials,
   connectionSenderTail,
 } from '@/lib/social/connectionDisplay';
-import { submitSocialReport } from '@/lib/social/submitSocialReport';
+import {
+  createMemoSparkReportMailtoHref,
+  openMemoSparkSupportMailHref,
+} from '@/lib/support/memosparkSupportEmail';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -145,24 +148,31 @@ export function ChatMessageItem({
     onDelete?.(message.id);
   };
 
-  const submitMessageReport = async () => {
+  const submitMessageReport = () => {
     if (!reportReason.trim()) return;
     try {
-      await submitSocialReport({
-        targetType: 'message',
-        targetId: message.id,
-        reason: reportReason.trim(),
-        context: {
-          source: 'realtime_chat',
-          sender_id: message.senderId,
-        },
+      const href = createMemoSparkReportMailtoHref({
+        subjectDetail: `Chat message · ${message.id}`,
+        studentWrittenReport: reportReason.trim(),
+        contextLines: [
+          'Report type: Chat message',
+          `Message ID: ${message.id}`,
+          `Sender ID: ${message.senderId ?? 'unknown'}`,
+        ],
+        pageUrl:
+          typeof window !== 'undefined' ? window.location.href : undefined,
       });
-      toast.success('Message report sent.');
+      openMemoSparkSupportMailHref(href);
+      toast.success('Opening your email app…', {
+        description: 'Send the message when it looks right. We read every report.',
+      });
       setReportOpen(false);
       setReportReason('');
     } catch (error) {
       console.error('[social:reportMessage]', error);
-      toast.error("Couldn't report this message right now. Try again.");
+      toast.error(
+        'Could not open email for this report. Mail support@memospark.live manually.',
+      );
     }
   };
 
@@ -544,7 +554,7 @@ export function ChatMessageItem({
         <DialogHeader>
           <DialogTitle>Report this message</DialogTitle>
           <DialogDescription>
-            Tell us what needs review. We read every report.
+            Tell us what needs review. This opens your email app with a draft to MemoSpark support — we read every report.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
@@ -573,9 +583,9 @@ export function ChatMessageItem({
             type="button"
             className="rounded-xl"
             disabled={!reportReason.trim()}
-            onClick={() => void submitMessageReport()}
+            onClick={submitMessageReport}
           >
-            Send report
+            Email support
           </Button>
         </DialogFooter>
       </DialogContent>
