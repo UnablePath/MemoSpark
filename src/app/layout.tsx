@@ -19,6 +19,7 @@ import { PremiumPopupProvider } from "@/components/providers/premium-popup-provi
 import { NetworkErrorBoundary } from "@/components/ui/NetworkErrorBoundary";
 import { BASE_URL } from "@/lib/seo/seoConfig";
 import { TexturaPretextProvider } from "@/components/providers/textura-pretext-provider";
+import { Analytics } from '@vercel/analytics/next';
 
 const geist = Geist({
   subsets: ["latin"],
@@ -193,6 +194,7 @@ export default function RootLayout({
             </ProfileSyncProvider>
           </ThemeProvider>
         </ThemeAwareClerkProvider>
+        <Analytics />
       </body>
     </html>
   );
