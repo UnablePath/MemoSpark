@@ -18,6 +18,7 @@ import { AIProvider } from "@/lib/ai/aiContext";
 import { BASE_URL } from "@/lib/seo/seoConfig";
 import { UserProvider } from "@/lib/user-context";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata, Viewport } from "next";
 import { Geist, Manrope } from "next/font/google";
 
@@ -214,6 +215,7 @@ export default function RootLayout({
           </ThemeProvider>
         </ThemeAwareClerkProvider>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
