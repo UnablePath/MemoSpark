@@ -19,8 +19,9 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 export const supabaseServer = (supabaseUrl && supabaseAnonKey) 
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
-        persistSession: false, // Server doesn't need session persistence
+        persistSession: false,
         autoRefreshToken: false,
+        detectSessionInUrl: false,
       },
     })
   : null;
@@ -31,9 +32,30 @@ export const supabaseServerAdmin = (supabaseUrl && supabaseServiceRoleKey)
       auth: {
         persistSession: false,
         autoRefreshToken: false,
+        detectSessionInUrl: false,
       },
     })
   : null;
+
+/**
+ * Server-side Supabase client that sends the Clerk JWT Supabase expects.
+ * RLS policies use auth.jwt() ->> 'sub'; the anon singleton has no JWT, so upserts fail with 42501.
+ */
+export function createServerSupabaseWithClerkJwt(clerkJwt: string) {
+  if (!supabaseUrl || !supabaseAnonKey) return null;
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${clerkJwt}`,
+      },
+    },
+  });
+}
 
 // Server-side helper functions using Clerk auth
 export const supabaseServerHelpers = {

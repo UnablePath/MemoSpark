@@ -151,7 +151,7 @@ export default function UpdateNotification({ onClose, className = '' }: UpdateNo
           {isUpdating && (
             <div className="text-center">
               <div className="inline-flex items-center gap-2 text-sm text-gray-600">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600" />
                 <span>Please wait while we update the app...</span>
               </div>
             </div>

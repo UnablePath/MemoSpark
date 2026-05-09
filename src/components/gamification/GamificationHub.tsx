@@ -3,8 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FaTrophy, FaShoppingCart, FaCoins, FaUsers, FaStar, FaCalendarAlt } from 'react-icons/fa';
-import { TrendingUp, RefreshCw } from 'lucide-react';
+import {
+  Calendar,
+  Coins,
+  ShoppingCart,
+  Star,
+  TrendingUp,
+  Trophy,
+} from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFetchAchievements, useInvalidateAchievementQueries } from '@/hooks/useAchievementQueries';
@@ -21,7 +27,7 @@ import { StreakTracker } from '@/lib/gamification/StreakTracker';
 import { RewardShop } from './RewardShop';
 import { toast } from 'sonner';
 import { useCoinBalanceDisplay } from '@/hooks/useCoinBalance';
-import type { LeaderboardUser, UserAchievement } from '@/types/achievements';
+import type { LeaderboardUser } from '@/types/achievements';
 
 const GamificationHub = () => {
   const { user } = useUser();
@@ -89,7 +95,7 @@ const GamificationHub = () => {
       { name: 'Silver', threshold: 500, color: 'text-gray-500' },
       { name: 'Gold', threshold: 1500, color: 'text-yellow-500' },
       { name: 'Platinum', threshold: 3000, color: 'text-blue-500' },
-      { name: 'Diamond', threshold: 6000, color: 'text-purple-500' },
+      { name: 'Diamond', threshold: 6000, color: 'text-cyan-500' },
       { name: 'Master', threshold: 10000, color: 'text-red-500' }
     ];
     
@@ -146,7 +152,7 @@ const GamificationHub = () => {
               size="sm"
               onClick={() => {
                 reload();
-                toast.success('Data refreshed! 🔄');
+                toast.success('Data refreshed.');
               }}
               className="flex items-center gap-2"
             >
@@ -160,7 +166,7 @@ const GamificationHub = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center"><FaTrophy className="mr-2 h-5 w-5 text-amber-500" /> Your Progress</CardTitle>
+              <CardTitle className="flex items-center"><Trophy className="mr-2 h-5 w-5 text-amber-500" /> Your Progress</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-4">
               <StatBox label="Total Points" value={userStats?.total_points || 0} />
@@ -172,7 +178,7 @@ const GamificationHub = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <FaCoins className="mr-2 h-5 w-5 text-yellow-500" /> 
+                <Coins className="mr-2 h-5 w-5 text-yellow-500" /> 
                 Coin Wallet
               </CardTitle>
             </CardHeader>
@@ -196,7 +202,7 @@ const GamificationHub = () => {
                 className="w-full"
                 onClick={() => setShowRewardShop(true)}
               >
-                <FaShoppingCart className="mr-2 h-4 w-4" />
+                <ShoppingCart className="mr-2 h-4 w-4" />
                 Visit Coin Shop
               </Button>
             </CardContent>
@@ -209,14 +215,14 @@ const GamificationHub = () => {
             variant="detailed"
             showActions={true}
             onViewDetails={() => {
-              console.log('Navigate to streak details');
+              toast.info('Opening streak details view...');
             }}
           />
           
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <FaStar className="mr-2 h-5 w-5 text-purple-500" /> 
+                <Star className="mr-2 h-5 w-5 text-primary" /> 
                 Quick Actions
               </CardTitle>
             </CardHeader>
@@ -231,7 +237,7 @@ const GamificationHub = () => {
                   }
                 }}
               >
-                <FaTrophy className="mr-2 h-4 w-4" />
+                <Trophy className="mr-2 h-4 w-4" />
                 View All Achievements ({userAchievements.length})
               </Button>
               <Button 
@@ -239,18 +245,18 @@ const GamificationHub = () => {
                 className="w-full justify-start"
                 onClick={() => setShowRewardShop(true)}
               >
-                <FaShoppingCart className="mr-2 h-4 w-4" />
+                <ShoppingCart className="mr-2 h-4 w-4" />
                 Visit Coin Shop
               </Button>
               <Button 
                 variant="default" 
-                className="w-full justify-start bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white border-0"
+                className="w-full justify-start"
                 onClick={async () => {
                   if (!user?.id) return;
                   try {
                     const result = await streakTracker.markDailyCompletion(user.id, 1, 10);
                     if (result.success) {
-                      toast.success(`Streak updated! 🔥 ${result.newStreak} days`);
+                      toast.success(`Streak updated. ${result.newStreak} days active.`);
                       // Trigger streak achievement
                       await triggerStreakIncreased(result.newStreak);
                       reload();
@@ -261,8 +267,8 @@ const GamificationHub = () => {
                   }
                 }}
               >
-                <FaStar className="mr-2 h-4 w-4" />
-                🔥 Check in
+                <Star className="mr-2 h-4 w-4" />
+                Check in
               </Button>
             </CardContent>
           </Card>
@@ -272,7 +278,7 @@ const GamificationHub = () => {
         <Card data-section="achievements">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="flex items-center"><FaTrophy className="mr-2 h-5 w-5 text-amber-500" /> Achievements</CardTitle>
+              <CardTitle className="flex items-center"><Trophy className="mr-2 h-5 w-5 text-amber-500" /> Achievements</CardTitle>
               <CardDescription>Unlock achievements by completing milestones.</CardDescription>
             </div>
             <div className="text-sm text-muted-foreground">
@@ -282,7 +288,7 @@ const GamificationHub = () => {
           <CardContent>
             {allAchievements.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <FaTrophy className="w-16 h-16 text-muted-foreground/50 mb-4" />
+                <Trophy className="w-16 h-16 text-muted-foreground/50 mb-4" />
                 <h3 className="text-lg font-medium text-muted-foreground mb-2">No achievements available</h3>
                 <p className="text-sm text-muted-foreground max-w-sm mb-4">
                   Achievements will appear here as they become available. Complete tasks and engage with the platform to unlock them!
@@ -292,7 +298,7 @@ const GamificationHub = () => {
               <AchievementCollection
                 achievements={userAchievements.map(ua => ({
                   ...ua.achievements!,
-                  type: ua.achievements!.type as any, // Cast to avoid TypeScript strict checking
+                  type: ua.achievements?.type as any, // Cast to avoid TypeScript strict checking
                   unlocked: true,
                   earnedAt: ua.unlocked_at
                 }))}
@@ -305,7 +311,7 @@ const GamificationHub = () => {
               />
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <FaTrophy className="w-16 h-16 text-muted-foreground/50 mb-4" />
+                <Trophy className="w-16 h-16 text-muted-foreground/50 mb-4" />
                 <h3 className="text-lg font-medium text-muted-foreground mb-2">No achievements unlocked yet</h3>
                 <p className="text-sm text-muted-foreground max-w-sm mb-4">
                   Complete tasks, maintain streaks, and engage with the community to unlock your first achievements!
@@ -319,7 +325,7 @@ const GamificationHub = () => {
                   }}
                   variant="outline"
                 >
-                  <FaCalendarAlt className="w-4 h-4 mr-2" />
+                  <Calendar className="w-4 h-4 mr-2" />
                   Start Completing Tasks
                 </Button>
               </div>
@@ -330,7 +336,7 @@ const GamificationHub = () => {
         {/* Leaderboard */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center"><FaTrophy className="mr-2 h-5 w-5 text-amber-500" /> Leaderboard</CardTitle>
+            <CardTitle className="flex items-center"><Trophy className="mr-2 h-5 w-5 text-amber-500" /> Leaderboard</CardTitle>
             <CardDescription>See how you rank against other students.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -346,7 +352,7 @@ const GamificationHub = () => {
               </ul>
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                <FaTrophy className="w-12 h-12 text-muted-foreground/50 mb-3" />
+                <Trophy className="w-12 h-12 text-muted-foreground/50 mb-3" />
                 <p className="text-sm text-muted-foreground">No leaderboard data available</p>
               </div>
             )}
@@ -364,7 +370,7 @@ const GamificationHub = () => {
         {/* Reward Tiers */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center"><FaStar className="mr-2 h-5 w-5 text-purple-500" /> Reward Tiers</CardTitle>
+            <CardTitle className="flex items-center"><Star className="mr-2 h-5 w-5 text-primary" /> Reward Tiers</CardTitle>
             <CardDescription>Level up through tiers by earning points.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -399,7 +405,7 @@ const GamificationHub = () => {
               
               {tierInfo.nextTier === tierInfo.currentTier && (
                 <div className="text-center py-2">
-                  <span className="text-sm text-muted-foreground">🏆 Maximum tier reached!</span>
+                  <span className="text-sm text-muted-foreground">Maximum tier reached.</span>
                 </div>
               )}
             </div>
@@ -418,37 +424,37 @@ const GamificationHub = () => {
       {/* Achievement Details Modal */}
       {selectedAchievement && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setSelectedAchievement(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="mx-4 max-w-md rounded-lg border border-border bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center space-x-3 mb-4">
-              <div className="p-3 rounded-lg bg-blue-500">
-                <FaTrophy className="w-6 h-6 text-white" />
+              <div className="rounded-lg bg-primary p-3">
+                <Trophy className="w-6 h-6 text-primary-foreground" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                <h3 className="text-lg font-bold text-foreground">
                   {selectedAchievement.name}
                 </h3>
-                <span className="text-sm bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full">
-                  Unlocked ✓
+                <span className="rounded-full bg-primary/10 px-2 py-1 text-sm text-primary">
+                  Unlocked
                 </span>
               </div>
             </div>
             
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
+            <p className="mb-4 text-muted-foreground">
               {selectedAchievement.description}
             </p>
             
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Points Earned:</span>
+                <span className="text-muted-foreground">Points Earned:</span>
                 <span className="font-semibold text-yellow-600">{selectedAchievement.points_reward}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Category:</span>
+                <span className="text-muted-foreground">Category:</span>
                 <span className="font-semibold capitalize">{selectedAchievement.type?.replace('_', ' ')}</span>
               </div>
               {selectedAchievement.earnedAt && (
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Earned Date:</span>
+                  <span className="text-muted-foreground">Earned Date:</span>
                   <span className="font-semibold">{new Date(selectedAchievement.earnedAt).toLocaleDateString()}</span>
                 </div>
               )}
@@ -481,14 +487,6 @@ const LeaderboardItem = ({ user, isCurrentUser }: { user: LeaderboardUser, isCur
     </div>
     <span className={`font-semibold ${isCurrentUser ? 'text-primary' : 'text-foreground'}`}>{user.total_points} pts</span>
   </li>
-);
-
-const AchievementItem = ({ achievement }: { achievement: UserAchievement }) => (
-  <div title={`${achievement.achievements?.name || 'Achievement'} - ${achievement.achievements?.description || 'No description'}`} className="p-3 border rounded-lg flex flex-col items-center text-center border-green-500 bg-green-500/10">
-    <span className="text-3xl mb-1">{achievement.achievements?.icon || '🏆'}</span>
-    <p className="text-xs font-semibold text-green-700">{achievement.achievements?.name || 'Unknown Achievement'}</p>
-    <span className="text-xs text-green-600">(Earned!)</span>
-  </div>
 );
 
 const GamificationHubSkeleton = () => (

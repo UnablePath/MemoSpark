@@ -8,9 +8,17 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Trophy, Zap, Crown, Star, Rocket } from 'lucide-react';
 
+interface PopulationResult {
+  newCount: number;
+  existingCount: number;
+  totalCount: number;
+  first10Points: number;
+  competitionNote?: string;
+}
+
 export default function LaunchSetupPage() {
   const [isPopulating, setIsPopulating] = useState(false);
-  const [populationResult, setPopulationResult] = useState<any>(null);
+  const [populationResult, setPopulationResult] = useState<PopulationResult | null>(null);
 
   const populateAchievements = async () => {
     setIsPopulating(true);
@@ -195,7 +203,7 @@ export default function LaunchSetupPage() {
             >
               {isPopulating ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                   Populating Achievements...
                 </>
               ) : (
@@ -255,31 +263,31 @@ export default function LaunchSetupPage() {
           <CardContent>
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded-full ${populationResult ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                <div className={`w-4 h-4 rounded-full ${populationResult ? 'bg-green-500' : 'bg-gray-300'}`} />
                 <span className={populationResult ? 'text-green-700 dark:text-green-300' : ''}>
                   50 achievements populated
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-green-500"></div>
+                <div className="w-4 h-4 rounded-full bg-green-500" />
                 <span className="text-green-700 dark:text-green-300">
                   BubblePopGame added to homepage
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-green-500"></div>
+                <div className="w-4 h-4 rounded-full bg-green-500" />
                 <span className="text-green-700 dark:text-green-300">
                   StudySpark → MemoSpark branding updated
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-green-500"></div>
+                <div className="w-4 h-4 rounded-full bg-green-500" />
                 <span className="text-green-700 dark:text-green-300">
                   Console logs secured (no sensitive data)
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-green-500"></div>
+                <div className="w-4 h-4 rounded-full bg-green-500" />
                 <span className="text-green-700 dark:text-green-300">
                   TypeScript compilation passes
                 </span>

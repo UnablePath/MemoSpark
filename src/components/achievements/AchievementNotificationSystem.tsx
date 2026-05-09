@@ -186,7 +186,7 @@ export const AchievementNotificationSystem: React.FC<AchievementNotificationSyst
     (window as any).achievementNotifier = globalAchievementNotifier;
 
     return () => {
-      delete (window as any).achievementNotifier;
+      (window as any).achievementNotifier = undefined;
     };
   }, [checkAndNotifyAchievements, addNotification, clearAllNotifications]);
 

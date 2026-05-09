@@ -31,12 +31,11 @@ export async function POST(request: NextRequest) {
         success: true, 
         message: 'Smart reminders scheduled successfully' 
       });
-    } else {
+    }
       return NextResponse.json({ 
         success: false, 
         message: 'Failed to schedule smart reminders' 
       }, { status: 500 });
-    }
 
   } catch (error) {
     console.error('Error scheduling smart reminder:', error);
@@ -80,15 +79,14 @@ export async function PATCH(request: NextRequest) {
         success: true, 
         message: `Task ${action} successful` 
       });
-    } else {
+    }
       return NextResponse.json({ 
         success: false, 
         message: `Failed to ${action} task` 
       }, { status: 500 });
-    }
 
   } catch (error) {
-    console.error(`Error handling reminder action:`, error);
+    console.error("Error handling reminder action:", error);
     return NextResponse.json({ 
       error: 'Internal server error' 
     }, { status: 500 });

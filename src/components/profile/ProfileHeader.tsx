@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FaCog, FaUser, FaSignOutAlt } from "react-icons/fa";
+import { LogOut, Settings, User } from "lucide-react";
 import { ProfileModal } from "@/components/profile/ProfileModal";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 import { useClerk } from '@clerk/nextjs';
@@ -81,7 +81,7 @@ export const ProfileHeader = () => {
         {/* Quick Profile Modal */}
         <ProfileModal>
           <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
-            <FaUser className="mr-2 h-4 w-4" aria-hidden="true" />
+            <User className="mr-2 h-4 w-4" aria-hidden="true" />
             Quick Profile
           </DropdownMenuItem>
         </ProfileModal>
@@ -89,7 +89,7 @@ export const ProfileHeader = () => {
         {/* Quick Settings Modal */}
         <SettingsModal>
           <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
-            <FaCog className="mr-2 h-4 w-4" aria-hidden="true" />
+            <Settings className="mr-2 h-4 w-4" aria-hidden="true" />
             Quick Settings
           </DropdownMenuItem>
         </SettingsModal>
@@ -98,17 +98,17 @@ export const ProfileHeader = () => {
         
         {/* Full page links */}
         <DropdownMenuItem onClick={handleNavigateToProfile} className="cursor-pointer">
-          <FaUser className="mr-2 h-4 w-4" aria-hidden="true" />
+          <User className="mr-2 h-4 w-4" aria-hidden="true" />
           Full Profile Page
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleNavigateToSettings} className="cursor-pointer">
-          <FaCog className="mr-2 h-4 w-4" aria-hidden="true" />
+          <Settings className="mr-2 h-4 w-4" aria-hidden="true" />
           Full Settings Page
         </DropdownMenuItem>
         
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
-          <FaSignOutAlt className="mr-2 h-4 w-4" aria-hidden="true" />
+          <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
           Sign Out
         </DropdownMenuItem>
       </DropdownMenuContent>

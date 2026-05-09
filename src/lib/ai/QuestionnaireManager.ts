@@ -1,7 +1,10 @@
-import { supabase as supabaseClient, createAuthenticatedSupabaseClient } from '@/lib/supabase/client';
-import { consolidatedAIService } from './ConsolidatedAIService';
+import { createAuthenticatedSupabaseClient } from '@/lib/supabase/client';
 import { patternEngine } from './patternEngine';
 import { updateUserMetadataAction } from '@/app/questionnaire/_actions';
+
+const questionnaireDevLog = (...args: unknown[]) => {
+  if (process.env.NODE_ENV === 'development') console.log(...args);
+};
 
 // Types for questionnaire system  
 export interface QuestionnaireQuestion {
@@ -82,13 +85,10 @@ export interface UserAIPatterns {
 
 export class QuestionnaireManager {
   private supabase: any;
-  private publicSupabase: any;
-  private aiService = consolidatedAIService;
   private patternEngine = patternEngine;
 
   constructor(getToken?: () => Promise<string | null>) {
     this.supabase = createAuthenticatedSupabaseClient(getToken);
-    this.publicSupabase = supabaseClient; // For public template queries
   }
 
   /**
@@ -96,20 +96,20 @@ export class QuestionnaireManager {
    */
   async getActiveTemplates(): Promise<QuestionnaireTemplate[]> {
     try {
-      console.log('Fetching active questionnaire templates...');
+      questionnaireDevLog('Fetching active questionnaire templates...');
       
-      if (!this.publicSupabase) {
-        console.error('Public Supabase client not initialized');
+      if (!this.supabase) {
+        console.error('Supabase client not initialized');
         throw new Error('Database connection not available');
       }
 
-      const { data, error } = await this.publicSupabase
+      const { data, error } = await this.supabase
         .from('questionnaire_templates')
         .select('*')
         .eq('is_active', true)
         .order('order_priority', { ascending: true });
 
-      console.log('Supabase query result:', { data, error });
+      questionnaireDevLog('Supabase query result:', { data, error });
 
       if (error) {
         console.error('Supabase error:', error);
@@ -127,7 +127,7 @@ export class QuestionnaireManager {
           : template.questions
       }));
       
-      console.log('Processed templates:', templates);
+      questionnaireDevLog('Processed templates:', templates);
       return templates;
     } catch (err: any) {
       console.error('Error fetching questionnaire templates:', {
@@ -145,8 +145,7 @@ export class QuestionnaireManager {
    */
   async getTemplate(templateId: string): Promise<QuestionnaireTemplate | null> {
     try {
-      // Use public client for template reads to avoid any RLS restrictions for end users
-      const { data, error } = await this.publicSupabase
+      const { data, error } = await this.supabase
         .from('questionnaire_templates')
         .select('*')
         .eq('id', templateId)
@@ -486,19 +485,7 @@ export class QuestionnaireManager {
    */
   private async updateAIServicePatterns(userId: string, patterns: UserAIPatterns): Promise<void> {
     try {
-      // Update the pattern engine with new user data
-      await this.patternEngine.updateUserPatterns(userId, {
-        studyPatterns: {
-          preferredTimes: patterns.preferred_study_times || [],
-          attentionSpan: patterns.attention_span || 60,
-          learningStyle: patterns.learning_style || 'mixed'
-        },
-        stressPatterns: {
-          triggers: patterns.stress_triggers || [],
-          reliefMethods: patterns.stress_relief_preferences || []
-        },
-        collaborationPreference: patterns.collaboration_preference || 'mixed'
-      });
+      this.patternEngine.hydrateFromDatabaseRow(userId, patterns as unknown as Record<string, unknown>);
     } catch (err: any) {
       console.error('Error in updateAIServicePatterns:', {
         message: err.message,
@@ -538,14 +525,14 @@ export class QuestionnaireManager {
    */
   async getNextRecommendedQuestionnaire(userId: string): Promise<QuestionnaireTemplate | null> {
     try {
-      console.log('Getting next recommended questionnaire for user:', userId);
+      questionnaireDevLog('Getting next recommended questionnaire for user:', userId);
       
       // First, get all active templates
       const allTemplates = await this.getActiveTemplates();
-      console.log('All active templates:', allTemplates);
+      questionnaireDevLog('All active templates:', allTemplates);
       
       if (allTemplates.length === 0) {
-        console.log('No active templates found');
+        questionnaireDevLog('No active templates found');
         return null;
       }
 
@@ -553,9 +540,9 @@ export class QuestionnaireManager {
       let userResponses: QuestionnaireResponse[] = [];
       try {
         userResponses = await this.getUserResponses(userId);
-        console.log('User responses:', userResponses);
+        questionnaireDevLog('User responses:', userResponses);
       } catch (error) {
-        console.log('No existing responses found (new user):', error);
+        questionnaireDevLog('No existing responses found (new user):', error);
         // This is fine for new users - they'll have no responses
       }
 
@@ -564,18 +551,18 @@ export class QuestionnaireManager {
         .filter(r => r.completion_status === 'completed')
         .map(r => r.template_id);
       
-      console.log('Completed template IDs:', completedTemplateIds);
+      questionnaireDevLog('Completed template IDs:', completedTemplateIds);
 
       // Find incomplete templates
       const incompleteTemplates = allTemplates.filter(
         t => !completedTemplateIds.includes(t.id)
       );
       
-      console.log('Incomplete templates:', incompleteTemplates);
+      questionnaireDevLog('Incomplete templates:', incompleteTemplates);
 
       // Return the first incomplete template (sorted by priority)
       const nextTemplate = incompleteTemplates.length > 0 ? incompleteTemplates[0] : null;
-      console.log('Next recommended template:', nextTemplate);
+      questionnaireDevLog('Next recommended template:', nextTemplate);
       
       return nextTemplate;
     } catch (err: any) {

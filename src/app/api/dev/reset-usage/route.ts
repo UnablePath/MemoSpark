@@ -1,5 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseServerAdmin } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 /**
@@ -19,16 +19,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) {
+    const supabase = supabaseServerAdmin;
+    
+    if (!supabase) {
       return NextResponse.json({ 
-        error: 'Service configuration error' 
+        error: 'Supabase admin client not initialized' 
       }, { status: 500 });
     }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
     const today = new Date().toISOString().split('T')[0];
 

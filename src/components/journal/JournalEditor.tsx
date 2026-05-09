@@ -233,7 +233,7 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
     setSelectedPrompt(prompt);
     setContent(prev => {
       if (prev.trim()) {
-        return prev + '\n\n' + prompt.prompt_text;
+        return `${prev}\n\n${prompt.prompt_text}`;
       }
       return prompt.prompt_text;
     });

@@ -1,21 +1,37 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 
-export default function OnboardingRedirect() {
-  const router = useRouter();
+import { Skeleton } from '@/components/ui/skeleton';
+import styles from '@/components/onboarding/OnboardingFlow.module.css';
 
-  useEffect(() => {
-    router.replace('/clerk-onboarding');
-  }, [router]);
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Redirecting to onboarding...</p>
+const OnboardingWizard = dynamic(
+  () =>
+    import('@/components/onboarding/OnboardingWizard').then((mod) => ({
+      default: mod.OnboardingWizard,
+    })),
+  {
+    loading: () => (
+      <div
+        className={`${styles.root} flex min-h-screen flex-col items-center justify-center gap-5 px-4`}
+        data-testid="onboarding-loading"
+      >
+        <div className="w-full max-w-md rounded-3xl border border-border/60 bg-card p-5 shadow-sm">
+          <Skeleton className="mb-4 h-6 w-40" />
+          <Skeleton className="mb-3 h-4 w-full" />
+          <Skeleton className="mb-3 h-4 w-10/12" />
+          <Skeleton className="h-11 w-full" />
+        </div>
+        <p className="text-sm text-muted-foreground">Preparing your setup flow...</p>
       </div>
-    </div>
+    ),
+  }
+);
+
+export default function OnboardingPage() {
+  return (
+    <main data-onboarding-root className={styles.root}>
+      <OnboardingWizard />
+    </main>
   );
-} 
+}

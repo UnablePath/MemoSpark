@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Store authorization for recurring billing if available
-    if (transaction.authorization && transaction.authorization.reusable) {
+    if (transaction.authorization?.reusable) {
       const authData = {
         clerk_user_id,
         email: transaction.customer.email,

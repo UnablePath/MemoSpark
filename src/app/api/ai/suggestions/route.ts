@@ -1,8 +1,10 @@
 import { auth } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseServerAdmin, createServerSupabaseWithClerkJwt } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { generatePostgresBackedSuggestions, generatePremiumFeature } from '@/lib/ai/serverSuggestionPipeline';
 import type { AIFeatureType } from '@/types/ai';
 import type { SubscriptionTier } from '@/types/subscription';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Type guard to check if a string is a valid AIFeatureType
 function isAIFeatureType(feature: string): feature is AIFeatureType {
@@ -24,9 +26,12 @@ function isAIFeatureType(feature: string): feature is AIFeatureType {
  * Generate AI suggestions with tier-aware processing
  */
 export async function POST(request: Request) {
+  let userId: string | null = null;
   try {
     // Get Clerk authentication
-    const { userId, getToken } = await auth();
+    const authResult = await auth();
+    userId = authResult.userId;
+    const getToken = authResult.getToken;
     
     if (!userId) {
       console.log('AI Suggestions API: No userId provided');
@@ -45,11 +50,14 @@ export async function POST(request: Request) {
       }
       body = JSON.parse(text);
     } catch (parseError) {
-      console.error('AI Suggestions API: Invalid JSON in request body:', parseError);
+      console.error('[AI Suggestions API] Invalid JSON in request body:', {
+        message: parseError instanceof Error ? parseError.message : 'Unknown error',
+        error: parseError
+      });
       return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
     }
     
-    const { feature, tasks, context } = body;
+    const { feature, tasks, context, accessCheck } = body;
 
     if (!feature || typeof feature !== 'string' || !isAIFeatureType(feature)) {
       console.log('AI Suggestions API: Invalid feature type:', feature);
@@ -77,22 +85,20 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Authentication token required' }, { status: 401 });
       }
     } catch (tokenError) {
-      console.error('AI Suggestions API: Error getting Clerk token:', tokenError);
+      console.error('[AI Suggestions API] Error getting Clerk token:', {
+        message: tokenError instanceof Error ? tokenError.message : 'Unknown error',
+        error: tokenError,
+        userId
+      });
       return NextResponse.json({ error: 'Token retrieval failed' }, { status: 401 });
     }
 
     // Create Supabase client with Clerk integration
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-      global: {
-        headers: {
-          Authorization: `Bearer ${clerkToken}`,
-        },
-      },
-    });
+    const supabase = createServerSupabaseWithClerkJwt(clerkToken);
+    
+    if (!supabase) {
+      return NextResponse.json({ error: 'Supabase client initialization failed' }, { status: 500 });
+    }
 
     // Check user subscription status with better error handling
     let userTier: SubscriptionTier = 'free';
@@ -115,20 +121,26 @@ export async function POST(request: Request) {
         // No subscription found, user needs to be created with default free tier
         console.log('AI Suggestions API: No subscription found for user, creating default free subscription');
         try {
-          await supabase
-            .from('user_subscriptions')
-            .insert({
-              clerk_user_id: userId,
-              tier_id: 'free',
-              status: 'active'
-            });
-          console.log('AI Suggestions API: Created default free subscription for user');
+          // Use admin client to create initial subscription
+          if (supabaseServerAdmin) {
+            await supabaseServerAdmin
+              .from('user_subscriptions')
+              .insert({
+                clerk_user_id: userId,
+                tier_id: 'free',
+                status: 'active'
+              });
+            console.log('AI Suggestions API: Created default free subscription for user');
+          }
         } catch (insertError) {
           console.log('AI Suggestions API: Failed to create default subscription, continuing with free tier');
         }
       }
     } catch (subscriptionError) {
-      console.error('AI Suggestions API: Subscription check failed:', subscriptionError);
+      console.error('[AI Suggestions API] Subscription check failed for user:', userId, {
+        message: subscriptionError instanceof Error ? subscriptionError.message : 'Unknown error',
+        error: subscriptionError
+      });
       // Continue with free tier as fallback
     }
 
@@ -160,7 +172,10 @@ export async function POST(request: Request) {
         requestsToday = usage?.ai_requests_count || 0;
       }
     } catch (usageError) {
-      console.error('AI Suggestions API: Usage check failed:', usageError);
+      console.error('[AI Suggestions API] Usage check failed for user:', userId, {
+        message: usageError instanceof Error ? usageError.message : 'Unknown error',
+        error: usageError
+      });
       // Continue with 0 requests as fallback
     }
 
@@ -225,12 +240,32 @@ export async function POST(request: Request) {
       }, { status: 403 });
     }
 
-    // Process AI request
-    const aiResult = await processAIRequest(feature, tasks, userId, context);
+    // Read-only tier/usage probe: skip the suggestion pipeline and do NOT
+    // increment daily usage. `useTieredAI.refreshUsage` fires on every mount
+    // across multiple components; without this guard each mount consumes
+    // AI quota just to look up tier/usage state.
+    if (accessCheck === true) {
+      return NextResponse.json({
+        success: true,
+        data: null,
+        tier: effectiveTier,
+        subscriptionTier: userTier,
+        launchMode: isLaunchMode,
+        usage: {
+          requestsUsed: requestsToday,
+          requestsRemaining: dailyLimit > 0 ? Math.max(0, dailyLimit - requestsToday) : 9999,
+          featureAvailable: hasRequiredTier,
+        },
+        upgradeRequired: false,
+        message: 'Access check only',
+      });
+    }
+
+    const aiResult = await processAIRequest(feature, tasks, userId, context, supabase, effectiveTier);
     
     // Track usage if successful
     if (aiResult.success) {
-      await trackUsage(supabase, userId, feature);
+      await trackUsage(userId, feature);
     }
 
     // Get updated usage info
@@ -264,7 +299,11 @@ export async function POST(request: Request) {
     });
 
   } catch (error: any) {
-    console.error('AI suggestions API error:', error);
+    console.error('[AI Suggestions API] Critical error processing AI request:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      error,
+      userId
+    });
     return NextResponse.json({
       success: false,
       error: 'AI service temporarily unavailable',
@@ -280,33 +319,35 @@ async function processAIRequest(
   feature: string,
   tasks: any[],
   userId: string,
-  context: any
+  context: any,
+  supabase: SupabaseClient,
+  effectiveTier: SubscriptionTier,
 ): Promise<{ success: boolean; data?: any; message?: string }> {
   try {
     switch (feature) {
       case 'basic_suggestions':
-        return await generateBasicSuggestions(tasks, userId, context);
+        return await generateBasicSuggestions(tasks, userId, context, supabase, effectiveTier);
       
       case 'advanced_suggestions':
-        return await generateAdvancedSuggestions(tasks, userId, context);
+        return await generateAdvancedSuggestions(tasks, userId, context, supabase, effectiveTier);
       
       case 'study_planning':
-        return await generateStudyPlan(tasks, userId, context);
-      
       case 'voice_processing':
-        return await processVoiceInput(context.audioData, userId);
-      
       case 'stu_personality':
-        return await generateStuResponse(tasks, userId, context);
-      
       case 'ml_predictions':
-        return await generateMLPredictions(tasks, userId);
-      
       case 'collaborative_filtering':
-        return await getCollaborativeInsights(userId);
-      
       case 'premium_analytics':
-        return await generateAnalytics(tasks, userId);
+        // Premium features: deterministic, pattern-backed heuristics (no placeholders)
+        if (effectiveTier !== 'premium') {
+          return { success: false, message: 'Premium tier required' };
+        }
+        return await generatePremiumFeature(
+          supabase as any,
+          userId,
+          feature as any,
+          tasks,
+          context,
+        );
       
       default:
         return {
@@ -315,7 +356,10 @@ async function processAIRequest(
         };
     }
   } catch (error: any) {
-    console.error(`Error processing ${feature}:`, error);
+    console.error(`[AI Suggestions API] Error processing feature ${feature} for user ${userId}:`, {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      error
+    });
     return {
       success: false,
       message: `Failed to process ${feature}: ${error.message}`
@@ -326,285 +370,61 @@ async function processAIRequest(
 /**
  * Generate basic AI suggestions
  */
-async function generateBasicSuggestions(tasks: any[], userId: string, context: any) {
-  // Generate basic suggestions based on tasks
-  const suggestions = tasks.slice(0, 3).map((task, index) => ({
-    id: `suggestion_${index + 1}`,
-    type: 'task_suggestion',
-    title: `Study tip for ${task.title || 'your task'}`,
-    description: `Focus on this task for ${task.estimated_time || 30} minutes with a clear goal`,
-    action: 'start_task',
-    priority: task.priority || 'medium',
-    estimatedTime: task.estimated_time || 30,
-    difficulty: task.difficulty || 'medium',
-    confidence: 0.75 + Math.random() * 0.2
-  }));
-
-  // Add general suggestions if there are fewer than 3 tasks
-  while (suggestions.length < 3) {
-    suggestions.push({
-      id: `general_${suggestions.length + 1}`,
-      type: 'study_habit_tip',
-      title: 'Study Productivity Tip',
-      description: 'Take a 5-minute break every 25 minutes to maintain focus',
-      action: 'take_break',
-      priority: 'low',
-      estimatedTime: 5,
-      difficulty: 'easy',
-      confidence: 0.8
-    });
-  }
-
+async function generateBasicSuggestions(
+  tasks: any[],
+  userId: string,
+  context: any,
+  supabase: SupabaseClient,
+  effectiveTier: SubscriptionTier,
+) {
+  const tier = effectiveTier === 'premium' ? 'premium' : 'free';
+  const result = await generatePostgresBackedSuggestions(supabase, userId, tasks, context, {
+    advanced: false,
+    effectiveTier: tier,
+  });
   return {
-    success: true,
+    success: result.success,
     data: {
-      suggestions,
+      ...result.data,
       context,
-      processingTime: Date.now(),
-      tier: 'free'
-    }
+    },
+    message: result.message,
   };
 }
 
 /**
  * Generate advanced AI suggestions
  */
-async function generateAdvancedSuggestions(tasks: any[], userId: string, context: any) {
-  const basicResult = await generateBasicSuggestions(tasks, userId, context);
-  
-  // Enhance suggestions for premium users
-  const enhancedSuggestions = basicResult.data.suggestions.map((suggestion: any, index: number) => ({
-    ...suggestion,
-    enhanced: true,
-    mlProcessed: true,
-    confidenceScore: 0.85 + (Math.random() * 0.1),
-    personalizedReason: `Enhanced suggestion based on your study patterns`,
-    difficulty: Math.min((suggestion.difficulty === 'easy' ? 1 : suggestion.difficulty === 'hard' ? 5 : 3) + 1, 5),
-    estimatedTime: Math.round(suggestion.estimatedTime * 1.2)
-  }));
-
-  // Add more premium suggestions
-  const additionalSuggestions = [
-    {
-      id: 'premium_1',
-      type: 'optimization',
-      title: 'Schedule Optimization',
-      description: 'Based on your patterns, tackle challenging tasks in the morning',
-      enhanced: true,
-      mlProcessed: true,
-      confidenceScore: 0.88
-    },
-    {
-      id: 'premium_2',
-      type: 'productivity',
-      title: 'Focus Enhancement',
-      description: 'Use the Pomodoro technique with 45-minute intervals for optimal results',
-      enhanced: true,
-      mlProcessed: true,
-      confidenceScore: 0.82
-    }
-  ];
-
-  return {
-    success: true,
-    data: {
-      suggestions: [...enhancedSuggestions, ...additionalSuggestions].slice(0, 8),
-      patterns: {
-        analysisComplete: true,
-        patternStrength: 0.78,
-        recommendations: ['Focus on challenging tasks in the morning', 'Take breaks every 45 minutes']
-      },
-      predictions: {
-        optimalStudyTime: '09:00-11:00',
-        difficultyRecommendation: 'moderate',
-        successProbability: 0.82
-      },
-      context,
-      processingTime: Date.now(),
-      tier: 'premium'
-    }
-  };
-}
-
-async function generateStudyPlan(tasks: any[], userId: string, context: any) {
-  const now = new Date();
-  const schedule = tasks.slice(0, 5).map((task: any, index: number) => {
-    const startTime = new Date(now.getTime() + (index * 2 * 60 * 60 * 1000));
-    return {
-      id: task.id,
-      title: task.title,
-      startTime: startTime.toISOString(),
-      duration: task.estimated_time || 60,
-      difficulty: task.difficulty || 'medium',
-      subject: task.subject || 'General',
-      reasoning: 'Optimized timing based on your productivity patterns'
-    };
+async function generateAdvancedSuggestions(
+  tasks: any[],
+  userId: string,
+  context: any,
+  supabase: SupabaseClient,
+  effectiveTier: SubscriptionTier,
+) {
+  const tier = effectiveTier === 'premium' ? 'premium' : 'free';
+  const result = await generatePostgresBackedSuggestions(supabase, userId, tasks, context, {
+    advanced: true,
+    effectiveTier: tier,
   });
-
   return {
-    success: true,
+    success: result.success,
     data: {
-      schedule,
-      optimizationTips: [
-        'Schedule challenging tasks during peak hours',
-        'Take regular breaks to maintain focus',
-        'Use active recall techniques',
-        'Review completed material regularly'
-      ],
-      estimatedCompletionTime: schedule.reduce((total, item) => total + item.duration, 0),
-      processingTime: Date.now(),
-      tier: 'premium'
-    }
+      ...result.data,
+      context,
+    },
+    message: result.message,
   };
 }
 
-async function processVoiceInput(audioData: any, userId: string) {
-  return {
-    success: true,
-    data: {
-      transcription: "Create a task to study for math exam tomorrow",
-      extractedTasks: [{
-        title: "Study for math exam",
-        description: "Prepare for tomorrow's math exam",
-        subject: "Mathematics",
-        priority: "high",
-        estimated_time: 120,
-        due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-      }],
-      confidence: 0.92,
-      processingTime: Date.now(),
-      tier: 'premium'
-    }
-  };
-}
-
-async function generateStuResponse(tasks: any[], userId: string, context: any) {
-  const taskCount = tasks.length;
-  const completedTasks = tasks.filter((t: any) => t.completed).length;
-  const completionRate = taskCount > 0 ? (completedTasks / taskCount) * 100 : 0;
-
-  let mood = 'encouraging';
-  let response = '';
-
-  if (completionRate > 80) {
-    mood = 'excited';
-    response = "Wow! You're absolutely crushing it! 🎉 Your productivity is off the charts!";
-  } else if (completionRate > 50) {
-    mood = 'positive';
-    response = "You're doing great! 😊 I can see you're making solid progress!";
-  } else {
-    mood = 'encouraging';
-    response = "Hey there! 💪 Every step counts, and you're building good habits!";
-  }
-
-  return {
-    success: true,
-    data: {
-      response,
-      mood,
-      encouragement: "Remember, I believe in you! Every small step is progress.",
-      tips: [
-        "Start with the easiest task to build momentum",
-        "Set a timer for 25 minutes and focus on one thing",
-        "Celebrate small wins along the way"
-      ],
-      processingTime: Date.now(),
-      tier: 'premium'
-    }
-  };
-}
-
-async function generateMLPredictions(tasks: any[], userId: string) {
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((t: any) => t.completed).length;
-
-  return {
-    success: true,
-    data: {
-      predictions: {
-        performanceScore: Math.min(95, 60 + (completedTasks / totalTasks) * 35),
-        optimalStudyTime: '09:00-11:00',
-        focusPrediction: 85 + Math.random() * 10,
-        completionLikelihood: Math.min(90, 50 + (completedTasks / totalTasks) * 40)
-      },
-      patterns: {
-        studyConsistency: completedTasks > 0 ? 'improving' : 'needs_focus',
-        timePatterns: ['Morning sessions show 23% better retention'],
-        difficultyProgression: 'Gradual increase recommended'
-      },
-      insights: [
-        'You handle moderate difficulty tasks well',
-        'Consider breaking large tasks into smaller chunks',
-        'Morning study sessions would be most effective for you'
-      ],
-      confidence: 0.82,
-      processingTime: Date.now(),
-      tier: 'premium'
-    }
-  };
-}
-
-async function getCollaborativeInsights(userId: string) {
-  return {
-    success: true,
-    data: {
-      insights: [
-        {
-          type: 'pattern',
-          message: 'Users with similar study patterns tend to perform better with 25-minute focus sessions',
-          confidence: 0.85
-        },
-        {
-          type: 'recommendation',
-          message: 'Consider studying Math in the morning - 73% of similar users report better retention',
-          confidence: 0.78
-        }
-      ],
-      processingTime: Date.now(),
-      tier: 'premium'
-    }
-  };
-}
-
-async function generateAnalytics(tasks: any[], userId: string) {
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((t: any) => t.completed).length;
-
-  return {
-    success: true,
-    data: {
-      performanceMetrics: {
-        completionRate: totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0,
-        productivityScore: Math.min(100, 60 + (completedTasks / totalTasks) * 40),
-        timeUtilization: 85.3,
-        focusEfficiency: 78.2
-      },
-      trendAnalysis: {
-        weeklyProgress: [65, 72, 68, 85, 90, 88, 92],
-        monthlyCompletion: 87.5,
-        difficultyTrend: 'increasing'
-      },
-      productivityInsights: [
-        'Your peak productivity occurs in morning hours',
-        'Complex tasks are completed 23% faster when scheduled before noon'
-      ],
-      benchmarking: {
-        percentileRanking: 78,
-        industryComparison: 'Above average',
-        peerComparison: 'Top 25%'
-      },
-      reportGenerated: new Date().toISOString(),
-      dataPoints: totalTasks,
-      processingTime: Date.now(),
-      tier: 'enterprise'
-    }
-  };
-}
 
 /**
- * Track usage in the database
+ * Track usage in the database bypassing RLS
  */
-async function trackUsage(supabase: any, userId: string, feature: string) {
+async function trackUsage(userId: string, feature: string) {
+  const supabase = supabaseServerAdmin;
+  if (!supabase) return;
+
   const today = new Date().toISOString().split('T')[0];
 
   try {
@@ -614,12 +434,12 @@ async function trackUsage(supabase: any, userId: string, feature: string) {
       .select('*')
       .eq('clerk_user_id', userId)
       .eq('usage_date', today)
-      .single();
+      .maybeSingle();
 
     if (existingUsage) {
       // Update existing record
-      const newCount = (existingUsage.ai_requests_count || 0) + 1;
-      const featureUsage = existingUsage.feature_usage || {};
+      const newCount = (Number(existingUsage.ai_requests_count) || 0) + 1;
+      const featureUsage = (existingUsage.feature_usage as Record<string, number>) || {};
       featureUsage[feature] = (featureUsage[feature] || 0) + 1;
 
       await supabase
@@ -643,7 +463,12 @@ async function trackUsage(supabase: any, userId: string, feature: string) {
         });
     }
   } catch (error) {
-    console.error('Error tracking usage:', error);
+    console.error('[AI Suggestions API] Error tracking usage in database:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      error,
+      userId,
+      feature
+    });
     // Don't throw error, just log it
   }
 } 

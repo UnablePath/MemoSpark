@@ -43,7 +43,7 @@ const RetroGrid = React.forwardRef<HTMLDivElement, RetroGridProps>(
               "[background-image:linear-gradient(to_right,rgba(120,120,120,0.2)_1px,transparent_0),linear-gradient(to_bottom,rgba(120,120,120,0.2)_1px,transparent_0)]",
               "[background-size:40px_40px] [mask-image:radial-gradient(ellipse_50%_60%_at_50%_0%,#000_70%,transparent_100%)]",
             )}
-          ></div>
+          />
         </div>
       </div>
     );

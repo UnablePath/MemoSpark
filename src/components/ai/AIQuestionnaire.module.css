@@ -1,0 +1,343 @@
+/* Study profile questionnaire, dark-first, single accent, editorial layout (no rainbow category UI). */
+
+.shell {
+  --q-page: #0c0e13;
+  --q-surface: #12161c;
+  --q-elevated: #181d26;
+  --q-border: rgba(255, 255, 255, 0.09);
+  --q-text: #e8eaed;
+  --q-muted: rgba(232, 234, 237, 0.65);
+  --q-faint: rgba(232, 234, 237, 0.42);
+  --q-accent: #34d399;
+  --q-accent-deep: #059669;
+  --q-radius: 10px;
+  --q-focus: 2px solid #34d399;
+
+  width: 100%;
+  max-width: 42rem;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: var(--q-text);
+}
+
+.panel {
+  border-radius: var(--q-radius);
+  border: 1px solid var(--q-border);
+  background: var(--q-surface);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+.panelPad {
+  padding: 1.25rem 1.35rem;
+}
+
+.panelPadLg {
+  padding: 2rem 1.5rem;
+}
+
+.topMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--q-faint);
+}
+
+.categoryPill {
+  align-self: flex-start;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--q-muted);
+  background: var(--q-elevated);
+  border: 1px solid var(--q-border);
+}
+
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1.3;
+  max-width: 100%;
+}
+
+.description {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--q-muted);
+  max-width: 65ch;
+}
+
+.badge {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--q-muted);
+}
+
+.progressTrack {
+  margin-top: 1rem;
+  height: 3px;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--q-elevated);
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--q-accent-deep);
+  transition: width 0.28s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progressFill {
+    transition: none;
+  }
+
+  .primaryBtn,
+  .outlineBtn {
+    transition: none;
+  }
+}
+
+.stuMessage {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--q-radius);
+  border: 1px solid var(--q-border);
+  background: var(--q-elevated);
+  border-inline-start: 3px solid var(--q-accent-deep);
+}
+
+.stuMessage p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--q-text);
+  max-width: 65ch;
+}
+
+.questionCard {
+  border-inline-start: 3px solid rgba(52, 211, 153, 0.35);
+}
+
+.questionTitle {
+  font-size: 1.1875rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  margin: 0 0 1.25rem;
+  max-width: 65ch;
+}
+
+.questionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+}
+
+.navRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--q-border);
+  margin-top: 0.25rem;
+  padding-top: 1.1rem;
+}
+
+.navHint {
+  font-size: 0.8125rem;
+  color: var(--q-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.loadingWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem;
+  min-height: 280px;
+}
+
+.loadingInner {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.loadingText {
+  font-size: 0.9375rem;
+  color: var(--q-muted);
+  max-width: 28ch;
+  line-height: 1.5;
+}
+
+.completeTitle {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--q-text);
+  margin: 0;
+}
+
+.completeBody {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--q-muted);
+  margin: 0;
+  max-width: 52ch;
+  margin-inline: auto;
+}
+
+.trustHint {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--q-faint);
+  margin: 0;
+  max-width: 48ch;
+  margin-inline: auto;
+}
+
+.stuHighlight {
+  margin-top: 0.5rem;
+  padding: 0.9rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--q-border);
+  background: rgba(5, 150, 105, 0.08);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--q-text);
+  text-align: left;
+  max-width: 100%;
+}
+
+.idleTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--q-text);
+  margin: 0;
+}
+
+.idleHint {
+  font-size: 0.8125rem;
+  color: var(--q-faint);
+  margin: 0;
+}
+
+.primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.5rem 1.25rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border: none;
+  cursor: pointer;
+  background: var(--q-accent-deep);
+  color: #ecfdf5;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.primaryBtn:hover:not(:disabled) {
+  background: #047857;
+}
+
+.primaryBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.outlineBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: 1px solid var(--q-border);
+  background: transparent;
+  color: var(--q-text);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.outlineBtn:hover:not(:disabled) {
+  background: var(--q-elevated);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.outlineBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.outlineBtnSm {
+  min-height: 36px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.unsupportedWrap {
+  padding: 1rem 1.1rem;
+  border-radius: var(--q-radius);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: rgba(127, 29, 29, 0.2);
+}
+
+.unsupportedTitle {
+  margin: 0 0 0.35rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #fecaca;
+}
+
+.unsupportedBody {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--q-muted);
+}
+
+.focusWithin :global(.focus-visible\:ring-ring):focus-visible {
+  outline: var(--q-focus);
+  outline-offset: 2px;
+}
+
+.requiredMark {
+  color: #f87171;
+}

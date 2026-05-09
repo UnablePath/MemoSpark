@@ -222,9 +222,9 @@ export const useCreateTask = (getToken?: () => Promise<string | null>) => {
           const smartReminderScheduled = await reminderEngine.scheduleSmartReminder(taskForSmartReminder);
           
           if (smartReminderScheduled) {
-            console.log(`✅ AI-powered smart reminders scheduled for task: ${data.title}`);
+            console.log(`✅ Smart reminders scheduled for task: ${data.title}`);
             toast.success('Smart reminders activated!', {
-              description: `AI will optimize reminder timing based on your patterns and task importance.`
+              description: `Follow-up timing is tuned using your patterns and this task's priority.`
             });
           } else {
             console.warn(`⚠️ Failed to schedule smart reminders for task: ${data.title}`);
@@ -340,22 +340,19 @@ export const useUpdateTask = (getToken?: () => Promise<string | null>) => {
           if (smartReminderScheduled) {
             console.log(`✅ Smart reminders updated for task: ${data.title}`);
             toast.success('Smart reminders updated!', {
-              description: `AI will adjust reminder timing based on your updated task settings.`
+              description: "Follow-up timing was refreshed from your updated task settings."
             });
           }
         } catch (error) {
           console.error('Error updating smart task reminders:', error);
         }
       } else if (updates.reminder_settings?.enabled === false) {
-        // Cancel reminders if disabled
         try {
-          // Cancel both basic and smart reminders
-          const { taskReminderService } = await import('@/lib/notifications/TaskReminderService');
-          const { ReminderEngine } = await import('@/lib/reminders/ReminderEngine');
-          
-          await taskReminderService.cancelTaskReminders(id, data.clerk_user_id || data.user_id);
-          // Note: ReminderEngine doesn't have a direct cancel method, but scheduled OneSignal notifications will remain
-          console.log(`✅ Reminders cancelled for task: ${data.title}`);
+          const { taskReminderBridge } = await import('@/lib/notifications/taskReminderBridge');
+          const result = await taskReminderBridge.cancel(id, data.clerk_user_id || data.user_id);
+          console.log(
+            `[tasks:update] cancelled ${result.cancelled} / failed ${result.failed} reminders for ${data.title}`,
+          );
         } catch (error) {
           console.error('Error cancelling task reminders:', error);
         }
@@ -413,9 +410,14 @@ export const useDeleteTask = (getToken?: () => Promise<string | null>) => {
         // We need to get the task data before it was deleted to get the user ID
         const previousTask = queryClient.getQueryData(taskKeys.detail(id)) as Task | undefined;
         if (previousTask) {
-          const { taskReminderService } = await import('@/lib/notifications/TaskReminderService');
-          await taskReminderService.cancelTaskReminders(id, previousTask.clerk_user_id || previousTask.user_id);
-          console.log(`✅ Reminders cancelled for deleted task: ${previousTask.title}`);
+          const { taskReminderBridge } = await import('@/lib/notifications/taskReminderBridge');
+          const result = await taskReminderBridge.cancel(
+            id,
+            previousTask.clerk_user_id || previousTask.user_id,
+          );
+          console.log(
+            `[tasks:delete] cancelled ${result.cancelled} / failed ${result.failed} reminders for ${previousTask.title}`,
+          );
         }
       } catch (error) {
         console.error('Error cancelling reminders for deleted task:', error);
@@ -489,9 +491,14 @@ export const useToggleTaskCompletion = (getToken?: () => Promise<string | null>)
       // Cancel reminders if task is completed
       if (isCompleted) {
         try {
-          const { taskReminderService } = await import('@/lib/notifications/TaskReminderService');
-          await taskReminderService.cancelTaskReminders(id, data.clerk_user_id || data.user_id);
-          console.log(`✅ Reminders cancelled for completed task: ${data.title}`);
+          const { taskReminderBridge } = await import('@/lib/notifications/taskReminderBridge');
+          const result = await taskReminderBridge.cancel(
+            id,
+            data.clerk_user_id || data.user_id,
+          );
+          console.log(
+            `[tasks:complete] cancelled ${result.cancelled} / failed ${result.failed} reminders for ${data.title}`,
+          );
         } catch (error) {
           console.error('Error cancelling reminders for completed task:', error);
         }

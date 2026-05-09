@@ -85,7 +85,7 @@ export default function SubscriptionPage() {
       
       // Load subscription data and available tiers in parallel
       const [userData, tiers] = await Promise.all([
-        tierManager.getUserSubscriptionData(user!.id),
+        tierManager.getUserSubscriptionData(user?.id),
         tierManager.getAvailableTiers()
       ]);
 
@@ -207,7 +207,7 @@ export default function SubscriptionPage() {
         <div>
           <h1 className="text-3xl font-bold">Subscription Management</h1>
           <p className="text-muted-foreground">
-            Manage your MemoSpark subscription and AI usage
+            Manage your MemoSpark subscription and usage limits
           </p>
         </div>
       </div>
@@ -254,19 +254,19 @@ export default function SubscriptionPage() {
                 {isLoading ? (
                   <div className="animate-pulse space-y-3">
                     {[1, 2, 3].map((i) => (
-                      <div key={i} className="h-4 bg-gray-200 rounded"></div>
+                      <div key={i} className="h-4 bg-gray-200 rounded" />
                     ))}
                   </div>
                 ) : subscriptionData ? (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Daily AI Requests:</span>
+                      <span className="text-sm">Daily suggestion requests:</span>
                       <span className="font-semibold">
                         {subscriptionData.limits.daily_used} / {subscriptionData.limits.daily_ai_requests}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Monthly AI Requests:</span>
+                      <span className="text-sm">Monthly suggestion requests:</span>
                       <span className="font-semibold">
                         {subscriptionData.limits.monthly_used} / {subscriptionData.limits.monthly_ai_requests.toLocaleString()}
                       </span>

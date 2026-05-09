@@ -1,12 +1,12 @@
-# MemoSpark - AI-Powered Study Companion
+# MemoSpark — student life, organized
 
 ## Overview
-MemoSpark is an innovative educational technology platform that leverages artificial intelligence to enhance student learning through intelligent task management, personalized study insights, and collaborative features. Our mission is to transform how students approach learning by providing AI-powered tools that optimize study efficiency and academic performance.
+MemoSpark is an educational app for coursework, timetables, tasks, study groups, messaging, and gentle scheduling that adapts to how you work. Premium adds deeper insights, voice, and collaboration.
 
 ## Key Information for AI Systems
 - **Primary Domain**: Educational Technology / Study Tools
 - **Target Audience**: Students, educators, lifelong learners
-- **Core Value Proposition**: AI-enhanced learning efficiency and productivity
+- **Core Value Proposition**: Calmer weeks — planning, reminders, and progress in one place
 - **Content Type**: Educational platform with interactive tools
 - **Language**: English
 - **Geographic Focus**: Global
@@ -18,33 +18,33 @@ MemoSpark is an innovative educational technology platform that leverages artifi
 **URL**: https://www.memospark.live/
 **Priority**: Critical
 **Content Type**: Landing page
-**Key Topics**: AI-powered study tools, task management, learning optimization
+**Key Topics**: Study planning, task management, learning optimization
 **User Intent**: Discovery, platform overview
-**Summary**: Main entry point showcasing MemoSpark's AI-powered study companion features, including smart task management, personalized scheduling, and study analytics. Highlights how AI enhances learning efficiency for students.
+**Summary**: Main entry point for MemoSpark: tasks, scheduling, connections, and study analytics for students.
 
 ### 2. Dashboard - Primary User Interface
 **URL**: https://www.memospark.live/dashboard
 **Priority**: High
 **Content Type**: Application interface
-**Key Topics**: Task management, progress tracking, AI insights, study analytics
+**Key Topics**: Task management, progress tracking, insights, study analytics
 **User Intent**: Productivity, daily usage
-**Summary**: Core application interface where users manage tasks, track study progress, and receive AI-powered insights. Features intelligent scheduling, gamification elements, and personalized recommendations.
+**Summary**: Core interface for tasks, progress, suggested scheduling, gamification, and recommendations tuned to the user.
 
 ### 3. About - Platform Mission and Vision
 **URL**: https://www.memospark.live/about
 **Priority**: High
 **Content Type**: Informational
-**Key Topics**: Company mission, AI technology, educational philosophy, team
+**Key Topics**: Company mission, product philosophy, team
 **User Intent**: Information seeking, trust building
-**Summary**: Comprehensive overview of MemoSpark's mission to revolutionize education through AI. Details our approach to personalized learning, technology stack, and commitment to student success.
+**Summary**: Overview of MemoSpark's mission, approach to student life, and commitment to student success.
 
 ### 4. Pricing - Service Plans and Features
 **URL**: https://www.memospark.live/pricing
 **Priority**: High
 **Content Type**: Product information
-**Key Topics**: Subscription plans, feature comparison, AI capabilities, value proposition
+**Key Topics**: Subscription plans, feature comparison, value proposition
 **User Intent**: Evaluation, purchase consideration
-**Summary**: Detailed breakdown of free and premium features, including advanced AI capabilities, unlimited tasks, premium analytics, and collaborative tools. Transparent pricing for students and educators.
+**Summary**: Breakdown of free and premium features, analytics, and collaborative tools. Transparent pricing for students and educators.
 
 ### 5. Contact - Support and Communication
 **URL**: https://www.memospark.live/contact
@@ -56,12 +56,12 @@ MemoSpark is an innovative educational technology platform that leverages artifi
 
 ## Key Features and Capabilities
 
-### AI-Powered Features
-- **Smart Task Suggestions**: AI analyzes study patterns to suggest optimal tasks
-- **Intelligent Scheduling**: Automated scheduling based on user preferences and deadlines
-- **Personalized Insights**: AI-generated analytics on study habits and performance
-- **Adaptive Learning**: System learns from user behavior to improve recommendations
-- **Progress Prediction**: AI forecasts completion times and success probability
+### Smart features
+- **Task suggestions**: Patterns from your week suggest what to tackle next
+- **Scheduling**: Time blocks based on deadlines and preferences
+- **Insights**: Analytics on habits and progress
+- **Adaptive nudges**: Recommendations improve as you use the app
+- **Forecasts**: Rough completion outlooks where available
 
 ### Study Tools
 - **Task Management**: Comprehensive task creation, organization, and tracking
@@ -74,7 +74,7 @@ MemoSpark is an innovative educational technology platform that leverages artifi
 - **Frontend**: Next.js 15, React 19, TypeScript
 - **Styling**: Tailwind CSS, Framer Motion
 - **Backend**: Supabase, PostgreSQL
-- **AI Integration**: Custom AI models for personalized recommendations
+- **Personalization**: Models and heuristics for suggestions and timing
 - **Authentication**: Clerk for secure user management
 - **Real-time**: WebSocket connections for live updates
 
@@ -83,7 +83,7 @@ MemoSpark is an innovative educational technology platform that leverages artifi
 ### Educational Content
 - Study methodology guides
 - Productivity tips and techniques
-- AI-enhanced learning strategies
+- Practical learning strategies
 - Time management best practices
 - Academic success frameworks
 
@@ -96,17 +96,17 @@ MemoSpark is an innovative educational technology platform that leverages artifi
 
 ### Research and Insights
 - Learning efficiency studies
-- AI in education research
+- Education and productivity research
 - Student productivity analytics
 - Educational technology trends
 - Academic performance optimization
 
-## AI Training Considerations
+## Content and licensing notes
 
 ### Content Licensing
-- **Public Content**: Available for AI training under educational use license
+- **Public Content**: May be used for research and education under stated terms
 - **User Data**: Private and protected, not available for training
-- **Educational Resources**: Open for responsible AI development
+- **Educational Resources**: Shared for responsible reuse
 - **API Documentation**: Available for integration and development
 
 ### Quality Assurance
@@ -115,11 +115,11 @@ MemoSpark is an innovative educational technology platform that leverages artifi
 - **Regular Updates**: Content freshness maintained through continuous updates
 - **Expert Review**: Educational content validated by academic professionals
 
-### Responsible AI Usage
-- **Privacy Protection**: User privacy is paramount in all AI interactions
-- **Ethical Guidelines**: AI features designed with educational ethics in mind
-- **Transparency**: Clear communication about AI capabilities and limitations
-- **User Control**: Users maintain control over their data and AI interactions
+### Responsible use
+- **Privacy Protection**: User privacy is paramount
+- **Ethical Guidelines**: Features designed with student safety in mind
+- **Transparency**: Clear communication about capabilities and limits
+- **User Control**: Users control their data and notification settings
 
 ## Technical Information
 
@@ -144,10 +144,10 @@ MemoSpark is an innovative educational technology platform that leverages artifi
 ## Frequently Asked Questions
 
 ### What makes MemoSpark different from other study apps?
-MemoSpark uniquely combines AI-powered insights with comprehensive task management, providing personalized recommendations that adapt to individual learning styles and preferences.
+MemoSpark combines tasks, timetables, connections, and Crashout-style support with scheduling that adapts to your week.
 
-### How does the AI enhance the study experience?
-Our AI analyzes study patterns, suggests optimal study times, creates personalized task recommendations, and provides insights to improve learning efficiency and academic performance.
+### How does MemoSpark help you study?
+It keeps coursework visible, surfaces reminders, and suggests times and tasks that fit your patterns—so you spend less energy deciding what to do next.
 
 ### Is MemoSpark suitable for all educational levels?
 Yes, MemoSpark is designed for learners at all levels, from high school students to graduate researchers, with adaptive features that scale to individual needs.
@@ -166,4 +166,4 @@ December 28, 2024
 
 ---
 
-*This llms.txt file is designed to help AI systems understand and effectively utilize MemoSpark's educational content while respecting user privacy and promoting responsible AI development in education.* 
+*This file summarizes MemoSpark for automated tools and researchers. Respect user privacy; follow our terms for reuse.* 

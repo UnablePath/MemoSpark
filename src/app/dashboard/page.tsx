@@ -1,74 +1,106 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
-import Link from 'next/link';
-import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
-import DashboardSwipeTabs from './DashboardSwipeTabs';
-import { Show, UserButton, useUser } from "@clerk/nextjs";
-import { User as UserIcon, Settings as SettingsIcon, Crown, Sparkles } from 'lucide-react';
-import { useTieredAI } from '@/hooks/useTieredAI';
-import { TutorialTrigger } from '@/components/tutorial';
-import { useTheme } from 'next-themes';
 // Import achievement system
-import { AchievementNotificationSystem } from '@/components/achievements/AchievementNotificationSystem';
-import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
-import { useFetchAchievements } from '@/hooks/useAchievementQueries';
-import { AuthAwareSeo } from '@/components/seo/AuthAwareSeo';
-import { WelcomeFlow } from '@/components/onboarding/WelcomeFlow';
-import { useConversionTracking } from '@/lib/analytics/conversionTracking';
+import { AchievementNotificationSystem } from "@/components/achievements/AchievementNotificationSystem";
+import { UserAccountHubPanel } from "@/components/clerk/UserAccountHubPanels";
+import { WelcomeFlow } from "@/components/onboarding/WelcomeFlow";
+import { AuthAwareSeo } from "@/components/seo/AuthAwareSeo";
+import { TutorialTrigger } from "@/components/tutorial";
+import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
+import { useFetchAchievements } from "@/hooks/useAchievementQueries";
+import { useDebouncedAchievementTrigger } from "@/hooks/useDebouncedAchievementTrigger";
+import { useTieredAI } from "@/hooks/useTieredAI";
+import { useConversionTracking } from "@/lib/analytics/conversionTracking";
 import {
   getMemoSparkDashboardUserButtonAppearance,
   isMemoSparkDarkTheme,
-} from '@/lib/clerk-appearance';
-import { UserAccountHubPanel } from '@/components/clerk/UserAccountHubPanels';
+} from "@/lib/clerk-appearance";
+import { Show, UserButton, useUser } from "@clerk/nextjs";
+import {
+  Crown,
+  Settings as SettingsIcon,
+  Sparkles,
+  User as UserIcon,
+} from "lucide-react";
+import { useTheme } from "next-themes";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
+import DashboardSwipeTabs from "./DashboardSwipeTabs";
 
 export default function DashboardPage() {
   const [achievementsInitialized, setAchievementsInitialized] = useState(false);
   const [showWelcomeFlow, setShowWelcomeFlow] = useState(false);
   const constraintsRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
-  
+
   // User data
   const { user } = useUser();
   const conversionTracker = useConversionTracking();
-  
+
+  const welcomeSubjects = useMemo(() => {
+    const raw = user?.publicMetadata?.subjects;
+    if (Array.isArray(raw)) {
+      return raw.filter((item): item is string => typeof item === "string");
+    }
+    return [];
+  }, [user?.publicMetadata?.subjects]);
+
   // Tier-aware dashboard features
   const { userTier, usage, isLoading } = useTieredAI();
-  
+
   // Check if user is new (from onboarding or first visit)
   useEffect(() => {
     // Ensure we're on the client side before accessing window or localStorage
-    if (typeof window === 'undefined') return;
-    
+    if (typeof window === "undefined") return;
+
     const urlParams = new URLSearchParams(window.location.search);
-    const fromOnboarding = urlParams.has('from') && urlParams.get('from') === 'onboarding';
-    
+    const fromOnboarding =
+      urlParams.has("from") && urlParams.get("from") === "onboarding";
+
     let hasSeenWelcome = false;
     try {
-      hasSeenWelcome = !!localStorage.getItem('hasSeenWelcome');
+      hasSeenWelcome = !!localStorage.getItem("hasSeenWelcome");
     } catch (error) {
-      console.warn('localStorage not available:', error);
+      console.warn("localStorage not available:", error);
     }
-    
+
     if (user?.id) {
       // Track dashboard visit
       const isFirstVisit = fromOnboarding || !hasSeenWelcome;
       conversionTracker.trackDashboardVisit(user.id, isFirstVisit);
-      
+
       // Track signup completion if coming from onboarding
       if (fromOnboarding) {
-        conversionTracker.trackSignUpCompleted(user.id, user.primaryEmailAddress?.emailAddress);
+        conversionTracker.trackSignUpCompleted(
+          user.id,
+          user.primaryEmailAddress?.emailAddress,
+        );
       }
     }
-    
+
     if (fromOnboarding || !hasSeenWelcome) {
       setShowWelcomeFlow(true);
     }
   }, [user, conversionTracker]);
-  
+
   // Achievement system
-  const { triggerAchievement } = useDebouncedAchievementTrigger();
+  const { triggerAchievement, triggerTutorialStep } =
+    useDebouncedAchievementTrigger();
   const { data: achievementsData } = useFetchAchievements();
+
+  // §3B: tutorial achievement for completed Clerk onboarding (idempotent server-side).
+  useEffect(() => {
+    if (!user?.id || user.publicMetadata?.onboardingComplete !== true) return;
+    if (typeof window === "undefined") return;
+    const key = `memospark_onboarding_tutorial_${user.id}`;
+    try {
+      if (localStorage.getItem(key) === "1") return;
+      localStorage.setItem(key, "1");
+    } catch {
+      return;
+    }
+    void triggerTutorialStep("onboarding_complete");
+  }, [user?.id, user?.publicMetadata?.onboardingComplete, triggerTutorialStep]);
 
   // Initialize achievements on first load
   useEffect(() => {
@@ -84,19 +116,21 @@ export default function DashboardPage() {
       // Check if achievements exist using React Query data
       if (achievementsData?.stats?.total === 0) {
         // No achievements exist, populate them
-        console.log('Populating achievements...');
-        const populateResponse = await fetch('/api/admin/achievements/populate', {
-          method: 'POST'
-        });
+        console.log("Populating achievements...");
+        const populateResponse = await fetch(
+          "/api/admin/achievements/populate",
+          {
+            method: "POST",
+          },
+        );
         if (populateResponse.ok) {
-          console.log('✅ Achievements populated successfully!');
+          console.log("✅ Achievements populated successfully!");
         }
       }
-      
-      // Trigger tutorial/dashboard visit achievements
-      await triggerAchievement('tutorial_step', { action: 'dashboard_visited' });
+
+      await triggerTutorialStep("dashboard_visited");
     } catch (error) {
-      console.error('Error initializing achievements:', error);
+      console.error("Error initializing achievements:", error);
     }
   };
 
@@ -107,40 +141,54 @@ export default function DashboardPage() {
       <AuthAwareSeo
         pageKey="dashboard"
         publicTitle="Student Dashboard"
-        publicDescription="Access your personalized study dashboard with AI-powered insights, task management, and progress tracking. Sign in to unlock your full learning potential."
+        publicDescription="Access your personalized study dashboard with tasks, progress tracking, and scheduling. Sign in to unlock your full learning potential."
         privateTitle="Your Dashboard"
-        privateDescription="Your personalized study dashboard with AI-powered insights, task management, and progress tracking."
+        privateDescription="Your personalized study dashboard with tasks, progress tracking, and scheduling tailored to you."
         forceNoindex={true}
       />
       <div ref={constraintsRef} className="dashboard-container bg-background">
         {/* Achievement Notification System */}
-        <AchievementNotificationSystem 
+        <AchievementNotificationSystem
           maxNotifications={3}
           defaultDuration={6000}
           position="top-right"
         />
-        
+
         {/* ConditionalHeader is disabled for /dashboard.
             Hub pattern: tier + usage + tutorial (quick action) + UserButton. Profile/Settings live in the avatar menu + Manage account modal only (no duplicate header icons). */}
         <div className="flex items-center justify-between px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 md:py-3 lg:py-4 xl:py-6 border-b border-border bg-background flex-shrink-0 pt-safe-top">
-          <Link href="/" aria-label="MemoSpark Homepage" className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md">
-            <MemoSparkLogoSvg height={28} className="sm:h-8 md:h-9 lg:h-10 xl:h-11" /> 
+          <Link
+            href="/"
+            aria-label="MemoSpark Homepage"
+            className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md"
+          >
+            <MemoSparkLogoSvg
+              height={28}
+              className="sm:h-8 md:h-9 lg:h-10 xl:h-11"
+            />
           </Link>
-          
+
           {/* Right side navigation */}
           <div className="flex items-center gap-0.5 xs:gap-1 sm:gap-1.5 md:gap-2">
             {!isLoading && (
               <>
                 {/* Tier Badge - Icon only on very small screens */}
-                <div className={`flex items-center gap-0.5 sm:gap-1 px-1 xs:px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium ${
-                  userTier === 'free' ? 'bg-gray-100 text-gray-700' :
-                  userTier === 'premium' ? 'bg-amber-100 text-amber-700' :
-                  'bg-purple-100 text-purple-700'
-                }`} title={`${userTier} tier`}>
-                  {userTier !== 'free' && <Crown className="h-2.5 w-2.5 sm:h-3 sm:w-3" />}
+                <div
+                  className={`flex items-center gap-0.5 sm:gap-1 px-1 xs:px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-xs font-medium ${
+                    userTier === "free"
+                      ? "bg-zinc-100 text-zinc-700"
+                      : userTier === "premium"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-cyan-100 text-cyan-700"
+                  }`}
+                  title={`${userTier} tier`}
+                >
+                  {userTier !== "free" && (
+                    <Crown className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                  )}
                   <span className="hidden sm:inline text-xs">{userTier}</span>
                 </div>
-                
+
                 {/* Usage Indicator - Compact */}
                 <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground px-1">
                   <Sparkles className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
@@ -151,17 +199,25 @@ export default function DashboardPage() {
 
             {/* Quick action: tutorial. Profile & app settings: avatar → Manage account modal (in-modal pages + links to full routes). */}
             <TutorialTrigger variant="icon" />
-            
+
             <Show when="signed-in">
               <div className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 flex items-center justify-center">
                 <UserButton
                   userProfileMode="modal"
-                  appearance={getMemoSparkDashboardUserButtonAppearance(isDarkTheme)}
+                  appearance={getMemoSparkDashboardUserButtonAppearance(
+                    isDarkTheme,
+                  )}
                 >
                   <UserButton.UserProfilePage
                     label="Profile & progress"
                     url="memospark-profile"
-                    labelIcon={<UserIcon className="size-4 shrink-0 text-foreground" strokeWidth={2} aria-hidden />}
+                    labelIcon={
+                      <UserIcon
+                        className="size-4 shrink-0 text-foreground"
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    }
                   >
                     <UserAccountHubPanel
                       title="Profile & progress"
@@ -174,7 +230,13 @@ export default function DashboardPage() {
                   <UserButton.UserProfilePage
                     label="App settings"
                     url="memospark-settings"
-                    labelIcon={<SettingsIcon className="size-4 shrink-0 text-foreground" strokeWidth={2} aria-hidden />}
+                    labelIcon={
+                      <SettingsIcon
+                        className="size-4 shrink-0 text-foreground"
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    }
                   >
                     <UserAccountHubPanel
                       title="App settings"
@@ -189,40 +251,49 @@ export default function DashboardPage() {
             </Show>
           </div>
         </div>
-        
-        <a href="#main-dashboard-content" className="sr-only focus:not-sr-only absolute top-2 left-2 z-50 bg-primary text-primary-foreground px-4 py-2 rounded focus:outline-dashed focus:outline-2 focus:outline-offset-2">Skip to main content</a>
-        
+
+        <a
+          href="#main-dashboard-content"
+          className="sr-only focus:not-sr-only absolute top-2 left-2 z-50 bg-primary text-primary-foreground px-4 py-2 rounded focus:outline-dashed focus:outline-2 focus:outline-offset-2"
+        >
+          Skip to main content
+        </a>
+
         <main id="main-dashboard-content" className="flex-1 overflow-hidden">
           <h1 className="sr-only">User Dashboard</h1>
           <DashboardSwipeTabs />
         </main>
 
         {/* ARIA live region for status messages */}
-        <div aria-live="polite" className="sr-only" id="dashboard-status-message"></div>
-        
+        <div
+          aria-live="polite"
+          className="sr-only"
+          id="dashboard-status-message"
+        />
+
         {/* Welcome Flow for new users */}
         {showWelcomeFlow && (
           <WelcomeFlow
             userName={user?.fullName || user?.firstName || undefined}
-            userSubjects={[]} // TODO: Get from user profile
+            userSubjects={welcomeSubjects}
             onComplete={() => {
               setShowWelcomeFlow(false);
-              
+
               // Safely set localStorage
               try {
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('hasSeenWelcome', 'true');
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("hasSeenWelcome", "true");
                   // Clear URL params
-                  window.history.replaceState({}, '', '/dashboard');
+                  window.history.replaceState({}, "", "/dashboard");
                 }
               } catch (error) {
-                console.warn('localStorage not available:', error);
+                console.warn("localStorage not available:", error);
               }
-              
+
               // Trigger first achievement
               setTimeout(() => {
-                triggerAchievement('welcome_completed');
-                triggerAchievement('first_login');
+                triggerAchievement("welcome_completed");
+                triggerAchievement("first_login");
               }, 1000);
             }}
           />

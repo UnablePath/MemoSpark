@@ -146,7 +146,7 @@ export default function GamificationFullTestPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
           <p className="mt-4 text-muted-foreground">Loading gamification features...</p>
         </div>
       </div>
@@ -310,7 +310,7 @@ export default function GamificationFullTestPage() {
                     <div 
                       className="bg-blue-600 h-2 rounded-full" 
                       style={{ width: `${(mockUserStats.xp / (mockUserStats.xp + mockUserStats.xp_to_next_level)) * 100}%` }}
-                    ></div>
+                    />
                   </div>
                 </div>
                 

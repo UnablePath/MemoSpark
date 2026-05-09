@@ -1,0 +1,59 @@
+{
+  "mcpServers": {
+    "github.com/supabase-community/supabase-mcp": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "YOUR_SUPABASE_ACCESS_TOKEN"
+      ],
+      "autoApprove": [
+        "list_projects",
+        "get_project",
+        "list_organizations",
+        "get_organization"
+      ]
+    },
+    "clerk": {
+      "url": "https://mcp.clerk.com/mcp",
+      "headers": {}
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"]
+    },
+    "design-inspiration": {
+      "command": "node",
+      "args": ["./mcps/design-inspiration-mcp-server/dist/index.js"],
+      "env": {
+        "SERPER_API_KEY": "YOUR_SERPER_KEY"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "semgrep": {
+      "command": "uvx",
+      "args": ["semgrep-mcp"]
+    },
+    "eslint": {
+      "command": "npx",
+      "args": ["-y", "@eslint/mcp@latest"]
+    },
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git", "--repository", "."]
+    },
+    "github": {
+      "type": "streamable-http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer YOUR_GITHUB_TOKEN"
+      }
+    }
+  }
+}

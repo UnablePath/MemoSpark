@@ -1,56 +1,88 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { MemoSparkLogoSvg } from '@/components/ui/MemoSparkLogoSvg';
-import { Button } from '@/components/ui/button';
-import { SignInButton, SignUpButton, Show, UserButton } from '@clerk/nextjs';
-import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { Menu, X, Settings, User } from 'lucide-react';
-import { useState } from 'react'
+import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
+import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  getMemoSparkDashboardUserButtonAppearance,
+  getMemoSparkMarketingNavUserButtonAppearance,
+  isMemoSparkDarkTheme,
+} from "@/lib/clerk-appearance";
+import { cn } from "@/lib/utils";
+import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
+import { Menu, X } from "lucide-react";
+import { useTheme } from "next-themes";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+
+/** Fixed 44×44 hit area; global `button { min-height: 44px }` + wrapper padding was stacking to ~52px and skewing the ring vs avatar. */
+function marketingNavUserButtonShellClassName(isDark: boolean) {
+  return cn(
+    "flex h-11 w-11 shrink-0 items-center justify-center self-center overflow-hidden rounded-full p-0",
+    isDark
+      ? "bg-white/[0.04] ring-1 ring-inset ring-white/[0.12]"
+      : "bg-transparent",
+    "[&_.cl-rootBox]:flex [&_.cl-rootBox]:h-full [&_.cl-rootBox]:w-full [&_.cl-rootBox]:min-h-0 [&_.cl-rootBox]:items-center [&_.cl-rootBox]:justify-center",
+    "[&_button.cl-userButtonTrigger]:!min-h-0 [&_button.cl-userButtonTrigger]:!min-w-0 [&_button.cl-userButtonTrigger]:!size-7 [&_button.cl-userButtonTrigger]:!p-0",
+    "[&_.cl-userButtonAvatarBox]:!size-7 [&_.cl-userButtonAvatarImage]:!size-7",
+  );
+}
+
+function MarketingNavUserButton({ isDark }: { isDark: boolean }) {
+  return (
+    <div className={marketingNavUserButtonShellClassName(isDark)}>
+      <UserButton
+        afterSignOutUrl="/"
+        appearance={
+          isDark
+            ? getMemoSparkMarketingNavUserButtonAppearance()
+            : getMemoSparkDashboardUserButtonAppearance(false)
+        }
+      />
+    </div>
+  );
+}
 
 export function HomepageNavbar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { theme, resolvedTheme } = useTheme();
+  const isDark = isMemoSparkDarkTheme(resolvedTheme ?? theme);
 
   const navLinks = [
-    { href: '/about', label: 'About Us' },
-    { href: '/contact', label: 'Contact' },
+    { href: "/about", label: "About Us" },
+    { href: "/contact", label: "Contact" },
   ];
 
   return (
-    <nav className="bg-background/90 backdrop-blur-lg fixed top-0 left-0 right-0 z-50 border-b border-border/40 shadow-sm">
-      <div className="container mx-auto px-3 sm:px-4 lg:px-6 flex items-center justify-between h-12 sm:h-14 md:h-16">
-        <div className="flex items-center gap-1 sm:gap-2">
-          <Link href="/" className="flex items-center gap-1 sm:gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md" aria-label="MemoSpark Home">
-            <MemoSparkLogoSvg height={23} darkBackground={false} className="sm:h-6 md:h-7" />
+    <nav className="fixed left-0 right-0 top-0 z-50 border-b border-border/80 bg-background/90 pt-safe-top shadow-sm backdrop-blur-lg">
+      <div className="container mx-auto flex h-12 min-h-12 items-center justify-between px-3 sm:h-14 sm:min-h-14 md:h-16 md:min-h-16 sm:px-4 lg:px-6">
+        <div className="flex min-w-0 items-center gap-1 sm:gap-2">
+          <Link
+            href="/"
+            className="flex min-w-0 items-center gap-1 sm:gap-2 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            aria-label="MemoSpark Home"
+          >
+            <MemoSparkLogoSvg height={23} className="sm:h-6 md:h-7" />
           </Link>
           <Link
             href="/coming-soon"
-            className="text-[10px] sm:text-xs text-muted-foreground hover:text-primary transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background rounded-sm"
+            className="shrink-0 rounded-sm text-[10px] text-muted-foreground transition-colors hover:text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-ring/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background sm:text-xs"
             aria-label="Learn more about PromptU, the creators of MemoSpark (Coming Soon)"
           >
             by PromptU
           </Link>
         </div>
 
-        {/* Wrapper for all right-aligned items on desktop */}
-        <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
-          {/* Desktop Menu */}
+        <div className="hidden items-center space-x-2 md:flex lg:space-x-4">
           <div className="flex items-center space-x-1 lg:space-x-2">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "px-2 py-1.5 lg:px-3 lg:py-2 rounded-md text-xs lg:text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                  pathname === link.href && "text-primary bg-primary/10"
+                  "inline-flex min-h-11 items-center rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors duration-150 hover:bg-muted/60 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:px-3 lg:text-sm",
+                  pathname === link.href && "bg-muted/80 text-foreground",
                 )}
               >
                 {link.label}
@@ -58,94 +90,65 @@ export function HomepageNavbar() {
             ))}
           </div>
 
-          {/* Auth Buttons */}
           <div className="flex items-center space-x-2">
             <Show when="signed-out">
               <SignInButton mode="modal">
-                <Button variant="ghost" size="sm" className="text-xs lg:text-sm font-medium hover:bg-primary/10 text-foreground hover:text-primary">Sign In</Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="min-h-11 text-xs font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground lg:text-sm"
+                >
+                  Sign In
+                </Button>
               </SignInButton>
               <SignUpButton mode="modal">
-                <Button size="sm" className="text-xs lg:text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90">Sign Up Free</Button>
+                <Button
+                  size="sm"
+                  className="min-h-11 bg-primary text-xs font-medium text-primary-foreground hover:bg-primary/90 lg:text-sm"
+                >
+                  Sign Up Free
+                </Button>
               </SignUpButton>
             </Show>
             <Show when="signed-in">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full hover:bg-primary/10">
-                  <span className="sr-only">Open account menu</span>
-                    <User className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile">
-                      <User className="mr-2 h-4 w-4" />
-                      Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Settings
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <MarketingNavUserButton isDark={isDark} />
             </Show>
           </div>
         </div>
 
-        {/* Mobile Menu Button and Profile for authenticated users */}
-        <div className="md:hidden flex items-center space-x-2">
+        <div className="flex items-center space-x-2 md:hidden">
           <Show when="signed-in">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full hover:bg-primary/10 bg-muted/50">
-                  <span className="sr-only">Open account menu</span>
-                  <User className="h-4 w-4 text-foreground" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem asChild>
-                  <Link href="/profile">
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/settings">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <MarketingNavUserButton isDark={isDark} />
           </Show>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="sm"
+            type="button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
             aria-expanded={isMobileMenuOpen}
-            className="h-8 w-8 hover:bg-primary/10 bg-muted/50 text-foreground"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted/40 text-foreground hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50"
           >
-            {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            {isMobileMenuOpen ? (
+              <X className="h-5 w-5" aria-hidden />
+            ) : (
+              <Menu className="h-5 w-5" aria-hidden />
+            )}
           </Button>
         </div>
       </div>
 
-      {/* Mobile Menu Panel */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-background border-t border-border/40 shadow-lg">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+        <div className="border-t border-border/80 bg-background shadow-lg md:hidden">
+          <div className="space-y-1 px-2 pt-2 pb-3 sm:px-3">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={cn(
-                  "block px-3 py-2 rounded-md text-sm font-medium text-foreground hover:text-primary hover:bg-primary/10 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background",
-                  pathname === link.href && "text-primary bg-primary/10"
+                  "flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-muted/50 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+                  pathname === link.href && "bg-muted/80 text-foreground",
                 )}
               >
                 {link.label}
@@ -154,29 +157,59 @@ export function HomepageNavbar() {
             <Link
               href="/coming-soon"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+              className="flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-muted-foreground/80 transition-colors duration-150 hover:bg-muted/50 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background"
               aria-label="Learn more about PromptU, the creators of MemoSpark (Coming Soon)"
             >
               by PromptU
             </Link>
           </div>
-          <div className="px-2 pb-3 pt-2 border-t border-border/40">
+          <div className="border-t border-border/80 px-2 pb-3 pt-2">
             <Show when="signed-out">
               <SignInButton mode="modal">
-                <Button variant="outline" size="sm" className="w-full mb-2 font-medium bg-background text-foreground border-border hover:bg-muted/50 hover:text-primary">Sign In</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mb-2 min-h-11 w-full border-border/80 bg-transparent font-medium text-foreground hover:bg-muted/40"
+                >
+                  Sign In
+                </Button>
               </SignInButton>
               <SignUpButton mode="modal">
-                <Button size="sm" className="w-full font-medium bg-primary text-primary-foreground hover:bg-primary/90">Sign Up Free</Button>
+                <Button
+                  size="sm"
+                  className="min-h-11 w-full bg-primary font-medium text-primary-foreground hover:bg-primary/90"
+                >
+                  Sign Up Free
+                </Button>
               </SignUpButton>
             </Show>
             <Show when="signed-in">
+              <div className="mb-2 flex flex-col gap-1">
+                <Link
+                  href="/profile"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                >
+                  Profile
+                </Link>
+                <Link
+                  href="/settings"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                >
+                  Settings
+                </Link>
+              </div>
               <Button
                 asChild
                 variant="outline"
                 size="sm"
-                className="mb-2 w-full font-medium bg-background text-foreground border-border hover:bg-muted/50 hover:text-primary"
+                className="min-h-11 w-full border-border/80 bg-transparent font-medium text-foreground hover:bg-muted/40"
               >
-                <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+                <Link
+                  href="/dashboard"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
                   Dashboard
                 </Link>
               </Button>
@@ -186,4 +219,4 @@ export function HomepageNavbar() {
       )}
     </nav>
   );
-} 
+}

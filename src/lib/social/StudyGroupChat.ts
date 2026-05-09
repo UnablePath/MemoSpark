@@ -1,4 +1,5 @@
 /**
+ * @deprecated Prefer `useRealtimeChat` / `StudyGroupRealtimeChat` / `StudyGroupChatTab` with Clerk-authenticated Supabase.
  * StudyGroupChat - Real-time chat functionality for study groups using Supabase Realtime
  * Based on Supabase UI Library realtime chat patterns with database integration
  */
@@ -71,6 +72,7 @@ export class StudyGroupChat {
       // Create a channel for this conversation
       this.channel = supabase.channel(`chat:${this.conversationId}`, {
         config: {
+          private: true,
           presence: {
             key: this.currentUserId,
           },
@@ -104,9 +106,9 @@ export class StudyGroupChat {
           this.handleTypingEvent(payload);
         });
 
-      // Subscribe to the channel with retry logic
-      const status = await this.channel.subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
+      // Subscribe to the channel with retry logic (subscribe returns the channel; status is only in the callback)
+      await this.channel.subscribe(async (channelStatus) => {
+        if (channelStatus === 'SUBSCRIBED') {
           if (process.env.NODE_ENV === 'development') {
             console.log('Connected to chat channel');
           }
@@ -116,23 +118,19 @@ export class StudyGroupChat {
             user_id: this.currentUserId,
             online_at: new Date().toISOString(),
           });
-        } else if (status === 'CHANNEL_ERROR') {
+        } else if (channelStatus === 'CHANNEL_ERROR') {
           console.error('Failed to connect to chat channel');
           // Attempt to reconnect after a delay
           setTimeout(() => {
             this.attemptReconnect();
           }, 5000);
-        } else if (status === 'TIMED_OUT') {
+        } else if (channelStatus === 'TIMED_OUT') {
           console.warn('Chat channel connection timed out, will retry');
           setTimeout(() => {
             this.attemptReconnect();
           }, 3000);
         }
       });
-
-      if (status === 'CHANNEL_ERROR') {
-        throw new Error('Failed to connect to chat channel');
-      }
     } catch (error) {
       console.error('Error connecting to chat:', error);
       // Don't throw the error to prevent cascade failures
@@ -278,12 +276,20 @@ export class StudyGroupChat {
         throw new Error('Failed to load participants');
       }
 
-      return (participants || []).map(participant => ({
-        user_id: participant.user_id,
-        name: participant.profiles?.name || 'Unknown',
-        avatar: participant.profiles?.avatar_url,
-        is_online: false, // Will be updated by presence
-      }));
+      return (participants || []).map(participant => {
+        const profileRaw = participant.profiles as
+          | { name: string | null; avatar_url: string | null }
+          | { name: string | null; avatar_url: string | null }[]
+          | null
+          | undefined;
+        const profile = Array.isArray(profileRaw) ? profileRaw[0] : profileRaw;
+        return {
+          user_id: participant.user_id,
+          name: profile?.name || 'Unknown',
+          avatar: profile?.avatar_url,
+          is_online: false, // Will be updated by presence
+        };
+      });
     } catch (error) {
       console.error('Error in getParticipants:', error);
       throw error;

@@ -24,13 +24,12 @@ export async function POST(request: NextRequest) {
         newBalance: result.newBalance,
         note: 'The penalty system has been fixed to be much more reasonable!'
       });
-    } else {
-      console.error(`❌ Compensation failed:`, result.error);
+    }
+      console.error("❌ Compensation failed:", result.error);
       return NextResponse.json({
         error: 'Failed to award compensation',
         details: result.error
       }, { status: 500 });
-    }
 
   } catch (error) {
     console.error('❌ Compensation API error:', error);

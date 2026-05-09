@@ -1,5 +1,5 @@
 import { taskReminderService } from '@/lib/notifications/TaskReminderService';
-import { createServiceRoleClient, supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { StuCelebration, type CelebrationType } from '@/lib/stu/StuCelebration';
 
 interface Task {
@@ -109,15 +109,9 @@ export class ReminderEngine {
       } as unknown as StuCelebration;
     }
     
-    // Try service role client first, fallback to regular client
-    this.supabaseService = createServiceRoleClient();
+    // Use regular Supabase client (Clerk-authenticated)
+    this.supabaseService = null; // No service role client on client side for security
     this.fallbackClient = supabase;
-    
-    if (!this.supabaseService) {
-      console.warn('⚠️ Service role client not available. Using regular client with limited permissions.');
-      console.warn('📋 To fix: Add SUPABASE_SERVICE_ROLE_KEY to your .env.local file');
-      console.warn('🔑 Get the key from: https://supabase.com/dashboard/project/pexqavlkabbguaqjdfce/settings/api');
-    }
   }
 
   static getInstance(): ReminderEngine {
@@ -173,12 +167,11 @@ export class ReminderEngine {
         if (data.success) {
           console.log('✅ Task reminder created successfully via API');
           return true;
-        } else {
+        }
           console.warn('⚠️ API reminder creation failed:', data.error);
           
           // Fallback to direct database approach
           return await this.createTaskReminderDirect(task);
-        }
       } catch (apiError) {
         console.warn('⚠️ API call failed, trying direct database approach:', apiError);
         
@@ -473,7 +466,7 @@ export class ReminderEngine {
         quietHoursEnd: userPattern.quietHours.end,
         weekendsEnabled: true
       })) {
-        console.log(`🔇 Skipping streak reminder - user is in quiet hours`);
+        console.log("🔇 Skipping streak reminder - user is in quiet hours");
         return false;
       }
 
@@ -495,7 +488,7 @@ export class ReminderEngine {
       let title: string;
 
       if (currentStreak === 0) {
-        message = `🌟 Start your streak! Check in to StudySpark and begin building momentum.`;
+        message = "🌟 Start your streak! Check in to StudySpark and begin building momentum.";
         stuAnimation = 'encouraging';
         title = '🔥 Start Your Streak!';
       } else if (currentStreak < 3) {
@@ -666,10 +659,9 @@ export class ReminderEngine {
       if (response.ok && result.success) {
         console.log(`✅ Streak reminder scheduled with OneSignal ID: ${result.oneSignalId}`);
         return true;
-      } else {
+      }
         console.error('❌ Failed to schedule streak reminder:', result.error);
         return false;
-      }
     } catch (error) {
       console.error('❌ Error in scheduleStreakReminderWithStu:', error);
       return false;
@@ -697,9 +689,8 @@ export class ReminderEngine {
     // Handle overnight quiet hours (e.g., 22:00 to 08:00)
     if (startMinutes > endMinutes) {
       return timeMinutes >= startMinutes || timeMinutes <= endMinutes;
-    } else {
-      return timeMinutes >= startMinutes && timeMinutes <= endMinutes;
     }
+      return timeMinutes >= startMinutes && timeMinutes <= endMinutes;
   }
 
   /**
@@ -1044,7 +1035,7 @@ export class ReminderEngine {
       try {
         if (reminderTime <= now) {
           // Send immediate notification using direct API (same as test reminders)
-          console.log(`⚡ Sending immediate notification via API`);
+          console.log("⚡ Sending immediate notification via API");
           
           const response = await fetch('/api/notifications/send', {
             method: 'POST',
@@ -1071,9 +1062,8 @@ export class ReminderEngine {
           if (response.ok && result.success) {
             console.log('✅ Immediate notification sent via API:', result.oneSignalId);
             return true;
-          } else {
-            console.warn('⚠️ Immediate notification failed:', result.error);
           }
+            console.warn('⚠️ Immediate notification failed:', result.error);
         } else {
           // Schedule future notification using direct API (same as test reminders)
           console.log(`📅 Scheduling notification via API for: ${reminderTime.toISOString()}`);
@@ -1104,9 +1094,8 @@ export class ReminderEngine {
           if (response.ok && result.success) {
             console.log('✅ Notification scheduled via API:', result.oneSignalId);
             return true;
-          } else {
-            console.warn('⚠️ Scheduled notification failed:', result.error);
           }
+            console.warn('⚠️ Scheduled notification failed:', result.error);
         }
       } catch (apiError) {
         console.error('❌ Direct API notification failed:', apiError);

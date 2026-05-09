@@ -1,37 +1,47 @@
 import type React from 'react';
 
+import { cn } from '@/lib/utils';
+
 interface MemoSparkLogoSvgProps {
   height: number;
   className?: string;
-  textColor?: string; // Optional prop to override text color
-  darkBackground?: boolean; // Helper prop to determine if on dark background
+  /** Solid fill for MEMO/SPARK text; overrides theme-based color */
+  textColor?: string;
+  /** Force light wordmark (e.g. on a primary or photo slab). Prefer `text-foreground` via default when on `bg-background`. */
+  darkBackground?: boolean;
 }
 
-export const MemoSparkLogoSvg: React.FC<MemoSparkLogoSvgProps> = ({ 
-  height, 
+export const MemoSparkLogoSvg: React.FC<MemoSparkLogoSvgProps> = ({
+  height,
   className = '',
   textColor,
-  darkBackground = false
+  darkBackground = false,
 }) => {
   const aspectRatio = 1200 / 199.48;
   const width = height * aspectRatio;
-  
-  const logoTextColor = textColor || 
-    (darkBackground ? '#ffffff' : 'hsl(var(--foreground))') ||
-    'var(--logo-text-color, hsl(var(--foreground)))';
-  
+
+  const wordmarkFill = textColor
+    ? textColor
+    : darkBackground
+      ? '#ffffff'
+      : 'currentColor';
+
   return (
     <svg
       viewBox="0 0 1200 199.48"
       height={height}
       width={width}
-      style={{ 
-        height, 
-        width, 
+      style={{
+        height,
+        width,
         display: 'block',
-        '--logo-text-color': logoTextColor
-      } as React.CSSProperties}
-      className={`${className} mx-auto`}
+      }}
+      className={cn(
+        'mx-auto',
+        !textColor && !darkBackground && 'text-foreground',
+        !textColor && darkBackground && 'text-white',
+        className,
+      )}
       xmlns="http://www.w3.org/2000/svg"
       role="img"
       aria-label="MemoSpark Logo"
@@ -64,7 +74,7 @@ export const MemoSparkLogoSvg: React.FC<MemoSparkLogoSvgProps> = ({
                 fontWeight: 900,
                 fontSize: '120.41098785px',
                 fontFamily: 'Futura, Arial, sans-serif',
-                fill: logoTextColor,
+                fill: wordmarkFill,
                 fillOpacity: 1,
                 fillRule: 'nonzero',
                 stroke: 'none'

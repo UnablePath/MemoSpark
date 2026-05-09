@@ -1,5 +1,7 @@
 import type { createClient } from '@supabase/supabase-js';
-import { getAuthenticatedClient } from '../supabase/client';
+import { createAuthenticatedSupabaseClient } from '../supabase/client';
+import { wrapClerkTokenForSupabase } from '@/lib/clerk/clerkSupabaseToken';
+import type { ClerkGetToken } from '@/lib/messaging/MessagingService';
 import type { Database } from '@/types/database';
 import { parseSearchTerm } from '../utils';
 
@@ -20,8 +22,13 @@ export type UserProfile = UserSearchResult;
 export class StudentDiscovery {
   private supabase: ReturnType<typeof createClient<Database>>;
 
-  constructor(getToken?: () => Promise<string | null>) {
-    this.supabase = getAuthenticatedClient(getToken);
+  constructor(getToken?: ClerkGetToken) {
+    const jwt = getToken ? wrapClerkTokenForSupabase(getToken) : async () => null;
+    const client = createAuthenticatedSupabaseClient(jwt);
+    if (!client) {
+      throw new Error('StudentDiscovery: Supabase client unavailable');
+    }
+    this.supabase = client as ReturnType<typeof createClient<Database>>;
   }
 
   async searchUsers(searchTerm: string, currentUserId: string): Promise<UserSearchResult[]> {
@@ -30,7 +37,7 @@ export class StudentDiscovery {
     if (isUsernameSearch) {
       // For @username search, search by display name (since we don't use fake usernames anymore)
       return this.searchByDisplayName(cleanTerm, currentUserId);
-    } else {
+    }
       // Regular search using the existing RPC function
       const { data, error } = await this.supabase.rpc('search_users', { search_term: searchTerm });
       if (error) {
@@ -38,7 +45,6 @@ export class StudentDiscovery {
         return [];
       }
       return (data || []).filter(user => user.clerk_user_id !== currentUserId) as UserSearchResult[];
-    }
   }
 
   private async searchByDisplayName(searchTerm: string, currentUserId: string): Promise<UserSearchResult[]> {

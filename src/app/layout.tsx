@@ -1,6 +1,6 @@
 import "@/app/globals.css";
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Geist, Manrope } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { UserProvider } from "@/lib/user-context";
@@ -13,15 +13,26 @@ import { Toaster } from "@/components/ui/sonner";
 import { OneSignalProvider } from '@/components/providers/onesignal-provider';
 import { NotificationPrompt } from '@/components/notifications/NotificationPrompt';
 import { ProfileSyncProvider } from "@/components/providers/ProfileSyncProvider";
+import { PatternCacheHydration } from "@/components/providers/pattern-cache-hydration";
 import { ServiceWorkerUpdater } from "@/components/pwa/ServiceWorkerUpdater";
 import { PremiumPopupProvider } from "@/components/providers/premium-popup-provider";
 import { NetworkErrorBoundary } from "@/components/ui/NetworkErrorBoundary";
 import { BASE_URL } from "@/lib/seo/seoConfig";
+import { TexturaPretextProvider } from "@/components/providers/textura-pretext-provider";
 
-const inter = Inter({ 
+const geist = Geist({
   subsets: ["latin"],
-  display: 'swap', // Optimize font loading for better LCP
+  display: "swap",
   preload: true,
+  variable: "--font-sans",
+});
+
+/** Display font for headings; paired with Geist body via `[data-marketing-home]` in globals.css */
+const manrope = Manrope({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-display",
+  weight: ["500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -111,7 +122,7 @@ export default function RootLayout({
           <link rel="dns-prefetch" href="https://api.memospark.live" />
           
           {/* OneSignal Web SDK - Official Implementation */}
-          <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+          <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer />
           <script
             dangerouslySetInnerHTML={{
               __html: `
@@ -129,7 +140,7 @@ export default function RootLayout({
                     welcomeNotification: {
                       disable: false,
                       title: 'MemoSpark',
-                      message: 'Thanks for subscribing! 🎉',
+                      message: 'Thanks for subscribing.',
                       url: '/dashboard'
                     }
                   });
@@ -151,30 +162,33 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#fadbdb" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
-      <body className={`${inter.className} max-w-full overflow-x-hidden`}>
+      <body className={`${geist.variable} ${manrope.variable} font-sans max-w-full overflow-x-hidden`}>
         <ThemeAwareClerkProvider>
           <ThemeProvider>
             <ProfileSyncProvider>
+              <PatternCacheHydration />
               <QueryProvider>
-                <UserProvider>
-                  <AIProvider>
-                    <TutorialProvider>
-                      <OneSignalProvider>
-                        <PremiumPopupProvider>
-                          <NetworkErrorBoundary>
-                            <ClientBody>
-                              {children}
-                              <PwaInstaller />
-                              <ServiceWorkerUpdater />
-                              <NotificationPrompt />
-                              <Toaster />
-                            </ClientBody>
-                          </NetworkErrorBoundary>
-                        </PremiumPopupProvider>
-                      </OneSignalProvider>
-                    </TutorialProvider>
-                  </AIProvider>
-                </UserProvider>
+                <TexturaPretextProvider>
+                  <UserProvider>
+                    <AIProvider>
+                      <TutorialProvider>
+                        <OneSignalProvider>
+                          <PremiumPopupProvider>
+                            <NetworkErrorBoundary>
+                              <ClientBody>
+                                {children}
+                                <PwaInstaller />
+                                <ServiceWorkerUpdater />
+                                <NotificationPrompt />
+                                <Toaster />
+                              </ClientBody>
+                            </NetworkErrorBoundary>
+                          </PremiumPopupProvider>
+                        </OneSignalProvider>
+                      </TutorialProvider>
+                    </AIProvider>
+                  </UserProvider>
+                </TexturaPretextProvider>
               </QueryProvider>
             </ProfileSyncProvider>
           </ThemeProvider>

@@ -18,6 +18,8 @@ import type {
 } from '@/types/ai';
 import type { UserAIPreferences as AIContextUserPreferences } from './aiContext'; // Import UserAIPreferences from aiContext
 import type { SupabaseClient } from '@supabase/supabase-js'; // Import SupabaseClient type
+import { patternDataFromStoredRow } from '@/lib/ai/userAiPatternsToPatternData';
+import { userPreferencesFromAiPatternsRow } from '@/lib/ai/userAiPatternsPreferences';
 
 // Re-export the types needed by index.ts
 export type { 
@@ -589,7 +591,9 @@ export class PatternRecognitionEngine {
     this.savePatterns(patterns);
 
     const endTime = Date.now();
-    console.log(`Enhanced pattern analysis completed in ${endTime - startTime}ms`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Enhanced pattern analysis completed in ${endTime - startTime}ms`);
+    }
 
     return patterns;
   }
@@ -600,7 +604,6 @@ export class PatternRecognitionEngine {
   saveUserPreferences(preferences: UserPreferences): void {
     const storage = getSafeStorage();
     if (!storage) {
-      if (typeof window === 'undefined') console.log('Skipping localStorage save on server side');
       return;
     }
 
@@ -640,7 +643,6 @@ export class PatternRecognitionEngine {
   private savePatterns(patterns: PatternData): void {
     const storage = getSafeStorage();
     if (!storage) {
-      if (typeof window === 'undefined') console.log('Skipping localStorage save on server side');
       return;
     }
 
@@ -671,7 +673,6 @@ export class PatternRecognitionEngine {
   private loadPatterns(): void {
     const storage = getSafeStorage();
     if (!storage) {
-      if (typeof window === 'undefined') console.log('Skipping localStorage access on server side');
       this.patterns = null;
       return;
     }
@@ -1026,10 +1027,60 @@ export class PatternRecognitionEngine {
    * Tracks user feedback on suggestions.
    * This method is called by AIProvider.
    */
-  public trackFeedback(suggestionId: string, accepted: boolean): void {
-    console.log(`PatternRecognitionEngine: Feedback for suggestion ${suggestionId} - ${accepted ? 'Accepted' : 'Rejected'}.`);
-    // TODO: Implement feedback storage (e.g., to Supabase or local analytics)
-    // This could influence future pattern analysis or suggestion weighting.
+  public trackFeedback(
+    suggestionId: string,
+    accepted: boolean,
+    userId?: string,
+    suggestionMeta?: {
+      type?: string;
+      title?: string;
+      source?: string;
+    },
+  ): void {
+    if (this.supabase && userId) {
+      const feedback = accepted ? 'liked' : 'disliked';
+      void (async () => {
+        let feedbackUserId = userId;
+        // Production schema uses profiles.id (uuid) in ai_suggestion_feedback.user_id.
+        // If lookup fails, fallback to the original id so text-based dev schemas still work.
+        const { data: profile } = await this.supabase!
+          .from("profiles")
+          .select("id")
+          .eq("clerk_user_id", userId)
+          .maybeSingle();
+        if (profile?.id) feedbackUserId = profile.id;
+
+        const { error } = await this.supabase!
+          .from("ai_suggestion_feedback")
+          .insert({
+            user_id: feedbackUserId,
+            suggestion_id: suggestionId,
+            suggestion_type: suggestionMeta?.type ?? "unknown",
+            suggestion_title: suggestionMeta?.title ?? "AI suggestion",
+            feedback,
+            suggestion_context: {
+              source: suggestionMeta?.source ?? "PatternRecognitionEngine",
+              accepted,
+            },
+            updated_at: new Date().toISOString(),
+          });
+        if (error) {
+          console.warn("PatternRecognitionEngine: feedback save failed", error.message);
+        }
+      })();
+    }
+  }
+
+  /**
+   * Dual-layer sync: Postgres `user_ai_patterns` is authoritative; this updates the in-memory
+   * and localStorage cache so client-only flows match the server after questionnaire/schedule writes.
+   */
+  public hydrateFromDatabaseRow(userId: string, row: Record<string, unknown>): void {
+    const pd = patternDataFromStoredRow(row, userId);
+    this.patterns = pd;
+    this.savePatterns(pd);
+    const prefs = userPreferencesFromAiPatternsRow(row);
+    if (prefs) this.saveUserPreferences(prefs);
   }
 
   /**
@@ -1072,11 +1123,11 @@ export class PatternRecognitionEngine {
     const firstPreference = preferredTimes[0].toLowerCase();
     if (firstPreference.includes('morning') || firstPreference.includes('6-9') || firstPreference.includes('9-12')) {
       return 'morning';
-    } else if (firstPreference.includes('afternoon') || firstPreference.includes('12-5')) {
+    }if (firstPreference.includes('afternoon') || firstPreference.includes('12-5')) {
       return 'afternoon';
-    } else if (firstPreference.includes('evening') || firstPreference.includes('5-8')) {
+    }if (firstPreference.includes('evening') || firstPreference.includes('5-8')) {
       return 'evening';
-    } else if (firstPreference.includes('night') || firstPreference.includes('11 pm')) {
+    }if (firstPreference.includes('night') || firstPreference.includes('11 pm')) {
       return 'night';
     }
     return 'morning';

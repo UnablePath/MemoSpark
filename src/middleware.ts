@@ -1,55 +1,88 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-import { NextResponse } from 'next/server'
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+
+import {
+  isOnboardingFlowAllowedRoute,
+  needsOnboarding,
+} from "@/lib/onboarding-gate";
+
+/** Local/dev-only: not anonymous in production (requires sign-in or 404 from matcher) */
+const devOnlyPublicRoutes =
+  process.env.NODE_ENV === "development"
+    ? ([
+        "/pwa-test",
+        "/pwa-debug",
+        "/onesignal-test",
+        "/api/test-notification",
+        "/api/test-manifest",
+        "/api/debug-clerk",
+      ] as const)
+    : ([] as const);
 
 const isPublicRoute = createRouteMatcher([
-    '/',
-    '/sign-in(.*)',
-    '/sign-up(.*)',
-  '/about',
-    '/contact',
-  '/coming-soon',
-  '/offline',
-  '/pwa-test',
-  '/pwa-debug',
-  '/onesignal-test',
-  '/api/test-notification',
-  '/api/test-manifest',
-  '/api/webhooks(.*)',
-  '/api/clerk-webhooks',
-  '/api/webhook-health',
-  '/api/debug-clerk',
-  '/OneSignalSDKWorker.js',
-    '/sw.js',
-  '/manifest',
-  '/manifest.json',
-  '/favicon.ico',
-    '/icon-192x192.png',
-    '/icon-256x256.png',
-    '/icon-384x384.png',
-    '/icon-512x512.png',
-  '/browserconfig.xml',
-    '/apple-touch-icon.png',
+  "/",
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/about",
+  "/contact",
+  "/terms(.*)",
+  "/privacy(.*)",
+  "/coming-soon",
+  "/offline",
+  ...devOnlyPublicRoutes,
+  "/api/analytics/(.*)",
+  "/api/webhooks(.*)",
+  "/api/clerk-webhooks",
+  "/api/webhook-health",
+  "/OneSignalSDKWorker.js",
+  "/sw.js",
+  "/manifest",
+  "/manifest.json",
+  "/favicon.ico",
+  "/icon-192x192.png",
+  "/icon-256x256.png",
+  "/icon-384x384.png",
+  "/icon-512x512.png",
+  "/browserconfig.xml",
+  "/apple-touch-icon.png",
   // SEO Files - Must be publicly accessible
-  '/sitemap.xml',
-  '/robots.txt',
-  '/llms.txt',
-  '/_next(.*)',
-  '/public(.*)',
+  "/sitemap.xml",
+  "/robots.txt",
+  "/llms.txt",
+  "/_next(.*)",
+  "/public(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
-    await auth.protect();
+  if (isPublicRoute(req)) {
+    return NextResponse.next();
   }
-  
+
+  await auth.protect();
+
+  const { userId, sessionClaims } = await auth();
+  if (
+    userId &&
+    needsOnboarding(sessionClaims) &&
+    !isOnboardingFlowAllowedRoute(req)
+  ) {
+    if (req.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "onboarding_required", code: "ONBOARDING_REQUIRED" },
+        { status: 403 },
+      );
+    }
+    return NextResponse.redirect(new URL("/onboarding", req.url));
+  }
+
   return NextResponse.next();
 });
 
 export const config = {
   matcher: [
     // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     // Always run for API routes
-    '/(api|trpc)(.*)',
+    "/(api|trpc)(.*)",
   ],
-}; 
+};

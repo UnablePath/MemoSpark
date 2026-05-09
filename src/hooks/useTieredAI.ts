@@ -51,8 +51,11 @@ export const useTieredAI = () => {
         },
         body: JSON.stringify({
           feature,
-          tasks: [], // Empty tasks array for access check only
-          context: {}
+          tasks: [],
+          context: {},
+          // Read-only tier/usage lookup. The server short-circuits this,
+          // skipping the suggestion pipeline and daily-usage tracking.
+          accessCheck: true,
         })
       });
 
@@ -76,6 +79,14 @@ export const useTieredAI = () => {
             message: 'Authentication required'
           };
         }
+
+        if (response.status === 501 || errorData?.data?.notImplemented) {
+          return {
+            canProceed: false,
+            upgradeRequired: false,
+            message: errorData.message || 'Feature not implemented yet',
+          };
+        }
         
         throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
       }
@@ -95,7 +106,7 @@ export const useTieredAI = () => {
         return { 
           canProceed: false, 
           upgradeRequired: false, 
-          message: 'Unable to connect to AI service. Please check your internet connection.' 
+          message: 'Unable to connect to suggestion service. Please check your internet connection.' 
         };
       }
       
@@ -216,6 +227,18 @@ export const useTieredAI = () => {
             upgradeRequired: data.upgradeRequired,
             message: data.message,
             error: data.error
+          };
+        }
+
+        if (response.status === 501 || data?.data?.notImplemented) {
+          setState(prev => ({ ...prev, isLoading: false }));
+          return {
+            success: false,
+            tier: data.tier || state.userTier,
+            usage: data.usage || state.usage,
+            upgradeRequired: false,
+            message: data.message || 'Feature not implemented yet',
+            error: data.error || 'Not implemented',
           };
         }
         

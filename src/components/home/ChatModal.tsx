@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FaTimes, FaPaperPlane } from "react-icons/fa";
+import { Send, X } from "lucide-react";
 import type { Student, Message } from "@/types/student";
 
 interface ChatModalProps {
@@ -128,7 +128,7 @@ const ChatModal = React.memo<ChatModalProps>(({
             onClick={handleClose} 
             aria-label={`Close chat with ${student.name}`}
           >
-            <FaTimes aria-hidden="true" />
+            <X aria-hidden="true" />
           </Button>
         </CardHeader>
         
@@ -162,7 +162,7 @@ const ChatModal = React.memo<ChatModalProps>(({
               className="flex-grow"
             />
             <Button type="submit" size="icon" aria-label="Send message">
-              <FaPaperPlane aria-hidden="true" />
+              <Send aria-hidden="true" />
             </Button>
           </form>
         </CardFooter>

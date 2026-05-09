@@ -1,10 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { supabase } from '@/lib/supabase/client';
+import { getSupabaseWithClerkAuth } from '@/lib/supabase/server-auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { supabase, userId } = await getSupabaseWithClerkAuth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -14,11 +13,21 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type') || 'all'; // 'all', 'my-groups', 'discover'
+    const typeRaw = searchParams.get('type') || 'all'; // 'all', 'my-groups', 'discover'
+    const allowedTypes = new Set(['all', 'my-groups', 'discover']);
+    if (!allowedTypes.has(typeRaw)) {
+      return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 });
+    }
+    const type = typeRaw;
     const query = searchParams.get('q');
     const categoryId = searchParams.get('categoryId');
-    const limit = Number.parseInt(searchParams.get('limit') || '20');
-    const offset = Number.parseInt(searchParams.get('offset') || '0');
+    const parsedLimit = Number.parseInt(searchParams.get('limit') || '20');
+    const parsedOffset = Number.parseInt(searchParams.get('offset') || '0');
+    if (Number.isNaN(parsedLimit) || Number.isNaN(parsedOffset)) {
+      return NextResponse.json({ error: 'Invalid pagination params' }, { status: 400 });
+    }
+    const limit = Math.min(100, Math.max(1, parsedLimit));
+    const offset = Math.max(0, parsedOffset);
 
     // Add timeout wrapper for database queries
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -42,7 +51,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to fetch groups' }, { status: 500 });
       }
       
-      groups = data || [];
+      groups = (data || []).filter((group: { is_archived?: boolean | null }) => !group.is_archived);
     } else {
       // Simplified query to avoid complex joins that cause timeouts
       let query_builder = supabase
@@ -53,11 +62,16 @@ export async function GET(request: NextRequest) {
           description,
           created_at,
           created_by,
-          is_public,
-          max_members
+          privacy_level,
+          max_members,
+          conversation_id
         `)
         .range(offset, offset + limit - 1)
         .order('created_at', { ascending: false });
+
+      if (type === 'discover') {
+        query_builder = query_builder.eq('privacy_level', 'public').eq('is_archived', false);
+      }
 
       // Add search filter
       if (query) {
@@ -66,7 +80,7 @@ export async function GET(request: NextRequest) {
 
       // Add category filter (if we had categories)
       if (categoryId) {
-        // TODO: Implement category filtering when categories are added
+        query_builder = query_builder.eq('category_id', categoryId);
       }
 
       const { data, error } = await Promise.race([
@@ -81,7 +95,7 @@ export async function GET(request: NextRequest) {
 
       // Get member counts separately to avoid complex joins
       const groupIds = data?.map(group => group.id) || [];
-      let memberCounts = {};
+      let memberCounts: Record<string, number> = {};
       
       if (groupIds.length > 0) {
         const { data: memberData } = await supabase
@@ -111,7 +125,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { supabase, userId } = await getSupabaseWithClerkAuth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -121,76 +135,95 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, privacy_level = 'public' } = body;
+    const {
+      name,
+      description,
+      privacy_level = 'public',
+      category_id = null,
+      max_members = null,
+    } = body;
 
-    if (!name) {
+    if (!name || typeof name !== 'string' || !name.trim()) {
       return NextResponse.json({ error: 'Group name is required' }, { status: 400 });
+    }
+    if (!['public', 'private', 'invite_only'].includes(String(privacy_level))) {
+      return NextResponse.json({ error: 'Invalid privacy_level' }, { status: 400 });
+    }
+    if (max_members !== null && (!Number.isInteger(max_members) || max_members < 2)) {
+      return NextResponse.json({ error: 'max_members must be an integer >= 2 or null' }, { status: 400 });
     }
 
     // Create the study group
     const { data: group, error: groupError } = await supabase
       .from('study_groups')
       .insert({
-        name,
+        name: name.trim(),
         description,
         created_by: userId,
+        privacy_level,
+        category_id,
+        max_members,
         metadata: { privacy_level }
       })
       .select()
       .single();
 
     if (groupError) {
-      console.error('Error creating group:', groupError);
+      console.error('[social:createGroup] Failed to insert group:', groupError);
       return NextResponse.json({ error: 'Failed to create group' }, { status: 500 });
     }
 
-    // Add creator as first member with admin role
+    // Fetch role_id for owner
+    const { data: roleData } = await supabase
+      .from('group_roles')
+      .select('id')
+      .eq('name', 'owner')
+      .maybeSingle();
+
+    // Add creator as first member with owner role
     const { error: memberError } = await supabase
       .from('study_group_members')
       .insert({
         group_id: group.id,
         user_id: userId,
-        role: 'admin'
+        role: 'owner',
+        role_id: roleData?.id ?? null
       });
 
     if (memberError) {
-      console.error('Error adding creator as member:', memberError);
-      // Don't fail the request, but log the error
+      // Rollback: remove the orphaned group row so we don't leave partial state
+      await supabase.from('study_groups').delete().eq('id', group.id);
+      console.error('[social:createGroup] Failed to add creator as member:', memberError);
+      return NextResponse.json({ error: 'Failed to initialize group membership' }, { status: 500 });
     }
 
-    // Create a conversation for the group chat
-    const { data: conversation, error: conversationError } = await supabase
-      .from('conversations')
-      .insert({
-        conversation_type: 'group',
-        name: `${name} Chat`,
-        created_by: userId,
-        metadata: { group_id: group.id }
-      })
-      .select()
-      .single();
+    // Create the group conversation atomically.  The RPC is idempotent and
+    // runs SECURITY DEFINER, so it can link the study_groups row without
+    // hitting RLS conflicts.
+    const { data: conversationId, error: conversationError } = await supabase.rpc(
+      'create_group_chat_atomic',
+      {
+        p_name: `${name.trim()} Chat`,
+        p_user_id: userId,
+        p_description: description ?? null,
+        p_metadata: {},
+        p_study_group_id: group.id,
+      },
+    );
 
-    if (!conversationError && conversation) {
-      // Update group with conversation_id
-      await supabase
-        .from('study_groups')
-        .update({ conversation_id: conversation.id })
-        .eq('id', group.id);
-
-      // Add creator as conversation participant
-      await supabase
-        .from('conversation_participants')
-        .insert({
-          conversation_id: conversation.id,
-          user_id: userId
-        });
+    if (conversationError) {
+      // Rollback: remove member + group rows so UI won't show an unchattable group
+      await supabase.from('study_group_members').delete().eq('group_id', group.id);
+      await supabase.from('study_groups').delete().eq('id', group.id);
+      console.error('[social:createGroup] Failed to create group chat:', conversationError);
+      return NextResponse.json({ error: 'Failed to create group chat' }, { status: 500 });
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       group: {
         ...group,
-        conversation_id: conversation?.id
-      }
+        conversation_id: conversationId as string,
+      },
     }, { status: 201 });
   } catch (error) {
     console.error('Error in POST /api/study-groups:', error);

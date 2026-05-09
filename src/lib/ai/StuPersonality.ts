@@ -74,10 +74,6 @@ export class StuPersonality {
     ]
   };
 
-  constructor() {
-    // Initialize with default personality
-  }
-
   /**
    * Generate contextual response based on tasks and user state
    */

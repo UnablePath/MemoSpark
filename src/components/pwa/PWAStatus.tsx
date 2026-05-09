@@ -63,7 +63,7 @@ export default function PWAStatus({ detailed = false, className = '' }: PWAStatu
             <WifiOff className="w-4 h-4 text-red-500" />
           )}
           {hasUpdate && (
-            <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-500 rounded-full"></div>
+            <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-500 rounded-full" />
           )}
         </div>
         <span className={`text-sm ${getStatusColor()}`}>
@@ -196,7 +196,7 @@ export default function PWAStatus({ detailed = false, className = '' }: PWAStatu
               : !isOnline 
                 ? 'bg-red-500'
                 : 'bg-yellow-500'
-          }`}></div>
+          }`} />
           {getStatusText()}
         </div>
       </div>

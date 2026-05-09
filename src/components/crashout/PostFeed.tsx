@@ -4,7 +4,7 @@ import type React from 'react';
 import { useRef, useCallback, useEffect } from 'react';
 import { useCrashoutPosts } from '@/hooks/useCrashoutPosts';
 import { PostCard } from './PostCard';
-import { Loader2 } from 'lucide-react';
+import { FileText, Loader2 } from 'lucide-react';
 
 interface PostFeedProps {
   filter: 'latest' | 'popular' | 'trending' | 'top' | 'mine';
@@ -61,9 +61,8 @@ export const PostFeed: React.FC<PostFeedProps> = ({
 
   // Handle reaction on posts
   const handleReaction = (postId: string, emoji: string) => {
-    // For now, just log the reaction
-    // This can be enhanced to update the UI optimistically
-    console.log(`Reaction ${emoji} added to post ${postId}`);
+    void postId;
+    void emoji;
   };
 
   if (loading) {
@@ -89,7 +88,7 @@ export const PostFeed: React.FC<PostFeedProps> = ({
   if (posts.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="text-2xl mb-2">📝</div>
+        <FileText className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
         <div className="text-lg font-medium mb-1">No posts yet</div>
         <div className="text-sm text-muted-foreground">
           {filter === 'latest' && !hasMore ? 
@@ -135,7 +134,7 @@ export const PostFeed: React.FC<PostFeedProps> = ({
       {!hasMore && posts.length > 0 && (
         <div className="text-center py-8">
           <div className="text-sm text-muted-foreground">
-            🎉 You've reached the end! 
+            You have reached the end.
           </div>
           <div className="text-xs text-muted-foreground mt-1">
             {filter === 'latest' ? 

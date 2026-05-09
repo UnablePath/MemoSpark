@@ -83,14 +83,13 @@ export async function POST(request: NextRequest) {
         notificationId: result.id,
         recipients: result.recipients || 1
       });
-    } else {
+    }
       console.error('OneSignal API error:', result);
       return NextResponse.json({ 
         success: false, 
         message: 'Failed to send notification',
         error: result.errors || 'Unknown error'
       }, { status: 500 });
-    }
 
   } catch (error) {
     console.error('Error sending test notification:', error);

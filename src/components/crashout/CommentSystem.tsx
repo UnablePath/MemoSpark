@@ -51,7 +51,7 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
         const loadedComments = await getCommentsForPost(postId);
         setComments(loadedComments as Comment[]);
       } catch (error) {
-        console.error('Error loading comments:', error);
+        console.error('[crashout:comments:load]', error);
       }
     };
     
@@ -80,7 +80,7 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
         onCommentAdd(comment);
       }
     } catch (error) {
-      console.error('Error adding comment:', error);
+      console.error('[crashout:comments:add]', error);
     } finally {
       setIsLoading(false);
     }
@@ -96,7 +96,7 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
         onCommentDelete(commentId);
       }
     } catch (error) {
-      console.error('Error deleting comment:', error);
+      console.error('[crashout:comments:delete]', error);
     } finally {
       setDeletingComment(null);
     }
@@ -152,7 +152,7 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center space-x-2">
-                        <div className="w-6 h-6 bg-purple-500/80 rounded-full flex items-center justify-center">
+                        <div className="w-6 h-6 rounded-full bg-primary/80 flex items-center justify-center">
                           <span className="text-xs text-white">A</span>
                         </div>
                         <div>
@@ -221,7 +221,7 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Share your thoughts..."
-                  className="min-h-[80px] bg-white/5 border-white/20 text-white placeholder-white/50 focus:border-purple-400 resize-none text-sm"
+                  className="min-h-[80px] bg-white/5 border-white/20 text-white placeholder-white/50 focus:border-primary resize-none text-sm"
                   disabled={isLoading}
                 />
                 
@@ -234,7 +234,7 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
                     onClick={handleAddComment}
                     disabled={!newComment.trim() || isLoading}
                     size="sm"
-                    className="bg-purple-600/80 hover:bg-purple-600 text-white border-purple-500/50"
+                    className="bg-primary/80 hover:bg-primary text-primary-foreground border-primary/50"
                   >
                     {isLoading ? (
                       <div className="h-3 w-3 border border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -256,7 +256,7 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-purple-500/50 text-purple-300 hover:bg-purple-500/20"
+                  className="border-primary/50 text-primary hover:bg-primary/20"
                 >
                   Sign In
                 </Button>

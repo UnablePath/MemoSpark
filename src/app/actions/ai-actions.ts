@@ -150,17 +150,18 @@ function createSuggestionContext(context: any): SuggestionContext {
 
 /**
  * Get authenticated Supabase client for server actions
- * Uses singleton pattern to prevent multiple instances
  */
 function getServerSupabaseClient() {
-  // Import the server-side singleton
   const { supabaseServer } = require('@/lib/supabase/server');
-  
-  if (!supabaseServer) {
-    throw new Error('Supabase server client not available');
-  }
-  
   return supabaseServer;
+}
+
+/**
+ * Get admin Supabase client for server actions (usage tracking, etc.)
+ */
+function getAdminSupabaseClient() {
+  const { supabaseServerAdmin } = require('@/lib/supabase/server');
+  return supabaseServerAdmin;
 }
 
 /**
@@ -231,11 +232,11 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
       };
     }
 
-    // 4. Rate limiting check
-    const supabase = getServerSupabaseClient();
+    // 4. Rate limiting check (using ADMIN client to bypass RLS for usage tracking)
+    const supabaseAdmin = getAdminSupabaseClient();
     const today = new Date().toISOString().split('T')[0];
     
-    const { data: usage, error: usageError } = await supabase
+    const { data: usage, error: usageError } = await supabaseAdmin
       .from('ai_usage_tracking')
       .select('ai_requests_count')
       .eq('clerk_user_id', userId)
@@ -271,7 +272,7 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
     try {
       switch (feature) {
         case 'basic_suggestions':
-        case 'advanced_suggestions':
+        case 'advanced_suggestions': {
           const suggestionResponse = await consolidatedAIService.generateSuggestions({ 
             userId, 
             feature, 
@@ -281,8 +282,9 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
           });
           suggestions = suggestionResponse.data as AISuggestion[] || [];
           break;
+        }
           
-        case 'study_planning':
+        case 'study_planning': {
           const studyPlan = await consolidatedAIService.generateStudyPlan({ 
             userId, 
             feature, 
@@ -315,8 +317,9 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
             }
           }];
           break;
+        }
           
-        case 'voice_processing':
+        case 'voice_processing': {
           if (!audioData) {
             return {
               success: false,
@@ -351,8 +354,9 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
             }
           }];
           break;
+        }
           
-        case 'stu_personality':
+        case 'stu_personality': {
           const stuResponse = await consolidatedAIService.generateStuResponse({ 
             userId, 
             feature, 
@@ -381,8 +385,9 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
             }
           }];
           break;
+        }
           
-        case 'ml_predictions':
+        case 'ml_predictions': {
           const predictions = await consolidatedAIService.generateMLPredictions({ 
             userId, 
             feature, 
@@ -409,8 +414,9 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
             }
           }));
           break;
+        }
           
-        case 'collaborative_filtering':
+        case 'collaborative_filtering': {
           const insights = await consolidatedAIService.getCollaborativeInsights({ userId, feature });
           suggestions = [{
             id: `collaborative_${Date.now()}`,
@@ -433,8 +439,9 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
             }
           }];
           break;
+        }
           
-        case 'premium_analytics':
+        case 'premium_analytics': {
           const analytics = await consolidatedAIService.generateAnalytics({ 
             userId, 
             feature, 
@@ -461,8 +468,9 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
             }
           }];
           break;
+        }
           
-        default:
+        default: {
           // Fallback to basic suggestions
           const fallbackResponse = await consolidatedAIService.generateSuggestions({ 
             userId, 
@@ -472,25 +480,26 @@ export async function generateAISuggestionsAction(formData: FormData): Promise<A
             userTier: accessCheck.tier
           });
           suggestions = fallbackResponse.data as AISuggestion[] || [];
+        }
       }
 
       // 6. Track usage
       await consolidatedAIService.trackUsage({ userId, feature });
       
-      // 7. Update usage tracking in database
-      await supabase
+      // 7. Update usage tracking in database (using ADMIN client)
+      await supabaseAdmin
         .from('ai_usage_tracking')
         .upsert({
           clerk_user_id: userId,
           usage_date: today,
           ai_requests_count: requestsToday + 1,
-          last_request_at: new Date().toISOString()
+          updated_at: new Date().toISOString()
         }, {
           onConflict: 'clerk_user_id,usage_date'
         });
-
+  
       // 8. Get updated usage for response
-      const { data: updatedUsage } = await supabase
+      const { data: updatedUsage } = await supabaseAdmin
         .from('ai_usage_tracking')
         .select('ai_requests_count')
         .eq('clerk_user_id', userId)

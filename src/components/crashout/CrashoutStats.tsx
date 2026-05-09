@@ -41,7 +41,7 @@ export const CrashoutStats: React.FC<CrashoutStatsProps> = ({ className = '' }) 
       <Card className={`bg-gray-800/50 backdrop-blur-sm border-gray-700 ${className}`}>
         <CardContent className="p-4">
           <div className="flex items-center space-x-2">
-            <div className="h-4 w-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+            <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             <span className="text-sm text-gray-400">Loading stats...</span>
           </div>
         </CardContent>
@@ -55,23 +55,11 @@ export const CrashoutStats: React.FC<CrashoutStatsProps> = ({ className = '' }) 
     .sort(([, a], [, b]) => b - a)
     .slice(0, 3);
 
-  const moodEmojis: Record<string, string> = {
-    stressed: '😤',
-    overwhelmed: '😵‍💫',
-    frustrated: '🤬',
-    anxious: '😬',
-    sad: '😢',
-    angry: '😡',
-    exhausted: '😴',
-    excited: '🤩',
-    calm: '😌'
-  };
-
   return (
     <Card className={`bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-lg ${className}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium text-white flex items-center space-x-2">
-          <TrendingUp className="h-4 w-4 text-purple-400" />
+          <TrendingUp className="h-4 w-4 text-primary" />
           <span>Today's Crashouts</span>
         </CardTitle>
       </CardHeader>
@@ -82,7 +70,7 @@ export const CrashoutStats: React.FC<CrashoutStatsProps> = ({ className = '' }) 
             <Users className="h-4 w-4 text-gray-400" />
             <span className="text-sm text-gray-300">Total</span>
           </div>
-          <Badge variant="outline" className="bg-purple-600/20 text-purple-300 border-purple-500/30">
+          <Badge variant="outline" className="bg-primary/20 text-primary border-primary/40">
             {stats.total}
           </Badge>
         </div>
@@ -95,7 +83,6 @@ export const CrashoutStats: React.FC<CrashoutStatsProps> = ({ className = '' }) 
               {topMoods.map(([mood, count]) => (
                 <div key={mood} className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm">{moodEmojis[mood] || '❓'}</span>
                     <span className="text-xs text-gray-300 capitalize">{mood}</span>
                   </div>
                   <span className="text-xs text-gray-400">{count}</span>
@@ -107,7 +94,7 @@ export const CrashoutStats: React.FC<CrashoutStatsProps> = ({ className = '' }) 
 
         {stats.total === 0 && (
           <div className="text-center py-2">
-            <span className="text-xs text-gray-400">No crashouts today... yet! 🤫</span>
+            <span className="text-xs text-gray-400">No crashouts today yet.</span>
           </div>
         )}
       </CardContent>

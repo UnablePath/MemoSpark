@@ -34,7 +34,7 @@ class SimpleVerificationSuite {
     
     try {
       // Test onboarding page component
-      const onboardingModule = await import('../src/app/clerk-onboarding/page');
+      const onboardingModule = await import('../src/app/onboarding/page');
       
       if (onboardingModule && 'default' in onboardingModule && typeof onboardingModule.default === 'function') {
         this.log(
@@ -51,7 +51,7 @@ class SimpleVerificationSuite {
       }
 
       // Test server action
-      const actionsModule = await import('../src/app/clerk-onboarding/_actions');
+      const actionsModule = await import('../src/app/onboarding/_actions');
       
       if (actionsModule && 'completeOnboarding' in actionsModule && typeof actionsModule.completeOnboarding === 'function') {
         this.log(
@@ -161,8 +161,8 @@ class SimpleVerificationSuite {
       // Check if key files exist
       const fs = await import('fs');
       const filesToCheck = [
-        'src/app/clerk-onboarding/page.tsx',
-        'src/app/clerk-onboarding/_actions.ts',
+        'src/app/onboarding/page.tsx',
+        'src/app/onboarding/_actions.ts',
         'src/middleware.ts',
         'src/app/api/clerk-webhooks/route.ts'
       ];

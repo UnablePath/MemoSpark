@@ -119,10 +119,11 @@ memospark/
 
 ### Onboarding
 
-The application starts with a splash screen and offers an onboarding process that includes:
-1. Account creation (email or Google sign-in)
-2. Profile setup (name, year of study, subjects, interests)
-3. Welcome tour explaining the app's features
+After sign-in, new users complete the **profile wizard** at **`/onboarding`** (year of study, subjects, interests, and related fields). The old **`/clerk-onboarding`** URL is not a route; use **`/onboarding`**. Optional next step: the **AI questionnaire** at `/questionnaire` (often linked from the wizard with `?from=onboarding`). The **Welcome** modal on the dashboard can reflect subjects stored in Clerk **`publicMetadata.subjects`** after onboarding.
+
+**Clerk:** set `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL` and `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL` to `/onboarding` (or another URL your middleware allows) so SSO and email users hit the gate consistently. The JWT template must expose `publicMetadata` as session **`metadata`** so middleware can read `metadata.onboardingComplete`.
+
+**E2E:** see the **E2E tests (Playwright)** section above.
 
 ### Dashboard
 

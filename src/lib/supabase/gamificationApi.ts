@@ -19,7 +19,7 @@ export const fetchUserStats = async (
       .from('user_stats')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
     if (error && error.code !== 'PGRST116') {
       handleSupabaseError(error, 'fetch user stats');
     }

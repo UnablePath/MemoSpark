@@ -4,27 +4,27 @@ import type React from 'react';
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, Eye, Lock, Trash2, Clock, ThumbsUp } from 'lucide-react';
+import { Brain, HandHeart, Heart, Lock, ThumbsDown, ThumbsUp, Trash2, Clock } from 'lucide-react';
 import { type CrashoutPost, addReaction, getUserVote, addVote, removeVote, getUserReaction, removeReaction } from '@/lib/supabase/crashoutApi';
 import { useAuth } from '@clerk/nextjs';
 import { CommentSystem } from './CommentSystem';
 import { BorderBeam } from '@/components/ui/border-beam';
 
-const moodOptions: Record<string, { bg: string; border: string; emoji: string; label: string }> = {
-  stressed: { bg: 'bg-red-500/80', border: 'border-red-400', emoji: '😤', label: 'STRESSED AF' },
-  overwhelmed: { bg: 'bg-purple-500/80', border: 'border-purple-400', emoji: '😵‍💫', label: 'OVERWHELMED' },
-  frustrated: { bg: 'bg-orange-500/80', border: 'border-orange-400', emoji: '🤬', label: 'FRUSTRATED' },
-  anxious: { bg: 'bg-yellow-500/80', border: 'border-yellow-400', emoji: '😬', label: 'ANXIOUS' },
-  sad: { bg: 'bg-blue-500/80', border: 'border-blue-400', emoji: '😢', label: 'SAD' },
-  angry: { bg: 'bg-red-600/80', border: 'border-red-500', emoji: '😡', label: 'ANGRY' },
-  exhausted: { bg: 'bg-gray-500/80', border: 'border-gray-400', emoji: '😴', label: 'EXHAUSTED' },
-  excited: { bg: 'bg-green-500/80', border: 'border-green-400', emoji: '🤩', label: 'EXCITED' },
-  calm: { bg: 'bg-blue-300/80', border: 'border-blue-300', emoji: '😌', label: 'CALM' },
+const moodOptions: Record<string, { bg: string; border: string; label: string }> = {
+  stressed: { bg: 'bg-red-500/80', border: 'border-red-400', label: 'Stressed' },
+  overwhelmed: { bg: 'bg-cyan-500/80', border: 'border-cyan-400', label: 'Overwhelmed' },
+  frustrated: { bg: 'bg-orange-500/80', border: 'border-orange-400', label: 'Frustrated' },
+  anxious: { bg: 'bg-yellow-500/80', border: 'border-yellow-400', label: 'Anxious' },
+  sad: { bg: 'bg-blue-500/80', border: 'border-blue-400', label: 'Sad' },
+  angry: { bg: 'bg-red-600/80', border: 'border-red-500', label: 'Angry' },
+  exhausted: { bg: 'bg-gray-500/80', border: 'border-gray-400', label: 'Exhausted' },
+  excited: { bg: 'bg-green-500/80', border: 'border-green-400', label: 'Excited' },
+  calm: { bg: 'bg-blue-300/80', border: 'border-blue-300', label: 'Calm' },
 };
 
 interface PostCardProps {
   post: CrashoutPost;
-  moodStyles?: Record<string, { bg: string; border: string; emoji: string; label: string }>; // Keep for compatibility but use new moodOptions
+  moodStyles?: Record<string, { bg: string; border: string; label: string }>; // Keep for compatibility but use new moodOptions
   onReaction: (postId: string, emoji: string) => void;
   onDelete?: (postId: string) => void;
 }
@@ -226,21 +226,23 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
   };
 
   return (
-    <div className={`relative backdrop-blur-md rounded-2xl p-6 shadow-xl border-l-8 ${moodStyle.border} ${moodStyle.bg}
-                     transform hover:scale-[1.02] transition-all duration-200 overflow-hidden`}>
+    <div
+      className={`relative overflow-hidden rounded-2xl border ${moodStyle.border} ${moodStyle.bg}
+                     p-6 shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-[1.02]`}
+    >
       <BorderBeam 
         size={120}
         duration={12}
-        colorFrom="#A855F7"
-        colorTo="#3B82F6"
+        colorFrom="#34D399"
+        colorTo="#22D3EE"
         className="opacity-50"
         delay={Math.random() * 5}
       />
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <div className={`w-12 h-12 ${moodStyle.bg} rounded-full flex items-center justify-center text-2xl shadow-inner border-2 border-white/20`}>
-            {post.mood_emoji || moodStyle.emoji}
+          <div className={`w-12 h-12 ${moodStyle.bg} rounded-full flex items-center justify-center text-sm font-semibold shadow-inner border-2 border-white/20`}>
+            {(post.mood_type || moodStyle.label).slice(0, 2).toUpperCase()}
           </div>
           <div>
             <div className="flex items-center space-x-2">
@@ -250,7 +252,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
                   : 'Anonymous Crasher'
                 }
               </span>
-              {post.is_private && <Lock className="h-4 w-4 text-purple-300" />}
+              {post.is_private && <Lock className="h-4 w-4 text-primary" />}
             </div>
             <span className="text-xs text-white/60">{formatTimeAgo(post.created_at)}</span>
           </div>
@@ -339,7 +341,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
               userVote === 'up' ? 'bg-green-500/30 text-green-300' : 'text-white/80 hover:text-green-300'
             }`}
         >
-            <span className="mr-1 text-base">👍</span>
+            <ThumbsUp className="mr-1 h-4 w-4" />
             <span className="text-sm">{reactionCounts.upvotes || 0}</span>
         </Button>
         
@@ -353,7 +355,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
               userVote === 'down' ? 'bg-red-500/30 text-red-300' : 'text-white/80 hover:text-red-300'
             }`}
           >
-            <span className="mr-1 text-base">👎</span>
+            <ThumbsDown className="mr-1 h-4 w-4" />
             <span className="text-sm">{reactionCounts.downvotes || 0}</span>
           </Button>
         </div>
@@ -372,7 +374,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
             }`}
             title="Send support"
         >
-            <span className="mr-1 text-base">💜</span>
+            <Heart className="mr-1 h-4 w-4" />
             <span className="text-sm">{reactionCounts.heart || 0}</span>
         </Button>
         
@@ -388,7 +390,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
             }`}
             title="Send support"
         >
-            <span className="mr-1 text-base">🤗</span>
+            <HandHeart className="mr-1 h-4 w-4" />
             <span className="text-sm">{reactionCounts.support || 0}</span>
         </Button>
 
@@ -404,7 +406,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onDelete }
             }`}
             title="Mind blown / That's deep"
         >
-            <span className="mr-1 text-base">🤯</span>
+            <Brain className="mr-1 h-4 w-4" />
             <span className="text-sm">{reactionCounts.mind_blown || 0}</span>
         </Button>
         </div>

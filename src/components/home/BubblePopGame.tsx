@@ -1,11 +1,17 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback, useRef, type KeyboardEvent } from 'react';
-import { useUser } from '@clerk/nextjs';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Sparkles } from 'lucide-react';
-import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
+import { Button } from "@/components/ui/button";
+import { useDebouncedAchievementTrigger } from "@/hooks/useDebouncedAchievementTrigger";
+import { useUser } from "@clerk/nextjs";
+import { AnimatePresence, motion } from "framer-motion";
+import { Sparkles } from "lucide-react";
+import {
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 interface BubbleTheme {
   fill: string;
@@ -32,52 +38,60 @@ interface PopEffect {
 
 const BUBBLE_THEMES: BubbleTheme[] = [
   {
-    fill: 'rgba(0, 221, 255, 0.12)',
-    border: '1.5px solid rgba(0, 221, 255, 0.5)',
-    shadow: 'inset 0 2px 10px rgba(255,255,255,0.12), 0 0 16px rgba(0, 221, 255, 0.25)',
-    glow: 'rgba(0, 221, 255, 0.6)',
+    fill: "rgba(0, 221, 255, 0.12)",
+    border: "1.5px solid rgba(0, 221, 255, 0.5)",
+    shadow:
+      "inset 0 2px 10px rgba(255,255,255,0.12), 0 0 16px rgba(0, 221, 255, 0.25)",
+    glow: "rgba(0, 221, 255, 0.6)",
   },
   {
-    fill: 'rgba(173, 54, 255, 0.12)',
-    border: '1.5px solid rgba(173, 54, 255, 0.5)',
-    shadow: 'inset 0 2px 10px rgba(255,255,255,0.1), 0 0 16px rgba(173, 54, 255, 0.25)',
-    glow: 'rgba(173, 54, 255, 0.6)',
+    fill: "rgba(173, 54, 255, 0.12)",
+    border: "1.5px solid rgba(173, 54, 255, 0.5)",
+    shadow:
+      "inset 0 2px 10px rgba(255,255,255,0.1), 0 0 16px rgba(173, 54, 255, 0.25)",
+    glow: "rgba(173, 54, 255, 0.6)",
   },
   {
-    fill: 'rgba(255, 60, 150, 0.12)',
-    border: '1.5px solid rgba(255, 60, 150, 0.5)',
-    shadow: 'inset 0 2px 10px rgba(255,255,255,0.1), 0 0 16px rgba(255, 60, 150, 0.25)',
-    glow: 'rgba(255, 60, 150, 0.6)',
+    fill: "rgba(255, 60, 150, 0.12)",
+    border: "1.5px solid rgba(255, 60, 150, 0.5)",
+    shadow:
+      "inset 0 2px 10px rgba(255,255,255,0.1), 0 0 16px rgba(255, 60, 150, 0.25)",
+    glow: "rgba(255, 60, 150, 0.6)",
   },
   {
-    fill: 'rgba(50, 220, 100, 0.12)',
-    border: '1.5px solid rgba(50, 220, 100, 0.5)',
-    shadow: 'inset 0 2px 10px rgba(255,255,255,0.12), 0 0 16px rgba(50, 220, 100, 0.25)',
-    glow: 'rgba(50, 220, 100, 0.6)',
+    fill: "rgba(50, 220, 100, 0.12)",
+    border: "1.5px solid rgba(50, 220, 100, 0.5)",
+    shadow:
+      "inset 0 2px 10px rgba(255,255,255,0.12), 0 0 16px rgba(50, 220, 100, 0.25)",
+    glow: "rgba(50, 220, 100, 0.6)",
   },
   {
-    fill: 'rgba(255, 170, 0, 0.12)',
-    border: '1.5px solid rgba(255, 170, 0, 0.5)',
-    shadow: 'inset 0 2px 10px rgba(255,255,255,0.1), 0 0 16px rgba(255, 170, 0, 0.25)',
-    glow: 'rgba(255, 170, 0, 0.6)',
+    fill: "rgba(255, 170, 0, 0.12)",
+    border: "1.5px solid rgba(255, 170, 0, 0.5)",
+    shadow:
+      "inset 0 2px 10px rgba(255,255,255,0.1), 0 0 16px rgba(255, 170, 0, 0.25)",
+    glow: "rgba(255, 170, 0, 0.6)",
   },
   {
-    fill: 'rgba(0, 255, 160, 0.12)',
-    border: '1.5px solid rgba(0, 255, 160, 0.5)',
-    shadow: 'inset 0 2px 10px rgba(255,255,255,0.12), 0 0 16px rgba(0, 255, 160, 0.25)',
-    glow: 'rgba(0, 255, 160, 0.6)',
+    fill: "rgba(0, 255, 160, 0.12)",
+    border: "1.5px solid rgba(0, 255, 160, 0.5)",
+    shadow:
+      "inset 0 2px 10px rgba(255,255,255,0.12), 0 0 16px rgba(0, 255, 160, 0.25)",
+    glow: "rgba(0, 255, 160, 0.6)",
   },
   {
-    fill: 'rgba(100, 140, 255, 0.12)',
-    border: '1.5px solid rgba(100, 140, 255, 0.5)',
-    shadow: 'inset 0 2px 10px rgba(255,255,255,0.1), 0 0 16px rgba(100, 140, 255, 0.25)',
-    glow: 'rgba(100, 140, 255, 0.6)',
+    fill: "rgba(100, 140, 255, 0.12)",
+    border: "1.5px solid rgba(100, 140, 255, 0.5)",
+    shadow:
+      "inset 0 2px 10px rgba(255,255,255,0.1), 0 0 16px rgba(100, 140, 255, 0.25)",
+    glow: "rgba(100, 140, 255, 0.6)",
   },
   {
-    fill: 'rgba(255, 220, 60, 0.12)',
-    border: '1.5px solid rgba(255, 220, 60, 0.5)',
-    shadow: 'inset 0 2px 10px rgba(255,255,255,0.12), 0 0 16px rgba(255, 220, 60, 0.25)',
-    glow: 'rgba(255, 220, 60, 0.6)',
+    fill: "rgba(255, 220, 60, 0.12)",
+    border: "1.5px solid rgba(255, 220, 60, 0.5)",
+    shadow:
+      "inset 0 2px 10px rgba(255,255,255,0.12), 0 0 16px rgba(255, 220, 60, 0.25)",
+    glow: "rgba(255, 220, 60, 0.6)",
   },
 ];
 
@@ -93,7 +107,8 @@ const DIFFICULTY_RAMP_INTERVAL = 5000;
 const SPIKED_BARRIER_HEIGHT = 22;
 const SPIKE_SVG_WIDTH = 22;
 
-const getRandomColorIndex = () => Math.floor(Math.random() * BUBBLE_THEMES.length);
+const getRandomColorIndex = () =>
+  Math.floor(Math.random() * BUBBLE_THEMES.length);
 
 export function BubblePopGame() {
   const { user } = useUser();
@@ -126,14 +141,16 @@ export function BubblePopGame() {
   const gameLogicIntervalId = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedHighScore = localStorage.getItem('bubblePopHighScore');
+    if (typeof window !== "undefined") {
+      const storedHighScore = localStorage.getItem("bubblePopHighScore");
       if (storedHighScore) {
         setHighScore(Number.parseInt(storedHighScore, 10));
       }
     }
     if (gameAreaRef.current) {
-      setNumSpikes(Math.ceil(gameAreaRef.current.offsetWidth / SPIKE_SVG_WIDTH));
+      setNumSpikes(
+        Math.ceil(gameAreaRef.current.offsetWidth / SPIKE_SVG_WIDTH),
+      );
     }
   }, []);
 
@@ -144,45 +161,55 @@ export function BubblePopGame() {
   useEffect(() => {
     const handleResize = () => {
       if (gameAreaRef.current) {
-        setNumSpikes(Math.ceil(gameAreaRef.current.offsetWidth / SPIKE_SVG_WIDTH));
+        setNumSpikes(
+          Math.ceil(gameAreaRef.current.offsetWidth / SPIKE_SVG_WIDTH),
+        );
       }
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const updateHighScore = (currentScore: number) => {
     if (currentScore > highScore) {
       setHighScore(currentScore);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('bubblePopHighScore', currentScore.toString());
+      if (typeof window !== "undefined") {
+        localStorage.setItem("bubblePopHighScore", currentScore.toString());
       }
     }
   };
 
   const scheduleNextBubble = useCallback(() => {
     if (!gameActive || !gameAreaRef.current || isPausedByVisibility) return;
-    if (bubbleCreationTimeoutId.current) clearTimeout(bubbleCreationTimeoutId.current);
+    if (bubbleCreationTimeoutId.current)
+      clearTimeout(bubbleCreationTimeoutId.current);
 
     bubbleCreationTimeoutId.current = setTimeout(() => {
-      const gameAreaWidth = gameAreaRef.current!.offsetWidth;
+      const gameAreaWidth = gameAreaRef.current?.offsetWidth;
       const size = Math.round(Math.random() * 30 + 30);
       setBubbles((prevBubbles) => [
         ...prevBubbles,
         {
           id: nextBubbleId.current++,
           x: Math.random() * (gameAreaWidth - size),
-          y: gameAreaRef.current!.offsetHeight,
+          y: gameAreaRef.current?.offsetHeight,
           size,
           colorIndex: getRandomColorIndex(),
-          speed: Math.random() * INITIAL_RANDOM_SPEED_ADD + currentBaseSpeed.current,
+          speed:
+            Math.random() * INITIAL_RANDOM_SPEED_ADD + currentBaseSpeed.current,
         },
       ]);
       scheduleNextBubble();
     }, currentSpawnInterval.current);
   }, [gameActive, isPausedByVisibility]);
 
-  const popBubble = (id: number, x: number, y: number, size: number, colorIndex: number) => {
+  const popBubble = (
+    id: number,
+    x: number,
+    y: number,
+    size: number,
+    colorIndex: number,
+  ) => {
     if (!gameActive) return;
     setBubbles((prev) => prev.filter((b) => b.id !== id));
     setScore((s) => {
@@ -208,7 +235,7 @@ export function BubblePopGame() {
 
   const handleGameAreaKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!gameActive) return;
-    if (event.key !== ' ' && event.key !== 'Enter') return;
+    if (event.key !== " " && event.key !== "Enter") return;
 
     event.preventDefault();
 
@@ -226,25 +253,28 @@ export function BubblePopGame() {
 
   useEffect(() => {
     if (!gameActive || isPausedByVisibility) {
-      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+      if (animationFrameId.current)
+        cancelAnimationFrame(animationFrameId.current);
       return;
     }
 
     const gameLoop = () => {
-      setBubbles((prevBubbles) =>
-        prevBubbles
-          .map((bubble) => {
-            const newY = bubble.y - bubble.speed;
-            if (newY < SPIKED_BARRIER_HEIGHT + bubble.size / 2) {
-              setGameActive(false);
-              setGameOver(true);
-              updateHighScore(scoreRef.current);
-              if (typeof navigator.vibrate === 'function') navigator.vibrate(200);
-              return null;
-            }
-            return { ...bubble, y: newY };
-          })
-          .filter((bubble) => bubble !== null) as Bubble[],
+      setBubbles(
+        (prevBubbles) =>
+          prevBubbles
+            .map((bubble) => {
+              const newY = bubble.y - bubble.speed;
+              if (newY < SPIKED_BARRIER_HEIGHT + bubble.size / 2) {
+                setGameActive(false);
+                setGameOver(true);
+                updateHighScore(scoreRef.current);
+                if (typeof navigator.vibrate === "function")
+                  navigator.vibrate(200);
+                return null;
+              }
+              return { ...bubble, y: newY };
+            })
+            .filter((bubble) => bubble !== null) as Bubble[],
       );
       if (gameActive && !isPausedByVisibility) {
         animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -253,7 +283,8 @@ export function BubblePopGame() {
 
     animationFrameId.current = requestAnimationFrame(gameLoop);
     return () => {
-      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+      if (animationFrameId.current)
+        cancelAnimationFrame(animationFrameId.current);
     };
   }, [gameActive, isPausedByVisibility]);
 
@@ -285,12 +316,16 @@ export function BubblePopGame() {
         }
       }, 100);
     } else {
-      if (gameLogicIntervalId.current) clearInterval(gameLogicIntervalId.current);
-      if (bubbleCreationTimeoutId.current) clearTimeout(bubbleCreationTimeoutId.current);
+      if (gameLogicIntervalId.current)
+        clearInterval(gameLogicIntervalId.current);
+      if (bubbleCreationTimeoutId.current)
+        clearTimeout(bubbleCreationTimeoutId.current);
     }
     return () => {
-      if (gameLogicIntervalId.current) clearInterval(gameLogicIntervalId.current);
-      if (bubbleCreationTimeoutId.current) clearTimeout(bubbleCreationTimeoutId.current);
+      if (gameLogicIntervalId.current)
+        clearInterval(gameLogicIntervalId.current);
+      if (bubbleCreationTimeoutId.current)
+        clearTimeout(bubbleCreationTimeoutId.current);
     };
   }, [gameActive, scheduleNextBubble, isPausedByVisibility]);
 
@@ -307,8 +342,9 @@ export function BubblePopGame() {
         }
       }
     };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [gameActive, gameOver, isPausedByVisibility]);
 
   const startGame = () => {
@@ -322,7 +358,9 @@ export function BubblePopGame() {
     nextBubbleId.current = 0;
     nextPopEffectId.current = 0;
     if (gameAreaRef.current) {
-      setNumSpikes(Math.ceil(gameAreaRef.current.offsetWidth / SPIKE_SVG_WIDTH));
+      setNumSpikes(
+        Math.ceil(gameAreaRef.current.offsetWidth / SPIKE_SVG_WIDTH),
+      );
     }
     setGameActive(true);
     setTimeout(() => gameAreaRef.current?.focus(), 0);
@@ -330,12 +368,12 @@ export function BubblePopGame() {
 
   return (
     <div
-      className="relative my-6 w-full select-none overflow-hidden rounded-2xl border border-white/[0.07] bg-[#080b10]"
+      className="relative my-6 w-full select-none overflow-hidden rounded-2xl border border-border bg-zinc-900 dark:bg-[#080b10] dark:border-white/10"
       style={{
-        height: '420px',
+        height: "420px",
         backgroundImage:
-          'radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px)',
-        backgroundSize: '22px 22px',
+          "radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px)",
+        backgroundSize: "22px 22px",
       }}
     >
       {/* Spiked barrier */}
@@ -372,7 +410,7 @@ export function BubblePopGame() {
         className="pointer-events-none absolute left-0 right-0 top-0 z-10 h-8"
         style={{
           background:
-            'linear-gradient(to bottom, rgba(220,38,38,0.18) 0%, transparent 100%)',
+            "linear-gradient(to bottom, rgba(220,38,38,0.18) 0%, transparent 100%)",
         }}
         aria-hidden="true"
       />
@@ -395,35 +433,43 @@ export function BubblePopGame() {
                 initial={{ opacity: 0, scale: 0.2 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0, transition: { duration: 0.12 } }}
-                transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+                transition={{ type: "spring", stiffness: 400, damping: 22 }}
                 style={{
-                  position: 'absolute',
+                  position: "absolute",
                   left: bubble.x,
                   top: bubble.y,
                   width: `${bubble.size}px`,
                   height: `${bubble.size}px`,
                   minWidth: `${bubble.size}px`,
                   minHeight: `${bubble.size}px`,
-                  boxSizing: 'border-box',
+                  boxSizing: "border-box",
                   background: theme.fill,
                   border: theme.border,
-                  borderRadius: '50%',
-                  cursor: 'pointer',
+                  borderRadius: "50%",
+                  cursor: "pointer",
                   boxShadow: theme.shadow,
                 }}
-                onClick={() => popBubble(bubble.id, bubble.x, bubble.y, bubble.size, bubble.colorIndex)}
+                onClick={() =>
+                  popBubble(
+                    bubble.id,
+                    bubble.x,
+                    bubble.y,
+                    bubble.size,
+                    bubble.colorIndex,
+                  )
+                }
               >
-                {/* Inner highlight — simulates glass refraction */}
+                {/* Inner highlight, simulates glass refraction */}
                 <div
                   className="absolute rounded-full"
                   style={{
-                    top: '18%',
-                    left: '20%',
-                    width: '28%',
-                    height: '22%',
+                    top: "18%",
+                    left: "20%",
+                    width: "28%",
+                    height: "22%",
                     background:
-                      'radial-gradient(circle, rgba(255,255,255,0.55) 0%, transparent 70%)',
-                    filter: 'blur(1px)',
+                      "radial-gradient(circle, rgba(255,255,255,0.55) 0%, transparent 70%)",
+                    filter: "blur(1px)",
                   }}
                 />
               </motion.div>
@@ -436,9 +482,9 @@ export function BubblePopGame() {
               key={effect.id}
               initial={{ scale: 0.4, opacity: 0.9 }}
               animate={{ scale: 1.6, opacity: 0 }}
-              transition={{ duration: 0.35, ease: 'easeOut' }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
               className="pointer-events-none absolute"
-              style={{ left: effect.x, top: effect.y, x: '-50%', y: '-50%' }}
+              style={{ left: effect.x, top: effect.y, x: "-50%", y: "-50%" }}
             >
               <Sparkles
                 size={18}
@@ -462,7 +508,9 @@ export function BubblePopGame() {
               <p className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-red-400/70">
                 Game over
               </p>
-              <p className="mb-1 text-7xl font-black tracking-tighter text-white">{score}</p>
+              <p className="mb-1 text-7xl font-black tracking-tighter text-white">
+                {score}
+              </p>
               <p className="mb-6 text-sm text-white/40">
                 High score: <span className="text-white/60">{highScore}</span>
               </p>
@@ -486,8 +534,12 @@ export function BubblePopGame() {
           <h2 className="mb-2 text-4xl font-black tracking-tighter text-white md:text-5xl">
             Bubble Dodger
           </h2>
-          <p className="mb-7 text-sm text-white/35">Quick reset. Pop them before they hit the spikes.</p>
-          <p className="mb-4 text-xs text-white/25">Mouse, touch, or focus the game and press Space.</p>
+          <p className="mb-7 text-sm text-white/35">
+            Quick reset. Pop them before they hit the spikes.
+          </p>
+          <p className="mb-4 text-xs text-white/25">
+            Mouse, touch, or focus the game and press Space.
+          </p>
           <Button
             onClick={startGame}
             className="border border-white/15 bg-white text-black font-semibold hover:bg-white/90 px-8"
@@ -504,16 +556,22 @@ export function BubblePopGame() {
 
       {/* Score HUD during gameplay */}
       {gameActive && (
-        <div className="absolute right-4 top-8 z-20 rounded-full border border-white/[0.08] bg-black/50 px-4 py-1.5 font-mono text-sm font-semibold text-white backdrop-blur-sm">
+        <div className="absolute right-4 top-8 z-20 rounded-full border border-white/15 bg-black/45 px-4 py-1.5 font-mono text-sm font-semibold text-white backdrop-blur-sm dark:border-white/[0.08] dark:bg-black/50">
           {score}
         </div>
       )}
-      {gameActive && <p className="sr-only" aria-live="polite">Current score: {score}</p>}
+      {gameActive && (
+        <p className="sr-only" aria-live="polite">
+          Current score: {score}
+        </p>
+      )}
 
       {/* Hint text */}
       {!gameActive && !gameOver && (
         <p className="absolute bottom-3 left-4 z-10 text-xs text-white/18">
-          {user ? 'Your score can count toward achievements.' : 'Sign in to have game achievements recorded.'}
+          {user
+            ? "Your score can count toward achievements."
+            : "Sign in to have game achievements recorded."}
         </p>
       )}
     </div>

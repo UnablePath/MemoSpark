@@ -2,6 +2,8 @@
 
 import type React from 'react';
 import { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/nextjs';
+import { hydratePatternEngineCacheForUser } from '@/lib/ai/patternEngineHydration';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +52,7 @@ interface SmartScheduleViewProps {
 }
 
 export const SmartScheduleView: React.FC<SmartScheduleViewProps> = ({ className }) => {
+  const { userId, getToken } = useAuth();
   const [schedule, setSchedule] = useState<ScheduledTask[]>([]);
   const [adjustments, setAdjustments] = useState<ScheduleAdjustment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -154,6 +157,10 @@ export const SmartScheduleView: React.FC<SmartScheduleViewProps> = ({ className 
         description: `Successfully scheduled ${data.metadata?.tasksScheduled || 0} tasks with ${Math.round((data.metadata?.averageConfidence || 0) * 100)}% average confidence.`,
       });
 
+      if (userId) {
+        void hydratePatternEngineCacheForUser(userId, getToken);
+      }
+
     } catch (error) {
       console.error('Failed to generate schedule:', error);
       toast({
@@ -181,6 +188,9 @@ export const SmartScheduleView: React.FC<SmartScheduleViewProps> = ({ className 
       });
 
       if (response.ok) {
+        if (userId) {
+          void hydratePatternEngineCacheForUser(userId, getToken);
+        }
         toast({
           title: "Preferences Saved",
           description: "Your scheduling preferences have been saved successfully.",
@@ -364,12 +374,11 @@ export const SmartScheduleView: React.FC<SmartScheduleViewProps> = ({ className 
           ...prev,
           [key]: [...currentList, subject]
         };
-      } else {
+      }
         return {
           ...prev,
           [key]: currentList.filter(s => s !== subject)
         };
-      }
     });
   };
 

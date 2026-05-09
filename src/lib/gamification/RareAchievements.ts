@@ -310,7 +310,7 @@ export class RareAchievementEngine {
       // Check each rare achievement
       for (const achievement of rareAchievements) {
         try {
-          const shouldUnlock = await this.evaluateRareAchievement(
+          const shouldUnlock = await RareAchievementEngine.evaluateRareAchievement(
             achievement,
             userId,
             actionData,
@@ -356,16 +356,16 @@ export class RareAchievementEngine {
 
     switch (criteria.special) {
       case 'night_owl':
-        return this.checkTimeBasedAchievement(userTasks, criteria);
+        return RareAchievementEngine.checkTimeBasedAchievement(userTasks, criteria);
       
       case 'early_bird':
-        return this.checkTimeBasedAchievement(userTasks, criteria);
+        return RareAchievementEngine.checkTimeBasedAchievement(userTasks, criteria);
       
       case 'weekend_warrior':
-        return this.checkWeekendAchievement(userTasks, criteria);
+        return RareAchievementEngine.checkWeekendAchievement(userTasks, criteria);
       
       case 'perfectionist':
-        return this.checkPerfectStreakAchievement(userStats, criteria);
+        return RareAchievementEngine.checkPerfectStreakAchievement(userStats, criteria);
       
       case 'century':
         return userStats?.current_streak >= criteria.days;
@@ -377,10 +377,10 @@ export class RareAchievementEngine {
         return userAchievements.length >= criteria.achievements;
       
       case 'speed_demon':
-        return this.checkSpeedAchievement(userTasks, criteria, actionData);
+        return RareAchievementEngine.checkSpeedAchievement(userTasks, criteria, actionData);
       
       case 'renaissance_scholar':
-        return this.checkCategoryDiversityAchievement(userTasks, criteria);
+        return RareAchievementEngine.checkCategoryDiversityAchievement(userTasks, criteria);
       
       default:
         return false;
@@ -401,9 +401,8 @@ export class RareAchievementEngine {
       if (startHour > endHour) {
         // Crosses midnight
         return hour >= startHour || hour <= endHour;
-      } else {
-        return hour >= startHour && hour <= endHour;
       }
+        return hour >= startHour && hour <= endHour;
     });
 
     return qualifyingTasks.length >= requiredTasks;

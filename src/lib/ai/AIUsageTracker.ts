@@ -1,5 +1,5 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { getSupabaseAnonKey, getSupabaseUrl } from '@/lib/supabase/env';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { supabase as defaultSupabase } from '@/lib/supabase/client';
 import { 
   type AIUsageTracking, 
   AIFeatureUsage, 
@@ -13,10 +13,7 @@ export class AIUsageTracker {
   private subscriptionManager: SubscriptionTierManager;
 
   constructor(supabaseClient?: SupabaseClient) {
-    this.supabase = supabaseClient || createClient(
-      getSupabaseUrl(),
-      getSupabaseAnonKey()
-    );
+    this.supabase = supabaseClient || defaultSupabase;
     this.subscriptionManager = new SubscriptionTierManager(this.supabase);
   }
 
@@ -57,7 +54,12 @@ export class AIUsageTracker {
         remaining_requests: incrementResult.remaining
       };
     } catch (error) {
-      console.error('Error tracking AI request:', error);
+      console.error(`[AIUsageTracker] Error tracking AI request for user ${userId}:`, {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error,
+        feature,
+        tier
+      });
       return {
         can_proceed: false,
         canProceed: false,
@@ -156,7 +158,11 @@ export class AIUsageTracker {
         limit_reached: newTotalCount >= dailyLimit
       };
     } catch (error) {
-      console.error('Error incrementing usage:', error);
+      console.error(`[AIUsageTracker] Error incrementing usage for user ${userId}:`, {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error,
+        feature
+      });
       return {
         success: false,
         new_count: 0,
@@ -186,7 +192,10 @@ export class AIUsageTracker {
 
       return usage || null;
     } catch (error) {
-      console.error('Error fetching current usage:', error);
+      console.error(`[AIUsageTracker] Error fetching current usage for user ${userId}:`, {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error
+      });
       return null;
     }
   }
@@ -212,7 +221,10 @@ export class AIUsageTracker {
 
       return usage || [];
     } catch (error) {
-      console.error('Error fetching usage history:', error);
+      console.error(`[AIUsageTracker] Error fetching usage history for user ${userId}:`, {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error
+      });
       return [];
     }
   }
@@ -238,7 +250,10 @@ export class AIUsageTracker {
 
       return usage?.reduce((total, record) => total + (record.ai_requests_count || 0), 0) || 0;
     } catch (error) {
-      console.error('Error fetching monthly usage:', error);
+      console.error(`[AIUsageTracker] Error fetching monthly usage for user ${userId}:`, {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error
+      });
       return 0;
     }
   }
@@ -267,7 +282,10 @@ export class AIUsageTracker {
 
       return true;
     } catch (error) {
-      console.error('Error resetting usage:', error);
+      console.error(`[AIUsageTracker] Error resetting usage for user ${userId}:`, {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error
+      });
       return false;
     }
   }
@@ -324,7 +342,10 @@ export class AIUsageTracker {
         dailyAverage: Math.round(dailyAverage * 100) / 100
       };
     } catch (error) {
-      console.error('Error fetching usage analytics:', error);
+      console.error(`[AIUsageTracker] Error fetching usage analytics for user ${userId}:`, {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error
+      });
       return {
         today: 0,
         thisWeek: 0,
@@ -343,7 +364,11 @@ export class AIUsageTracker {
       const result = await this.subscriptionManager.canUserMakeAIRequest(clerkUserId, feature);
       return result.can_proceed;
     } catch (error) {
-      console.error('Error checking feature availability:', error);
+      console.error(`[AIUsageTracker] Error checking feature availability for user ${userId}:`, {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error,
+        feature
+      });
       return false;
     }
   }
@@ -370,7 +395,11 @@ export class AIUsageTracker {
 
       return { success: true, results };
     } catch (error) {
-      console.error('Error tracking bulk usage:', error);
+      console.error(`[AIUsageTracker] Error tracking bulk usage for user ${userId}:`, {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        error,
+        count: features.length
+      });
       return { success: false, results: [] };
     }
   }

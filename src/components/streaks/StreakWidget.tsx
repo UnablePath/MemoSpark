@@ -94,7 +94,7 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
       const result = await streakTracker.markDailyCompletion(user.id, 1, 10);
       
       if (result.success) {
-        toast.success(`Streak updated! 🔥 ${result.newStreak} days`, {
+        toast.success(`Streak updated. ${result.newStreak} days`, {
           description: result.achievementsUnlocked.length > 0 
             ? `Achievement unlocked: ${result.achievementsUnlocked[0].achievement?.name}`
             : 'Keep it going!'
@@ -109,30 +109,28 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
     }
   };
 
-  const getStreakEmoji = (streak: number) => {
-    if (streak >= 365) return '🏆';
-    if (streak >= 100) return '💎';
-    if (streak >= 50) return '🌟';
-    if (streak >= 30) return '🔥';
-    if (streak >= 14) return '⚡';
-    if (streak >= 7) return '🎯';
-    return '✨';
+  const getStreakIcon = (streak: number) => {
+    if (streak >= 365) return Trophy;
+    if (streak >= 100) return Award;
+    if (streak >= 30) return Flame;
+    if (streak >= 7) return Target;
+    return Zap;
   };
 
   const getMotivationalMessage = (streak: number, trend: string) => {
     if (streak === 0) return "Start your streak today!";
     if (streak === 1) return "Great start! Keep it going!";
     if (streak < 7) return "Building momentum!";
-    if (streak < 30) return "You're on fire! 🔥";
+    if (streak < 30) return "You are building strong momentum.";
     if (streak < 100) return "Incredible dedication!";
-    return "Legend status! 🏆";
+    return "Legend status.";
   };
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {
       case 'improving': return <TrendingUp className="w-4 h-4 text-green-500" />;
-      case 'declining': return <TrendingUp className="w-4 h-4 text-red-500 rotate-180" />;
-      default: return <TrendingUp className="w-4 h-4 text-gray-500" />;
+      case 'declining': return <TrendingUp className="w-4 h-4 rotate-180 text-red-500" />;
+      default: return <TrendingUp className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
@@ -141,9 +139,9 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
       <Card className={className}>
         <CardContent className="p-4">
           <div className="animate-pulse space-y-3">
-            <div className="h-6 bg-gray-200 rounded w-2/3"></div>
-            <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-            <div className="h-4 bg-gray-200 rounded w-full"></div>
+            <div className="h-6 rounded bg-muted w-2/3" />
+            <div className="h-8 rounded bg-muted w-1/2" />
+            <div className="h-4 rounded bg-muted w-full" />
           </div>
         </CardContent>
       </Card>
@@ -154,7 +152,7 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
     return (
       <Card className={className}>
         <CardContent className="p-4 text-center">
-          <Flame className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+          <Flame className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">Unable to load streak data</p>
         </CardContent>
       </Card>
@@ -162,6 +160,7 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
   }
 
   if (variant === 'minimal') {
+    const MinimalIcon = getStreakIcon(streakData.current_streak);
     return (
       <TooltipProvider>
         <Tooltip>
@@ -169,7 +168,9 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
             <Card className={`cursor-pointer hover:shadow-md transition-shadow ${className}`} onClick={onViewDetails}>
               <CardContent className="p-3">
                 <div className="flex items-center space-x-3">
-                  <div className="text-2xl">{getStreakEmoji(streakData.current_streak)}</div>
+                  <div className="rounded-full bg-primary/10 p-2">
+                    <MinimalIcon className="h-5 w-5 text-primary" />
+                  </div>
                   <div>
                     <div className="font-bold text-lg">{streakData.current_streak}</div>
                     <div className="text-xs text-muted-foreground">day streak</div>
@@ -190,6 +191,7 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
   }
 
   if (variant === 'compact') {
+    const CompactIcon = getStreakIcon(streakData.current_streak);
     return (
       <Card className={className}>
         <CardContent className="p-4 space-y-4">
@@ -204,7 +206,9 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
 
           {/* Main Streak Display */}
           <div className="text-center space-y-2">
-            <div className="text-3xl">{getStreakEmoji(streakData.current_streak)}</div>
+            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-primary/10">
+              <CompactIcon className="h-6 w-6 text-primary" />
+            </div>
             <div className="text-2xl font-bold text-orange-500">{streakData.current_streak}</div>
             <div className="text-sm text-muted-foreground">
               {streakData.current_streak === 1 ? 'day' : 'days'} strong
@@ -234,7 +238,7 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
               <div className="text-muted-foreground">Rate</div>
             </div>
             <div className="text-center">
-              <div className="font-medium text-purple-500">{streakData.total_days}</div>
+              <div className="font-medium text-cyan-500">{streakData.total_days}</div>
               <div className="text-muted-foreground">Total</div>
             </div>
           </div>
@@ -250,7 +254,7 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
               >
                 {completingToday ? (
                   <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     <span>Updating...</span>
                   </div>
                 ) : (
@@ -278,6 +282,7 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
   }
 
   // Detailed variant
+  const DetailedIcon = getStreakIcon(streakData.current_streak);
   return (
     <Card className={className}>
       <CardContent className="p-6 space-y-6">
@@ -295,7 +300,9 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
 
         {/* Main Display */}
         <div className="text-center space-y-3">
-          <div className="text-6xl">{getStreakEmoji(streakData.current_streak)}</div>
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+            <DetailedIcon className="h-9 w-9 text-primary" />
+          </div>
           <div className="text-4xl font-bold text-orange-500">{streakData.current_streak}</div>
           <div className="text-lg text-muted-foreground">
             {streakData.current_streak === 1 ? 'day streak' : 'days streak'}
@@ -336,8 +343,8 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
             <div className="text-xs text-muted-foreground">Success Rate</div>
           </div>
           <div className="text-center space-y-1">
-            <Calendar className="w-5 h-5 mx-auto text-purple-500" />
-            <div className="text-lg font-bold text-purple-500">{streakData.total_days}</div>
+            <Calendar className="w-5 h-5 mx-auto text-cyan-500" />
+            <div className="text-lg font-bold text-cyan-500">{streakData.total_days}</div>
             <div className="text-xs text-muted-foreground">Total Days</div>
           </div>
           <div className="text-center space-y-1">
@@ -357,7 +364,7 @@ export const StreakWidget: React.FC<StreakWidgetProps> = ({
             >
               {completingToday ? (
                 <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   <span>Marking Complete...</span>
                 </div>
               ) : (

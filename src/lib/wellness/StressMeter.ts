@@ -274,7 +274,7 @@ export class StressMeter {
         ],
         severity: trendPercentage > 25 ? 'high' : trendPercentage > 15 ? 'medium' : 'low'
       };
-    } else {
+    }
       return {
         type: 'stress_trend',
         title: 'Improving Stress Trend',
@@ -287,7 +287,6 @@ export class StressMeter {
         ],
         severity: 'low'
       };
-    }
   }
 
   private detectStressSpikes(readings: StressReading[]): PredictiveInsight | null {

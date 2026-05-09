@@ -1,13 +1,21 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { supabase } from '@/lib/supabase/client';
+import { getSupabaseWithClerkAuth } from '@/lib/supabase/server-auth';
+import { supabaseServerAdmin } from '@/lib/supabase/server';
+
+const RESOURCE_BUCKET = 'study-group-resources';
+const ALLOWED_RESOURCE_TYPES = new Set(['link', 'file', 'note', 'past_question', 'document']);
+
+function isAdminLike(role: string | null | undefined): boolean {
+  return role === 'owner' || role === 'admin';
+}
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const params = await context.params;
+    const { supabase, userId } = await getSupabaseWithClerkAuth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -21,10 +29,10 @@ export async function GET(
     // Check if user is a member
     const { data: membership, error: membershipError } = await supabase
       .from('study_group_members')
-      .select('id')
+      .select('id, role')
       .eq('group_id', groupId)
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (membershipError || !membership) {
       return NextResponse.json({ error: 'You must be a member to view resources' }, { status: 403 });
@@ -35,7 +43,7 @@ export async function GET(
       .from('study_group_resources')
       .select(`
         *,
-        profiles(name)
+        profiles(full_name)
       `)
       .eq('group_id', groupId)
       .order('created_at', { ascending: false });
@@ -45,10 +53,25 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch resources' }, { status: 500 });
     }
 
-    const resourcesWithUser = resources?.map(resource => ({
-      ...resource,
-      user_name: resource.profiles?.name || 'Unknown'
-    })) || [];
+    const resourcesWithUser = await Promise.all((resources ?? []).map(async (resource) => {
+      let signedUrl: string | null = null;
+      if (resource.resource_type === 'file' && resource.file_path && supabaseServerAdmin) {
+        const { data, error } = await supabaseServerAdmin.storage
+          .from(RESOURCE_BUCKET)
+          .createSignedUrl(resource.file_path, 60 * 60);
+        if (error) {
+          console.error('[social:resourceSignedUrl]', error);
+        } else {
+          signedUrl = data?.signedUrl ?? null;
+        }
+      }
+
+      return {
+        ...resource,
+        signed_url: signedUrl,
+        user_name: resource.profiles?.full_name || 'Unknown'
+      };
+    }));
 
     return NextResponse.json({ resources: resourcesWithUser });
   } catch (error) {
@@ -59,10 +82,11 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const params = await context.params;
+    const { supabase, userId } = await getSupabaseWithClerkAuth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -75,31 +99,62 @@ export async function POST(
     const body = await request.json();
     const { title, description, url, file_path, resource_type } = body;
 
-    if (!title || !resource_type) {
+    if (!title || typeof title !== 'string' || !title.trim() || !resource_type) {
       return NextResponse.json({ 
         error: 'Title and resource_type are required' 
       }, { status: 400 });
+    }
+    if (!ALLOWED_RESOURCE_TYPES.has(String(resource_type))) {
+      return NextResponse.json({ error: 'Invalid resource_type' }, { status: 400 });
+    }
+    if (url) {
+      try {
+        const parsed = new URL(String(url));
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+          return NextResponse.json({ error: 'Invalid url protocol' }, { status: 400 });
+        }
+      } catch {
+        return NextResponse.json({ error: 'Invalid url' }, { status: 400 });
+      }
+    }
+    if (resource_type === 'file') {
+      const path = String(file_path || '');
+      if (!path.startsWith(`groups/${groupId}/`)) {
+        return NextResponse.json({ error: 'Invalid file path' }, { status: 400 });
+      }
+    }
+    if (resource_type === 'link' && !url) {
+      return NextResponse.json({ error: 'Link resources need a URL' }, { status: 400 });
+    }
+    if (resource_type === 'note' && !description) {
+      return NextResponse.json({ error: 'Note resources need content' }, { status: 400 });
+    }
+    if (!url && !file_path && !description) {
+      return NextResponse.json(
+        { error: 'Provide at least one of url, file_path, or description' },
+        { status: 400 },
+      );
     }
 
     // Check if user is a member
     const { data: membership, error: membershipError } = await supabase
       .from('study_group_members')
-      .select('id')
+      .select('id, role')
       .eq('group_id', groupId)
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (membershipError || !membership) {
       return NextResponse.json({ error: 'You must be a member to add resources' }, { status: 403 });
     }
 
-    // Create resource
+    // Members can add resources; all writes are still membership-gated.
     const { data: resource, error: resourceError } = await supabase
       .from('study_group_resources')
       .insert({
         group_id: groupId,
         user_id: userId,
-        title,
+        title: title.trim(),
         description,
         url,
         file_path,
@@ -107,7 +162,7 @@ export async function POST(
       })
       .select(`
         *,
-        profiles(name)
+        profiles(full_name)
       `)
       .single();
 
@@ -118,12 +173,79 @@ export async function POST(
 
     const resourceWithUser = {
       ...resource,
-      user_name: resource.profiles?.name || 'Unknown'
+      user_name: resource.profiles?.full_name || 'Unknown'
     };
 
     return NextResponse.json({ resource: resourceWithUser }, { status: 201 });
   } catch (error) {
     console.error('Error in POST /api/study-groups/[id]/resources:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const params = await context.params;
+    const { supabase, userId } = await getSupabaseWithClerkAuth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!supabase) {
+      return NextResponse.json({ error: 'Database unavailable' }, { status: 503 });
+    }
+
+    const resourceId = new URL(request.url).searchParams.get('resourceId');
+    if (!resourceId) {
+      return NextResponse.json({ error: 'resourceId is required' }, { status: 400 });
+    }
+
+    const groupId = params.id;
+    const { data: membership } = await supabase
+      .from('study_group_members')
+      .select('role')
+      .eq('group_id', groupId)
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (!membership) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { data: resource } = await supabase
+      .from('study_group_resources')
+      .select('id, user_id, resource_type, file_path')
+      .eq('id', resourceId)
+      .eq('group_id', groupId)
+      .maybeSingle();
+    if (!resource) {
+      return NextResponse.json({ error: 'Resource not found' }, { status: 404 });
+    }
+    if (!isAdminLike(membership.role) && resource.user_id !== userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { error } = await supabase
+      .from('study_group_resources')
+      .delete()
+      .eq('id', resourceId)
+      .eq('group_id', groupId);
+    if (error) {
+      console.error('Error deleting resource:', error);
+      return NextResponse.json({ error: 'Failed to delete resource' }, { status: 500 });
+    }
+    if (resource.resource_type === 'file' && resource.file_path && supabaseServerAdmin) {
+      const { error: removeObjectError } = await supabaseServerAdmin.storage
+        .from(RESOURCE_BUCKET)
+        .remove([resource.file_path]);
+      if (removeObjectError) {
+        console.error('[social:deleteResourceFile]', removeObjectError);
+      }
+    }
+    return NextResponse.json({ deleted: true });
+  } catch (error) {
+    console.error('Error in DELETE /api/study-groups/[id]/resources:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

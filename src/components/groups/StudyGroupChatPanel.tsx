@@ -57,7 +57,7 @@ export const StudyGroupChatPanel: React.FC<StudyGroupChatPanelProps> = ({
         if (document.hidden) {
           toast.info(`New message from ${message.sender_name}`, {
             description: message.content.length > 50 
-              ? message.content.substring(0, 50) + '...' 
+              ? `${message.content.substring(0, 50)}...` 
               : message.content
           });
         }

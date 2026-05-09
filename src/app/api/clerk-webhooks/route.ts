@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { Webhook } from 'svix';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseServerAdmin } from '@/lib/supabase/server';
 
 interface ClerkUser {
   id: string;
@@ -61,13 +61,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Initialize Supabase client with service role key
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
+    // Use standardized Supabase client with service role for admin operations
+    const supabase = supabaseServerAdmin;
+    
+    if (!supabase) {
+      console.error(`[${environment.toUpperCase()}] Supabase admin client not available`);
+      return NextResponse.json(
+        { error: "Supabase admin client not available" },
+        { status: 500, headers: corsHeaders }
+      );
+    }
 
     // Get webhook headers for verification
     const svixId = req.headers.get("svix-id");

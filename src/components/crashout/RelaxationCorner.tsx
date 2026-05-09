@@ -4,7 +4,7 @@ import type React from 'react';
 import { useState, useEffect } from 'react';
 import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
 import { useRelaxationAudio, type RelaxationSoundType } from '@/hooks/useRelaxationAudio';
-import { Gamepad2, Wind, Music, Palette, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { CloudRain, Flame, Lightbulb, Music, Pause, Play, TreePine, Volume2, VolumeX, Waves, Wind, X } from 'lucide-react';
 
 const breathingCycle = [
   { text: 'Breathe In...', duration: 4000, phase: 'inhale' },
@@ -16,7 +16,7 @@ interface RelaxationCornerProps {
   onExit: () => void;
 }
 
-type RelaxationMode = 'breathing' | 'ragdoll' | 'music' | 'drawing';
+type RelaxationMode = 'breathing' | 'music';
 
 export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) => {
   const { triggerWellnessAction } = useDebouncedAchievementTrigger();
@@ -59,35 +59,27 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
     }
   }, [cycleIndex, currentMode, isBreathingActive]);
 
-  const relaxationModes = [
+  const relaxationModes: {
+    id: RelaxationMode;
+    title: string;
+    icon: typeof Wind;
+    description: string;
+    color: string;
+  }[] = [
     {
-      id: 'breathing' as RelaxationMode,
+      id: 'breathing',
       title: 'Breathing Exercise',
       icon: Wind,
       description: 'Calm your mind with guided breathing',
-      color: 'from-blue-500 to-cyan-500'
+      color: 'from-blue-500 to-cyan-500',
     },
     {
-      id: 'music' as RelaxationMode,
+      id: 'music',
       title: 'Calming Sounds',
       icon: Music,
       description: 'Relax with ambient soundscapes',
-      color: 'from-purple-500 to-pink-500'
+      color: 'from-cyan-500 to-emerald-500',
     },
-    {
-      id: 'drawing' as RelaxationMode,
-      title: 'Zen Drawing',
-      icon: Palette,
-      description: 'Express yourself with digital art',
-      color: 'from-green-500 to-teal-500'
-    },
-    {
-      id: 'ragdoll' as RelaxationMode,
-      title: 'Stress Game',
-      icon: Gamepad2,
-      description: 'Coming Soon',
-      color: 'from-gray-500 to-gray-600'
-    }
   ];
 
   const handleModeChange = (mode: RelaxationMode) => {
@@ -113,7 +105,7 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
     const currentPhase = breathingCycle[cycleIndex];
     if (currentPhase.phase === 'inhale') {
       return 1 + (breathingProgress * 0.5); // Scale from 1 to 1.5
-    } else if (currentPhase.phase === 'exhale') {
+    }if (currentPhase.phase === 'exhale') {
       return 1.5 - (breathingProgress * 0.5); // Scale from 1.5 to 1
     }
     return 1.5; // Hold phase
@@ -121,7 +113,7 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
 
   const renderContent = () => {
     switch (currentMode) {
-      case 'breathing':
+      case 'breathing': {
         const currentPhase = breathingCycle[cycleIndex];
         const scale = getBreathingScale();
         
@@ -205,7 +197,11 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
                         : 'bg-blue-500 hover:bg-blue-600'
                     }`}
                   >
-                    {isBreathingActive ? '⏸️ Pause' : '▶️ Start Breathing'}
+                    {isBreathingActive ? (
+                      <span className="inline-flex items-center gap-2"><Pause className="h-4 w-4" />Pause</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-2"><Play className="h-4 w-4" />Start breathing</span>
+                    )}
                   </button>
                 </div>
               </div>
@@ -216,8 +212,8 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
                   <div className="text-blue-300 font-bold mb-1">INHALE</div>
                   <div className="text-white">4 seconds</div>
                 </div>
-                <div className="bg-purple-500/20 rounded-lg p-4 border border-purple-500/30">
-                  <div className="text-purple-300 font-bold mb-1">HOLD</div>
+                <div className="bg-cyan-500/20 rounded-lg p-4 border border-cyan-500/30">
+                  <div className="text-cyan-300 font-bold mb-1">HOLD</div>
                   <div className="text-white">7 seconds</div>
                 </div>
                 <div className="bg-green-500/20 rounded-lg p-4 border border-green-500/30">
@@ -228,40 +224,19 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
             </div>
           </div>
         );
+      }
 
-      case 'ragdoll':
-        return (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="bg-gray-800/80 backdrop-blur-sm rounded-xl p-8 w-full max-w-2xl border border-gray-700 text-center">
-              <div className="text-6xl mb-6">🎮</div>
-              <h3 className="text-3xl font-bold text-white mb-4">Stress Relief Game</h3>
-              <p className="text-gray-300 text-lg mb-6">
-                An interactive stress relief experience is coming soon!
-              </p>
-              <div className="bg-gray-700/50 rounded-lg p-6 border border-gray-600">
-                <h4 className="text-xl font-semibold text-white mb-3">What to expect:</h4>
-                <ul className="text-gray-300 space-y-2 text-left max-w-md mx-auto">
-                  <li>• Interactive stress relief activities</li>
-                  <li>• Satisfying physics-based interactions</li>
-                  <li>• Multiple stress-busting mini-games</li>
-                  <li>• Progress tracking and achievements</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'music':
+      case 'music': {
         const soundscapes: Array<{
           id: RelaxationSoundType;
           name: string;
-          emoji: string;
+          icon: React.ComponentType<{ className?: string }>;
           description: string;
         }> = [
-          { id: 'ocean-waves', name: 'Ocean Waves', emoji: '🌊', description: 'Gentle waves for deep relaxation' },
-          { id: 'rain-sounds', name: 'Rain Sounds', emoji: '🌧️', description: 'Soft rainfall for focus' },
-          { id: 'crackling-fire', name: 'Crackling Fire', emoji: '🔥', description: 'Warm fireplace ambience' },
-          { id: 'forest-ambience', name: 'Forest Ambience', emoji: '🌲', description: 'Nature sounds and birds' },
+          { id: 'ocean-waves', name: 'Ocean Waves', icon: Waves, description: 'Gentle waves for deep relaxation' },
+          { id: 'rain-sounds', name: 'Rain Sounds', icon: CloudRain, description: 'Soft rainfall for focus' },
+          { id: 'crackling-fire', name: 'Crackling Fire', icon: Flame, description: 'Warm fireplace ambience' },
+          { id: 'forest-ambience', name: 'Forest Ambience', icon: TreePine, description: 'Nature sounds and birds' },
         ];
 
         return (
@@ -327,14 +302,14 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
               {/* Loading and Error States */}
               {isLoading && (
                 <div className="mt-4 text-blue-400 flex items-center justify-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-400 border-t-transparent"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-400 border-t-transparent" />
                   <span>Loading audio...</span>
                 </div>
               )}
 
               {error && (
                 <div className="mt-4 text-red-400 text-sm">
-                  ⚠️ {error} (Using generated sounds as fallback)
+                  {error} (Using generated sounds as fallback)
                 </div>
               )}
             </div>
@@ -344,13 +319,14 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
               {soundscapes.map((soundscape) => {
                 const isActive = currentSound === soundscape.id;
                 const isCurrentlyPlaying = isActive && isPlaying;
+                const SoundIcon = soundscape.icon;
                 
                 return (
                   <div
                     key={soundscape.id}
                     className={`relative bg-gray-800/60 backdrop-blur-sm rounded-xl p-6 border transition-all cursor-pointer group ${
                       isActive 
-                        ? 'border-purple-500 bg-purple-900/20' 
+                        ? 'border-cyan-500 bg-cyan-900/20' 
                         : 'border-gray-700 hover:border-gray-600 hover:bg-gray-800/80'
                     }`}
                     onClick={() => playSound(soundscape.id)}
@@ -366,12 +342,12 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
                   >
                     {/* Visual Feedback for Active Sound */}
                     {isCurrentlyPlaying && (
-                      <div className="absolute inset-0 rounded-xl bg-purple-500/10 animate-pulse"></div>
+                      <div className="absolute inset-0 rounded-xl bg-cyan-500/10 animate-pulse" />
                     )}
                     
                     <div className="relative z-10">
-                      <div className="text-4xl mb-3 transition-transform group-hover:scale-110">
-                        {soundscape.emoji}
+                      <div className="mb-3 transition-transform group-hover:scale-110">
+                        <SoundIcon className="mx-auto h-8 w-8 text-cyan-300" />
                       </div>
                       <h4 className="text-lg font-semibold text-white mb-2">
                         {soundscape.name}
@@ -383,13 +359,13 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
                       {/* Status Indicator */}
                       <div className="flex items-center justify-center space-x-2">
                         {isActive ? (
-                          <div className="flex items-center space-x-1 text-purple-400">
+                          <div className="flex items-center space-x-1 text-cyan-400">
                             {isCurrentlyPlaying ? (
                               <>
                                 <div className="flex space-x-1">
-                                  <div className="w-1 h-4 bg-purple-400 animate-pulse"></div>
-                                  <div className="w-1 h-4 bg-purple-400 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                                  <div className="w-1 h-4 bg-purple-400 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                                  <div className="w-1 h-4 bg-cyan-400 animate-pulse" />
+                                  <div className="w-1 h-4 bg-cyan-400 animate-pulse" style={{ animationDelay: '0.2s' }} />
+                                  <div className="w-1 h-4 bg-cyan-400 animate-pulse" style={{ animationDelay: '0.4s' }} />
                                 </div>
                                 <span className="text-sm">Playing</span>
                               </>
@@ -401,7 +377,7 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
                             )}
                           </div>
                         ) : (
-                          <div className="flex items-center space-x-1 text-gray-500 group-hover:text-purple-400 transition-colors">
+                          <div className="flex items-center space-x-1 text-gray-500 group-hover:text-cyan-400 transition-colors">
                             <Play className="h-4 w-4" />
                             <span className="text-sm">Click to play</span>
                           </div>
@@ -416,34 +392,14 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
             {/* Instructions */}
             <div className="bg-gray-800/40 backdrop-blur-sm rounded-lg p-4 border border-gray-700">
               <p className="text-gray-300 text-sm">
-                💡 <strong>Tip:</strong> These sounds are designed to loop seamlessly. 
+                <Lightbulb className="mr-1 inline h-4 w-4 text-cyan-300" />
+                <strong>Tip:</strong> These sounds are designed to loop seamlessly. 
                 Use them while studying, meditating, or whenever you need to relax and focus.
               </p>
             </div>
           </div>
         );
-
-      case 'drawing':
-        return (
-          <div className="text-center">
-            <div className="bg-gray-800/80 backdrop-blur-sm rounded-xl p-8 max-w-2xl mx-auto border border-gray-700">
-              <h3 className="text-2xl font-bold text-white mb-4">Zen Drawing Canvas</h3>
-              <div className="w-full h-96 bg-white rounded-lg mb-4 flex items-center justify-center">
-                <p className="text-gray-500">Drawing canvas coming soon...</p>
-              </div>
-              <div className="flex justify-center space-x-4">
-                {['🖌️ Brush', '✏️ Pencil', '🌈 Colors', '🗑️ Clear'].map((tool) => (
-                  <button
-                    key={tool}
-                    className="py-2 px-4 bg-green-600/20 hover:bg-green-600/40 rounded-lg text-white transition-colors border border-green-500/30"
-                  >
-                    {tool}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
+      }
 
       default:
         return null;
@@ -454,13 +410,13 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
     <div className="fixed inset-0 bg-gray-900/95 backdrop-blur-xl flex flex-col z-50">
       {/* Header */}
       <div className="flex items-center justify-between p-6 border-b border-gray-700">
-        <h2 className="text-3xl font-bold text-white">Stress Relief Corner 🧘‍♀️</h2>
+        <h2 className="text-3xl font-bold text-white">Stress Relief Corner</h2>
         <button 
           onClick={handleExit} 
           className="text-white text-2xl font-bold bg-white/10 hover:bg-white/20 p-3 rounded-full transition-colors"
           aria-label="Exit relaxation mode"
         >
-          &times;
+          <X className="h-6 w-6" />
         </button>
       </div>
 
@@ -469,17 +425,14 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
         <div className="flex bg-gray-800/50 rounded-full p-2 border border-gray-700 overflow-x-auto max-w-full">
           {relaxationModes.map((mode) => {
             const Icon = mode.icon;
-            const isDisabled = mode.id === 'ragdoll';
             return (
               <button
                 key={mode.id}
-                onClick={() => !isDisabled && handleModeChange(mode.id)}
-                disabled={isDisabled}
+                onClick={() => handleModeChange(mode.id)}
+                type="button"
                 className={`flex items-center space-x-2 px-3 sm:px-6 py-2 sm:py-3 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                   currentMode === mode.id
                     ? `bg-gradient-to-r ${mode.color} text-white shadow-lg`
-                    : isDisabled
-                    ? 'text-gray-500 cursor-not-allowed'
                     : 'text-gray-300 hover:text-white hover:bg-white/10'
                 }`}
               >
@@ -501,7 +454,7 @@ export const RelaxationCorner: React.FC<RelaxationCornerProps> = ({ onExit }) =>
       {/* Footer */}
       <div className="text-center p-4 border-t border-gray-700">
         <p className="text-gray-400 text-sm">
-          Take your time. Mental health is just as important as your studies. 💙
+          Take your time. Mental health is just as important as your studies.
         </p>
       </div>
     </div>

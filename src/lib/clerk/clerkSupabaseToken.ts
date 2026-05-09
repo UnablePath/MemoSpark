@@ -2,7 +2,7 @@
  * Resolves which Clerk JWT to send to Supabase PostgREST.
  *
  * 1) JWT templates (try in order): env override → `supabase-integration` → `supabase`
- *    — `supabase-integration` matches the MemoSpark Clerk dashboard template name.
+ *    - `supabase-integration` matches the MemoSpark Clerk dashboard template name.
  * 2) Session token: if templates yield no token, use Clerk's default session JWT.
  *    With Supabase Dashboard → Authentication → Third-Party Auth → Clerk enabled,
  *    session JWTs signed by Clerk JWKS are accepted when claims include `role` / `sub` as per Supabase docs.
@@ -30,7 +30,7 @@ export async function getClerkSupabaseJwt(
       const jwt = await getToken({ template });
       if (jwt) return jwt;
     } catch {
-      // Template missing or Clerk error — try next name
+      // Template missing or Clerk error, try next name
     }
   }
 

@@ -57,13 +57,12 @@ export async function POST(request: NextRequest) {
         scheduledFor: scheduleTime.toISOString(),
         note: 'You should receive this notification in about 1 minute'
       });
-    } else {
+    }
       console.log('❌ [TEST] Failed to schedule OneSignal notification');
       return NextResponse.json({
         success: false,
         error: 'Failed to schedule notification'
       }, { status: 500 });
-    }
 
   } catch (error) {
     console.error('❌ [TEST] Error testing OneSignal scheduling:', error);

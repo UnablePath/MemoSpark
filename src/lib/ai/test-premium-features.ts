@@ -99,7 +99,7 @@ async function testStuPersonality() {
   
   try {
     const response = await stuService.generateResponse(sampleTasks, 'test-user', sampleContext);
-    console.log('✅ Stu Response:', response.message.substring(0, 50) + '...');
+    console.log('✅ Stu Response:', `${response.message.substring(0, 50)}...`);
     console.log('✅ Stu Mood:', response.mood);
     
     const status = stuService.getPersonalityStatus();

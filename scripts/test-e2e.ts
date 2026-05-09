@@ -344,7 +344,7 @@ class E2ETestSuite {
 
       // Note: We can't directly test the server action without authentication
       // This test checks if the function exports exist
-      const actionsModule = await import('../src/app/clerk-onboarding/_actions');
+      const actionsModule = await import('../src/app/onboarding/_actions');
       
       if (actionsModule && 'completeOnboarding' in actionsModule && typeof actionsModule.completeOnboarding === 'function') {
         this.log(
@@ -424,7 +424,7 @@ class E2ETestSuite {
     
     try {
       // Test if onboarding page component exists
-      const onboardingModule = await import('../src/app/clerk-onboarding/page');
+      const onboardingModule = await import('../src/app/onboarding/page');
       
       if (onboardingModule && 'default' in onboardingModule && typeof onboardingModule.default === 'function') {
         this.log(

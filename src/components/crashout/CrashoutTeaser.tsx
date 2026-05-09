@@ -43,7 +43,7 @@ const SAMPLE_POSTS: CrashoutPost[] = [
   {
     id: '1',
     author: { name: 'Alex K.', tier: 'premium' },
-    content: 'Studied for 12 hours straight for my organic chemistry exam... only to realize I was studying the wrong chapter the entire time! 😭 Anyone else had this happen?',
+    content: 'Studied for 12 hours straight for my organic chemistry exam only to realize I was studying the wrong chapter the entire time. Anyone else had this happen?',
     timestamp: '2 hours ago',
     likes: 42,
     comments: 18,
@@ -54,7 +54,7 @@ const SAMPLE_POSTS: CrashoutPost[] = [
   {
     id: '2',
     author: { name: 'Sarah M.', tier: 'free' },
-    content: 'That moment when your group project partners disappear 2 days before the deadline and you have to do everything yourself... 🔥🔥🔥',
+    content: 'That moment when your group project partners disappear two days before the deadline and you have to do everything yourself.',
     timestamp: '4 hours ago',
     likes: 67,
     comments: 23,
@@ -65,7 +65,7 @@ const SAMPLE_POSTS: CrashoutPost[] = [
   {
     id: '3',
     author: { name: 'Mike R.', tier: 'premium' },
-    content: 'Coffee machine broke at 3 AM during finals week. This is not a drill. I repeat, this is NOT A DRILL! ☕💀',
+    content: 'Coffee machine broke at 3 AM during finals week. This is not a drill. I repeat, this is not a drill.',
     timestamp: '6 hours ago',
     likes: 89,
     comments: 31,
@@ -75,7 +75,7 @@ const SAMPLE_POSTS: CrashoutPost[] = [
   {
     id: '4',
     author: { name: 'Lisa T.', tier: 'free' },
-    content: 'Professor: "This exam will be easy" Also Professor: *Creates 50-question nightmare that covers material from parallel universe* 🤡',
+    content: 'Professor: "This exam will be easy." Also Professor: creates a 50-question nightmare covering material from a parallel universe.',
     timestamp: '8 hours ago',
     likes: 156,
     comments: 42,
@@ -86,7 +86,7 @@ const SAMPLE_POSTS: CrashoutPost[] = [
   {
     id: '5',
     author: { name: 'David L.', tier: 'premium' },
-    content: 'Successfully pulled an all-nighter, submitted assignment at 11:59 PM... then realized it was due at 11:59 AM. F in the chat boys 📚💥',
+    content: 'Successfully pulled an all-nighter and submitted at 11:59 PM, then realized it was due at 11:59 AM.',
     timestamp: '12 hours ago',
     likes: 201,
     comments: 67,
@@ -94,17 +94,6 @@ const SAMPLE_POSTS: CrashoutPost[] = [
     category: 'deadline'
   }
 ];
-
-const getCategoryEmoji = (category: CrashoutPost['category']) => {
-  switch (category) {
-    case 'study-fail': return '📚💥';
-    case 'exam-stress': return '😰📝';
-    case 'group-project': return '👥🔥';
-    case 'deadline': return '⏰💀';
-    case 'motivation': return '💪✨';
-    default: return '🔥';
-  }
-};
 
 const getCategoryLabel = (category: CrashoutPost['category']) => {
   switch (category) {
@@ -140,7 +129,7 @@ export const CrashoutTeaser: React.FC<CrashoutTeaserProps> = ({ className }) => 
       showFeatureGatePopup(messages[action]);
       
       // Show teaser toast
-      toast.info("🔥 Premium users can fully interact with crashout posts!", {
+      toast.info("Premium users can fully interact with crashout posts.", {
         description: "Upgrade to like, comment, and share your study struggles!"
       });
       return;
@@ -176,7 +165,6 @@ export const CrashoutTeaser: React.FC<CrashoutTeaserProps> = ({ className }) => 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1">
-                    <span className="text-2xl">🔥</span>
                     <TrendingUp className="h-5 w-5 text-orange-600" />
                   </div>
                   <div>
@@ -218,7 +206,7 @@ export const CrashoutTeaser: React.FC<CrashoutTeaserProps> = ({ className }) => 
               {post.isHot && (
                 <div className="absolute top-2 right-2 z-10">
                   <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white animate-pulse">
-                    🔥 Hot
+                    Hot
                   </Badge>
                 </div>
               )}
@@ -243,7 +231,7 @@ export const CrashoutTeaser: React.FC<CrashoutTeaserProps> = ({ className }) => 
                         <Clock className="h-3 w-3" />
                         {post.timestamp}
                         <Badge variant="outline" className="text-xs">
-                          {getCategoryEmoji(post.category)} {getCategoryLabel(post.category)}
+                          {getCategoryLabel(post.category)}
                         </Badge>
                       </div>
                     </div>
@@ -355,7 +343,6 @@ export const CrashoutTeaser: React.FC<CrashoutTeaserProps> = ({ className }) => 
           <Card className="border-dashed">
             <CardContent className="pt-6">
               <div className="flex flex-col items-center gap-3">
-                <div className="text-4xl">🔥</div>
                 <h3 className="font-semibold">More Epic Crashouts Await!</h3>
                 <p className="text-sm text-muted-foreground text-center max-w-md">
                   Premium users can see unlimited crashout posts, create their own, and fully engage with the community.

@@ -318,7 +318,6 @@ export class TutorialManager {
           is_skipped: false,
           step_data: {},
           started_at: new Date().toISOString(),
-          error_count: 0
         })
         .select()
         .single();
@@ -384,10 +383,9 @@ export class TutorialManager {
       if (now - cached.timestamp < this.CACHE_DURATION) {
         console.log('Tutorial progress: Using cached result for user:', userId);
         return cached.data;
-      } else {
-        // Remove expired cache entry
-        this.progressCache.delete(cacheKey);
       }
+      // Remove expired cache entry
+      this.progressCache.delete(cacheKey);
     }
     
     // Check if there's already a pending request for this user
@@ -426,7 +424,9 @@ export class TutorialManager {
     // Clean up old entries if cache is too large
     if (this.progressCache.size >= this.MAX_CACHE_SIZE) {
       const oldestKey = this.progressCache.keys().next().value;
-      this.progressCache.delete(oldestKey);
+      if (oldestKey !== undefined) {
+        this.progressCache.delete(oldestKey);
+      }
     }
     
     this.progressCache.set(cacheKey, {
@@ -542,7 +542,6 @@ export class TutorialManager {
           last_seen_at: new Date().toISOString(),
           is_completed: nextStep === 'completion',
           completed_at: nextStep === 'completion' ? new Date().toISOString() : undefined,
-          error_count: 0 // Reset error count on successful advancement
         })
         .eq('user_id', userId);
 
@@ -676,8 +675,6 @@ export class TutorialManager {
           started_at: new Date().toISOString(),
           completed_at: null,
           last_seen_at: new Date().toISOString(),
-          error_count: 0,
-          last_error: null
         })
         .eq('user_id', userId);
 

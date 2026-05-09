@@ -1,10 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
 
 /**
- * MemoSpark onboarding ( /onboarding → /clerk-onboarding )
+ * MemoSpark onboarding — unified wizard at `/onboarding`.
+ * Legacy `/clerk-onboarding` has no route; middleware sends incomplete users to `/onboarding`.
  *
- * **Why tests may skip:** The server layout redirects users with
- * `sessionClaims.metadata.onboardingComplete === true` away from `/clerk-onboarding`.
+ * **Why tests may skip:** Layout redirects users with
+ * `sessionClaims.metadata.onboardingComplete === true` away from `/onboarding`.
  * Wizard-focused tests call `test.skip()` when the session is signed out or onboarding
  * is already complete — run with a user who still needs onboarding to exercise those paths.
  *
@@ -12,7 +13,8 @@ import { test, expect, type Page } from '@playwright/test';
  * (hits `completeOnboarding` + navigates to `/questionnaire`).
  */
 
-const ONBOARDING_STORAGE_KEYS = [
+/** Legacy per-field keys (pre–v2 draft); cleared for migration tests. */
+const ONBOARDING_LEGACY_STORAGE_KEYS = [
   'onboardingName',
   'onboardingEmail',
   'onboardingYearOfStudy',
@@ -26,10 +28,23 @@ const ONBOARDING_STORAGE_KEYS = [
   'onboardingStep',
 ] as const;
 
+const ONBOARDING_DRAFT_V2_KEY = 'memospark_onboarding_draft_v2' as const;
+
 async function clearOnboardingLocalStorage(page: Page) {
-  await page.evaluate((keys) => {
-    keys.forEach((k) => localStorage.removeItem(k));
-  }, [...ONBOARDING_STORAGE_KEYS]);
+  await page.evaluate(
+    ({ keys, v2Key }: { keys: string[]; v2Key: string }) => {
+      try {
+        localStorage.removeItem(v2Key);
+      } catch {
+        /* ignore */
+      }
+      keys.forEach((k) => localStorage.removeItem(k));
+    },
+    {
+      keys: [...ONBOARDING_LEGACY_STORAGE_KEYS],
+      v2Key: ONBOARDING_DRAFT_V2_KEY,
+    },
+  );
 }
 
 /** Wait until we land on sign-in, home, or the wizard — avoids racing client redirects. */
@@ -41,7 +56,7 @@ async function waitForOnboardingEntry(page: Page, timeout = 90_000) {
         p.startsWith('/sign-in') ||
         p === '/' ||
         p === '' ||
-        p === '/clerk-onboarding'
+        p === '/onboarding'
       );
     },
     { timeout }
@@ -52,7 +67,7 @@ function destinationFromUrl(url: string): 'sign-in' | 'home' | 'wizard' {
   const u = new URL(url);
   if (u.pathname.startsWith('/sign-in')) return 'sign-in';
   if (u.pathname === '/' || u.pathname === '') return 'home';
-  if (u.pathname === '/clerk-onboarding') return 'wizard';
+  if (u.pathname === '/onboarding') return 'wizard';
   return 'sign-in';
 }
 
@@ -75,7 +90,7 @@ test.describe('Unauthenticated: protected onboarding routes', () => {
     ).toBeTruthy();
   });
 
-  test('/clerk-onboarding sends anonymous users to sign-in', async ({ page }) => {
+  test('legacy /clerk-onboarding URL sends anonymous users to sign-in', async ({ page }) => {
     const response = await page.goto('/clerk-onboarding', { waitUntil: 'domcontentloaded' });
     expect(response?.ok() ?? false).toBeTruthy();
     await waitForOnboardingEntry(page);
@@ -114,48 +129,30 @@ test.describe('Onboarding routes (any session)', () => {
     });
   });
 
-  test('direct /clerk-onboarding: wizard UI, home redirect, or sign-in', async ({ page }) => {
-    const response = await page.goto('/clerk-onboarding', {
-      waitUntil: 'domcontentloaded',
-    });
-    expect(response?.ok() ?? false).toBeTruthy();
-    await waitForOnboardingEntry(page, 120_000);
-
-    const dest = destinationFromUrl(page.url());
-    if (dest === 'sign-in') {
-      await expect(page).toHaveURL(/sign-in/);
-      return;
-    }
-    if (dest === 'home') {
-      expect(new URL(page.url()).pathname).toBe('/');
-      await expect(
-        page.getByRole('heading', { level: 1, name: /coursework/i })
-      ).toBeVisible({ timeout: 20_000 });
-      return;
-    }
-
-    await expect(page.getByRole('heading', { name: /welcome to memospark/i })).toBeVisible({
-      timeout: 25_000,
-    });
-    await expect(page.getByRole('status', { name: /step 1 of 5/i })).toBeVisible();
-    await expect(page.getByLabel(/full name/i)).toBeVisible();
-    await expect(page.getByLabel(/email address/i)).toBeVisible();
-    await expect(page.locator('#main-content')).toBeVisible();
-    await expect(page.getByRole('link', { name: /skip to main content/i })).toBeVisible();
-  });
 });
 
 test.describe('Clerk onboarding wizard (signed-in + incomplete onboarding only)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((keys) => {
-      keys.forEach((k) => localStorage.removeItem(k));
-    }, [...ONBOARDING_STORAGE_KEYS]);
+    await page.addInitScript(
+      ({ keys, v2Key }: { keys: string[]; v2Key: string }) => {
+        try {
+          localStorage.removeItem(v2Key);
+        } catch {
+          /* ignore */
+        }
+        keys.forEach((k) => localStorage.removeItem(k));
+      },
+      {
+        keys: [...ONBOARDING_LEGACY_STORAGE_KEYS],
+        v2Key: ONBOARDING_DRAFT_V2_KEY,
+      },
+    );
   });
 
   test('step 1: empty fields show validation; valid data advances to step 2', async ({
     page,
   }) => {
-    await page.goto('/clerk-onboarding', { waitUntil: 'domcontentloaded' });
+    await page.goto('/onboarding', { waitUntil: 'domcontentloaded' });
     await waitForOnboardingEntry(page);
     const dest = destinationFromUrl(page.url());
     test.skip(dest === 'sign-in', 'Needs a signed-in browser session');
@@ -183,7 +180,7 @@ test.describe('Clerk onboarding wizard (signed-in + incomplete onboarding only)'
   });
 
   test('step 2: missing DOB blocks Next; valid DOB reaches step 3', async ({ page }) => {
-    await page.goto('/clerk-onboarding', { waitUntil: 'domcontentloaded' });
+    await page.goto('/onboarding', { waitUntil: 'domcontentloaded' });
     await waitForOnboardingEntry(page);
     const dest = destinationFromUrl(page.url());
     test.skip(dest === 'sign-in', 'Needs a signed-in browser session');
@@ -212,7 +209,7 @@ test.describe('Clerk onboarding wizard (signed-in + incomplete onboarding only)'
   });
 
   test('navigation: Back from step 2 preserves step 1 profile fields', async ({ page }) => {
-    await page.goto('/clerk-onboarding', { waitUntil: 'domcontentloaded' });
+    await page.goto('/onboarding', { waitUntil: 'domcontentloaded' });
     await waitForOnboardingEntry(page);
     const dest = destinationFromUrl(page.url());
     test.skip(dest === 'sign-in', 'Needs a signed-in browser session');
@@ -232,7 +229,7 @@ test.describe('Clerk onboarding wizard (signed-in + incomplete onboarding only)'
   });
 
   test('step 3 (optional): Skip advances to subjects step', async ({ page }) => {
-    await page.goto('/clerk-onboarding', { waitUntil: 'domcontentloaded' });
+    await page.goto('/onboarding', { waitUntil: 'domcontentloaded' });
     await waitForOnboardingEntry(page);
     const dest = destinationFromUrl(page.url());
     test.skip(dest === 'sign-in', 'Needs a signed-in browser session');
@@ -253,7 +250,7 @@ test.describe('Clerk onboarding wizard (signed-in + incomplete onboarding only)'
   });
 
   test('step 4: Next without a subject shows validation', async ({ page }) => {
-    await page.goto('/clerk-onboarding', { waitUntil: 'domcontentloaded' });
+    await page.goto('/onboarding', { waitUntil: 'domcontentloaded' });
     await waitForOnboardingEntry(page);
     const dest = destinationFromUrl(page.url());
     test.skip(dest === 'sign-in', 'Needs a signed-in browser session');
@@ -288,8 +285,8 @@ test.describe('Full wizard submit (requires incomplete onboarding + backend)', (
   );
 
   test('completes 5 steps and reaches questionnaire', async ({ page }) => {
-    await page.goto('/clerk-onboarding');
-    await expect(page).toHaveURL(/clerk-onboarding/);
+    await page.goto('/onboarding');
+    await expect(page).toHaveURL(/onboarding/);
 
     await page.getByLabel(/full name/i).fill('E2E Test User');
     await page.getByLabel(/email address/i).fill('e2e-onboarding@example.test');

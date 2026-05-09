@@ -91,7 +91,7 @@ export function useRetryableRequest<T>(
         if (shouldRetry) {
           // Schedule retry with exponential backoff
           const delay = mergedConfig.retryDelay * 
-            Math.pow(mergedConfig.backoffMultiplier, newRetryCount - 1);
+            mergedConfig.backoffMultiplier ** (newRetryCount - 1);
           
           timeoutRef.current = setTimeout(() => {
             execute(true);
@@ -148,7 +148,7 @@ export function useRetryableRequest<T>(
     cancel,
     canRetry: state.retryCount < mergedConfig.maxRetries,
     nextRetryIn: state.isRetrying ? 
-      mergedConfig.retryDelay * Math.pow(mergedConfig.backoffMultiplier, state.retryCount - 1) : 
+      mergedConfig.retryDelay * mergedConfig.backoffMultiplier ** (state.retryCount - 1) : 
       null,
   };
 }

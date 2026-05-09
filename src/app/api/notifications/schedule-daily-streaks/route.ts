@@ -47,15 +47,14 @@ export async function POST(request: NextRequest) {
           reminderTime: timeOfDay,
           nextReminder: calculateNextReminderTime(timeOfDay)
         });
-      } else {
+      }
         console.error(`❌ Failed to enable daily streak reminder for user ${userId}`);
         return NextResponse.json({
           error: 'Failed to enable daily streak reminders',
           details: 'Could not schedule notification'
         }, { status: 500 });
-      }
-    } 
-    else if (action === 'disable' || action === 'cancel') {
+    }
+    if (action === 'disable' || action === 'cancel') {
       // Cancel daily streak reminders
       const success = await reminderEngine.cancelDailyStreakReminder(userId);
 
@@ -65,14 +64,13 @@ export async function POST(request: NextRequest) {
           success: true,
           message: 'Daily streak reminders disabled successfully'
         });
-      } else {
+      }
         console.error(`❌ Failed to disable daily streak reminders for user ${userId}`);
         return NextResponse.json({
           error: 'Failed to disable daily streak reminders'
         }, { status: 500 });
-      }
     }
-    else if (action === 'update') {
+    if (action === 'update') {
       // Update existing reminder preferences
       const streakTracker = new StreakTracker();
       const userStats = await streakTracker.getCurrentStreak(userId);
@@ -98,18 +96,16 @@ export async function POST(request: NextRequest) {
           reminderTime: timeOfDay,
           nextReminder: calculateNextReminderTime(timeOfDay)
         });
-      } else {
+      }
         console.error(`❌ Failed to update daily streak reminder preferences for user ${userId}`);
         return NextResponse.json({
           error: 'Failed to update daily streak reminder preferences'
         }, { status: 500 });
-      }
     }
-    else {
+    
       return NextResponse.json({
         error: 'Invalid action. Supported actions: enable, disable, update'
       }, { status: 400 });
-    }
 
   } catch (error) {
     console.error('❌ Daily streak reminder API error:', error);
@@ -185,11 +181,10 @@ function calculateNextReminderTime(timeOfDay: string): string {
 function getPersonalizedReminderRecommendation(currentStreak: number): string {
   if (currentStreak === 0) {
     return "Start your first streak! Daily reminders will help you build the habit.";
-  } else if (currentStreak < 7) {
+  }if (currentStreak < 7) {
     return `Great ${currentStreak}-day streak! Daily reminders will help you reach the 1-week milestone.`;
-  } else if (currentStreak < 30) {
+  }if (currentStreak < 30) {
     return `Amazing ${currentStreak}-day streak! Keep the momentum going with daily check-ins.`;
-  } else {
-    return `Legendary ${currentStreak}-day streak! You're a true champion - daily reminders will help maintain this incredible achievement.`;
   }
+    return `Legendary ${currentStreak}-day streak! You're a true champion - daily reminders will help maintain this incredible achievement.`;
 } 

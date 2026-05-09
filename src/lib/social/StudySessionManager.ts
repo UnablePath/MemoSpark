@@ -1,4 +1,6 @@
-import { getAuthenticatedClient } from '../supabase/client';
+import { createAuthenticatedSupabaseClient } from '../supabase/client';
+import { wrapClerkTokenForSupabase } from '@/lib/clerk/clerkSupabaseToken';
+import type { ClerkGetToken } from '@/lib/messaging/MessagingService';
 
 export interface StudySession {
   id: string;
@@ -37,8 +39,13 @@ export class StudySessionManager {
   // Use broadly-typed client to support newly added tables before codegen updates
   private supabase: any;
 
-  constructor(getToken?: () => Promise<string | null>) {
-    this.supabase = getAuthenticatedClient(getToken);
+  constructor(getToken?: ClerkGetToken) {
+    const jwt = getToken ? wrapClerkTokenForSupabase(getToken) : async () => null;
+    const client = createAuthenticatedSupabaseClient(jwt);
+    if (!client) {
+      throw new Error('StudySessionManager: Supabase client unavailable');
+    }
+    this.supabase = client;
   }
 
   private logError(context: string, error: any, info: Record<string, any> = {}) {
@@ -47,48 +54,40 @@ export class StudySessionManager {
   }
 
   async createSession(groupId: string, creatorId: string, data: Partial<Omit<StudySession, 'id' | 'group_id' | 'created_by' | 'created_at' | 'updated_at' | 'current_participants'>>): Promise<StudySession> {
-    try {
-      const payload = {
-        group_id: groupId,
-        created_by: creatorId,
+    void creatorId;
+    const response = await fetch(`/api/study-groups/${groupId}/sessions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         title: data.title ?? 'Study Session',
         description: data.description ?? null,
         session_type: data.session_type ?? 'general',
-        start_time: data.start_time!,
-        end_time: data.end_time!,
+        start_time: data.start_time,
+        end_time: data.end_time,
         max_participants: data.max_participants ?? null,
-        status: data.status ?? 'scheduled',
         metadata: data.metadata ?? {},
-      } as const;
-
-      const { data: created, error } = await (this.supabase as any)
-        .from('study_sessions')
-        .insert(payload)
-        .select('*')
-        .single();
-
-      if (error) throw error;
-      return created as unknown as StudySession;
-    } catch (error) {
-      this.logError('createSession', error, { groupId, creatorId, data });
-      throw error;
+      }),
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.error ?? 'Failed to create session');
     }
+    const payload = await response.json();
+    return payload.session as StudySession;
   }
 
-  async updateSession(sessionId: string, updates: Partial<StudySession>): Promise<StudySession> {
-    try {
-      const { data, error } = await (this.supabase as any)
-        .from('study_sessions')
-        .update(updates)
-        .eq('id', sessionId)
-        .select('*')
-        .single();
-      if (error) throw error;
-      return data as unknown as StudySession;
-    } catch (error) {
-      this.logError('updateSession', error, { sessionId, updates });
-      throw error;
+  async updateSession(groupId: string, sessionId: string, updates: Partial<StudySession>): Promise<StudySession> {
+    const response = await fetch(`/api/study-groups/${groupId}/sessions/${sessionId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.error ?? 'Failed to update session');
     }
+    const payload = await response.json();
+    return payload.session as StudySession;
   }
 
   async getActiveSessions(groupId: string): Promise<StudySession[]> {
@@ -120,29 +119,25 @@ export class StudySessionManager {
     return (data ?? null) as unknown as StudySession | null;
   }
 
-  async joinSession(sessionId: string, userId: string): Promise<void> {
-    try {
-      const { error } = await (this.supabase as any)
-        .from('study_session_participants')
-        .insert({ session_id: sessionId, user_id: userId, status: 'joined' });
-      if (error) throw error;
-    } catch (error) {
-      this.logError('joinSession', error, { sessionId, userId });
-      throw error;
+  async joinSession(groupId: string, sessionId: string, userId: string): Promise<void> {
+    void userId;
+    const response = await fetch(`/api/study-groups/${groupId}/sessions/${sessionId}/join`, {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.error ?? 'Failed to join session');
     }
   }
 
-  async leaveSession(sessionId: string, userId: string): Promise<void> {
-    try {
-      const { error } = await (this.supabase as any)
-        .from('study_session_participants')
-        .delete()
-        .eq('session_id', sessionId)
-        .eq('user_id', userId);
-      if (error) throw error;
-    } catch (error) {
-      this.logError('leaveSession', error, { sessionId, userId });
-      throw error;
+  async leaveSession(groupId: string, sessionId: string, userId: string): Promise<void> {
+    void userId;
+    const response = await fetch(`/api/study-groups/${groupId}/sessions/${sessionId}/leave`, {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.error ?? 'Failed to leave session');
     }
   }
 

@@ -3,7 +3,7 @@
 import type React from 'react';
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react'
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { useUser } from '../user-context'; 
+import { useAuth } from '@clerk/nextjs';
 import { supabase, supabaseHelpers } from '../supabase/client';
 import { PatternRecognitionEngine } from '../ai/patternEngine'; // Import the main engine
 import type { AISuggestion } from '@/types/ai'; // Import AISuggestion from centralized types
@@ -57,26 +57,14 @@ export const AIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     'memospark_ai_user_profiles', // Changed local storage key to reflect table
     defaultUserAIPreferences
   );
-  // const { profile } = useUser(); // We might not need profile from UserContext if we fetch auth user directly
   const [authUserId, setAuthUserId] = useState<string | undefined>(undefined);
+  const { userId, isLoaded: isAuthLoaded } = useAuth();
 
   useEffect(() => {
-    const getAuthUser = async () => {
-      if (!supabase) return;
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          setAuthUserId(user.id);
-        } else {
-          setAuthUserId(undefined); // Explicitly set to undefined if no user
-        }
-      } catch (error) {
-        console.error("Error fetching auth user:", error);
-        setAuthUserId(undefined);
-      }
-    };
-    getAuthUser();
-  }, []);
+    if (isAuthLoaded) {
+      setAuthUserId(userId || undefined);
+    }
+  }, [userId, isAuthLoaded]);
 
   // Pass supabase client to PatternRecognitionEngine constructor
   const patternEngine = useMemo(() => new PatternRecognitionEngine(supabase), [supabase]);
@@ -180,14 +168,30 @@ export const AIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   }, [isGenerating, patternEngine, authUserId, userPreferences]);
 
   const acceptSuggestion = useCallback((suggestionId: string) => {
+    const suggestion = suggestions.find((s) => s.id === suggestionId);
     setSuggestions(prev => prev.filter(s => s.id !== suggestionId));
-    patternEngine.trackFeedback(suggestionId, true);
-  }, [patternEngine]);
+    patternEngine.trackFeedback(
+      suggestionId,
+      true,
+      authUserId,
+      suggestion
+        ? { type: suggestion.type, title: suggestion.title, source: suggestion.source }
+        : undefined,
+    );
+  }, [patternEngine, authUserId, suggestions]);
 
   const rejectSuggestion = useCallback((suggestionId: string) => {
+    const suggestion = suggestions.find((s) => s.id === suggestionId);
     setSuggestions(prev => prev.filter(s => s.id !== suggestionId));
-    patternEngine.trackFeedback(suggestionId, false);
-  }, [patternEngine]);
+    patternEngine.trackFeedback(
+      suggestionId,
+      false,
+      authUserId,
+      suggestion
+        ? { type: suggestion.type, title: suggestion.title, source: suggestion.source }
+        : undefined,
+    );
+  }, [patternEngine, authUserId, suggestions]);
 
   // Effect to fetch preferences from Supabase when authUserId becomes available
   useEffect(() => {

@@ -67,13 +67,13 @@ export const BuddyModeGate: React.FC<BuddyModeGateProps> = ({ className }) => {
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center"
+          className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center"
         >
           <Users className="h-10 w-10 text-white" />
         </motion.div>
         
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
             Buddy Mode
           </h1>
           <p className="text-muted-foreground mt-2">
@@ -83,7 +83,7 @@ export const BuddyModeGate: React.FC<BuddyModeGateProps> = ({ className }) => {
       </div>
 
       {!isPremium && (
-        <Card className="border-dashed border-blue-300 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
+        <Card className="border-dashed border-blue-300 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20">
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
               <Crown className="h-8 w-8 mx-auto text-blue-600" />
@@ -93,7 +93,7 @@ export const BuddyModeGate: React.FC<BuddyModeGateProps> = ({ className }) => {
               </p>
               <Button
                 onClick={() => showFeatureGatePopup('Buddy Mode')}
-                className="bg-gradient-to-r from-blue-500 to-purple-500"
+                className="bg-gradient-to-r from-blue-500 to-cyan-500"
               >
                 <Crown className="h-4 w-4 mr-2" />
                 Unlock Buddy Mode

@@ -1,0 +1,31 @@
+- generic [active] [ref=e1]:
+  - img "MemoSpark Logo" [ref=e6]:
+    - generic [ref=e8]:
+      - generic [ref=e10]: S
+      - generic [ref=e12]: PARKMEMO
+  - button "Install App" [ref=e14] [cursor=pointer]
+  - region "Notifications alt+T"
+  - generic [ref=e16]:
+    - generic [ref=e17]:
+      - generic [ref=e18]: Install MemoSpark
+      - generic [ref=e19]: Get the full app experience.
+    - button "Install App" [ref=e21] [cursor=pointer]:
+      - img
+      - text: Install App
+  - region "Notifications alt+T"
+  - generic [ref=e22]:
+    - img [ref=e24]
+    - button "Open Tanstack query devtools" [ref=e72] [cursor=pointer]:
+      - img [ref=e73]
+  - generic [ref=e125] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e126]:
+      - img [ref=e127]
+    - generic [ref=e130]:
+      - button "Open issues overlay" [ref=e131]:
+        - generic [ref=e132]:
+          - generic [ref=e133]: "0"
+          - generic [ref=e134]: "1"
+        - generic [ref=e135]: Issue
+      - button "Collapse issues badge" [ref=e136]:
+        - img [ref=e137]
+  - alert [ref=e139]

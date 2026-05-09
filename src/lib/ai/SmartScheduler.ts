@@ -8,9 +8,8 @@ import {
   type Priority,
   TaskType
 } from '@/types/ai';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase/client';
 import { addDays, addHours, format, isAfter, isBefore, isWithinInterval, parseISO, startOfDay, endOfDay } from 'date-fns';
-import { tryGetSupabaseUrl, tryGetSupabaseAnonKey } from '@/lib/supabase/env';
 
 interface CalendarEvent {
   id: string;
@@ -39,24 +38,15 @@ export class SmartScheduler {
   private existingEvents: CalendarEvent[];
   private userPreferences: UserPreferences;
   private taskHistory: ExtendedTask[];
-  private _supabase: SupabaseClient | null = null;
 
-  private get supabase(): SupabaseClient {
-    if (!this._supabase) {
-      const url = tryGetSupabaseUrl();
-      const key = tryGetSupabaseAnonKey();
-      if (!url || !key) throw new Error('Supabase env vars missing');
-      this._supabase = createClient(url, key, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
-    }
-    return this._supabase;
+  private get supabase() {
+    return supabase;
   }
 
   constructor(
     tasks: ExtendedTask[],
     patterns: PatternData,
-    existingEvents: CalendarEvent[] = [],
+    existingEvents: CalendarEvent[],
     userPreferences: UserPreferences,
     taskHistory: ExtendedTask[] = []
   ) {
@@ -126,31 +116,43 @@ export class SmartScheduler {
    */
   private analyzeProductivityWindows(): ProductivityWindow[] {
     const windows: ProductivityWindow[] = [];
-    
-    // Use pattern data if available
+
+    // Only accept integer hours in [0, 23]; non-numeric pattern data would
+    // otherwise produce NaN hours and throw `Invalid time value` in
+    // generateOptimalTimeSlots when Date#toISOString runs.
+    const toValidHour = (h: unknown): number | null => {
+      const n = typeof h === 'number' ? h : Number(h);
+      if (!Number.isFinite(n)) return null;
+      const floored = Math.floor(n);
+      if (floored < 0 || floored > 23) return null;
+      return floored;
+    };
+
     if (this.patterns.timePattern?.mostProductiveHours) {
-      this.patterns.timePattern.mostProductiveHours.forEach(hour => {
+      this.patterns.timePattern.mostProductiveHours.forEach(raw => {
+        const hour = toValidHour(raw);
+        if (hour === null) return;
         windows.push({
           startHour: hour,
-          endHour: hour + 2,
+          endHour: Math.min(hour + 2, 24),
           efficiency: 0.9,
-          dayOfWeek: undefined // All days
+          dayOfWeek: undefined
         });
       });
     }
-    
-    // Analyze historical completion data for more precise windows
+
     if (this.taskHistory.length > 10) {
       const completionAnalysis = this.analyzeHistoricalCompletions();
       windows.push(...completionAnalysis);
     }
-    
-    // Add user preference windows
-    this.userPreferences.availableStudyHours.forEach(hour => {
+
+    this.userPreferences.availableStudyHours.forEach(raw => {
+      const hour = toValidHour(raw);
+      if (hour === null) return;
       if (!windows.some(w => w.startHour === hour)) {
         windows.push({
           startHour: hour,
-          endHour: hour + 1,
+          endHour: Math.min(hour + 1, 24),
           efficiency: 0.7,
           dayOfWeek: undefined
         });
@@ -620,7 +622,7 @@ export class SmartScheduler {
         priority: 'medium',
         type: 'productivity_optimization',
         title: 'Add Strategic Breaks',
-        description: `Consider adding 15-minute breaks between long study sessions to maintain focus`,
+        description: "Consider adding 15-minute breaks between long study sessions to maintain focus",
         impact: 'medium',
         effort: 'low',
         suggestedChange: 'Insert breaks after every 2-3 hours of continuous work',

@@ -49,3 +49,15 @@ SECURE_ANALYTICS_SETUP.md
 ww.cjs
 .env*.local
 supabase-restore-temp/
+
+# Local Cursor MCP (copy from .cursor/mcp.json.example; contains secrets)
+.cursor/mcp.json
+
+# Local agent artifacts
+.agents/
+
+# Skills lockfile (generated locally)
+skills-lock.json
+
+# Claude / Cursor skills (local)
+.claude/

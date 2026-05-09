@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Calendar, ChevronLeft, ChevronRight, Flame } from 'lucide-react';
+import { Calendar, Check, ChevronLeft, ChevronRight, Flame, Target, X } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths } from 'date-fns';
 import { StreakTracker, type DailyStreak } from '@/lib/gamification/StreakTracker';
 import { toast } from 'sonner';
@@ -39,13 +39,9 @@ export const StreakCalendar: React.FC<StreakCalendarProps> = ({
 
     try {
       setLoading(true);
-      // Get streak data for the current month
-      const start = startOfMonth(currentMonth);
-      const end = endOfMonth(currentMonth);
-      
       // For now, we'll get all streaks and filter client-side
       // In a real app, you'd want to add date filtering to the API
-      const streaks = await streakTracker.getStreakAnalytics(user.id);
+      await streakTracker.getStreakAnalytics(user.id);
       // This is a simplified version - in practice you'd fetch actual daily streaks
       setDailyStreaks([]);
     } catch (error) {
@@ -73,9 +69,8 @@ export const StreakCalendar: React.FC<StreakCalendarProps> = ({
     if (isToday(date)) {
       if (streak?.completed) {
         return `${baseClasses} bg-green-500 text-white font-bold hover:bg-green-600`;
-      } else {
-        return `${baseClasses} bg-orange-500 text-white font-bold hover:bg-orange-600`;
       }
+        return `${baseClasses} bg-orange-500 text-white font-bold hover:bg-orange-600`;
     }
 
     if (streak?.completed) {
@@ -91,20 +86,18 @@ export const StreakCalendar: React.FC<StreakCalendarProps> = ({
 
   const getDayIcon = (date: Date, streak: DailyStreak | null) => {
     if (isToday(date) && streak?.completed) {
-      return '🔥';
+      return <Flame className="h-3 w-3 text-orange-600" />;
     }
     if (streak?.completed) {
-      if (streak.tasks_completed >= 5) return '💎';
-      if (streak.tasks_completed >= 3) return '⭐';
-      return '✅';
+      return <Check className="h-3 w-3 text-emerald-700" />;
     }
     if (isToday(date)) {
-      return '🎯';
+      return <Target className="h-3 w-3 text-orange-600" />;
     }
     if (date < new Date()) {
-      return '❌';
+      return <X className="h-3 w-3 text-red-600" />;
     }
-    return '';
+    return null;
   };
 
   const handleDayClick = (date: Date) => {
@@ -147,10 +140,10 @@ export const StreakCalendar: React.FC<StreakCalendarProps> = ({
       <Card className={className}>
         <CardContent className="p-6">
           <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-8 rounded bg-muted w-1/3" />
             <div className="grid grid-cols-7 gap-2">
               {Array.from({ length: 35 }).map((_, i) => (
-                <div key={i} className="h-10 bg-gray-200 rounded"></div>
+                <div key={i} className="h-10 rounded bg-muted" />
               ))}
             </div>
           </div>
@@ -178,7 +171,7 @@ export const StreakCalendar: React.FC<StreakCalendarProps> = ({
               </Button>
               <Select 
                 value={format(currentMonth, 'yyyy-MM')}
-                onValueChange={(value) => setCurrentMonth(new Date(value + '-01'))}
+                onValueChange={(value) => setCurrentMonth(new Date(`${value}-01`))}
               >
                 <SelectTrigger className="w-32">
                   <SelectValue />
@@ -209,19 +202,19 @@ export const StreakCalendar: React.FC<StreakCalendarProps> = ({
           {/* Legend */}
           <div className="flex flex-wrap gap-4 text-xs">
             <div className="flex items-center space-x-1">
-              <div className="w-3 h-3 bg-green-100 rounded"></div>
+              <div className="w-3 h-3 bg-green-100 rounded" />
               <span>Completed</span>
             </div>
             <div className="flex items-center space-x-1">
-              <div className="w-3 h-3 bg-red-100 rounded"></div>
+              <div className="w-3 h-3 bg-red-100 rounded" />
               <span>Missed</span>
             </div>
             <div className="flex items-center space-x-1">
-              <div className="w-3 h-3 bg-orange-500 rounded"></div>
+              <div className="w-3 h-3 bg-orange-500 rounded" />
               <span>Today</span>
             </div>
             <div className="flex items-center space-x-1">
-              <div className="w-3 h-3 border-2 border-gray-300 rounded"></div>
+              <div className="w-3 h-3 border-2 border-gray-300 rounded" />
               <span>Future</span>
             </div>
           </div>
@@ -251,7 +244,7 @@ export const StreakCalendar: React.FC<StreakCalendarProps> = ({
                       <div className="flex flex-col items-center">
                         <div className="text-xs">{format(date, 'd')}</div>
                         {dayIcon && (
-                          <div className="text-xs leading-none mt-1">
+                          <div className="mt-1 leading-none">
                             {dayIcon}
                           </div>
                         )}
@@ -267,20 +260,20 @@ export const StreakCalendar: React.FC<StreakCalendarProps> = ({
                         <div className="text-sm">
                           {streak.completed ? (
                             <>
-                              <div className="text-green-600">✅ Completed</div>
+                              <div className="text-green-600">Completed</div>
                               <div>Tasks: {streak.tasks_completed}</div>
                               <div>Points: {streak.points_earned}</div>
                             </>
                           ) : (
-                            <div className="text-red-600">❌ Missed</div>
+                            <div className="text-red-600">Missed</div>
                           )}
                         </div>
                       ) : isToday(date) ? (
-                        <div className="text-sm text-orange-600">🎯 Today</div>
+                        <div className="text-sm text-orange-600">Today</div>
                       ) : date > new Date() ? (
                         <div className="text-sm text-muted-foreground">Future</div>
                       ) : (
-                        <div className="text-sm text-red-600">❌ Missed</div>
+                        <div className="text-sm text-red-600">Missed</div>
                       )}
                     </div>
                   </TooltipContent>

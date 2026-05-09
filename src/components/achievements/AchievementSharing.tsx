@@ -3,7 +3,15 @@
 import type React from 'react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaTwitter, FaFacebook, FaLinkedin, FaWhatsapp, FaCopy, FaDownload, FaShare } from 'react-icons/fa';
+import {
+  Copy,
+  Download,
+  Facebook,
+  Linkedin,
+  Share2,
+  Twitter,
+  Whatsapp,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -172,7 +180,7 @@ export const AchievementSharing: React.FC<AchievementSharingProps> = ({
       <DialogTrigger asChild>
         {children || (
           <Button variant="outline" size="sm">
-            <FaShare className="w-4 h-4 mr-2" />
+            <Share2 className="w-4 h-4 mr-2" />
             Share
           </Button>
         )}
@@ -236,7 +244,7 @@ export const AchievementSharing: React.FC<AchievementSharingProps> = ({
                 onClick={shareToTwitter}
                 className="flex items-center justify-center space-x-2"
               >
-                <FaTwitter className="w-4 h-4 text-blue-400" />
+                <Twitter className="w-4 h-4 text-blue-400" />
                 <span>Twitter</span>
               </Button>
               
@@ -245,7 +253,7 @@ export const AchievementSharing: React.FC<AchievementSharingProps> = ({
                 onClick={shareToFacebook}
                 className="flex items-center justify-center space-x-2"
               >
-                <FaFacebook className="w-4 h-4 text-blue-600" />
+                <Facebook className="w-4 h-4 text-blue-600" />
                 <span>Facebook</span>
               </Button>
               
@@ -254,7 +262,7 @@ export const AchievementSharing: React.FC<AchievementSharingProps> = ({
                 onClick={shareToLinkedIn}
                 className="flex items-center justify-center space-x-2"
               >
-                <FaLinkedin className="w-4 h-4 text-blue-700" />
+                <Linkedin className="w-4 h-4 text-blue-700" />
                 <span>LinkedIn</span>
               </Button>
               
@@ -263,7 +271,7 @@ export const AchievementSharing: React.FC<AchievementSharingProps> = ({
                 onClick={shareToWhatsApp}
                 className="flex items-center justify-center space-x-2"
               >
-                <FaWhatsapp className="w-4 h-4 text-green-500" />
+                <Whatsapp className="w-4 h-4 text-green-500" />
                 <span>WhatsApp</span>
               </Button>
             </div>
@@ -275,7 +283,7 @@ export const AchievementSharing: React.FC<AchievementSharingProps> = ({
                 onClick={copyToClipboard}
                 className="flex-1 flex items-center justify-center space-x-2"
               >
-                <FaCopy className="w-4 h-4" />
+                <Copy className="w-4 h-4" />
                 <span>Copy Link</span>
               </Button>
               
@@ -284,7 +292,7 @@ export const AchievementSharing: React.FC<AchievementSharingProps> = ({
                 onClick={downloadAchievementImage}
                 className="flex-1 flex items-center justify-center space-x-2"
               >
-                <FaDownload className="w-4 h-4" />
+                <Download className="w-4 h-4" />
                 <span>Download</span>
               </Button>
             </div>
@@ -295,7 +303,7 @@ export const AchievementSharing: React.FC<AchievementSharingProps> = ({
                 onClick={shareViaWebAPI}
                 className="w-full flex items-center justify-center space-x-2"
               >
-                <FaShare className="w-4 h-4" />
+                <Share2 className="w-4 h-4" />
                 <span>Share via System</span>
               </Button>
             )}
@@ -338,7 +346,7 @@ export const QuickShareButton: React.FC<QuickShareButtonProps> = ({
           whileTap={{ scale: 0.9 }}
           className={`${buttonSizes[size]} bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors`}
         >
-          <FaShare className={iconSizes[size]} />
+          <Share2 className={iconSizes[size]} />
         </motion.button>
       </AchievementSharing>
     );
@@ -357,7 +365,7 @@ export const QuickShareButton: React.FC<QuickShareButtonProps> = ({
   return (
     <AchievementSharing achievement={achievement}>
       <Button variant="outline" size={size === 'md' ? 'default' : size as 'sm' | 'lg'} className="flex items-center space-x-2">
-        <FaShare className={iconSizes[size]} />
+        <Share2 className={iconSizes[size]} />
         <span>Share</span>
       </Button>
     </AchievementSharing>

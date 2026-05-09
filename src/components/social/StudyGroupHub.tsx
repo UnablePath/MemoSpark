@@ -5,20 +5,26 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { StudyGroupManager, type StudyGroup, type StudyGroupMember, type StudyGroupResource } from '@/lib/social/StudyGroupManager';
 import { MessagingService } from '@/lib/messaging/MessagingService';
-import { useStudySessions, useCreateSession, useSessionParticipants, useJoinSession, useLeaveSession, useGroupCategories, useDiscoverGroups } from '@/hooks/useStudyGroupQueries';
-import { StudySessionManager } from '@/lib/social/StudySessionManager';
+import { createAuthenticatedSupabaseClient } from '@/lib/supabase/client';
+import { wrapClerkTokenForSupabase } from '@/lib/clerk/clerkSupabaseToken';
+import {
+  useGroupCategories,
+  useDiscoverGroups,
+  useStudyGroupHubRealtime,
+  useStudyGroupMembersDetailed,
+  useStudyGroupResources,
+  useUserStudyGroups,
+  studyGroupKeys,
+} from '@/hooks/useStudyGroupQueries';
 import { useQueryClient } from '@tanstack/react-query';
-import type { StudySession } from '@/lib/social/StudySessionManager';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Users, 
-  PlusCircle, 
   UserPlus, 
   MessageSquare, 
   BookOpen, 
@@ -29,13 +35,13 @@ import {
   Shield,
   User,
   FileText,
+  Flag,
   Link,
-  Upload,
-  Send,
   MoreVertical,
+  Trash2,
   X,
   UserMinus,
-  Calendar
+  ChevronLeft,
 } from 'lucide-react';
 import {
   Dialog,
@@ -70,22 +76,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-// Import Magic UI components
-import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
-import { ShimmerButton } from "@/components/ui/shimmer-button";
-import { AnimatedList, AnimatedListItem } from "@/components/magicui/animated-list";
 import GroupManagementPanel from './GroupManagementPanel';
+import { StudyGroupChatTab } from '@/components/social/study-group/StudyGroupChatTab';
+import { GroupsBento, type CreateGroupBentoPayload } from './group/GroupsBento';
+import { submitSocialReport } from '@/lib/social/submitSocialReport';
+import { formatStudyGroupActivityLabel } from '@/lib/social/groupDisplay';
 
-interface Message {
-  id: string;
-  content: string;
-  sender_id: string;
-  sender_name?: string;
-  created_at: string;
-  sender?: {
-    full_name?: string;
-  };
-}
+/** Matches Groups lane bento: diffused scrim, not flat `bg-black/80`. */
+const GROUPS_HUB_OVERLAY = cn(
+  "bg-[hsl(var(--foreground)/0.12)] backdrop-blur-2xl",
+  "supports-[backdrop-filter]:bg-[hsl(var(--foreground)/0.05)]",
+  "before:pointer-events-none before:absolute before:inset-0",
+  "before:bg-[radial-gradient(ellipse_80%_52%_at_50%_0%,hsl(var(--primary)/0.14),transparent_58%)]",
+);
+
+/** Double-shell panel: full-bleed on small phones, floating on `sm+`. */
+const GROUPS_HUB_SHELL = cn(
+  "gap-0 border-0 p-0 shadow-none flex flex-col overflow-hidden",
+  "w-full max-w-none rounded-none bg-transparent",
+  "h-[100dvh] max-h-[100dvh] min-h-0 sm:h-[min(82vh,880px)] sm:max-h-[85vh] sm:max-w-[1100px] sm:w-[min(1100px,calc(100vw-1.25rem))]",
+  "sm:rounded-[1.75rem] sm:border sm:border-border/55 sm:bg-card sm:shadow-[0_40px_96px_-48px_hsl(var(--foreground)/0.42)] sm:ring-1 sm:ring-border/35",
+);
+
+const MEMBER_COUNT_CACHE_KEY = 'study-group-known-member-counts';
 
 export const StudyGroupHub: React.FC = () => {
   const { getToken } = useAuth();
@@ -93,18 +106,18 @@ export const StudyGroupHub: React.FC = () => {
   const studyGroupManager = useMemo(() => new StudyGroupManager(getToken), [getToken]);
   const messagingService = useMemo(() => new MessagingService(getToken), [getToken]);
 
+  const userGroupsQuery = useUserStudyGroups(getToken, user?.id);
+  const userGroups = userGroupsQuery.data ?? [];
+
   // State management
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("browse");
   const [selectedGroup, setSelectedGroup] = useState<StudyGroup | null>(null);
-  const [groupMembers, setGroupMembers] = useState<(StudyGroupMember & { user_name: string })[]>([]);
-  const [groupResources, setGroupResources] = useState<StudyGroupResource[]>([]);
-  const [groupMessages, setGroupMessages] = useState<Message[]>([]);
-  const [userGroups, setUserGroups] = useState<StudyGroup[]>([]);
   const [allGroups, setAllGroups] = useState<StudyGroup[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [membershipStatus, setMembershipStatus] = useState<Record<string, boolean>>({});
+  const [knownMemberCounts, setKnownMemberCounts] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(false);
 
   // Form states
@@ -112,84 +125,71 @@ export const StudyGroupHub: React.FC = () => {
   const [newGroupDescription, setNewGroupDescription] = useState("");
   const [newGroupCategory, setNewGroupCategory] = useState<string | null>(null);
   const [newGroupPrivacy, setNewGroupPrivacy] = useState<'public' | 'private' | 'invite_only'>('public');
-  const [newMessage, setNewMessage] = useState("");
   const [newResourceTitle, setNewResourceTitle] = useState("");
   const [newResourceContent, setNewResourceContent] = useState("");
   const [newResourceUrl, setNewResourceUrl] = useState("");
+  const [newResourceFile, setNewResourceFile] = useState<File | null>(null);
   const [newResourceType, setNewResourceType] = useState<string>("note");
   // Discovery data
   const categoriesQuery = useGroupCategories(getToken);
   const discoveryQuery = useDiscoverGroups(getToken, { q: searchQuery, categoryId: selectedCategory });
 
-  // Sessions UI state
-  const [newSession, setNewSession] = useState<{
-    title: string;
-    description: string;
-    start_time: string;
-    end_time: string;
-    max_participants?: number | null;
-  }>({ title: '', description: '', start_time: '', end_time: '', max_participants: null });
-
-  const sessionsQuery = useStudySessions(getToken, selectedGroup?.id || '');
-  const createSession = useCreateSession(getToken, selectedGroup?.id || '');
-  const [sessionDetailsId, setSessionDetailsId] = useState<string | null>(null);
-  const participantsQuery = useSessionParticipants(getToken, sessionDetailsId || '');
-  const joinSession = useJoinSession(getToken, selectedGroup?.id || '');
-  const leaveSession = useLeaveSession(getToken, selectedGroup?.id || '');
   const queryClient = useQueryClient();
 
-  // Resolve participant names
-  const [participantNames, setParticipantNames] = useState<Record<string, string>>({});
-  useEffect(() => {
-    const loadNames = async () => {
-      if (!participantsQuery.data || participantsQuery.data.length === 0) {
-        setParticipantNames({});
-        return;
-      }
-      try {
-        const uniqueIds = Array.from(new Set(participantsQuery.data.map(p => p.user_id)));
-        // Get user names from profiles - this method needs to be implemented
-        const names: Record<string, string> = {};
-        setParticipantNames(names);
-      } catch (e) {
-        // Fail-soft: keep IDs
-        setParticipantNames({});
-      }
-    };
-    loadNames();
-  }, [participantsQuery.data, studyGroupManager]);
+  const selectedGroupId = selectedGroup?.id ?? '';
+  useStudyGroupHubRealtime(selectedGroupId);
 
-  // Realtime subscription for session details dialog
-  useEffect(() => {
-    if (!sessionDetailsId) return;
-    const mgr = new StudySessionManager(getToken);
-    const unsubscribe = mgr.subscribeToSession(sessionDetailsId, {
-      onSessionUpdate: () => {
-        if (selectedGroup?.id) {
-          queryClient.invalidateQueries({ queryKey: ['studyGroups', 'sessions', selectedGroup.id] });
-        }
-      },
-      onParticipantChange: () => {
-        queryClient.invalidateQueries({ queryKey: ['studyGroups', 'participants', sessionDetailsId] });
-      }
-    });
-    return unsubscribe;
-  }, [sessionDetailsId, getToken, queryClient, selectedGroup?.id]);
+  const membersQuery = useStudyGroupMembersDetailed(getToken, selectedGroupId);
+  const resourcesQuery = useStudyGroupResources(getToken, selectedGroupId);
+  const groupMembers = membersQuery.data ?? [];
+  const groupResources = resourcesQuery.data ?? [];
 
-  // Load user groups
-  const loadUserGroups = useCallback(async () => {
-    if (!user) return;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
     try {
-      setIsLoading(true);
-      const groups = await studyGroupManager.getUserGroups(user.id);
-      setUserGroups(groups);
-    } catch (error) {
-      console.error("Failed to load user groups:", error);
-      toast.error("Failed to load your groups");
-    } finally {
-      setIsLoading(false);
+      const raw = window.localStorage.getItem(MEMBER_COUNT_CACHE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, number>;
+      if (!parsed || typeof parsed !== 'object') return;
+      setKnownMemberCounts((prev) => ({ ...parsed, ...prev }));
+    } catch {
+      // Ignore cache read errors.
     }
-  }, [studyGroupManager, user]);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedGroupId || !Array.isArray(membersQuery.data)) return;
+    setKnownMemberCounts((prev) => ({
+      ...prev,
+      [selectedGroupId]: membersQuery.data.length,
+    }));
+  }, [selectedGroupId, membersQuery.data]);
+
+  useEffect(() => {
+    if (userGroups.length === 0) return;
+    setKnownMemberCounts((prev) => {
+      const next = { ...prev };
+      for (const group of userGroups) {
+        const explicitCount = Number((group as any).member_count);
+        if (Number.isFinite(explicitCount) && explicitCount >= 0) {
+          next[group.id] = explicitCount;
+        }
+      }
+      return next;
+    });
+  }, [userGroups]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(
+        MEMBER_COUNT_CACHE_KEY,
+        JSON.stringify(knownMemberCounts),
+      );
+    } catch {
+      // Ignore cache write errors.
+    }
+  }, [knownMemberCounts]);
 
   // Load all groups for browsing
   const loadAllGroups = useCallback(async () => {
@@ -220,69 +220,84 @@ export const StudyGroupHub: React.FC = () => {
     }
   }, [studyGroupManager, user]);
 
-  // Load group details
-  const loadGroupDetails = useCallback(async (group: StudyGroup) => {
-    try {
+  const loadGroupDetails = useCallback(
+    async (group: StudyGroup) => {
+      const groupId = group.id;
       setSelectedGroup(group);
-      
-      // Load members, resources, and messages concurrently
-      const [members, resources] = await Promise.all([
-        studyGroupManager.getGroupMembersWithNames(group.id),
-        studyGroupManager.getResources(group.id)
-      ]);
-      
-      // Map members to include user_name property
-      const membersWithUserName = members.map(member => ({
-        ...member,
-        user_name: member.name || 'Unknown'
-      }));
-      setGroupMembers(membersWithUserName);
-      setGroupResources(resources);
-      
-      // Load messages if conversation exists
-      if (group.conversation_id) {
-        try {
-          const messages = await messagingService.getMessages(group.conversation_id);
-          setGroupMessages(messages);
-        } catch (error) {
-          console.error("Failed to load messages:", error);
-        }
+      try {
+        const fresh = await studyGroupManager.getGroup(groupId);
+        if (!fresh) return;
+        setSelectedGroup((prev) => {
+          if (prev?.id !== groupId) return prev;
+          const { members: _m, member_count: _mc, ...studyGroupRow } = fresh;
+          return { ...prev, ...studyGroupRow };
+        });
+      } catch (err) {
+        console.error('[studyGroup:fetchDetail]', err);
       }
-    } catch (error) {
-      console.error("Failed to load group details:", error);
-      toast.error("Failed to load group details");
-    }
-  }, [studyGroupManager, messagingService]);
+    },
+    [studyGroupManager],
+  );
 
   // Effects
   useEffect(() => {
-    if (isPopoverOpen && user) {
-      loadUserGroups();
-      loadAllGroups();
-    }
-  }, [isPopoverOpen, user, loadUserGroups, loadAllGroups]);
+    if (!isPopoverOpen || !user?.id) return;
+    void queryClient.invalidateQueries({ queryKey: studyGroupKeys.userGroups(user.id) });
+    void loadAllGroups();
+  }, [isPopoverOpen, user?.id, loadAllGroups, queryClient]);
 
-  // Load initial data for the card
-  useEffect(() => {
-    if (user) {
-      loadUserGroups();
-    }
-  }, [user, loadUserGroups]);
+  // useUserStudyGroups already fetches when userId is set, do not depend on the
+  // useQuery result object (new reference every fetch) or refetch loops forever.
 
   // Group creation
   const handleCreateGroup = async () => {
     if (!user || !newGroupName.trim()) return;
     
     try {
-      await studyGroupManager.createGroup(newGroupName, user.id, newGroupDescription);
+      await studyGroupManager.createGroup(newGroupName, user.id, newGroupDescription, {
+        privacy_level: newGroupPrivacy,
+        category_id: newGroupCategory,
+      });
       setNewGroupName("");
       setNewGroupDescription("");
-      loadUserGroups();
+      void queryClient.invalidateQueries({ queryKey: studyGroupKeys.userGroups(user.id) });
       loadAllGroups();
       toast.success("Group created successfully!");
     } catch (error) {
       console.error("Failed to create group:", error);
       toast.error("Failed to create group");
+    }
+  };
+
+  // Bento morph create path: take explicit values so the surface owns its form state.
+  const handleCreateGroupFromBento = async (
+    payload: CreateGroupBentoPayload,
+  ) => {
+    if (!user) return;
+    const trimmed = payload.name.trim();
+    if (!trimmed) {
+      toast.error("Give the group a name");
+      return;
+    }
+    try {
+      await studyGroupManager.createGroup(
+        trimmed,
+        user.id,
+        payload.description,
+        {
+          privacy_level: payload.privacy,
+          category_id: payload.categoryId,
+        },
+      );
+      void queryClient.invalidateQueries({
+        queryKey: studyGroupKeys.userGroups(user.id),
+      });
+      loadAllGroups();
+      toast.success("Group created");
+    } catch (error) {
+      console.error("Failed to create group:", error);
+      toast.error("Failed to create group");
+      throw error;
     }
   };
 
@@ -298,9 +313,9 @@ export const StudyGroupHub: React.FC = () => {
         return;
       }
 
-      await studyGroupManager.addMember(groupId, user.id, 'member');
+      await StudyGroupManager.joinGroup(groupId);
       setMembershipStatus(prev => ({ ...prev, [groupId]: true }));
-      loadUserGroups();
+      void queryClient.invalidateQueries({ queryKey: studyGroupKeys.userGroups(user.id) });
       loadAllGroups(); // Refresh to update membership status
       toast.success("Joined group successfully!");
     } catch (error) {
@@ -320,9 +335,9 @@ export const StudyGroupHub: React.FC = () => {
         return;
       }
 
-      await studyGroupManager.removeMember(groupId, user.id);
+      await StudyGroupManager.leaveGroup(groupId);
       setMembershipStatus(prev => ({ ...prev, [groupId]: false }));
-      loadUserGroups();
+      void queryClient.invalidateQueries({ queryKey: studyGroupKeys.userGroups(user.id) });
       loadAllGroups(); // Refresh to update membership status
       if (selectedGroup?.id === groupId) {
         setSelectedGroup(null);
@@ -334,79 +349,182 @@ export const StudyGroupHub: React.FC = () => {
     }
   };
 
+  const handleArchiveGroup = async (groupId: string) => {
+    if (!user) return;
+    const shouldArchive = window.confirm(
+      "Archive this group? It will disappear from group lists, but its chat and resources will stay preserved for admin review.",
+    );
+    if (!shouldArchive) return;
+
+    try {
+      await studyGroupManager.archiveGroup(groupId);
+      setMembershipStatus((prev) => {
+        const next = { ...prev };
+        delete next[groupId];
+        return next;
+      });
+      setAllGroups((prev) => prev.filter((group) => group.id !== groupId));
+      setSelectedGroup(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: studyGroupKeys.userGroups(user.id) }),
+        queryClient.invalidateQueries({ queryKey: studyGroupKeys.discovery({ q: searchQuery, categoryId: selectedCategory }) }),
+      ]);
+      toast.success("Group archived. Its chat and resources are preserved.");
+    } catch (error) {
+      console.error("[social:archiveGroup]", error);
+      toast.error("Couldn't archive this group right now. Try again.");
+    }
+  };
+
+  const submitGroupReport = async () => {
+    if (!groupReportTarget || !groupReportReason.trim()) return;
+    try {
+      await submitSocialReport({
+        targetType: 'group',
+        targetId: groupReportTarget.id,
+        reason: groupReportReason.trim(),
+        context: {
+          source: 'study_group_hub',
+          group_name: groupReportTarget.name,
+        },
+      });
+      toast.success('Report sent. Thanks for keeping MemoSpark safe.');
+      setGroupReportTarget(null);
+      setGroupReportReason('');
+    } catch (error) {
+      console.error('[social:reportGroup]', error);
+      toast.error("Couldn't send the report right now. Try again.");
+    }
+  };
+
+  const openGroupReport = (group: StudyGroup) => {
+    setGroupReportTarget(group);
+    setGroupReportReason('');
+  };
+
+  const submitResourceReport = async () => {
+    if (!resourceReportTarget || !resourceReportReason.trim()) return;
+    try {
+      await submitSocialReport({
+        targetType: 'resource',
+        targetId: resourceReportTarget.id,
+        reason: resourceReportReason.trim(),
+        context: {
+          source: 'study_group_resource',
+          group_id: resourceReportTarget.group_id,
+          resource_type: resourceReportTarget.resource_type,
+        },
+      });
+      toast.success('Resource report sent.');
+      setResourceReportTarget(null);
+      setResourceReportReason('');
+    } catch (error) {
+      console.error('[social:reportResource]', error);
+      toast.error("Couldn't report this resource right now. Try again.");
+    }
+  };
+
+  const openResourceReport = (resource: StudyGroupResource) => {
+    setResourceReportTarget(resource);
+    setResourceReportReason('');
+  };
+
+  const handleDeleteResource = async (resource: StudyGroupResource) => {
+    if (!selectedGroup) return;
+    const shouldDelete = window.confirm(`Delete "${resource.title}" from this group?`);
+    if (!shouldDelete) return;
+
+    try {
+      const response = await fetch(
+        `/api/study-groups/${selectedGroup.id}/resources?resourceId=${resource.id}`,
+        { method: 'DELETE' },
+      );
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Failed to delete resource');
+      }
+      await queryClient.invalidateQueries({
+        queryKey: studyGroupKeys.groupResources(selectedGroup.id),
+      });
+      toast.success('Resource removed.');
+    } catch (error) {
+      console.error('[social:deleteResource]', error);
+      toast.error("Couldn't remove this resource right now. Try again.");
+    }
+  };
+
   // Resource management
   const handleAddResource = async () => {
     if (!selectedGroup || !user || !newResourceTitle.trim()) return;
     
     try {
-      await studyGroupManager.addResource(selectedGroup.id, user.id, {
+      let uploadedFilePath: string | undefined;
+
+      if (newResourceType === 'file') {
+        if (!newResourceFile) {
+          toast.error('Choose a file before adding this resource.');
+          return;
+        }
+
+        const uploadResponse = await fetch(
+          `/api/study-groups/${selectedGroup.id}/resources/upload`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName: newResourceFile.name,
+              contentType: newResourceFile.type,
+              fileSize: newResourceFile.size,
+            }),
+          },
+        );
+        const uploadPayload = await uploadResponse.json().catch(() => ({}));
+        if (!uploadResponse.ok) {
+          throw new Error(uploadPayload.error ?? 'Failed to prepare file upload');
+        }
+
+        const client = createAuthenticatedSupabaseClient(
+          wrapClerkTokenForSupabase(getToken),
+        );
+        if (!client) {
+          throw new Error('Storage client unavailable');
+        }
+
+        const { error: uploadError } = await client.storage
+          .from(uploadPayload.bucket)
+          .uploadToSignedUrl(
+            uploadPayload.path,
+            uploadPayload.token,
+            newResourceFile,
+          );
+
+        if (uploadError) {
+          throw uploadError;
+        }
+        uploadedFilePath = uploadPayload.path;
+      }
+
+      const savedResource = await studyGroupManager.addResource(selectedGroup.id, user.id, {
         resource_type: newResourceType,
         title: newResourceTitle,
         description: newResourceContent || undefined,
-        url: newResourceUrl || undefined,
-        file_path: undefined
+        url: newResourceType === 'link' ? newResourceUrl || undefined : undefined,
+        file_path: uploadedFilePath
       });
+      if (!savedResource) {
+        throw new Error('Resource did not save');
+      }
       
       setNewResourceTitle("");
       setNewResourceContent("");
       setNewResourceUrl("");
+      setNewResourceFile(null);
       setNewResourceType("note");
-      
-      // Reload resources
-      const resources = await studyGroupManager.getResources(selectedGroup.id);
-      setGroupResources(resources);
+      void queryClient.invalidateQueries({ queryKey: studyGroupKeys.groupResources(selectedGroup.id) });
       toast.success("Resource added successfully!");
     } catch (error) {
       console.error("Failed to add resource:", error);
       toast.error("Failed to add resource");
-    }
-  };
-
-  // Message sending
-  const handleSendMessage = async () => {
-    if (!selectedGroup || !user || !newMessage.trim()) return;
-    // Fallback: ensure conversation exists and user is a participant
-    let conversationId = selectedGroup.conversation_id;
-    try {
-      if (!conversationId) {
-        conversationId = await messagingService.createGroupConversation(
-          selectedGroup.name,
-          user.id,
-          selectedGroup.description || undefined
-        );
-        // Persist on group (best-effort; ignore UI failure)
-        try {
-          // TODO: Implement attachConversationId method
-          console.log('Would attach conversation ID:', conversationId, 'to group:', selectedGroup.id);
-          setSelectedGroup({ ...selectedGroup, conversation_id: conversationId });
-        } catch {}
-      }
-      // Ensure current user is participant
-      try { await messagingService.addConversationParticipant(conversationId!, user.id); } catch {}
-    } catch {}
-    
-    // Check if user is a member of the group
-    if (!membershipStatus[selectedGroup.id]) {
-      toast.error("You must be a member of this group to send messages");
-      return;
-    }
-    
-    try {
-      await messagingService.sendMessage({
-        userId: user.id,
-        recipientId: user.id, // satisfy NOT NULL recipient_id for group messages
-        content: newMessage.trim(),
-        conversationId: conversationId!
-      });
-      setNewMessage("");
-      
-      // Reload messages
-      const messages = await messagingService.getMessages(conversationId!);
-      setGroupMessages(messages);
-      toast.success("Message sent!");
-    } catch (error) {
-      console.error("Failed to send message:", error);
-      toast.error("Failed to send message");
     }
   };
 
@@ -419,155 +537,132 @@ export const StudyGroupHub: React.FC = () => {
     );
   }, [allGroups, searchQuery]);
 
+  const groupMemberCounts = useMemo(() => {
+    return userGroups.reduce((acc, group) => {
+      const knownCount = knownMemberCounts[group.id];
+      if (typeof knownCount === 'number' && knownCount >= 0) {
+        acc[group.id] = knownCount;
+      } else {
+        const explicitCount = Number((group as any).member_count);
+        if (Number.isFinite(explicitCount) && explicitCount >= 0) {
+          acc[group.id] = explicitCount;
+        }
+      }
+      return acc;
+    }, {} as Record<string, number>);
+  }, [userGroups, knownMemberCounts]);
+
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'owner': return <Crown className="h-4 w-4 text-yellow-500" />;
       case 'admin': return <Shield className="h-4 w-4 text-blue-500" />;
-      default: return <User className="h-4 w-4 text-gray-500" />;
+      default: return <User className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
   const getResourceIcon = (type: string) => {
     switch (type) {
       case 'link': return <Link className="h-4 w-4" />;
-      case 'file': return <Upload className="h-4 w-4" />;
       default: return <FileText className="h-4 w-4" />;
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  const [groupTab, setGroupTab] = useState('overview');
-  const [selectedSession, setSelectedSession] = useState<StudySession | null>(null);
-  const [newSessionTitle, setNewSessionTitle] = useState('');
-  const [newSessionDescription, setNewSessionDescription] = useState('');
-  const [newSessionStart, setNewSessionStart] = useState('');
-  const [newSessionEnd, setNewSessionEnd] = useState('');
-  const [newSessionMaxParticipants, setNewSessionMaxParticipants] = useState<number | ''>('');
-
-  const handleCreateSession = async () => {
-    if (!selectedGroup || !user) return;
-    if (!newSessionTitle || !newSessionStart || !newSessionEnd) {
-      toast.error('Please fill title, start and end times');
-      return;
-    }
-    
-    // Validate end time is after start time
-    if (new Date(newSessionEnd) <= new Date(newSessionStart)) {
-      toast.error('End time must be after start time');
-      return;
-    }
-
-    try {
-      await createSession.mutateAsync({
-        // createSession expects payload matching StudySession fields with creatorId
-        creatorId: user.id,
-        title: newSessionTitle,
-        description: newSessionDescription,
-        start_time: newSessionStart,
-        end_time: newSessionEnd,
-        max_participants: newSessionMaxParticipants ? Number(newSessionMaxParticipants) : null,
-        session_type: 'general',
-        status: 'scheduled',
-        metadata: {}
-      } as any);
-      
-      setNewSessionTitle('');
-      setNewSessionDescription('');
-      setNewSessionStart('');
-      setNewSessionEnd('');
-      setNewSessionMaxParticipants('');
-      toast.success('Session created successfully');
-    } catch (error) {
-      console.error('Failed to create session:', error);
-      toast.error('Failed to create session');
-    }
-  };
-
-  const sessions = sessionsQuery.data;
-  const sessionsLoading = sessionsQuery.isLoading;
+  const [groupTab, setGroupTab] = useState('chat');
+  const [groupReportTarget, setGroupReportTarget] = useState<StudyGroup | null>(
+    null,
+  );
+  const [groupReportReason, setGroupReportReason] = useState("");
+  const [resourceReportTarget, setResourceReportTarget] =
+    useState<StudyGroupResource | null>(null);
+  const [resourceReportReason, setResourceReportReason] = useState('');
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-xl sm:text-2xl">
-          <Users className="h-6 w-6 text-primary" />
-          <span className="bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">Study Groups Hub</span>
-        </CardTitle>
-        <CardDescription className="text-sm">Find, create, and join study groups to collaborate with your peers.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {userGroups.length > 0 ? (
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Your Groups:</p>
-            <div className="space-y-1">
-              {userGroups.slice(0, 3).map((group) => (
-                <div key={group.id} className="flex items-center gap-2 text-sm">
-                  <Users className="h-3 w-3" />
-                  <span className="truncate">{group.name}</span>
-                </div>
-              ))}
-              {userGroups.length > 3 && (
-                <p className="text-xs text-muted-foreground">
-                  +{userGroups.length - 3} more groups
-                </p>
+    <div className="relative space-y-6">
+      <GroupsBento
+        groups={userGroups}
+        memberCounts={groupMemberCounts}
+        categories={categoriesQuery.data ?? []}
+        onOpenGroup={(g) => {
+          void loadGroupDetails(g);
+          setIsPopoverOpen(true);
+        }}
+        onCreateGroup={handleCreateGroupFromBento}
+        onDiscover={() => {
+          setSelectedGroup(null);
+          setIsPopoverOpen(true);
+        }}
+      />
+
+      <Dialog open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+        <DialogContent
+          overlayClassName={GROUPS_HUB_OVERLAY}
+          className={cn(
+            GROUPS_HUB_SHELL,
+            "duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+          )}
+        >
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-card">
+            {/* Header */}
+            <div
+              className={cn(
+                "flex-shrink-0 border-b border-border/50 bg-card px-4 py-3 sm:px-5 sm:py-4",
+                "safe-area-top",
               )}
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            You haven't joined any study groups yet.
-          </p>
-        )}
-      </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row gap-2 sm:gap-3 p-4">
-        <Dialog open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-          <DialogTrigger asChild>
-            <Button className="w-full sm:w-auto h-10 px-5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow">
-              <Users className="h-4 w-4 mr-2" />
-              Browse Groups
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-[1100px] w-[95vw] h-[80vh] p-0 flex flex-col overflow-hidden border-none shadow-2xl">
-            {/* Header - Fixed */}
-            <div className="flex-shrink-0 p-4 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-              <div className="flex items-center justify-between">
-                <AnimatedGradientText>
-                  <span className="inline animate-gradient bg-gradient-to-r from-[#ffaa40] via-[#9c40ff] to-[#ffaa40] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent">
-                    Study Groups Hub
-                  </span>
-                </AnimatedGradientText>
-                {/* Single close control is provided by the dialog chrome; remove duplicate */}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 max-w-[65ch] text-left">
+                  <DialogTitle className="text-xl font-semibold leading-tight tracking-tight text-foreground sm:text-2xl">
+                    Groups
+                  </DialogTitle>
+                  <DialogDescription className="sr-only">
+                    Search, join, and manage your groups.
+                  </DialogDescription>
+                </div>
               </div>
             </div>
 
             {/* Main Content - Scrollable */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="flex min-h-full">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <div className="flex min-h-full flex-col sm:flex-row">
                 {/* Sidebar */}
                 <div className={cn(
-                  "w-full sm:w-80 sm:border-r bg-muted/40 transition-all duration-300 flex flex-col",
-                  selectedGroup && "hidden sm:block"
+                  "flex w-full flex-col border-border/40 transition-all duration-300 sm:w-[min(100%,20rem)] sm:border-r sm:bg-muted/25",
+                  selectedGroup && "hidden sm:flex"
                 )}>
-                  <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col">
-                    <TabsList className="grid w-full grid-cols-2 m-2 h-10 rounded-xl sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-                      <TabsTrigger value="browse" className="text-xs px-3 rounded-lg">Browse</TabsTrigger>
-                      <TabsTrigger value="my-groups" className="text-xs px-3 rounded-lg">My Groups</TabsTrigger>
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col">
+                    <TabsList
+                      className={cn(
+                        "sticky top-0 z-20 mx-3 mt-3 grid h-11 grid-cols-2 gap-1 rounded-2xl p-1",
+                        "border border-border/50 bg-muted/40 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)]",
+                        "sm:mx-4 sm:mt-4",
+                      )}
+                    >
+                      <TabsTrigger
+                        value="browse"
+                        className="rounded-[0.85rem] text-xs font-medium data-[state=active]:bg-primary/12 data-[state=active]:text-foreground"
+                      >
+                        Discover
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="my-groups"
+                        className="rounded-[0.85rem] text-xs font-medium data-[state=active]:bg-primary/12 data-[state=active]:text-foreground"
+                      >
+                        Yours
+                      </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="browse" className="m-0">
-                      <div className="p-4 space-y-4">
+                    <TabsContent value="browse" className="m-0 flex-1">
+                      <div className="space-y-4 p-4 sm:p-5">
                         {/* Search & Categories */}
                         <div className="space-y-3">
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
-                            placeholder="Search groups..."
+                            placeholder="Search"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10"
+                            className="h-11 rounded-2xl border-border/60 bg-background/80 pl-10 text-base leading-normal sm:text-sm"
                           />
                           </div>
                           <div className="flex flex-wrap gap-2">
@@ -577,10 +672,11 @@ export const StudyGroupHub: React.FC = () => {
                                 type="button"
                                 onClick={() => setSelectedCategory(prev => prev === cat.id ? null : cat.id)}
                                 className={cn(
-                                  'px-3 py-1.5 rounded-full border text-xs transition',
-                                  selectedCategory === cat.id ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-muted'
+                                  "min-h-9 rounded-full border border-border/70 px-3 py-1.5 text-xs font-medium transition-colors",
+                                  selectedCategory === cat.id
+                                    ? "border-primary bg-primary text-primary-foreground"
+                                    : "bg-background/60 text-muted-foreground hover:bg-muted/80 hover:text-foreground",
                                 )}
-                                style={{ borderColor: '#ccc' }}
                               >
                                 {cat.name}
                               </button>
@@ -591,35 +687,48 @@ export const StudyGroupHub: React.FC = () => {
                         {/* Create Group Button */}
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button className="w-full">
-                              <Plus className="h-4 w-4 mr-2" />
-                              Create New Group
+                            <Button
+                              type="button"
+                              className="h-11 w-full rounded-2xl bg-primary text-primary-foreground shadow-[0_12px_32px_-16px_hsl(var(--primary)/0.65)]"
+                            >
+                              <Plus className="mr-2 h-4 w-4" />
+                              Start a group
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent
+                            overlayClassName={cn(
+                              GROUPS_HUB_OVERLAY,
+                              "z-[13500]",
+                            )}
+                            className={cn(
+                              "z-[13501] max-w-md rounded-[1.35rem] border border-border/55 bg-card p-6 shadow-[0_32px_64px_-40px_hsl(var(--foreground)/0.45)] ring-1 ring-border/35",
+                            )}
+                          >
                             <DialogHeader>
-                              <DialogTitle>Create Study Group</DialogTitle>
-                              <DialogDescription>
-                                Create a collaborative space for studying together.
+                              <DialogTitle>New group</DialogTitle>
+                              <DialogDescription className="sr-only">
+                                Name, description, category, and privacy.
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4">
                               <div>
-                                <Label htmlFor="groupName">Group Name</Label>
+                                <Label htmlFor="groupName">Name</Label>
                                 <Input
                                   id="groupName"
-                                  placeholder="Enter group name"
+                                  placeholder="e.g. Chem 201, exam block"
                                   value={newGroupName}
                                   onChange={(e) => setNewGroupName(e.target.value)}
+                                  className="mt-1.5 rounded-xl border-border/60"
                                 />
                               </div>
                               <div>
                                 <Label htmlFor="groupDescription">Description</Label>
                                 <Textarea
                                   id="groupDescription"
-                                  placeholder="Describe your group's purpose"
+                                  placeholder="Optional"
                                   value={newGroupDescription}
                                   onChange={(e) => setNewGroupDescription(e.target.value)}
+                                  className="mt-1.5 min-h-[88px] rounded-xl border-border/60"
                                 />
                               </div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -638,7 +747,14 @@ export const StudyGroupHub: React.FC = () => {
                                 </div>
                                 <div>
                                   <Label>Privacy</Label>
-                                  <Select value={newGroupPrivacy} onValueChange={(v: any) => setNewGroupPrivacy(v)}>
+                                  <Select
+                                    value={newGroupPrivacy}
+                                    onValueChange={(v) =>
+                                      setNewGroupPrivacy(
+                                        v as "public" | "private" | "invite_only",
+                                      )
+                                    }
+                                  >
                                     <SelectTrigger className="w-full mt-1">
                                       <SelectValue />
                                     </SelectTrigger>
@@ -651,126 +767,188 @@ export const StudyGroupHub: React.FC = () => {
                                 </div>
                               </div>
                             </div>
-                            <DialogFooter>
+                            <DialogFooter className="gap-2 sm:gap-0">
                               <DialogClose asChild>
-                                <Button variant="outline">Cancel</Button>
+                                <Button type="button" variant="outline" className="rounded-xl">
+                                  Cancel
+                                </Button>
                               </DialogClose>
                               <DialogClose asChild>
-                                <Button onClick={async () => {
-                                  await studyGroupManager.createGroup(
-                                    newGroupName,
-                                    newGroupDescription
-                                  );
-                                  setNewGroupName('');
-                                  setNewGroupDescription('');
-                                  setNewGroupCategory(null);
-                                  setNewGroupPrivacy('public');
-                                  loadUserGroups();
-                                  loadAllGroups();
-                                }}>Create Group</Button>
+                                <Button
+                                  type="button"
+                                  className="rounded-xl"
+                                  onClick={async () => {
+                                    if (!user?.id) return;
+                                    const name = newGroupName.trim();
+                                    if (!name) {
+                                      toast.error("Add a name first");
+                                      return;
+                                    }
+                                    try {
+                                      await studyGroupManager.createGroup(
+                                        name,
+                                        user.id,
+                                        newGroupDescription,
+                                        {
+                                          privacy_level: newGroupPrivacy,
+                                          category_id: newGroupCategory,
+                                        },
+                                      );
+                                      setNewGroupName("");
+                                      setNewGroupDescription("");
+                                      setNewGroupCategory(null);
+                                      setNewGroupPrivacy("public");
+                                      void queryClient.invalidateQueries({
+                                        queryKey: studyGroupKeys.userGroups(user.id),
+                                      });
+                                      loadAllGroups();
+                                      toast.success("Group created");
+                                    } catch {
+                                      toast.error("Could not create group");
+                                    }
+                                  }}
+                                >
+                                  Create
+                                </Button>
                               </DialogClose>
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
 
                         {/* Groups List (discovery) */}
-                        <div className="rounded-md border p-4">
-                          <div className="space-y-2">
+                        <div className="rounded-[1.25rem] border border-border/50 bg-background/40 p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)]">
+                          <div className="space-y-1.5 p-2 sm:p-3">
                             {(discoveryQuery.data ?? filteredGroups).map((group) => (
-                              <Card 
-                                key={group.id} 
+                              <div
+                                key={group.id}
+                                role="button"
+                                tabIndex={0}
                                 className={cn(
-                                  "cursor-pointer transition-colors hover:bg-accent/50",
-                                  selectedGroup?.id === group.id && "bg-accent"
+                                  "w-full rounded-2xl border border-transparent bg-card/80 p-3 text-left transition-colors",
+                                  "hover:border-border/60 hover:bg-muted/40",
+                                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                                  selectedGroup?.id === group.id &&
+                                    "border-primary/35 bg-primary/8",
                                 )}
-                                onClick={() => loadGroupDetails(group)}
+                                onClick={() => {
+                                  void loadGroupDetails(group);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    void loadGroupDetails(group);
+                                  }
+                                }}
                               >
-                                <CardContent className="p-3">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex-1">
-                                      <h4 className="font-medium text-sm">{group.name}</h4>
-                                      <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                      <h4 className="truncate text-sm font-semibold tracking-tight">
+                                        {group.name}
+                                      </h4>
+                                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                                         {group.description}
                                       </p>
-                                      <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
-                                        <span>Last active {group.updated_at ? new Date(group.updated_at).toLocaleDateString() : '—'}</span>
+                                      <div className="mt-2 text-[0.65rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                                        Active {formatStudyGroupActivityLabel(group)}
                                       </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex shrink-0 items-center gap-2">
                                       {membershipStatus[group.id] ? (
-                                        <Badge variant="secondary" className="text-xs">Member</Badge>
+                                        <Badge variant="secondary" className="text-[0.65rem]">
+                                          In
+                                        </Badge>
                                       ) : (
-                                        <Button 
-                                          size="sm" 
-                                          variant="outline" 
+                                        <Button
+                                          type="button"
+                                          size="icon"
+                                          variant="outline"
+                                          className="h-10 w-10 shrink-0 rounded-full border-border/60"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                             // Enforce privacy: only public or invite_only via invitation; private requires invitation
-                                             // TODO: Implement privacy level check
-                                             if (false) {
-                                               toast.error('This group is private. You need an invitation to join.');
-                                               return;
-                                             }
                                             handleJoinGroup(group.id);
                                           }}
                                         >
-                                          <UserPlus className="h-3 w-3" />
+                                          <UserPlus className="h-4 w-4" />
                                         </Button>
                                       )}
                                     </div>
                                   </div>
-                                </CardContent>
-                              </Card>
+                              </div>
                             ))}
                           </div>
                         </div>
                       </div>
                     </TabsContent>
 
-                    <TabsContent value="my-groups" className="m-0">
-                      <div className="p-4">
-                        <div className="space-y-2">
+                    <TabsContent value="my-groups" className="m-0 flex-1">
+                      <div className="p-4 sm:p-5">
+                        <div className="space-y-1.5">
                           {userGroups.map((group) => (
-                            <Card 
-                              key={group.id} 
+                            <div
+                              key={group.id}
                               className={cn(
-                                "cursor-pointer transition-colors hover:bg-accent/50",
-                                selectedGroup?.id === group.id && "bg-accent"
+                                "flex w-full items-stretch gap-1 rounded-2xl border border-border/45 bg-card transition-colors",
+                                " hover:border-border/70 hover:bg-muted/20",
+                                selectedGroup?.id === group.id &&
+                                  "border-primary/35 bg-primary/8",
                               )}
-                              onClick={() => loadGroupDetails(group)}
                             >
-                              <CardContent className="p-3">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex-1">
-                                    <h4 className="font-medium text-sm">{group.name}</h4>
-                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                      {group.description}
-                                    </p>
-                                  </div>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
-                                        <MoreVertical className="h-3 w-3" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                      <DropdownMenuItem onClick={() => loadGroupDetails(group)}>
-                                        <Settings className="h-4 w-4 mr-2" />
-                                        Manage
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem 
-                                        className="text-destructive"
-                                        onClick={() => handleLeaveGroup(group.id)}
-                                      >
-                                        <UserMinus className="h-4 w-4 mr-2" />
-                                        Leave Group
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              </CardContent>
-                            </Card>
+                              <button
+                                type="button"
+                                className={cn(
+                                  "min-w-0 flex-1 px-3 py-3 text-left transition-colors",
+                                  "rounded-2xl rounded-e-md",
+                                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                                )}
+                                onClick={() => {
+                                  void loadGroupDetails(group);
+                                }}
+                              >
+                                <h4 className="truncate text-sm font-semibold tracking-tight">
+                                  {group.name}
+                                </h4>
+                                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                                  {group.description}
+                                </p>
+                                <p className="mt-1.5 text-[0.65rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                                  Active {formatStudyGroupActivityLabel(group)}
+                                </p>
+                              </button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-11 w-11 shrink-0 self-center rounded-xl text-muted-foreground hover:text-foreground"
+                                    aria-label={`More actions for ${group.name}`}
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="min-w-[11rem] rounded-xl"
+                                >
+                                  <DropdownMenuItem
+                                    onSelect={() => {
+                                      void loadGroupDetails(group);
+                                    }}
+                                  >
+                                    <Settings className="mr-2 h-4 w-4" />
+                                    Open group
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onSelect={() => handleLeaveGroup(group.id)}
+                                  >
+                                    <UserMinus className="mr-2 h-4 w-4" />
+                                    Leave group
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -785,361 +963,170 @@ export const StudyGroupHub: React.FC = () => {
                 )}>
                   {selectedGroup ? (
                     <>
-                      {/* Group Header */}
-                      <div className="p-4 border-b">
-                        <div className="flex items-center gap-3">
-                          {/* Mobile Back Button */}
+                      {/* Group Header — title block + meta toolbar (badge + actions) */}
+                      <div className="border-b border-border/50 bg-card px-4 py-4 sm:px-5">
+                        <div className="sm:hidden">
                           <Button
+                            type="button"
                             variant="ghost"
                             size="sm"
-                            className="sm:hidden"
+                            className="mb-3 -ml-2 h-9 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
                             onClick={() => setSelectedGroup(null)}
+                            aria-label="Back to your groups"
                           >
-                            <X className="h-4 w-4" />
+                            <ChevronLeft className="h-4 w-4 shrink-0" aria-hidden />
+                            Your groups
                           </Button>
-                          
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h3 className="font-semibold">{selectedGroup.name}</h3>
-                                <p className="text-sm text-muted-foreground">{selectedGroup.description}</p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="secondary">
-                                  {groupMembers.length} member{groupMembers.length !== 1 ? 's' : ''}
-                                </Badge>
-                                {!membershipStatus[selectedGroup.id] && (
-                                  false ? (
-                                    <Button size="sm" variant="outline" disabled title="Invite-only group">
-                                      Request Invite
-                                    </Button>
-                                  ) : false ? (
-                                    <Button size="sm" variant="outline" disabled title="Private group">
-                                      Private
-                                    </Button>
-                                  ) : (
-                                  <Button size="sm" onClick={() => handleJoinGroup(selectedGroup.id)}>
-                                    <UserPlus className="h-4 w-4 mr-2" />
-                                    Join Group
-                                  </Button>
-                                  )
-                                )}
-                              </div>
+                        </div>
+
+                        <div className="flex flex-col gap-4">
+                          <div className="min-w-0 space-y-1.5">
+                            <h3 className="truncate text-lg font-semibold leading-tight tracking-tight text-foreground sm:text-xl">
+                              {selectedGroup.name}
+                            </h3>
+                            {selectedGroup.description ? (
+                              <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+                                {selectedGroup.description}
+                              </p>
+                            ) : null}
+                          </div>
+
+                          <div
+                            className={cn(
+                              "flex flex-col gap-3 border-t border-border/45 pt-3",
+                              "sm:flex-row sm:items-center sm:justify-between sm:gap-4",
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "inline-flex h-9 w-fit shrink-0 items-center gap-2 rounded-full",
+                                "border border-border/50 bg-muted/40 px-3.5 text-xs font-medium",
+                                "text-foreground/80",
+                              )}
+                              aria-label={`${groupMembers.length} ${groupMembers.length !== 1 ? "members" : "member"}`}
+                            >
+                              <Users className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+                              <span className="tabular-nums">
+                                {groupMembers.length}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {groupMembers.length !== 1 ? "members" : "member"}
+                              </span>
+                            </span>
+
+                            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                              {!membershipStatus[selectedGroup.id] ? (
+                                <Button
+                                  type="button"
+                                  variant="default"
+                                  size="sm"
+                                  className="h-10 shrink-0 gap-2 rounded-xl px-4 text-sm font-medium"
+                                  onClick={() => handleJoinGroup(selectedGroup.id)}
+                                >
+                                  <UserPlus className="h-4 w-4" aria-hidden />
+                                  Join
+                                </Button>
+                              ) : null}
+                              {user?.id === selectedGroup.created_by ? (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-10 shrink-0 rounded-xl border-destructive/35 px-4 text-sm font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  onClick={() => handleArchiveGroup(selectedGroup.id)}
+                                >
+                                  Archive
+                                </Button>
+                              ) : null}
+                              {user?.id !== selectedGroup.created_by ? (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-10 shrink-0 gap-2 rounded-xl border-border/60 px-4 text-sm font-medium text-muted-foreground hover:text-foreground"
+                                  onClick={() => openGroupReport(selectedGroup)}
+                                >
+                                  <Flag className="h-4 w-4" aria-hidden />
+                                  Report
+                                </Button>
+                              ) : null}
                             </div>
                           </div>
                         </div>
                       </div>
 
                       {/* Group Content Tabs */}
-                      <Tabs defaultValue="chat" className="flex-1 flex flex-col">
-                          <TabsList className="mx-4 mt-0 sticky top-0 z-10 bg-background/80 backdrop-blur">
-                          <TabsTrigger value="chat">
-                            <MessageSquare className="h-4 w-4 mr-2" />
+                      <Tabs
+                        value={groupTab}
+                        onValueChange={(value) => {
+                          setGroupTab(value);
+                        }}
+                        className="flex min-h-0 flex-1 flex-col"
+                      >
+                          <TabsList
+                            className={cn(
+                              "sticky top-0 z-10 mx-3 mt-2 flex h-auto min-h-11 flex-wrap gap-1 rounded-2xl border border-border/50 bg-muted/35 p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.04)] sm:mx-4",
+                            )}
+                          >
+                          <TabsTrigger
+                            value="chat"
+                            className="gap-2 rounded-xl text-muted-foreground data-[state=active]:bg-background data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                          >
+                            <MessageSquare className="h-4 w-4 shrink-0" />
                             Chat
                           </TabsTrigger>
-                          <TabsTrigger value="resources">
-                            <BookOpen className="h-4 w-4 mr-2" />
+                          <TabsTrigger
+                            value="resources"
+                            className="gap-2 rounded-xl text-muted-foreground data-[state=active]:bg-background data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                          >
+                            <BookOpen className="h-4 w-4 shrink-0" />
                             Resources
-                            <span className="ml-1 rounded-full bg-muted px-1.5 text-[10px] leading-5">
+                            <span className="ml-0.5 rounded-full bg-muted px-1.5 text-[10px] leading-5 tabular-nums">
                               {groupResources.length}
                             </span>
                           </TabsTrigger>
-                          <TabsTrigger value="members">
-                            <Users className="h-4 w-4 mr-2" />
+                          <TabsTrigger
+                            value="members"
+                            className="gap-2 rounded-xl text-muted-foreground data-[state=active]:bg-background data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                          >
+                            <Users className="h-4 w-4 shrink-0" />
                             Members
-                            <span className="ml-1 rounded-full bg-muted px-1.5 text-[10px] leading-5">
+                            <span className="ml-0.5 rounded-full bg-muted px-1.5 text-[10px] leading-5 tabular-nums">
                               {groupMembers.length}
                             </span>
                           </TabsTrigger>
-                          <TabsTrigger value="sessions">
-                            <PlusCircle className="h-4 w-4 mr-2" />
-                            Sessions
-                            <span className="ml-1 rounded-full bg-muted px-1.5 text-[10px] leading-5">
-                              {sessionsQuery.data?.length ?? 0}
-                            </span>
-                          </TabsTrigger>
+                          {user?.id === selectedGroup.created_by && (
+                            <TabsTrigger
+                              value="manage"
+                              className="gap-2 rounded-xl text-muted-foreground data-[state=active]:bg-background data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                            >
+                              <Settings className="h-4 w-4 shrink-0" />
+                              Manage
+                            </TabsTrigger>
+                          )}
                         </TabsList>
 
-                        <TabsContent value="chat" className="flex-1 m-0">
-                           <div className="p-4">
-                             <div className="rounded-md border p-4">
-                              <div className="space-y-4">
-                                {groupMessages.length === 0 ? (
-                                  <div className="text-center text-muted-foreground py-8">
-                                    <MessageSquare className="h-8 w-8 mx-auto mb-2" />
-                                    <p>No messages yet. Start the conversation!</p>
-                                  </div>
-                                ) : (
-                                  <AnimatedList>
-                                    {groupMessages.map((message) => (
-                                      <AnimatedListItem key={message.id}>
-                                        <div className="flex gap-3">
-                                                                                      <Avatar className="h-8 w-8">
-                                              <AvatarFallback>
-                                                {(message.sender_name || message.sender?.full_name || 'Unknown User').charAt(0).toUpperCase()}
-                                              </AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex-1">
-                                              <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-medium text-sm">
-                                                  {message.sender_name || message.sender?.full_name || 'Unknown User'}
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">
-                                                  {new Date(message.created_at).toLocaleTimeString()}
-                                                </span>
-                                              </div>
-                                            <p className="text-sm">{message.content}</p>
-                                          </div>
-                                        </div>
-                                      </AnimatedListItem>
-                                    ))}
-                                  </AnimatedList>
-                                )}
-                              </div>
-                             </div>
-                          </div>
-                          
-                          {membershipStatus[selectedGroup.id] && (
-                            <div className="p-4 border-t sticky bottom-0 bg-background/80 backdrop-blur z-10">
-                              <div className="flex gap-2">
-                                <Input
-                                  placeholder="Type a message..."
-                                  value={newMessage}
-                                  onChange={(e) => setNewMessage(e.target.value)}
-                                  onKeyPress={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                      e.preventDefault();
-                                      handleSendMessage();
-                                    }
+                        <TabsContent value="chat" className="flex-1 m-0 flex min-h-0 flex-col">
+                          <div className="flex min-h-0 flex-1 flex-col p-2 sm:p-4">
+                            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/60 bg-card/30">
+                              {user ? (
+                                <StudyGroupChatTab
+                                  selectedGroup={selectedGroup}
+                                  userId={user.id}
+                                  isMember={!!membershipStatus[selectedGroup.id]}
+                                  isAdmin={user.id === selectedGroup.created_by}
+                                  messagingService={messagingService}
+                                  studyGroupManager={studyGroupManager}
+                                  onConversationLinked={(conversationId) => {
+                                    setSelectedGroup((g) =>
+                                      g ? { ...g, conversation_id: conversationId } : null,
+                                    );
                                   }}
-                                  disabled={!membershipStatus[selectedGroup.id]}
                                 />
-                                <Button 
-                                  onClick={handleSendMessage}
-                                  disabled={!newMessage.trim() || !membershipStatus[selectedGroup.id]}
-                                >
-                                  <Send className="h-4 w-4" />
-                                </Button>
-                              </div>
+                              ) : null}
                             </div>
-                          )}
-                          {!membershipStatus[selectedGroup.id] && (
-                            <div className="p-4 border-t bg-muted/30">
-                              <div className="flex items-center justify-between">
-                                <p className="text-sm text-muted-foreground">Join this group to participate in chat.</p>
-                                <Button size="sm" onClick={() => handleJoinGroup(selectedGroup.id)}>
-                                  Join Group
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-                        </TabsContent>
-
-                        {/* Sessions Tab */}
-                        <TabsContent value="sessions" className="flex-1 m-0">
-                          <div className="p-4 space-y-4">
-                              <Card>
-                              <CardHeader>
-                                <CardTitle>Create Session</CardTitle>
-                                <CardDescription>Schedule a new study session for this group</CardDescription>
-                              </CardHeader>
-                              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input
-                                  placeholder="Title"
-                                  value={newSession.title}
-                                  onChange={(e) => setNewSession(s => ({ ...s, title: e.target.value }))}
-                                />
-                                <Input
-                                  type="datetime-local"
-                                  placeholder="Start time (YYYY-MM-DD HH:mm)"
-                                  value={newSession.start_time}
-                                  onChange={(e) => setNewSession(s => ({ ...s, start_time: e.target.value }))}
-                                />
-                                <Textarea
-                                  placeholder="Description"
-                                  value={newSession.description}
-                                  onChange={(e) => setNewSession(s => ({ ...s, description: e.target.value }))}
-                                />
-                                <Input
-                                  type="datetime-local"
-                                  placeholder="End time (YYYY-MM-DD HH:mm)"
-                                  value={newSession.end_time}
-                                  onChange={(e) => setNewSession(s => ({ ...s, end_time: e.target.value }))}
-                                />
-                                <Input
-                                  placeholder="Max participants (optional)"
-                                  type="number"
-                                  min={1}
-                                  value={newSession.max_participants ?? ''}
-                                  onChange={(e) => setNewSession(s => ({ ...s, max_participants: e.target.value ? Number(e.target.value) : null }))}
-                                />
-                              </CardContent>
-                              <CardFooter>
-                                <Button
-                                  disabled={!selectedGroup || !user || createSession.isPending}
-                                  onClick={() => {
-                                    if (!selectedGroup || !user) return;
-                                    if (!newSession.title || !newSession.start_time || !newSession.end_time) {
-                                      toast.error('Please fill title, start and end times');
-                                      return;
-                                    }
-                                    createSession.mutate({
-                                      creatorId: user.id,
-                                      title: newSession.title,
-                                      description: newSession.description,
-                                      start_time: newSession.start_time,
-                                      end_time: newSession.end_time,
-                                      session_type: 'general',
-                                      max_participants: newSession.max_participants ?? null,
-                                      status: 'scheduled',
-                                      metadata: {},
-                                    } as any, {
-                                      onSuccess: () => {
-                                        toast.success('Session created');
-                                        setNewSession({ title: '', description: '', start_time: '', end_time: '', max_participants: null });
-                                      },
-                                      onError: () => toast.error('Failed to create session'),
-                                    } as any);
-                                  }}
-                                >
-                                  {createSession.isPending ? 'Creating...' : 'Create Session'}
-                                </Button>
-                              </CardFooter>
-                            </Card>
-
-                            <Card>
-                              <CardHeader>
-                                <CardTitle>Sessions</CardTitle>
-                                <CardDescription>Active and upcoming sessions for this group</CardDescription>
-                              </CardHeader>
-                              <CardContent>
-                                {sessionsQuery.isLoading ? (
-                                  <p className="text-sm text-muted-foreground">Loading sessions...</p>
-                                ) : (sessionsQuery.data?.length ? (
-                                  <div className="space-y-3">
-                                    {/* Active */}
-                                    {sessionsQuery.data.filter(s => s.status === 'active').length > 0 && (
-                                      <div>
-                                        <div className="text-xs uppercase text-muted-foreground mb-2">Active</div>
-                                        <div className="space-y-2">
-                                          {sessionsQuery.data.filter(s => s.status === 'active').map(s => (
-                                            <button key={s.id} type="button" className="w-full text-left rounded-md border p-3 bg-green-50/5 hover:bg-green-100/5 transition" onClick={() => setSessionDetailsId(s.id)}>
-                                              <div className="flex items-center justify-between">
-                                                <div>
-                                                  <div className="font-medium">{s.title}</div>
-                                                  <div className="text-xs text-muted-foreground">{new Date(s.start_time).toLocaleTimeString()} • In progress</div>
-                                                </div>
-                                                <div className="text-sm text-muted-foreground">{s.current_participants}/{s.max_participants ?? '∞'}</div>
-                                              </div>
-                                            </button>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                    {/* Upcoming */}
-                                    {sessionsQuery.data.filter(s => s.status !== 'active').length > 0 && (
-                                      <div>
-                                        <div className="text-xs uppercase text-muted-foreground mb-2">Upcoming</div>
-                                        <div className="space-y-2">
-                                          {sessionsQuery.data.filter(s => s.status !== 'active').map(s => (
-                                      <button
-                                        type="button"
-                                        key={s.id}
-                                        className="w-full text-left rounded-md border p-3 hover:bg-muted/50 transition"
-                                        onClick={() => setSessionDetailsId(s.id)}
-                                      >
-                                        <div className="flex items-center justify-between">
-                                          <div>
-                                            <div className="font-medium">{s.title}</div>
-                                            <div className="text-xs text-muted-foreground">
-                                              {new Date(s.start_time).toLocaleString()} → {new Date(s.end_time).toLocaleString()} • {s.status}
-                                            </div>
-                                          </div>
-                                          <div className="text-sm text-muted-foreground">{s.current_participants}/{s.max_participants ?? '∞'}</div>
-                                        </div>
-                                      </button>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <p className="text-sm text-muted-foreground">No upcoming sessions yet.</p>
-                                ))}
-                              </CardContent>
-                            </Card>
                           </div>
                         </TabsContent>
-
-                        <Dialog open={Boolean(sessionDetailsId)} onOpenChange={(open) => !open && setSessionDetailsId(null)}>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Session Details</DialogTitle>
-                              <DialogDescription>View participants and join or leave the session</DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              {participantsQuery.isLoading ? (
-                                <p className="text-sm text-muted-foreground">Loading participants...</p>
-                              ) : (
-                                <div>
-                                  <div className="font-medium mb-2">Participants</div>
-                                  <div className="space-y-2 max-h-60 overflow-auto pr-2">
-                                    {(participantsQuery.data ?? []).map(p => (
-                                      <div key={p.id} className="flex items-center justify-between text-sm">
-                                        <span className="truncate">{participantNames[p.user_id] || p.user_id}</span>
-                                        <span className="text-muted-foreground">{p.status}</span>
-                                      </div>
-                                    ))}
-                                    {participantsQuery.data?.length === 0 && (
-                                      <p className="text-sm text-muted-foreground">No participants yet.</p>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                            <DialogFooter>
-                              <div className="flex w-full justify-between">
-                                <Button
-                                  variant="secondary"
-                                  onClick={() => setSessionDetailsId(null)}
-                                >
-                                  Close
-                                </Button>
-                                {user && sessionDetailsId && (
-                                  <div className="space-x-2">
-                                    {/* Conditional Join/Leave based on participation */}
-                                    {participantsQuery.data?.some(p => p.user_id === user.id) ? (
-                                      <Button
-                                        variant="ghost"
-                                        onClick={() => {
-                                          if (!user || !sessionDetailsId) return;
-                                          leaveSession.mutate({ sessionId: sessionDetailsId, userId: user.id }, {
-                                            onSuccess: () => toast.success('Left session'),
-                                            onError: () => toast.error('Failed to leave session'),
-                                          });
-                                        }}
-                                      >
-                                        Leave Session
-                                      </Button>
-                                    ) : (
-                                      <Button
-                                        onClick={() => {
-                                          if (!user || !sessionDetailsId) return;
-                                          joinSession.mutate({ sessionId: sessionDetailsId, userId: user.id }, {
-                                            onSuccess: () => toast.success('Joined session'),
-                                            onError: () => toast.error('Failed to join session'),
-                                          });
-                                        }}
-                                      >
-                                        Join Session
-                                      </Button>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
 
                         <TabsContent value="resources" className="flex-1 m-0 p-4">
                           <div className="space-y-4">
@@ -1172,6 +1159,24 @@ export const StudyGroupHub: React.FC = () => {
                                       value={newResourceUrl}
                                       onChange={(e) => setNewResourceUrl(e.target.value)}
                                     />
+                                  ) : newResourceType === 'file' ? (
+                                    <div className="space-y-2">
+                                      <Input
+                                        type="file"
+                                        accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx"
+                                        onChange={(event) =>
+                                          setNewResourceFile(event.target.files?.[0] ?? null)
+                                        }
+                                      />
+                                      <p className="text-xs text-muted-foreground">
+                                        PDF, image, text, and Word files up to 10MB.
+                                      </p>
+                                      <Textarea
+                                        placeholder="Optional note for classmates"
+                                        value={newResourceContent}
+                                        onChange={(e) => setNewResourceContent(e.target.value)}
+                                      />
+                                    </div>
                                   ) : (
                                     <Textarea
                                       placeholder="Content"
@@ -1211,6 +1216,44 @@ export const StudyGroupHub: React.FC = () => {
                                               {resource.url}
                                             </a>
                                           )}
+                                          {resource.resource_type === 'file' && (
+                                            <a
+                                              href={(resource as StudyGroupResource & { signed_url?: string | null }).signed_url ?? '#'}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-xs text-blue-500 hover:underline mt-1 block"
+                                              aria-disabled={!(resource as StudyGroupResource & { signed_url?: string | null }).signed_url}
+                                            >
+                                              {(resource as StudyGroupResource & { signed_url?: string | null }).signed_url
+                                                ? 'Open file'
+                                                : 'File link is preparing'}
+                                            </a>
+                                          )}
+                                        </div>
+                                        <div className="flex shrink-0 items-center gap-2">
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 px-2 text-xs"
+                                            onClick={() => openResourceReport(resource)}
+                                          >
+                                            <Flag className="mr-1 h-3.5 w-3.5" />
+                                            Report
+                                          </Button>
+                                          {(resource.user_id === user?.id ||
+                                            user?.id === selectedGroup.created_by) && (
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-8 px-2 text-xs text-destructive"
+                                              onClick={() => handleDeleteResource(resource)}
+                                            >
+                                              <Trash2 className="mr-1 h-3.5 w-3.5" />
+                                              Delete
+                                            </Button>
+                                          )}
                                         </div>
                                       </div>
                                     </CardContent>
@@ -1224,7 +1267,7 @@ export const StudyGroupHub: React.FC = () => {
                         <TabsContent value="members" className="flex-1 m-0 p-4">
                           <div className="rounded-md border p-4">
                             <div className="space-y-2">
-                              {groupMembers.map((member) => (
+                              {groupMembers.map((member: StudyGroupMember & { user_name: string }) => (
                                 <Card key={member.id}>
                                   <CardContent className="p-3">
                                     <div className="flex items-center justify-between">
@@ -1254,15 +1297,27 @@ export const StudyGroupHub: React.FC = () => {
                             </div>
                           </div>
                         </TabsContent>
+
+                        {user?.id === selectedGroup.created_by && (
+                          <TabsContent value="manage" className="flex-1 m-0 overflow-y-auto p-4">
+                            <GroupManagementPanel
+                              groupId={selectedGroup.id}
+                              groupName={selectedGroup.name}
+                              isOwner
+                            />
+                          </TabsContent>
+                        )}
                       </Tabs>
                     </>
                   ) : (
-                    <div className="flex-1 flex items-center justify-center text-center">
-                      <div>
-                        <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                        <h3 className="font-semibold mb-2">Select a Study Group</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Choose a group from the sidebar to view details, chat with members, and access resources.
+                    <div className="flex flex-1 items-center justify-center px-6 py-12 text-center sm:py-16">
+                      <div className="max-w-xs">
+                        <Users
+                          className="mx-auto mb-3 h-10 w-10 text-muted-foreground/70"
+                          aria-hidden
+                        />
+                        <p className="text-base font-semibold leading-snug tracking-tight text-foreground">
+                          Select a group
                         </p>
                       </div>
                     </div>
@@ -1270,43 +1325,123 @@ export const StudyGroupHub: React.FC = () => {
                 </div>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-        
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button className="w-full sm:w-auto"><PlusCircle className="h-4 w-4 mr-2"/>Create New Group</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create a new study group</DialogTitle>
-              <DialogDescription>
-                Create a collaborative space where you can chat with members and share study resources.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <Input
-                placeholder="Group Name"
-                value={newGroupName}
-                onChange={(e) => setNewGroupName(e.target.value)}
-              />
-              <Textarea
-                placeholder="Group Description"
-                value={newGroupDescription}
-                onChange={(e) => setNewGroupDescription(e.target.value)}
-              />
             </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="secondary">Cancel</Button>
-              </DialogClose>
-              <DialogClose asChild>
-                <Button onClick={handleCreateGroup}>Create Group</Button>
-              </DialogClose>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </CardFooter>
-    </Card>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={groupReportTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setGroupReportTarget(null);
+            setGroupReportReason("");
+          }
+        }}
+      >
+        <DialogContent
+          overlayClassName="z-[14000]"
+          className="z-[14001] max-w-md rounded-2xl"
+        >
+          <DialogHeader>
+            <DialogTitle>Report this group</DialogTitle>
+            <DialogDescription>
+              Tell us what needs review for{" "}
+              <span className="font-medium text-foreground">
+                {groupReportTarget?.name}
+              </span>
+              .
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="group-report-reason">What happened?</Label>
+            <Textarea
+              id="group-report-reason"
+              value={groupReportReason}
+              onChange={(e) => setGroupReportReason(e.target.value)}
+              placeholder="A few clear sentences help us review quickly."
+              className="min-h-[100px] rounded-xl"
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => {
+                setGroupReportTarget(null);
+                setGroupReportReason("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl"
+              disabled={!groupReportReason.trim()}
+              onClick={() => void submitGroupReport()}
+            >
+              Send report
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={resourceReportTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setResourceReportTarget(null);
+            setResourceReportReason('');
+          }
+        }}
+      >
+        <DialogContent
+          overlayClassName="z-[14000]"
+          className="z-[14001] max-w-md rounded-2xl"
+        >
+          <DialogHeader>
+            <DialogTitle>Report this resource</DialogTitle>
+            <DialogDescription>
+              Tell us what needs review for{' '}
+              <span className="font-medium text-foreground">
+                {resourceReportTarget?.title}
+              </span>
+              .
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="resource-report-reason">What happened?</Label>
+            <Textarea
+              id="resource-report-reason"
+              value={resourceReportReason}
+              onChange={(e) => setResourceReportReason(e.target.value)}
+              placeholder="A few clear sentences help us review quickly."
+              className="min-h-[100px] rounded-xl"
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => {
+                setResourceReportTarget(null);
+                setResourceReportReason('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl"
+              disabled={!resourceReportReason.trim()}
+              onClick={() => void submitResourceReport()}
+            >
+              Send report
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }; 

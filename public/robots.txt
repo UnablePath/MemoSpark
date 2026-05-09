@@ -8,7 +8,8 @@ Disallow: /debug/*
 Disallow: /_next/*
 Disallow: /static/*
 Disallow: *.json$
-Disallow: /clerk-onboarding/*
+Disallow: /onboarding/*
+Disallow: /questionnaire/*
 Disallow: /onesignal-test/*
 Disallow: /pwa-test/*
 Disallow: /pwa-debug/*
@@ -22,7 +23,8 @@ Disallow: /api/*
 Disallow: /admin/*
 Disallow: /test/*
 Disallow: /debug/*
-Disallow: /clerk-onboarding/*
+Disallow: /onboarding/*
+Disallow: /questionnaire/*
 Disallow: /premium-demo/*
 
 # ChatGPT-User

@@ -106,7 +106,7 @@ export const usePerformanceMonitor = () => {
       }
       
       // Make the actual API call
-      const response = await originalFetch.current!(...args);
+      const response = await originalFetch.current?.(...args);
       
       // Log successful API calls
       if (url.includes('/api/achievements') || 

@@ -3,6 +3,8 @@ import { auth } from '@clerk/nextjs/server';
 import { SmartScheduler } from '@/lib/ai/SmartScheduler';
 import { PatternAnalyzer } from '@/lib/ai/PatternAnalyzer';
 import { ScheduleManager } from '@/lib/ai/ScheduleManager';
+import { mergeScheduleIntoUserAiPatterns } from '@/lib/ai/userAiPatternsMerge';
+import { patternDataFromStoredRow } from '@/lib/ai/userAiPatternsToPatternData';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import type { ExtendedTask, Priority, TaskType, UserPreferences, PatternData, ScheduleMetadata } from '@/types/ai';
 import type { Task, TimetableEntry } from '@/types/taskTypes';
@@ -19,6 +21,69 @@ interface ScheduleRequest {
   existingEvents?: CalendarEvent[];
   scheduleHorizon?: number; // Days to schedule ahead
   forceRefresh?: boolean; // Force pattern re-analysis
+}
+
+// Parse `preferred_study_times` entries into numeric hours in [0, 23].
+// Accepts numbers, numeric strings, and a few common label shapes produced
+// by the onboarding questionnaire, e.g. "Evening (5-8 PM)", "9 AM", "14:00".
+// Returns a deduplicated, sorted array; invalid entries are dropped.
+function parsePreferredStudyTimes(raw: unknown[]): number[] {
+  const LABEL_MAP: Record<string, number[]> = {
+    'early morning': [6, 7, 8],
+    morning: [9, 10, 11],
+    midday: [12, 13],
+    noon: [12],
+    afternoon: [14, 15, 16],
+    evening: [17, 18, 19, 20],
+    night: [21, 22, 23],
+    'late night': [22, 23],
+  };
+
+  const hours = new Set<number>();
+  for (const entry of raw) {
+    if (typeof entry === 'number' && Number.isFinite(entry) && entry >= 0 && entry <= 23) {
+      hours.add(Math.floor(entry));
+      continue;
+    }
+    if (typeof entry !== 'string') continue;
+    const lower = entry.toLowerCase();
+
+    // Try a "5-8 PM" / "5 PM" / "14:00" range inside the string.
+    const rangeMatch = lower.match(/(\d{1,2})\s*(?::(\d{2}))?\s*(?:-|to|–)\s*(\d{1,2})\s*(?::(\d{2}))?\s*(am|pm)?/);
+    if (rangeMatch) {
+      const suffix = rangeMatch[5];
+      let start = Number.parseInt(rangeMatch[1], 10);
+      let end = Number.parseInt(rangeMatch[3], 10);
+      if (suffix === 'pm' && start < 12) start += 12;
+      if (suffix === 'pm' && end < 12) end += 12;
+      if (suffix === 'am' && start === 12) start = 0;
+      if (Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end <= 23 && start <= end) {
+        for (let h = start; h <= end; h++) hours.add(h);
+        continue;
+      }
+    }
+
+    const singleMatch = lower.match(/(\d{1,2})\s*(?::(\d{2}))?\s*(am|pm)?/);
+    if (singleMatch) {
+      let h = Number.parseInt(singleMatch[1], 10);
+      const suffix = singleMatch[3];
+      if (suffix === 'pm' && h < 12) h += 12;
+      if (suffix === 'am' && h === 12) h = 0;
+      if (Number.isFinite(h) && h >= 0 && h <= 23) {
+        hours.add(h);
+        continue;
+      }
+    }
+
+    for (const [label, mapped] of Object.entries(LABEL_MAP)) {
+      if (lower.includes(label)) {
+        mapped.forEach((h) => hours.add(h));
+        break;
+      }
+    }
+  }
+
+  return Array.from(hours).sort((a, b) => a - b);
 }
 
 export async function POST(request: NextRequest) {
@@ -56,23 +121,31 @@ export async function POST(request: NextRequest) {
 
     if (historyError) {
       console.error('Error fetching task history:', historyError);
-      // Don't fail the request, just log the error
     }
 
-    // 3. Fetch user's timetable entries for conflict detection
-    // Note: user_timetables uses user_id that references profiles.id, not clerk_user_id
-    // So we need to join with profiles table to get the correct user_id
-    const { data: timetableEntries, error: timetableError } = await supabase
-      .from('user_timetables')
-      .select(`
-        *,
-        profiles!inner(clerk_user_id)
-      `)
-      .eq('profiles.clerk_user_id', userId);
+    // 3. Fetch user's timetable entries for conflict detection.
+    // `user_timetables.user_id` is a uuid referencing `profiles.id`, but there is
+    // no FK constraint defined, so PostgREST can't embed `profiles!inner`
+    // (PGRST200). Resolve the profile row first, then query by its uuid.
+    const { data: profileRow } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('clerk_user_id', userId)
+      .maybeSingle();
 
-    if (timetableError) {
-      console.error('Error fetching timetable:', timetableError);
-      // Don't fail the request, continue without timetable data
+    let timetableEntries: TimetableEntry[] | null = null;
+    if (profileRow?.id) {
+      const { data, error: timetableError } = await supabase
+        .from('user_timetables')
+        .select('*')
+        .eq('user_id', profileRow.id)
+        .eq('is_active', true);
+
+      if (timetableError) {
+        console.error('Error fetching timetable:', timetableError);
+      } else {
+        timetableEntries = (data ?? []) as TimetableEntry[];
+      }
     }
 
     // 4. Fetch existing user AI patterns and preferences
@@ -82,7 +155,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', userId)
       .single();
 
-    if (patternsError && patternsError.code !== 'PGRST116') { // PGRST116 = no rows found
+    if (patternsError && patternsError.code !== 'PGRST116') {
       console.error('Error fetching user patterns:', patternsError);
     }
 
@@ -149,9 +222,8 @@ export async function POST(request: NextRequest) {
     let patterns: PatternData;
     
     if (forceRefresh || !existingPatterns || shouldRefreshPatterns(existingPatterns)) {
-      // Analyze patterns with historical data and timetable
       const patternAnalyzer = new PatternAnalyzer(userPreferences, historyTasks);
-      const analyzedPatterns = patternAnalyzer.analyze();
+      const analyzedPatterns: Partial<PatternData> = patternAnalyzer.analyze();
       patterns = {
         userId,
         lastAnalyzed: new Date().toISOString(),
@@ -176,21 +248,17 @@ export async function POST(request: NextRequest) {
         totalTasksAnalyzed: historyTasks.length,
         dataQuality: 0.7
       };
-      
-      // Save updated patterns to database
-      await saveUserPatterns(supabase, userId, patterns, userPreferences);
+
+      await saveUserPatterns(supabase, userId, patterns, userPreferences, existingPatterns ?? null);
     } else {
-      // Use existing patterns
       patterns = transformStoredPatterns(existingPatterns);
     }
 
-    // 10. Convert timetable entries to calendar events for conflict detection
     const calendarEvents: CalendarEvent[] = [
       ...existingEvents,
-      ...generateTimetableEvents(timetableEntries || [], scheduleHorizon)
+      ...generateTimetableEvents(timetableEntries || [], scheduleHorizon),
     ];
 
-    // 11. Generate smart schedule
     const scheduler = new SmartScheduler(
       aiTasks,
       patterns,
@@ -198,7 +266,7 @@ export async function POST(request: NextRequest) {
       userPreferences,
       historyTasks
     );
-    
+
     const scheduleResult = scheduler.generate();
 
     // 12. Save the generated schedule for tracking and learning
@@ -330,9 +398,17 @@ function buildUserPreferences(
     availableStudyHours: [9, 10, 11, 14, 15, 16, 17, 18, 19, 20]
   };
 
-  // Merge with stored patterns
-  if (existingPatterns?.preferred_study_times) {
-    defaults.availableStudyHours = existingPatterns.preferred_study_times;
+  // Merge with stored patterns. `preferred_study_times` may contain either
+  // numeric hours (legacy) or human-readable labels like "Evening (5-8 PM)"
+  // from the questionnaire. Coerce to numeric hours; fall back to defaults
+  // if nothing parseable is found. Without this guard, non-numeric values
+  // propagate into SmartScheduler and trigger `Invalid time value` via
+  // setHours(NaN) when generating time slots.
+  if (Array.isArray(existingPatterns?.preferred_study_times)) {
+    const parsed = parsePreferredStudyTimes(existingPatterns.preferred_study_times);
+    if (parsed.length > 0) {
+      defaults.availableStudyHours = parsed;
+    }
   }
   
   if (existingPatterns?.learning_style) {
@@ -372,61 +448,43 @@ async function saveUserPatterns(
   supabase: any,
   userId: string,
   patterns: PatternData,
-  preferences: UserPreferences
+  preferences: UserPreferences,
+  existingRow: Record<string, unknown> | null,
 ): Promise<void> {
   try {
-    await supabase
-      .from('user_ai_patterns')
-      .upsert({
-        user_id: userId,
-        preferred_study_times: preferences.availableStudyHours,
-        productivity_peaks: patterns.timePattern?.mostProductiveHours || [],
-        learning_style: preferences.difficultyComfort,
-        attention_span: patterns.timePattern?.preferredStudyDuration || 45,
-        difficulty_preference: preferences.difficultyComfort,
-        break_preferences: {
-          frequency: preferences.breakFrequency,
-          duration: patterns.timePattern?.averageBreakTime || 15
-        },
-        pattern_confidence: {
-          time_pattern: patterns.timePattern?.consistencyScore || 0.5,
-          difficulty_profile: patterns.difficultyProfile?.adaptationRate || 0.5,
-          subject_insights: patterns.dataQuality || 0.5
-        },
-        last_analyzed_at: new Date().toISOString(),
-        data_sources: ['task_history', 'user_preferences', 'timetable'],
-        analysis_version: 2
-      });
+    const schedulePatch: Record<string, unknown> = {
+      user_id: userId,
+      preferred_study_times: preferences.availableStudyHours,
+      productivity_peaks: patterns.timePattern?.mostProductiveHours || [],
+      learning_style: preferences.difficultyComfort,
+      attention_span: patterns.timePattern?.preferredStudyDuration || 45,
+      difficulty_preference: preferences.difficultyComfort,
+      break_preferences: {
+        frequency: preferences.breakFrequency,
+        duration: patterns.timePattern?.averageBreakTime || 15,
+      },
+      pattern_confidence: {
+        time_pattern: patterns.timePattern?.consistencyScore ?? 0.5,
+        difficulty_profile: patterns.difficultyProfile?.adaptationRate ?? 0.5,
+        subject_insights: patterns.dataQuality ?? 0.5,
+      },
+      last_analyzed_at: new Date().toISOString(),
+      data_sources: ['task_history', 'user_preferences', 'timetable'],
+      analysis_version: 2,
+    };
+
+    const merged = mergeScheduleIntoUserAiPatterns(existingRow, schedulePatch);
+
+    await supabase.from('user_ai_patterns').upsert(merged, {
+      onConflict: 'user_id',
+    });
   } catch (error) {
     console.error('Error saving user patterns:', error);
   }
 }
 
-function transformStoredPatterns(storedPatterns: any): PatternData {
-  return {
-    userId: storedPatterns.user_id,
-    lastAnalyzed: storedPatterns.last_analyzed_at,
-    timePattern: {
-      mostProductiveHours: storedPatterns.productivity_peaks || [],
-      preferredStudyDuration: storedPatterns.attention_span || 45,
-      averageBreakTime: storedPatterns.break_preferences?.duration || 15,
-      peakPerformanceDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-      consistencyScore: storedPatterns.pattern_confidence?.time_pattern || 0.5
-    },
-    difficultyProfile: {
-      averageTaskDifficulty: 5,
-      difficultyTrend: 'stable',
-      subjectDifficultyMap: {},
-      adaptationRate: storedPatterns.pattern_confidence?.difficulty_profile || 0.5
-    },
-    subjectInsights: {
-      preferredSubjects: [],
-      strugglingSubjects: [],
-      subjectPerformance: {}
-    },
-    totalTasksAnalyzed: 0,
-    dataQuality: storedPatterns.pattern_confidence?.subject_insights || 0.5
-  };
+function transformStoredPatterns(storedPatterns: Record<string, unknown>): PatternData {
+  return patternDataFromStoredRow(storedPatterns, String(storedPatterns.user_id ?? ''));
 }
 
 function generateTimetableEvents(

@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache';
 export interface ActionResponse {
   success: boolean;
   error?: string;
-  data?: any;
+  data?: unknown;
 }
 
 /**

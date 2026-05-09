@@ -1,13 +1,13 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { supabase } from '@/lib/supabase/client';
+import { getSupabaseWithClerkAuth } from '@/lib/supabase/server-auth';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const params = await context.params;
+    const { supabase, userId } = await getSupabaseWithClerkAuth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

@@ -1,13 +1,22 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { supabase } from '@/lib/supabase/client';
+import { clerkClient } from '@clerk/nextjs/server';
+import { getSupabaseWithClerkAuth } from '@/lib/supabase/server-auth';
+
+type GroupMembership = {
+  role: string | null;
+};
+
+function isAdminLike(role: string | null | undefined): boolean {
+  return role === 'admin' || role === 'owner';
+}
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const params = await context.params;
+    const { supabase, userId } = await getSupabaseWithClerkAuth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -18,12 +27,21 @@ export async function POST(
 
     const groupId = params.id;
     const body = await request.json();
-    const { invitee_email, invitee_id } = body;
+    const invitee_email = body.invitee_email || body.inviteeEmail;
+    const invitee_id = body.invitee_id || body.inviteeId;
+    const invitee_name = body.invitee_name || body.inviteeName;
+    const message = body.message;
 
     if (!invitee_email && !invitee_id) {
       return NextResponse.json({ 
         error: 'Either invitee_email or invitee_id is required' 
       }, { status: 400 });
+    }
+    if (invitee_email && typeof invitee_email !== 'string') {
+      return NextResponse.json({ error: 'invitee_email must be a string' }, { status: 400 });
+    }
+    if (invitee_id && typeof invitee_id !== 'string') {
+      return NextResponse.json({ error: 'invitee_id must be a string' }, { status: 400 });
     }
 
     // Check if user is a member and can invite
@@ -32,7 +50,7 @@ export async function POST(
       .select('role')
       .eq('group_id', groupId)
       .eq('user_id', userId)
-      .single();
+      .maybeSingle<GroupMembership>();
 
     if (membershipError || !membership) {
       return NextResponse.json({ error: 'You must be a member to invite others' }, { status: 403 });
@@ -44,13 +62,12 @@ export async function POST(
       .select('metadata, created_by')
       .eq('id', groupId)
       .single();
-
     if (groupError) {
       return NextResponse.json({ error: 'Group not found' }, { status: 404 });
     }
 
     const privacyLevel = group.metadata?.privacy_level || 'public';
-    if (privacyLevel === 'private' && membership.role !== 'admin' && group.created_by !== userId) {
+    if (privacyLevel === 'private' && !isAdminLike(membership.role) && group.created_by !== userId) {
       return NextResponse.json({ 
         error: 'Only admins can invite to private groups' 
       }, { status: 403 });
@@ -60,19 +77,66 @@ export async function POST(
 
     // If email provided, find user by email
     if (invitee_email && !invitee_id) {
+      const normalizedEmail = invitee_email.trim().toLowerCase();
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('clerk_user_id')
-        .eq('email', invitee_email)
-        .single();
+        .ilike('email', normalizedEmail)
+        .maybeSingle();
 
-      if (profileError || !profile) {
-        return NextResponse.json({ 
-          error: 'User not found with that email address' 
-        }, { status: 404 });
+      if (profileError) {
+        return NextResponse.json({ error: 'Failed to resolve invitee' }, { status: 500 });
       }
 
-      targetUserId = profile.clerk_user_id;
+      if (profile?.clerk_user_id) {
+        targetUserId = profile.clerk_user_id;
+      } else {
+        // Fallback for users who exist in Clerk but are missing a synced profile row.
+        try {
+          const client = await clerkClient();
+
+          const directLookup = await client.users.getUserList({
+            emailAddress: [normalizedEmail],
+            limit: 10,
+          });
+          const directMatch = directLookup.data.find((u) =>
+            u.emailAddresses.some(
+              (emailAddress) => emailAddress.emailAddress.toLowerCase() === normalizedEmail,
+            ),
+          );
+          if (directMatch?.id) {
+            targetUserId = directMatch.id;
+          }
+
+          // Some Clerk projects are stricter with the emailAddress filter.
+          // Query fallback keeps invite resolution robust.
+          if (!targetUserId) {
+            const queryLookup = await client.users.getUserList({
+              query: normalizedEmail,
+              limit: 10,
+            });
+            const queryMatch = queryLookup.data.find((u) =>
+              u.emailAddresses.some(
+                (emailAddress) => emailAddress.emailAddress.toLowerCase() === normalizedEmail,
+              ),
+            );
+            if (queryMatch?.id) {
+              targetUserId = queryMatch.id;
+            }
+          }
+        } catch (clerkLookupError) {
+          console.error('Clerk lookup failed for invite email:', clerkLookupError);
+        }
+      }
+    }
+
+    if (!targetUserId) {
+      return NextResponse.json({
+        error: 'User not found with that email address',
+      }, { status: 404 });
+    }
+    if (targetUserId === userId) {
+      return NextResponse.json({ error: 'You cannot invite yourself' }, { status: 400 });
     }
 
     // Check if user is already a member
@@ -110,6 +174,9 @@ export async function POST(
         group_id: groupId,
         inviter_id: userId,
         invitee_id: targetUserId,
+        invitee_email: invitee_email || null,
+        invitee_name: invitee_name || null,
+        message: message || null,
         status: 'pending'
       })
       .select()
@@ -132,10 +199,11 @@ export async function POST(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const params = await context.params;
+    const { supabase, userId } = await getSupabaseWithClerkAuth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -146,13 +214,50 @@ export async function GET(
 
     const groupId = params.id;
 
-    // Get all invitations for this group
+    // Check group exists first to provide deterministic 404 vs 403.
+    const { data: group, error: groupError } = await supabase
+      .from('study_groups')
+      .select('id')
+      .eq('id', groupId)
+      .maybeSingle();
+
+    if (groupError) {
+      console.error('Error checking group existence:', groupError);
+      return NextResponse.json({ error: 'Failed to fetch invitations' }, { status: 500 });
+    }
+    if (!group) {
+      return NextResponse.json({ error: 'Group not found' }, { status: 404 });
+    }
+
+    // Members can read invitations, only admins/owners can see full contact fields.
+    const { data: membership, error: membershipError } = await supabase
+      .from('study_group_members')
+      .select('role')
+      .eq('group_id', groupId)
+      .eq('user_id', userId)
+      .maybeSingle<GroupMembership>();
+
+    if (membershipError) {
+      console.error('Error checking membership for invitation listing:', membershipError);
+      return NextResponse.json({ error: 'Failed to fetch invitations' }, { status: 500 });
+    }
+    if (!membership) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const canSeeSensitive = isAdminLike(membership.role);
+
+    // Get all invitations for this group.
     const { data: invitations, error: invitationsError } = await supabase
       .from('study_group_invitations')
       .select(`
-        *,
-        inviter:profiles!study_group_invitations_inviter_id_fkey(name, email),
-        invitee:profiles!study_group_invitations_invitee_id_fkey(name, email)
+        id,
+        group_id,
+        inviter_id,
+        invitee_id,
+        status,
+        created_at,
+        updated_at
       `)
       .eq('group_id', groupId)
       .order('created_at', { ascending: false });
@@ -162,7 +267,44 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch invitations' }, { status: 500 });
     }
 
-    return NextResponse.json({ invitations });
+    const inviterIds = Array.from(new Set((invitations ?? []).map((item: any) => item.inviter_id)));
+    const inviteeIds = Array.from(new Set((invitations ?? []).map((item: any) => item.invitee_id)));
+    const profileIds = Array.from(new Set([...inviterIds, ...inviteeIds].filter(Boolean)));
+
+    let profileMap: Record<string, { full_name: string | null; email: string | null }> = {};
+    if (profileIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('clerk_user_id, full_name, email')
+        .in('clerk_user_id', profileIds);
+      profileMap = (profiles ?? []).reduce(
+        (acc: Record<string, { full_name: string | null; email: string | null }>, row: any) => {
+          acc[row.clerk_user_id] = { full_name: row.full_name ?? null, email: row.email ?? null };
+          return acc;
+        },
+        {},
+      );
+    }
+
+    const safeInvitations = (invitations ?? []).map((item: any) => ({
+      id: item.id,
+      group_id: item.group_id,
+      inviter_id: item.inviter_id,
+      invitee_id: item.invitee_id,
+      status: item.status,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+      inviter: {
+        full_name: profileMap[item.inviter_id]?.full_name ?? null,
+        email: canSeeSensitive ? (profileMap[item.inviter_id]?.email ?? null) : null,
+      },
+      invitee: {
+        full_name: profileMap[item.invitee_id]?.full_name ?? null,
+        email: canSeeSensitive ? (profileMap[item.invitee_id]?.email ?? null) : null,
+      },
+    }));
+
+    return NextResponse.json({ invitations: safeInvitations });
   } catch (error) {
     console.error('Error in GET /api/study-groups/[id]/invite:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

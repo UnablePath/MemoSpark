@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FaComment, FaTrophy } from "react-icons/fa";
+import { MessageCircle, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Student } from "@/types/student";
 
@@ -40,7 +40,7 @@ const StudentCard = React.memo<StudentCardProps>(({
     if (!isSwipeMode || !drag) return true;
     
     // Get the starting position of the touch/mouse event
-    const clientX = event.clientX || (event.touches && event.touches[0]?.clientX);
+    const clientX = event.clientX || (event.touches?.[0]?.clientX);
     if (!clientX) return true;
     
     const screenWidth = window.innerWidth;
@@ -120,7 +120,7 @@ const StudentCard = React.memo<StudentCardProps>(({
           {student.achievements && student.achievements.length > 0 && (
             <div className="mt-3">
               <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1.5 flex items-center">
-                <FaTrophy className="mr-1.5 h-3 w-3 text-amber-500" /> Achievements
+                <Trophy className="mr-1.5 h-3 w-3 text-amber-500" /> Achievements
               </h4>
               <div className="flex flex-wrap gap-2 items-center">
                 {student.achievements.slice(0, 3).map((ach) => (
@@ -149,7 +149,7 @@ const StudentCard = React.memo<StudentCardProps>(({
         {!isSwipeMode && onOpenChat && (
           <CardFooter className="p-4 pt-2 border-t bg-muted/50">
             <Button className="w-full" onClick={onOpenChat} variant="default">
-              <FaComment className="mr-2 h-4 w-4" /> View Profile / Chat
+              <MessageCircle className="mr-2 h-4 w-4" /> View Profile / Chat
             </Button>
           </CardFooter>
         )}
@@ -200,7 +200,7 @@ const StudentCard = React.memo<StudentCardProps>(({
         {student.achievements && student.achievements.length > 0 && (
           <div className="mt-3">
             <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-1.5 flex items-center">
-              <FaTrophy className="mr-1.5 h-3 w-3 text-amber-500" /> Achievements
+              <Trophy className="mr-1.5 h-3 w-3 text-amber-500" /> Achievements
             </h4>
             <div className="flex flex-wrap gap-2 items-center">
               {student.achievements.slice(0, 3).map((ach) => (
@@ -229,7 +229,7 @@ const StudentCard = React.memo<StudentCardProps>(({
       {!isSwipeMode && onOpenChat && (
         <CardFooter className="p-4 pt-2 border-t bg-muted/50">
           <Button className="w-full" onClick={onOpenChat} variant="default">
-            <FaComment className="mr-2 h-4 w-4" /> View Profile / Chat
+            <MessageCircle className="mr-2 h-4 w-4" /> View Profile / Chat
           </Button>
         </CardFooter>
       )}

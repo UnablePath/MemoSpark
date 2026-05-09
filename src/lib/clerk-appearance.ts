@@ -16,7 +16,7 @@ export function isMemoSparkDarkTheme(theme: string | undefined): boolean {
  * MemoSpark + Clerk theming
  *
  * - Uses Clerk’s current `variables` API (avoid deprecated colorText / colorInputBackground, etc.).
- * - **Account modal (UserProfile):** solid panel + readable backdrop — avoids “broken glass”
+ * - **Account modal (UserProfile):** solid panel + readable backdrop, avoids "broken glass"
  *   where translucent layers and the page background fight each other.
  * - **Sign-in / Sign-up:** outer page already wraps the component in a `card`; inner `rootBox`
  *   stays transparent so we don’t double-stack panels.
@@ -80,7 +80,7 @@ const darkVariables = {
 } satisfies NonNullable<ClerkThemeAppearance['variables']>;
 
 const lightElements = {
-  /* Embedded SignIn/SignUp — page supplies the outer card */
+  /* Embedded SignIn/SignUp, page supplies the outer card */
   rootBox: {
     width: '100%',
     backgroundColor: 'transparent',
@@ -111,7 +111,7 @@ const lightElements = {
     fontSize: '0.875rem',
     lineHeight: 1.5,
   },
-  /* Account modal — solid surfaces */
+  /* Account modal, solid surfaces */
   modalBackdrop: {
     backgroundColor: 'rgba(15, 23, 42, 0.58)',
     backdropFilter: 'blur(10px) saturate(140%)',
@@ -131,7 +131,7 @@ const lightElements = {
     borderRadius: '0.75rem',
   },
   /**
-   * UserProfile uses a **vertical** left rail — use a trailing border + column layout.
+   * UserProfile uses a **vertical** left rail, use a trailing border + column layout.
    * (borderBottom was wrong here and made the rail feel broken / “empty”.)
    */
   navbar: {
@@ -209,8 +209,17 @@ const lightElements = {
     color: 'hsl(222 47% 11%)',
     '&:focus': {
       borderColor: PRIMARY,
-      boxShadow: `0 0 0 2px hsl(142 76% 36% / 0.25)`,
+      boxShadow: "0 0 0 2px hsl(142 76% 36% / 0.25)",
     },
+  },
+  /** PasswordInput uses an absolutely positioned IconButton; avoid clipping and stacking issues */
+  formFieldInputGroup: {
+    overflow: 'visible',
+  },
+  formFieldInputShowPasswordButton: {
+    minHeight: 'unset',
+    minWidth: 'unset',
+    zIndex: 2,
   },
   formButtonPrimary: {
     backgroundColor: PRIMARY,
@@ -420,8 +429,16 @@ const darkElements = {
     color: 'hsl(210 40% 98%)',
     '&:focus': {
       borderColor: PRIMARY,
-      boxShadow: `0 0 0 2px hsl(142 76% 36% / 0.35)`,
+      boxShadow: "0 0 0 2px hsl(142 76% 36% / 0.35)",
     },
+  },
+  formFieldInputGroup: {
+    overflow: 'visible',
+  },
+  formFieldInputShowPasswordButton: {
+    minHeight: 'unset',
+    minWidth: 'unset',
+    zIndex: 2,
   },
   formButtonPrimary: {
     backgroundColor: PRIMARY,
@@ -508,7 +525,7 @@ const darkElements = {
   },
 } as ClerkThemeAppearance['elements'];
 
-/** Light — used when app theme resolves to light */
+/** Light, used when app theme resolves to light */
 export const memoSparkClerkAppearance: ClerkThemeAppearance = {
   variables: lightVariables,
   elements: lightElements,
@@ -519,7 +536,7 @@ export const memoSparkClerkAppearance: ClerkThemeAppearance = {
   },
 } as const;
 
-/** Dark — used when app theme resolves to dark / dark variants */
+/** Dark, used when app theme resolves to dark / dark variants */
 export const memoSparkClerkAppearanceDark: ClerkThemeAppearance = {
   variables: darkVariables,
   elements: darkElements,
@@ -531,7 +548,7 @@ export const memoSparkClerkAppearanceDark: ClerkThemeAppearance = {
 } as const;
 
 /**
- * Dashboard `<UserButton />` — responsive avatar sizes + same modal / popover theming as the app.
+ * Dashboard `<UserButton />`, responsive avatar sizes + same modal / popover theming as the app.
  */
 export function getMemoSparkDashboardUserButtonAppearance(
   isDark: boolean
@@ -589,4 +606,38 @@ export function getMemoSparkDashboardUserButtonAppearance(
       userButtonAvatarBox: responsiveAvatar,
     } as ClerkThemeAppearance['elements'],
   } satisfies Pick<ClerkThemeAppearance, 'variables' | 'elements'>;
+}
+
+/**
+ * Marketing navbar `<UserButton />`, dashboard-dark avatar sizing + popover that reads as a
+ * continuation of `#0c0e13` chrome (not a generic floating panel).
+ */
+export function getMemoSparkMarketingNavUserButtonAppearance(): Pick<
+  ClerkThemeAppearance,
+  'variables' | 'elements'
+> {
+  const dashboardDark = getMemoSparkDashboardUserButtonAppearance(true);
+  return {
+    variables: dashboardDark.variables,
+    elements: {
+      ...dashboardDark.elements,
+      userButtonPopoverCard: {
+        backgroundColor: '#0c0e13',
+        color: 'hsl(210 40% 98%)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '0.75rem',
+        boxShadow: '0 14px 36px -12px rgba(0, 0, 0, 0.55)',
+        backdropFilter: 'none',
+        WebkitBackdropFilter: 'none',
+      },
+      userButtonPopoverActionButton: {
+        color: 'hsl(210 40% 98%)',
+        fontWeight: 500,
+        borderRadius: '0.5rem',
+        '&:hover': {
+          backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        },
+      },
+    } as ClerkThemeAppearance['elements'],
+  };
 }

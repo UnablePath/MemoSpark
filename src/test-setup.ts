@@ -5,9 +5,9 @@ process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test-project.supabase.co';
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key-12345';
 
 // Polyfills for MSW v2 in Jest environment
-import { TextEncoder, TextDecoder } from 'util';
-import { Blob } from 'buffer';
-import { ReadableStream } from 'stream/web';
+import { TextEncoder, TextDecoder } from 'node:util';
+import { Blob } from 'node:buffer';
+import { ReadableStream } from 'node:stream/web';
 
 Object.assign(global, { 
   TextDecoder, 

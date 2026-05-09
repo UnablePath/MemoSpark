@@ -7,7 +7,7 @@ import { BASE_URL } from '@/lib/seo/seoConfig';
 export const metadata: Metadata = {
   title: 'Student life, in one place',
   description:
-    'MemoSpark helps students keep up with coursework, meet people in their classes, vent when the week gets rough, and stay on track with AI support.',
+    'MemoSpark helps students keep up with classes, meet people in their courses, and stay steady when the week gets rough.',
   alternates: {
     canonical: '/',
   },
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     locale: 'en_US',
     title: 'Student life, in one place | MemoSpark',
     description:
-      'MemoSpark helps students keep up with coursework, meet people in their classes, vent when the week gets rough, and stay on track with AI support.',
+      'MemoSpark helps students keep up with classes, meet people in their courses, and stay steady when the week gets rough.',
     url: '/',
     siteName: 'MemoSpark',
     images: [
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Student life, in one place | MemoSpark',
     description:
-      'MemoSpark helps students keep up with coursework, meet people in their classes, vent when the week gets rough, and stay on track with AI support.',
+      'MemoSpark helps students keep up with classes, meet people in their courses, and stay steady when the week gets rough.',
     creator: '@memospark',
     site: '@memospark',
     images: [`${BASE_URL}/og-image.svg`],

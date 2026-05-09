@@ -55,7 +55,7 @@ const SHOP_CATEGORIES: ShopCategory[] = [
     name: 'Customization',
     icon: Palette,
     description: 'Themes and personalization options for your StudySpark experience',
-    color: 'text-purple-500'
+    color: 'text-cyan-500'
   },
   {
     id: 'streak_recovery',
@@ -176,7 +176,7 @@ export const RewardShop: React.FC<RewardShopProps> = ({
         // Check if this is a theme purchase
         const isTheme = item.metadata?.type === 'theme';
         
-        toast.success(`🎉 Successfully purchased ${item.item_name}!`, {
+        toast.success(`Successfully purchased ${item.item_name}.`, {
           description: `You spent ${item.cost} coins. New balance: ${result.purchase.new_balance}`
         });
         
@@ -372,7 +372,7 @@ export const RewardShop: React.FC<RewardShopProps> = ({
                           {/* Premium indicator for premium-only themes */}
                           {item.isPremiumOnly && (
                             <div className="absolute -top-2 -right-2 z-10">
-                              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center">
+                              <div className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center">
                                 <Crown className="w-3 h-3 mr-1" />
                                 Premium
                               </div>
@@ -390,12 +390,12 @@ export const RewardShop: React.FC<RewardShopProps> = ({
                           )}
 
                           <CardHeader className="pb-3">
-                            <CardTitle className={`flex items-center text-base group-hover:text-primary transition-colors ${item.isPremiumOnly ? 'text-purple-600 dark:text-purple-400' : ''}`}>
-                              <categoryInfo.icon className={`w-5 h-5 mr-2 ${item.isPremiumOnly ? 'text-purple-600 dark:text-purple-400' : categoryInfo.color}`} />
+                            <CardTitle className={`flex items-center text-base group-hover:text-primary transition-colors ${item.isPremiumOnly ? 'text-cyan-600 dark:text-cyan-400' : ''}`}>
+                              <categoryInfo.icon className={`w-5 h-5 mr-2 ${item.isPremiumOnly ? 'text-cyan-600 dark:text-cyan-400' : categoryInfo.color}`} />
                               {item.item_name}
-                              {item.isPremiumOnly && <Sparkles className="w-4 h-4 ml-1 text-purple-500" />}
+                              {item.isPremiumOnly && <Sparkles className="w-4 h-4 ml-1 text-cyan-500" />}
                             </CardTitle>
-                            <Badge variant={item.isPremiumOnly ? "default" : "outline"} className={`w-fit ${item.isPremiumOnly ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' : ''}`}>
+                            <Badge variant={item.isPremiumOnly ? "default" : "outline"} className={`w-fit ${item.isPremiumOnly ? 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200' : ''}`}>
                               {item.isPremiumOnly ? 'Premium Exclusive' : categoryInfo.name}
                             </Badge>
                           </CardHeader>
@@ -411,23 +411,23 @@ export const RewardShop: React.FC<RewardShopProps> = ({
                                 <span className="text-xs text-muted-foreground">Colors:</span>
                                 <div className="flex gap-1">
                                   <div 
-                                    className={`w-4 h-4 rounded-full border border-border ${item.isPremiumOnly ? 'ring-2 ring-purple-300 dark:ring-purple-600' : ''}`}
+                                    className={`w-4 h-4 rounded-full border border-border ${item.isPremiumOnly ? 'ring-2 ring-cyan-300 dark:ring-cyan-600' : ''}`}
                                     style={{ backgroundColor: item.metadata.colors.primary }}
                                     title="Primary color"
                                   />
                                   <div 
-                                    className={`w-4 h-4 rounded-full border border-border ${item.isPremiumOnly ? 'ring-2 ring-purple-300 dark:ring-purple-600' : ''}`}
+                                    className={`w-4 h-4 rounded-full border border-border ${item.isPremiumOnly ? 'ring-2 ring-cyan-300 dark:ring-cyan-600' : ''}`}
                                     style={{ backgroundColor: item.metadata.colors.secondary }}
                                     title="Secondary color"
                                   />
                                   <div 
-                                    className={`w-4 h-4 rounded-full border border-border ${item.isPremiumOnly ? 'ring-2 ring-purple-300 dark:ring-purple-600' : ''}`}
+                                    className={`w-4 h-4 rounded-full border border-border ${item.isPremiumOnly ? 'ring-2 ring-cyan-300 dark:ring-cyan-600' : ''}`}
                                     style={{ backgroundColor: item.metadata.colors.accent }}
                                     title="Accent color"
                                   />
                                 </div>
                                 {item.metadata?.rarity && (
-                                  <Badge variant="outline" className={`text-xs ${item.isPremiumOnly ? 'border-purple-300 text-purple-600 dark:border-purple-600 dark:text-purple-400' : ''}`}>
+                                  <Badge variant="outline" className={`text-xs ${item.isPremiumOnly ? 'border-cyan-300 text-cyan-600 dark:border-cyan-600 dark:text-cyan-400' : ''}`}>
                                     {item.metadata.rarity}
                                   </Badge>
                                 )}
@@ -449,8 +449,8 @@ export const RewardShop: React.FC<RewardShopProps> = ({
 
                             <div className="flex items-center justify-between">
                               <div className="flex items-center">
-                                <Coins className={`w-4 h-4 mr-1 ${item.isPremiumOnly ? 'text-purple-500' : 'text-yellow-500'}`} />
-                                <span className={`font-bold ${item.isPremiumOnly ? 'text-purple-600 dark:text-purple-400' : ''}`}>{item.cost}</span>
+                                <Coins className={`w-4 h-4 mr-1 ${item.isPremiumOnly ? 'text-cyan-500' : 'text-yellow-500'}`} />
+                                <span className={`font-bold ${item.isPremiumOnly ? 'text-cyan-600 dark:text-cyan-400' : ''}`}>{item.cost}</span>
                               </div>
                               
                               <div className="flex items-center space-x-1">
@@ -468,7 +468,7 @@ export const RewardShop: React.FC<RewardShopProps> = ({
                             <Button 
                               variant={meets && canAfford ? (item.isPremiumOnly ? "default" : "default") : "secondary"}
                               size="sm" 
-                              className={`w-full ${item.isPremiumOnly ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
+                              className={`w-full ${item.isPremiumOnly ? 'bg-cyan-600 hover:bg-cyan-700 text-white' : ''}`}
                               disabled={!meets || !canAfford}
                             >
                               {item.metadata?.type === 'theme' 
@@ -599,9 +599,9 @@ export const RewardShop: React.FC<RewardShopProps> = ({
                 <div className="mt-8">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-2">
-                      <Crown className="w-5 h-5 text-purple-500" />
-                      <h3 className="text-lg font-semibold text-purple-600 dark:text-purple-400">Premium Exclusive Themes</h3>
-                      <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                      <Crown className="w-5 h-5 text-cyan-500" />
+                      <h3 className="text-lg font-semibold text-cyan-600 dark:text-cyan-400">Premium Exclusive Themes</h3>
+                      <Badge variant="secondary" className="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">
                         Upgrade Required
                       </Badge>
                     </div>
@@ -611,24 +611,24 @@ export const RewardShop: React.FC<RewardShopProps> = ({
                     {['crimson-night', 'arctic-aurora', 'midnight-galaxy', 'royal-emerald', 'diamond-platinum'].map((themeId) => (
                       <Card 
                         key={themeId}
-                        className="cursor-pointer hover:shadow-md transition-all duration-200 group relative border-purple-200 dark:border-purple-700"
+                        className="cursor-pointer hover:shadow-md transition-all duration-200 group relative border-cyan-200 dark:border-cyan-700"
                         onClick={() => handlePremiumThemeAccess(themeId)}
                       >
-                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-lg" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 rounded-lg" />
                         <div className="absolute -top-2 -right-2 z-10">
-                          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center">
+                          <div className="bg-gradient-to-r from-cyan-600 to-indigo-600 text-white text-xs px-2 py-1 rounded-full font-bold flex items-center">
                             <Crown className="w-3 h-3 mr-1" />
                             Premium
                           </div>
                         </div>
                         
                         <CardHeader className="pb-3">
-                          <CardTitle className="flex items-center text-base text-purple-600 dark:text-purple-400">
-                            <Palette className="w-5 h-5 mr-2 text-purple-500" />
+                          <CardTitle className="flex items-center text-base text-cyan-600 dark:text-cyan-400">
+                            <Palette className="w-5 h-5 mr-2 text-cyan-500" />
                             {themeId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                            <Sparkles className="w-4 h-4 ml-1 text-purple-500" />
+                            <Sparkles className="w-4 h-4 ml-1 text-cyan-500" />
                           </CardTitle>
-                          <Badge variant="default" className="w-fit bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                          <Badge variant="default" className="w-fit bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">
                             Premium Exclusive
                           </Badge>
                         </CardHeader>
@@ -639,13 +639,13 @@ export const RewardShop: React.FC<RewardShopProps> = ({
                           </p>
                           
                           <div className="flex items-center justify-center py-4">
-                            <Lock className="w-8 h-8 text-purple-400" />
+                            <Lock className="w-8 h-8 text-cyan-400" />
                           </div>
                           
                           <Button 
                             variant="outline"
                             size="sm" 
-                            className="w-full border-purple-300 text-purple-600 hover:bg-purple-50 dark:border-purple-600 dark:text-purple-400 dark:hover:bg-purple-900/20"
+                            className="w-full border-cyan-300 text-cyan-600 hover:bg-cyan-50 dark:border-cyan-600 dark:text-cyan-400 dark:hover:bg-cyan-900/20"
                             onClick={(e) => {
                               e.stopPropagation();
                               handlePremiumThemeAccess(themeId);

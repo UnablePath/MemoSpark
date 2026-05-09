@@ -58,9 +58,12 @@ class ConsolidatedAIService {
   /**
    * Process voice input
    */
-  async processVoiceInput(params: { userId: string; feature: string; audioData: any; tasks: ExtendedTask[]; context: SuggestionContext }): Promise<{ confidence: number; result: any; transcription: string }> {
-    // Mock implementation for voice processing
-    return { confidence: 0.8, result: 'Voice input processed', transcription: 'Sample transcription' };
+  async processVoiceInput(_params: { userId: string; feature: string; audioData: any; tasks: ExtendedTask[]; context: SuggestionContext }): Promise<{ confidence: number; result: any; transcription: string }> {
+    return {
+      confidence: 0,
+      result: { available: false, message: "Voice input is not available in this build." },
+      transcription: "",
+    };
   }
 
   /**

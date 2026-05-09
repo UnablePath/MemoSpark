@@ -175,8 +175,8 @@ export class RagdollFactory {
     position: Vector2D,
     customizations: Partial<RagdollConfig>
   ): { bodies: RigidBody[]; joints: Joint[] } {
-    const config = { ...this.createDefaultConfig(position), ...customizations };
-    return this.createRagdoll(config);
+    const config = { ...RagdollFactory.createDefaultConfig(position), ...customizations };
+    return RagdollFactory.createRagdoll(config);
   }
 
   static resetRagdollPosition(

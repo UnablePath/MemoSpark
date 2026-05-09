@@ -1,228 +1,417 @@
-"use client";
+'use client';
 
 import type React from 'react';
-import { useState, useCallback, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cva, type VariantProps } from 'class-variance-authority';
-import { Calendar, LayoutList, Plus, Grid3X3, GraduationCap, Brain, ChevronRight, ChevronLeft, Sparkles, Crown, BrainCircuit } from 'lucide-react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { cva } from 'class-variance-authority';
+import {
+  Calendar as CalendarIcon,
+  Grid3X3,
+  Sparkles,
+  Plus,
+  GraduationCap,
+  Sun,
+  Sunrise,
+  Sunset,
+  Moon,
+  RefreshCw,
+} from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ListView } from './ListView';
+import { useToast } from '@/components/ui/use-toast';
+import {
+  useFetchTasks,
+  useDeleteTask,
+  useCreateTask,
+  useToggleTaskCompletion,
+} from '@/hooks/useTaskQueries';
+import { useTieredAI } from '@/hooks/useTieredAI';
+import { useRealtimeTasks } from '@/hooks/useRealtimeTasks';
+import { useSaveAISuggestionFeedback } from '@/hooks/useSaveAISuggestionFeedback';
+import { TodayView } from './TodayView';
 import { CalendarViewEnhanced } from './CalendarViewEnhanced';
 import { TimetableView } from './TimetableView';
 import { TaskForm } from './TaskForm';
 import { TimetableEntryForm } from './TimetableEntryForm';
-import { useFetchTasks, useDeleteTask, useCreateTask, useToggleTaskCompletion } from '@/hooks/useTaskQueries';
-import { useToast } from '@/components/ui/use-toast';
-import { ShimmerButton } from '@/components/ui/shimmer-button';
-import { InteractiveHoverButton } from '@/components/ui/interactive-hover-button';
-import { SuggestionList } from '@/components/ai/SuggestionList';
-import { useTieredAI } from '@/hooks/useTieredAI';
+import { NotificationCenter } from './NotificationCenter';
 import type { AISuggestion } from '@/types/ai';
 import type { Task } from '@/types/taskTypes';
 
-import { useUser } from '@clerk/nextjs';
-import { SmartScheduleView } from '@/components/scheduling/SmartScheduleView';
-
-// Dynamic AI suggestions based on user context and time of day
-const getTaskCreationSuggestions = (userName?: string): AISuggestion[] => {
-  const currentHour = new Date().getHours();
-  const isEvening = currentHour >= 17;
-  const isMorning = currentHour >= 6 && currentHour < 12;
-  const userFirstName = userName?.split(' ')[0] || 'there';
-  
-  const suggestions: AISuggestion[] = [];
-  
-  if (isMorning) {
-    suggestions.push({
-      id: 'morning-focus',
-      type: 'task_suggestion',
-      title: `Good morning, ${userFirstName}! Start with a focused study session`,
-      description: 'Morning is an excellent time for deep learning. Consider tackling your most challenging subject first.',
-      priority: 'high' as 'low' | 'medium' | 'high',
-      confidence: 0.85,
-      reasoning: 'Studies show that cognitive performance is typically highest in the morning hours.',
-      duration: 90,
-      metadata: {
-        category: 'productivity',
-        tags: ['morning', 'focus', 'deep-work'],
-        difficulty: 6,
-        estimatedBenefit: 0.8,
-        requiredAction: 'immediate'
-      },
-      createdAt: new Date().toISOString(),
-      acceptanceStatus: 'pending'
-    });
-  }
-  
-  if (isEvening) {
-    suggestions.push({
-      id: 'evening-review',
-      type: 'study_time',
-      title: `Evening review session`,
-      description: 'Perfect time to review what you learned today and prepare for tomorrow.',
-      priority: 'medium',
-      confidence: 0.78,
-      reasoning: 'Evening review helps consolidate daily learning and improves retention.',
-      duration: 45,
-      metadata: {
-        category: 'academic',
-        tags: ['review', 'consolidation', 'evening'],
-        difficulty: 4,
-        estimatedBenefit: 0.7,
-        requiredAction: 'scheduled'
-      },
-      createdAt: new Date(Date.now() - 300000).toISOString(),
-      acceptanceStatus: 'pending'
-    });
-  }
-  
-  // General productivity suggestion
-  suggestions.push({
-    id: 'productivity-block',
-    type: 'schedule_optimization',
-    title: 'Create a focused study block',
-    description: 'Block out uninterrupted time for deep work on your most important tasks.',
-    priority: 'medium',
-    confidence: 0.72,
-    reasoning: 'Focused study blocks lead to better learning outcomes than fragmented sessions.',
-    duration: 120,
-    metadata: {
-      category: 'productivity',
-      tags: ['deep-work', 'focus', 'productivity'],
-      estimatedBenefit: 0.85,
-      requiredAction: 'optional'
-    },
-    createdAt: new Date(Date.now() - 600000).toISOString(),
-    acceptanceStatus: 'pending'
-  });
-  
-  return suggestions;
-};
-
-// CVA variants for view tabs
-const viewTabVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-  {
-    variants: {
-      state: {
-        active: "bg-primary text-primary-foreground shadow-sm",
-        inactive: "hover:bg-accent hover:text-accent-foreground",
-      },
-    },
-  },
-);
-
-// CVA variants for action buttons
-const actionButtonVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-  {
-    variants: {
-      variant: {
-        default:
-          "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-        shimmer: "text-white", // Specific for ShimmerButton
-      },
-      size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  },
-);
-
-type ViewType = 'list' | 'calendar' | 'timetable' | 'smart-schedule';
+type ViewType = 'today' | 'calendar' | 'timetable';
 
 interface ViewOption {
   id: ViewType;
   label: string;
   icon: React.ElementType;
-  description: string;
+  shortLabel: string;
 }
 
-interface TaskEventHubProps {
-  initialView?: ViewType;
+const viewOptions: ViewOption[] = [
+  { id: 'today', label: 'Today', shortLabel: 'Today', icon: Sun },
+  { id: 'calendar', label: 'Calendar', shortLabel: 'Cal', icon: CalendarIcon },
+  { id: 'timetable', label: 'Timetable', shortLabel: 'Time', icon: Grid3X3 },
+];
+
+const viewTabVariants = cva(
+  cn(
+    'inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-sm font-medium',
+    'sm:flex-initial sm:px-3 sm:py-1.5',
+    'transition-[color,background-color,transform] duration-150',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+    'active:scale-[0.97] touch-manipulation',
+  ),
+  {
+    variants: {
+      state: {
+        active: 'bg-background text-foreground shadow-sm',
+        inactive: 'text-muted-foreground hover:text-foreground',
+      },
+    },
+  },
+);
+
+type FallbackTemplate = Omit<AISuggestion, 'id' | 'createdAt' | 'acceptanceStatus' | 'title'> & {
+  slug: string;
+  buildTitle: (firstName: string | undefined) => string;
+  timeOfDay?: 'morning' | 'midday' | 'afternoon' | 'evening' | 'night';
+};
+
+const FALLBACK_POOL: FallbackTemplate[] = [
+  {
+    slug: 'morning-focus',
+    timeOfDay: 'morning',
+    type: 'task_suggestion',
+    buildTitle: (name) =>
+      name ? `${name}, block a focused hour for your hardest subject` : 'Block a focused hour for your hardest subject',
+    description: 'Most people focus better in the morning. One solid block beats five half-starts.',
+    priority: 'high',
+    confidence: 0.82,
+    reasoning: 'Energy tends to be higher earlier in the day.',
+    duration: 60,
+    metadata: { category: 'productivity', tags: ['morning', 'focus'], estimatedBenefit: 0.8, requiredAction: 'immediate' },
+  },
+  {
+    slug: 'morning-one-task',
+    timeOfDay: 'morning',
+    type: 'task_suggestion',
+    buildTitle: () => 'Pick the one thing that would make today a win',
+    description: 'If you only finished one task today, what would it be? Start there while energy is high.',
+    priority: 'high',
+    confidence: 0.8,
+    reasoning: 'One clear priority beats five open tabs and zero finishes.',
+    duration: 45,
+    metadata: { category: 'productivity', tags: ['priority', 'morning'], estimatedBenefit: 0.85, requiredAction: 'immediate' },
+  },
+  {
+    slug: 'midday-reset',
+    timeOfDay: 'midday',
+    type: 'break_reminder',
+    buildTitle: () => 'Step away for a 10-minute reset',
+    description:
+      'Short breaks help afternoon focus. Stretch, hydrate, look out a window (skip the scroll).',
+    priority: 'medium',
+    confidence: 0.76,
+    reasoning: 'Short breaks help you stay with the work longer.',
+    duration: 10,
+    metadata: { category: 'wellbeing', tags: ['break', 'midday'], estimatedBenefit: 0.65, requiredAction: 'immediate' },
+  },
+  {
+    slug: 'afternoon-sprint',
+    timeOfDay: 'afternoon',
+    type: 'study_time',
+    buildTitle: () => 'Run a 25-minute focus sprint on something shallow',
+    description: 'Afternoon dip? Use it for lower-stakes work: flashcards, notes cleanup, or replies.',
+    priority: 'medium',
+    confidence: 0.74,
+    reasoning: 'Lighter work fits a post-lunch dip better than heavy theory.',
+    duration: 25,
+    metadata: { category: 'academic', tags: ['pomodoro', 'afternoon'], estimatedBenefit: 0.7, requiredAction: 'scheduled' },
+  },
+  {
+    slug: 'evening-review',
+    timeOfDay: 'evening',
+    type: 'study_time',
+    buildTitle: () => 'Review today in 20 minutes',
+    description: 'A short review while it is still fresh consolidates learning and surfaces gaps before tomorrow.',
+    priority: 'medium',
+    confidence: 0.78,
+    reasoning: 'A quick recap the same day sticks better than cramming later.',
+    duration: 20,
+    metadata: { category: 'academic', tags: ['review', 'evening'], estimatedBenefit: 0.7, requiredAction: 'scheduled' },
+  },
+  {
+    slug: 'evening-plan-tomorrow',
+    timeOfDay: 'evening',
+    type: 'schedule_optimization',
+    buildTitle: () => 'Sketch tomorrow in three lines',
+    description: 'Write your top three for tomorrow tonight. You will start with focus instead of friction.',
+    priority: 'medium',
+    confidence: 0.77,
+    reasoning: 'Writing tomorrow’s top three tonight cuts morning thrash.',
+    duration: 10,
+    metadata: { category: 'productivity', tags: ['planning', 'evening'], estimatedBenefit: 0.75, requiredAction: 'optional' },
+  },
+  {
+    slug: 'night-wind-down',
+    timeOfDay: 'night',
+    type: 'break_reminder',
+    buildTitle: () => 'Close the laptop when this task ends',
+    description: 'Protecting sleep is the cheapest study hack there is. Call it a day at a clean stopping point.',
+    priority: 'low',
+    confidence: 0.72,
+    reasoning: 'Sleep beats one more hour of half-alert studying.',
+    duration: 0,
+    metadata: { category: 'wellbeing', tags: ['sleep', 'night'], estimatedBenefit: 0.8, requiredAction: 'optional' },
+  },
+  {
+    slug: 'deep-work-block',
+    type: 'schedule_optimization',
+    buildTitle: () => 'Carve out a 90-minute deep-work block tomorrow',
+    description: 'Pick one slot on your calendar for the task you keep postponing. Protect it like a meeting.',
+    priority: 'medium',
+    confidence: 0.7,
+    reasoning: 'One protected block usually beats scattered half-hours.',
+    duration: 90,
+    metadata: { category: 'productivity', tags: ['deep-work'], estimatedBenefit: 0.85, requiredAction: 'optional' },
+  },
+  {
+    slug: 'subject-sweep',
+    type: 'subject_focus',
+    buildTitle: () => 'Do a 15-minute sweep of your weakest subject',
+    description: 'Regular, tiny touches beat rare marathons. Fifteen minutes keeps the subject active in your head.',
+    priority: 'medium',
+    confidence: 0.73,
+    reasoning: 'Small regular touches beat rare all-nighters for that subject.',
+    duration: 15,
+    metadata: { category: 'academic', tags: ['weak-subject', 'habit'], estimatedBenefit: 0.72, requiredAction: 'scheduled' },
+  },
+  {
+    slug: 'break-hydrate',
+    type: 'break_reminder',
+    buildTitle: () => 'Get water and take 5 before the next task',
+    description: 'Hydration and a brief pause between tasks reduce context-switching fatigue.',
+    priority: 'low',
+    confidence: 0.68,
+    reasoning: 'A pause between tasks keeps your brain from melting.',
+    duration: 5,
+    metadata: { category: 'wellbeing', tags: ['hydration', 'reset'], estimatedBenefit: 0.6, requiredAction: 'immediate' },
+  },
+  {
+    slug: 'inbox-zero-mini',
+    type: 'task_suggestion',
+    buildTitle: () => 'Clear only the 3 oldest unread emails',
+    description: 'Cap it at three. You get momentum without falling into an inbox rabbit hole.',
+    priority: 'low',
+    confidence: 0.66,
+    reasoning: 'A tiny cap keeps you from vanishing into email.',
+    duration: 10,
+    metadata: { category: 'productivity', tags: ['inbox', 'quick-win'], estimatedBenefit: 0.55, requiredAction: 'optional' },
+  },
+  {
+    slug: 'note-consolidate',
+    type: 'task_suggestion',
+    buildTitle: () => 'Consolidate this week\'s notes into one doc',
+    description: 'Turn loose notes into a single searchable outline. Future-you will thank present-you before exams.',
+    priority: 'medium',
+    confidence: 0.71,
+    reasoning: 'Rewriting notes shows what you actually remember.',
+    duration: 30,
+    metadata: { category: 'academic', tags: ['notes', 'consolidate'], estimatedBenefit: 0.78, requiredAction: 'scheduled' },
+  },
+];
+
+function pickTimeOfDay(hour: number): 'morning' | 'midday' | 'afternoon' | 'evening' | 'night' {
+  if (hour < 5) return 'night';
+  if (hour < 12) return 'morning';
+  if (hour < 14) return 'midday';
+  if (hour < 17) return 'afternoon';
+  if (hour < 22) return 'evening';
+  return 'night';
 }
 
-export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list' }) => {
+function shuffleWithSeed<T>(arr: readonly T[], seed: number): T[] {
+  const copy = arr.slice();
+  let s = seed;
+  for (let i = copy.length - 1; i > 0; i--) {
+    s = (s * 9301 + 49297) % 233280;
+    const rnd = s / 233280;
+    const j = Math.floor(rnd * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+/**
+ * Produce 2-3 varied fallback suggestions. Seeded so the same load is stable,
+ * but each reload gets a different seed and therefore a different mix.
+ */
+function getFallbackSuggestions(userName?: string, seed?: number): AISuggestion[] {
+  const firstName = userName?.split(' ')[0];
+  const now = new Date();
+  const hour = now.getHours();
+  const todayBucket = pickTimeOfDay(hour);
+  const mixSeed = seed ?? now.getTime();
+
+  const timed = FALLBACK_POOL.filter((t) => t.timeOfDay === todayBucket);
+  const agnostic = FALLBACK_POOL.filter((t) => !t.timeOfDay);
+
+  const timedPick = shuffleWithSeed(timed, mixSeed).slice(0, Math.min(1, timed.length));
+  const agnosticPick = shuffleWithSeed(agnostic, mixSeed + 7).slice(0, 2);
+
+  const combined = [...timedPick, ...agnosticPick].slice(0, 3);
+
+  return combined.map((template, index) => {
+    const { slug, buildTitle, timeOfDay: _tod, ...rest } = template;
+    return {
+      ...rest,
+      id: `${slug}-${mixSeed}-${index}`,
+      title: buildTitle(firstName),
+      createdAt: new Date(now.getTime() - index * 120_000).toISOString(),
+      acceptanceStatus: 'pending',
+    } as AISuggestion;
+  });
+}
+
+// Maps the internal AI SuggestionType to the database-allowed values for
+// ai_suggestion_feedback.suggestion_type (see CHECK constraint).
+const ALLOWED_FEEDBACK_TYPES = new Set([
+  'task_enhancement',
+  'time_optimization',
+  'priority_adjustment',
+  'subject_focus',
+  'schedule',
+  'difficulty',
+  'break',
+] as const);
+
+type AllowedFeedbackType =
+  | 'task_enhancement'
+  | 'time_optimization'
+  | 'priority_adjustment'
+  | 'subject_focus'
+  | 'schedule'
+  | 'difficulty'
+  | 'break';
+
+function mapSuggestionTypeForFeedback(
+  type: AISuggestion['type'],
+): AllowedFeedbackType {
+  if (ALLOWED_FEEDBACK_TYPES.has(type as AllowedFeedbackType)) {
+    return type as AllowedFeedbackType;
+  }
+  switch (type) {
+    case 'task_suggestion':
+    case 'task_optimization':
+    case 'new_task_recommendation':
+    case 'task':
+    case 'resource_recommendation':
+    case 'study_habit_tip':
+    case 'goal_setting_prompt':
+    case 'positive_reinforcement':
+    case 'mascot_interaction':
+    case 'premium_analytics':
+      return 'task_enhancement';
+    case 'study_time':
+    case 'schedule_optimization':
+      return 'schedule';
+    case 'break_reminder':
+      return 'break';
+    case 'difficulty_adjustment':
+      return 'difficulty';
+    default:
+      return 'task_enhancement';
+  }
+}
+
+export const TaskEventHub: React.FC = () => {
   const { user } = useUser();
-  const [currentView, setCurrentView] = useState<ViewType>(initialView);
+  const { toast } = useToast();
+  const reducedMotion = useReducedMotion();
+
+  /** Re-check hourly so the Today tab icon matches time of day (same buckets as TodayView greeting). */
+  const [todayHourSnapshot, setTodayHourSnapshot] = useState(() => new Date().getHours());
+  useEffect(() => {
+    const sync = () => setTodayHourSnapshot(new Date().getHours());
+    const id = window.setInterval(sync, 60_000);
+    const onVis = () => {
+      if (document.visibilityState === 'visible') sync();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, []);
+
+  const todayTabIcon = useMemo(() => {
+    const h = todayHourSnapshot;
+    if (h < 5) return Moon;
+    if (h < 12) return Sunrise;
+    if (h < 17) return Sun;
+    if (h < 22) return Sunset;
+    return Moon;
+  }, [todayHourSnapshot]);
+
+  const [currentView, setCurrentView] = useState<ViewType>('today');
   const [isTaskFormOpen, setTaskFormOpen] = useState(false);
   const [isTimetableFormOpen, setTimetableFormOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [selectedTimetableEntry, setSelectedTimetableEntry] = useState<any>(null);
-  
-  // AI Suggestions state
-  const [showAISuggestions, setShowAISuggestions] = useState(false);
-  const [aiSuggestions, setAISuggestions] = useState<AISuggestion[]>(() => 
-    getTaskCreationSuggestions(user?.fullName || user?.firstName || undefined)
-  );
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [selectedTimetableEntry, setSelectedTimetableEntry] = useState<unknown>(null);
 
-  // Task hooks use Clerk Supabase JWT templates by default (see useTaskQueries / clerkSupabaseToken)
-  const { data: tasks = [], isLoading: isLoadingTasks, error: tasksError, refetch: refetchTasks } = useFetchTasks();
+  const {
+    data: tasks = [],
+    isLoading: isLoadingTasks,
+    error: tasksError,
+    refetch: refetchTasks,
+  } = useFetchTasks();
   const deleteTaskMutation = useDeleteTask();
   const createTaskMutation = useCreateTask();
   const toggleTaskCompletionMutation = useToggleTaskCompletion();
-  const { toast } = useToast();
-  
-  // Tier-aware AI integration with backwards compatibility
+  const feedbackMutation = useSaveAISuggestionFeedback();
+
+  useRealtimeTasks();
+
   const tieredAI = useTieredAI ? useTieredAI() : null;
-  const { 
-    userTier = 'free', 
-    usage = { requestsUsed: 0, requestsRemaining: 10, dailyLimit: 10, featureAvailable: true }, 
-    isLoading: isTierLoading = false, 
-    generateSuggestions = null, 
+  const {
+    userTier = 'free',
+    usage = {
+      requestsUsed: 0,
+      requestsRemaining: 10,
+      dailyLimit: 10,
+      featureAvailable: true,
+    },
+    generateSuggestions = null,
     isFeatureAvailable = () => true,
-    tierLimits = {
-      free: { suggestions: 3, dailyRequests: 10 },
-      premium: { suggestions: 8, dailyRequests: 100 },
-      enterprise: { suggestions: 15, dailyRequests: -1 }
-    }
+    isAuthLoaded = false,
+    isSignedIn = false,
   } = tieredAI || {};
 
-  // Update AI suggestions when user data changes
+  // Keep a stable ref to the latest tasks so refreshTierSuggestions does not
+  // re-identify on every task invalidation (which was causing an effect loop
+  // and unbounded AI usage increments).
+  const tasksRef = useRef<Task[]>(tasks);
   useEffect(() => {
-    if (user) {
-      const userName = user.fullName || user.firstName || 'User';
-      setAISuggestions(getTaskCreationSuggestions(userName));
-    }
-  }, [user]);
+    tasksRef.current = tasks;
+  }, [tasks]);
 
-  const viewOptions: ViewOption[] = useMemo(() => [
-    { id: 'list', label: 'List View', icon: LayoutList, description: 'View tasks in a sequential, organized list.' },
-    { id: 'calendar', label: 'Calendar', icon: Calendar, description: 'View and manage tasks in a calendar format.' },
-    { id: 'timetable', label: 'Timetable', icon: Grid3X3, description: 'View and manage your class schedule.' },
-    { id: 'smart-schedule', label: 'Smart Schedule', icon: BrainCircuit, description: 'AI-powered intelligent task scheduling.' },
-  ], []);
+  // Suggestions start empty and stay empty until the user explicitly taps
+  // the "New suggestion" button. This avoids consuming tier-aware AI quota
+  // on mount and keeps the Today view quiet unless the user opts in.
+  const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
-  // Tier-aware AI suggestions generation
-  const generateTierAwareSuggestions = useCallback(async () => {
-    if (!isFeatureAvailable('basic_suggestions') || !generateSuggestions) {
-      return;
-    }
-
+  const refreshTierSuggestions = useCallback(async () => {
+    if (!isAuthLoaded || !isSignedIn) return;
+    if (!isFeatureAvailable('basic_suggestions') || !generateSuggestions) return;
+    const currentTasks = tasksRef.current;
     setIsLoadingSuggestions(true);
     try {
-      const response = await generateSuggestions('basic_suggestions', tasks, {
+      const response = await generateSuggestions('basic_suggestions', currentTasks, {
         currentTime: new Date(),
-        upcomingTasks: tasks,
-        recentActivity: tasks.slice(-5),
+        upcomingTasks: currentTasks,
+        recentActivity: currentTasks.slice(-5),
         userPreferences: {
           enableSuggestions: true,
           suggestionFrequency: 'moderate',
@@ -239,178 +428,227 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
           reminderAdvanceTime: 15,
           adaptiveDifficulty: true,
           focusOnWeakSubjects: true,
-          balanceSubjects: true
+          balanceSubjects: true,
         },
-        metadata: { currentView }
+        metadata: {},
       });
-      
-      if (response.success && response.data && Array.isArray(response.data)) {
-        setAISuggestions(response.data);
-      } else {
-        // Fallback to static suggestions
-        setAISuggestions(getTaskCreationSuggestions());
+      // The server returns `data` as either an array of suggestions or an
+      // object shaped like `{ suggestions: AISuggestion[], context, ... }`
+      // (see `generateBasicSuggestions` → `generatePostgresBackedSuggestions`).
+      // Accept both shapes so suggestions actually render.
+      const rawData: unknown = response?.data;
+      const extracted: AISuggestion[] | null = Array.isArray(rawData)
+        ? (rawData as AISuggestion[])
+        : rawData && typeof rawData === 'object' && Array.isArray((rawData as { suggestions?: unknown }).suggestions)
+          ? ((rawData as { suggestions: AISuggestion[] }).suggestions)
+          : null;
+      // Normalize server-generated suggestions so they pass the
+      // `acceptanceStatus === 'pending'` filter used by `pendingSuggestions`.
+      // `generatePostgresBackedSuggestions` → `mapStudySuggestionToApi` doesn't
+      // populate `acceptanceStatus` or `createdAt`, which silently filters
+      // every suggestion out of the rendered list.
+      const nowIso = new Date().toISOString();
+      const normalized: AISuggestion[] = (extracted ?? []).map((s, idx) => ({
+        ...s,
+        id: s.id ?? `ai-suggestion-${Date.now()}-${idx}`,
+        acceptanceStatus: s.acceptanceStatus ?? 'pending',
+        createdAt: s.createdAt ?? nowIso,
+      }));
+      if (response?.success && normalized.length > 0) {
+        setSuggestions(normalized);
       }
     } catch (error) {
-      console.error('Error generating AI suggestions:', error);
-      // Fallback to static suggestions for free users
-      setAISuggestions(getTaskCreationSuggestions());
+      console.warn('[tasks:suggestions] refresh failed', error);
     } finally {
       setIsLoadingSuggestions(false);
     }
-  }, [isFeatureAvailable, generateSuggestions, tasks, currentView]);
+  }, [isAuthLoaded, isSignedIn, isFeatureAvailable, generateSuggestions]);
 
-  const handleViewChange = (view: ViewType) => {
-    setCurrentView(view);
-  };
-
-  const openTaskForm = (task: any = null) => {
+  const openTaskForm = useCallback((task: Task | null = null) => {
     setSelectedTask(task);
     setTaskFormOpen(true);
-  };
+  }, []);
 
-  const closeTaskForm = () => {
+  const closeTaskForm = useCallback(() => {
     setTaskFormOpen(false);
     setSelectedTask(null);
-  };
+  }, []);
 
-  const openTimetableForm = (entry: any = null) => {
+  const openTimetableForm = useCallback((entry: unknown = null) => {
     setSelectedTimetableEntry(entry);
     setTimetableFormOpen(true);
-  };
+  }, []);
 
-  const closeTimetableForm = () => {
+  const closeTimetableForm = useCallback(() => {
     setTimetableFormOpen(false);
     setSelectedTimetableEntry(null);
-  };
+  }, []);
 
-  const handleTaskFormSuccess = () => {
+  const handleTaskFormSuccess = useCallback(() => {
     closeTaskForm();
-    toast({ 
-      title: selectedTask?.id ? 'Task updated successfully' : 'Task added successfully' 
+    toast({
+      title: selectedTask?.id ? 'Task updated' : 'Task added',
     });
-  };
+  }, [closeTaskForm, selectedTask?.id, toast]);
 
-  const handleTimetableFormSubmit = () => {
-    // TimetableEntryForm handles its own submission
+  const handleTimetableFormSubmit = useCallback(() => {
     closeTimetableForm();
-    toast({ title: selectedTimetableEntry ? 'Class updated successfully' : 'Class added successfully' });
-  };
+    toast({
+      title: (selectedTimetableEntry as { id?: string } | null)?.id
+        ? 'Class updated'
+        : 'Class added',
+    });
+  }, [closeTimetableForm, selectedTimetableEntry, toast]);
 
-  const handleDelete = async (taskId: string) => {
-    try {
-      await deleteTaskMutation.mutateAsync(taskId);
-      // The mutation already handles success toast and cache invalidation
-    } catch (error) {
-      // The mutation already handles error toast
-      console.error('Error deleting task:', error);
-    }
-  };
+  const handleDelete = useCallback(
+    async (taskId: string) => {
+      try {
+        await deleteTaskMutation.mutateAsync(taskId);
+      } catch (error) {
+        console.error('[tasks:delete]', error);
+      }
+    },
+    [deleteTaskMutation],
+  );
 
-  const handleToggleCompletion = async (taskId: string) => {
-    try {
-      await toggleTaskCompletionMutation.mutateAsync(taskId);
-    } catch (error) {
-      console.error('Error toggling task completion:', error);
-    }
-  };
+  const handleQuickCreate = useCallback(
+    async (title: string) => {
+      try {
+        await createTaskMutation.mutateAsync({
+          title,
+          priority: 'medium',
+          type: 'personal',
+          completed: false,
+          reminder_settings: {
+            enabled: false,
+            offset_minutes: 15,
+            type: 'notification',
+          },
+        });
+        toast({ title: 'Task added', description: title });
+      } catch (error) {
+        toast({
+          title: 'Could not save task',
+          description: (error as Error).message,
+          variant: 'destructive',
+        });
+      }
+    },
+    [createTaskMutation, toast],
+  );
 
-  // AI Suggestions handlers
-  const handleAcceptSuggestion = useCallback(async (suggestionId: string) => {
-    const suggestion = aiSuggestions.find(s => s.id === suggestionId);
-    if (!suggestion) return;
+  const handleToggleCompletion = useCallback(
+    async (taskId: string) => {
+      try {
+        await toggleTaskCompletionMutation.mutateAsync(taskId);
+      } catch (error) {
+        console.error('[tasks:toggle-complete]', error);
+      }
+    },
+    [toggleTaskCompletionMutation],
+  );
 
-    try {
-      // Create a task based on the AI suggestion
-      const taskData = {
-        title: suggestion.title,
-        description: suggestion.description,
-        priority: suggestion.priority || 'medium',
-        type: 'academic' as const,
-        subject: suggestion.subject,
-        due_date: suggestion.suggestedTime ? new Date(suggestion.suggestedTime).toISOString() : undefined,
-        completed: false, // Add missing completed field
-        reminder_settings: {
-          enabled: true,
-          offset_minutes: 15,
-          type: 'notification' as const,
-        },
-      };
+  const handleAcceptSuggestion = useCallback(
+    async (suggestion: AISuggestion) => {
+      try {
+        await createTaskMutation.mutateAsync({
+          title: suggestion.title,
+          description: suggestion.description,
+          priority: suggestion.priority || 'medium',
+          type: 'academic',
+          subject: suggestion.subject,
+          due_date: suggestion.suggestedTime
+            ? new Date(suggestion.suggestedTime).toISOString()
+            : undefined,
+          completed: false,
+          reminder_settings: {
+            enabled: true,
+            offset_minutes: 15,
+            type: 'notification',
+          },
+        });
 
-      await createTaskMutation.mutateAsync(taskData);
-      
-      // Update suggestion status
-      setAISuggestions(prev => 
-        prev.map(s => 
-          s.id === suggestionId 
-            ? { ...s, acceptanceStatus: 'accepted' as const, respondedAt: new Date().toISOString() }
-            : s
-        )
+        setSuggestions((prev) =>
+          prev.map((s) =>
+            s.id === suggestion.id
+              ? {
+                  ...s,
+                  acceptanceStatus: 'accepted',
+                  respondedAt: new Date().toISOString(),
+                }
+              : s,
+          ),
+        );
+
+        const mappedType = mapSuggestionTypeForFeedback(suggestion.type);
+        feedbackMutation.mutate({
+          suggestion_id: suggestion.id,
+          suggestion_type: mappedType,
+          suggestion_title: suggestion.title,
+          feedback: 'liked',
+          suggestion_context: {
+            source: 'today-nudge',
+            confidence: suggestion.confidence,
+          },
+        });
+
+        toast({
+          title: 'Added to your tasks',
+          description: `"${suggestion.title}" is now in your Today view.`,
+        });
+      } catch (error) {
+        toast({
+          title: 'Could not add task',
+          description: (error as Error).message,
+          variant: 'destructive',
+        });
+      }
+    },
+    [createTaskMutation, feedbackMutation, toast],
+  );
+
+  const handleDismissSuggestion = useCallback(
+    (suggestion: AISuggestion) => {
+      setSuggestions((prev) =>
+        prev.map((s) =>
+          s.id === suggestion.id
+            ? {
+                ...s,
+                acceptanceStatus: 'rejected',
+                respondedAt: new Date().toISOString(),
+              }
+            : s,
+        ),
       );
 
-      toast({ 
-        title: 'Task created from AI suggestion', 
-        description: `"${suggestion.title}" has been added to your tasks.` 
+      const mappedType = mapSuggestionTypeForFeedback(suggestion.type);
+      feedbackMutation.mutate({
+        suggestion_id: suggestion.id,
+        suggestion_type: mappedType,
+        suggestion_title: suggestion.title,
+        feedback: 'disliked',
+        suggestion_context: { source: 'today-nudge' },
       });
-    } catch (error) {
-      toast({ 
-        title: 'Failed to create task from suggestion', 
-        description: (error as Error).message, 
-        variant: 'destructive' 
-      });
-    }
-  }, [aiSuggestions, createTaskMutation, toast]);
-
-  const handleRejectSuggestion = useCallback((suggestionId: string) => {
-    setAISuggestions(prev => 
-      prev.map(s => 
-        s.id === suggestionId 
-          ? { ...s, acceptanceStatus: 'rejected' as const, respondedAt: new Date().toISOString() }
-          : s
-      )
-    );
-    toast({ title: 'Suggestion dismissed' });
-  }, [toast]);
-
-  const handleRefreshSuggestions = useCallback(() => {
-    setIsLoadingSuggestions(true);
-    setTimeout(() => {
-      setAISuggestions(getTaskCreationSuggestions());
-      setIsLoadingSuggestions(false);
-      toast({ title: 'AI suggestions refreshed' });
-    }, 1000);
-  }, [toast]);
-
-  const toggleAISuggestions = useCallback(() => {
-    setShowAISuggestions(prev => {
-      const newState = !prev;
-      if (newState && isFeatureAvailable('basic_suggestions')) {
-        // Generate fresh suggestions when opening
-        generateTierAwareSuggestions();
-      }
-      return newState;
-    });
-  }, [isFeatureAvailable, generateTierAwareSuggestions]);
+    },
+    [feedbackMutation],
+  );
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.key === 'n') {
         event.preventDefault();
-        if (currentView === 'timetable') {
-          openTimetableForm();
-        } else {
-          openTaskForm();
-        }
+        if (currentView === 'timetable') openTimetableForm();
+        else openTaskForm();
       }
       if (event.metaKey && event.key === 'k') {
         event.preventDefault();
-        const currentIndex = viewOptions.findIndex(v => v.id === currentView);
+        const currentIndex = viewOptions.findIndex((v) => v.id === currentView);
         const nextIndex = (currentIndex + 1) % viewOptions.length;
         setCurrentView(viewOptions[nextIndex].id);
       }
-      // View switching shortcuts
       if (event.ctrlKey && event.key === '1') {
         event.preventDefault();
-        setCurrentView('list');
+        setCurrentView('today');
       }
       if (event.ctrlKey && event.key === '2') {
         event.preventDefault();
@@ -419,15 +657,6 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
       if (event.ctrlKey && event.key === '3') {
         event.preventDefault();
         setCurrentView('timetable');
-      }
-      if (event.ctrlKey && event.key === '4') {
-        event.preventDefault();
-        setCurrentView('smart-schedule');
-      }
-      // AI Suggestions shortcut
-      if (event.ctrlKey && event.key === 'i') {
-        event.preventDefault();
-        toggleAISuggestions();
       }
     };
 
@@ -441,305 +670,233 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('switchToTimetable', handleSwitchToTimetable);
     };
-  }, [currentView, viewOptions, toggleAISuggestions]);
+  }, [currentView, openTaskForm, openTimetableForm]);
+
+  const handleManualRefreshSuggestions = useCallback(async () => {
+    if (!isAuthLoaded || !isSignedIn) {
+      setSuggestions(
+        getFallbackSuggestions(
+          user?.fullName || user?.firstName || undefined,
+          Date.now(),
+        ),
+      );
+      return;
+    }
+    if (isFeatureAvailable('basic_suggestions') && usage.requestsRemaining > 0) {
+      await refreshTierSuggestions();
+    } else {
+      // Out of AI quota or feature unavailable: rotate the local pool instead.
+      setSuggestions(
+        getFallbackSuggestions(
+          user?.fullName || user?.firstName || undefined,
+          Date.now(),
+        ),
+      );
+      if (!isFeatureAvailable('basic_suggestions')) {
+        toast({
+          title: 'AI suggestions unavailable on your tier',
+          description: 'Showing a fresh handpicked tip instead.',
+        });
+      } else {
+        toast({
+          title: 'Daily AI limit reached',
+          description: "Here's another offline tip. Your AI allowance resets tomorrow.",
+        });
+      }
+    }
+  }, [
+    isAuthLoaded,
+    isSignedIn,
+    isFeatureAvailable,
+    usage.requestsRemaining,
+    refreshTierSuggestions,
+    toast,
+    user?.fullName,
+    user?.firstName,
+  ]);
+
+  const pendingSuggestions = useMemo(
+    () => suggestions.filter((s) => s.acceptanceStatus === 'pending'),
+    [suggestions],
+  );
+
+  const tierBadge = useMemo(
+    () => ({
+      tier: userTier,
+      remaining: usage.requestsRemaining,
+    }),
+    [userTier, usage.requestsRemaining],
+  );
 
   const renderAddButton = () => {
     if (currentView === 'timetable') {
       return (
         <Button
           onClick={() => openTimetableForm()}
-          className="whitespace-nowrap h-8 text-xs sm:text-sm flex-shrink-0 px-1 xs:px-2 sm:px-3 md:px-4 min-w-[28px] xs:min-w-[32px] sm:min-w-auto"
+          size="sm"
+          className="h-10 shrink-0 active:scale-[0.97] transition-transform sm:h-9"
           aria-label="Add new class (Ctrl+N)"
         >
-          <GraduationCap className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-          <span className="hidden xs:inline ml-1 sm:ml-2">Add Class</span>
+          <GraduationCap className="h-4 w-4" strokeWidth={1.75} />
+          <span className="hidden xs:inline ml-1.5">Add class</span>
         </Button>
       );
     }
-
     return (
       <Button
         onClick={() => openTaskForm()}
-        className="whitespace-nowrap h-8 text-xs sm:text-sm flex-shrink-0 px-1 xs:px-2 sm:px-3 md:px-4 min-w-[28px] xs:min-w-[32px] sm:min-w-auto"
+        size="sm"
+        className="h-10 shrink-0 active:scale-[0.97] transition-transform sm:h-9"
         aria-label="Create new task (Ctrl+N)"
       >
-        <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-        <span className="hidden xs:inline ml-1 sm:ml-2">Add Task</span>
+        <Plus className="h-4 w-4" strokeWidth={1.75} />
+        <span className="hidden xs:inline ml-1.5">Add task</span>
       </Button>
     );
   };
 
   return (
-    <div className="flex flex-col h-full p-4 md:p-6">
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div className="flex-1">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">
-            Manage your tasks
-          </h2>
-          <p className="text-muted-foreground mt-1">
-            Your all-in-one productivity hub.
-          </p>
+    <div
+      className={cn(
+        'task-hub-texture flex h-full min-h-0 flex-col rounded-2xl md:rounded-none',
+        'px-3 pb-safe-bottom pt-3 sm:px-4 md:p-6',
+      )}
+    >
+      <header className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-center sm:gap-3">
+        <div
+          role="tablist"
+          aria-label="Task hub views"
+          className="flex w-full min-w-0 items-stretch gap-0.5 rounded-xl bg-muted/90 p-1 shadow-sm ring-1 ring-border/40 backdrop-blur-sm sm:inline-flex sm:w-auto"
+        >
+          {viewOptions.map((option) => {
+            const TabIcon = option.id === 'today' ? todayTabIcon : option.icon;
+            return (
+            <button
+              key={option.id}
+              role="tab"
+              aria-selected={currentView === option.id}
+              type="button"
+              onClick={() => setCurrentView(option.id)}
+              className={viewTabVariants({
+                state: currentView === option.id ? 'active' : 'inactive',
+              })}
+            >
+              <TabIcon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+              <span className="hidden sm:inline">{option.label}</span>
+              <span className="sm:hidden">{option.shortLabel}</span>
+            </button>
+            );
+          })}
         </div>
-        <div className="flex w-full md:w-auto items-center gap-1 xs:gap-1.5 sm:gap-2 md:gap-4">
-          {renderAddButton()}
 
-          {/* AI Suggestions Toggle - Tier Aware - becomes more compact on small screens */}
-          <Button
-            variant={showAISuggestions ? "default" : "outline"}
-            size="default"
-            onClick={toggleAISuggestions}
-            className={cn(
-              "whitespace-nowrap transition-all duration-200 relative h-8 text-xs sm:text-sm flex-shrink-0",
-              // Responsive padding that gets smaller for screens < 440px
-              "px-1 xs:px-1.5 sm:px-3 md:px-4 min-w-[28px] xs:min-w-[32px] sm:min-w-auto",
-              showAISuggestions && "bg-primary hover:bg-primary/90 text-primary-foreground",
-              userTier === 'premium' && "border-amber-300"
-            )}
-            aria-label={`Toggle AI Suggestions - ${userTier} tier (${usage.requestsRemaining} remaining)`}
-          >
-            <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-            {userTier !== 'free' && (
-              <Crown className="h-2.5 w-2.5 sm:h-3 sm:w-3 ml-0.5 sm:ml-1 flex-shrink-0" />
-            )}
-            <span className="hidden sm:inline ml-1 sm:ml-2 text-xs sm:text-sm">
-              {showAISuggestions ? 'Hide AI' : 'AI Suggestions'}
-            </span>
-            {/* Usage indicator */}
-            <div className="absolute -top-1 -right-1 bg-muted text-muted-foreground text-xs px-1 rounded-full min-w-[1.25rem] h-5 flex items-center justify-center">
-              {usage.requestsRemaining}
-            </div>
-          </Button>
-
-          {/* Desktop view switcher */}
-          <div className="hidden md:flex items-center gap-1 rounded-md bg-muted p-1 group">
-            {viewOptions.map((option) => (
-              <button
-                key={option.id}
-                onClick={() => handleViewChange(option.id)}
-                className={cn(
-                  viewTabVariants({
-                    state: currentView === option.id ? "active" : "inactive",
-                  }),
-                  // More reasonable sizing - slightly larger but not overly scaled
-                  "px-3 py-2.5 md:px-4 md:py-3 lg:px-5 lg:py-3.5 xl:px-6 xl:py-4"
-                )}
-              >
-                <option.icon className="h-4 w-4 md:h-5 md:w-5 lg:h-5 lg:w-5" />
-                <span className="hidden lg:inline text-sm md:text-base lg:text-base ml-1.5 md:ml-2">{option.label}</span>
-              </button>
-            ))}
-            <span className="text-sm text-muted-foreground pl-2 pr-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-card px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-                <span className="text-xs">⌘</span>K
-              </kbd>
-              <span className="mx-1 text-xs">•</span>
-              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-card px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-                <span className="text-xs">⌃</span>I
-              </kbd>
-              <span className="text-xs ml-1">AI</span>
-            </span>
-          </div>
-
-          {/* Mobile view switcher - optimized for better balance */}
-          <div className="flex md:hidden items-center gap-1 rounded-md bg-muted p-1 flex-shrink-0 overflow-x-auto max-w-full">
-            {viewOptions.map((option) => (
-              <button
-                key={option.id}
-                onClick={() => handleViewChange(option.id)}
-                className={cn(
-                  viewTabVariants({
-                    state: currentView === option.id ? "active" : "inactive",
-                  }),
-                  // More balanced sizing for mobile screens
-                  "px-2 py-2 xs:px-3 xs:py-2.5 sm:px-4 sm:py-3 min-w-[40px] xs:min-w-[44px] sm:min-w-[48px] flex items-center justify-center flex-shrink-0"
-                )}
-                title={option.label}
-              >
-                <option.icon className="h-4 w-4 xs:h-4 xs:w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                {/* Only show text on larger mobile screens and use abbreviated text for smart schedule */}
-                <span className="hidden xs:inline ml-1.5 text-xs xs:text-xs sm:text-sm truncate">
-                  {option.id === 'smart-schedule' ? 'Smart' : 
-                   option.id === 'timetable' ? 'Time' : 
-                   option.id === 'calendar' ? 'Cal' : 
-                   option.label}
+        <div className="flex flex-wrap items-center justify-end gap-2 sm:ml-auto">
+          {currentView === 'today' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleManualRefreshSuggestions}
+              disabled={isLoadingSuggestions}
+              className="h-10 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground sm:h-8"
+              aria-label={
+                isFeatureAvailable('basic_suggestions')
+                  ? `Get a fresh AI suggestion (${usage.requestsRemaining} of ${usage.dailyLimit} left today)`
+                  : 'Get a fresh suggestion'
+              }
+              title={
+                isFeatureAvailable('basic_suggestions')
+                  ? `${usage.requestsRemaining} AI suggestions left today`
+                  : 'Handpicked suggestions'
+              }
+            >
+              {isLoadingSuggestions ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5" strokeWidth={1.75} />
+              )}
+              <span className="hidden min-[400px]:inline sm:inline">
+                {isLoadingSuggestions ? 'Thinking…' : 'New suggestion'}
+              </span>
+              {isFeatureAvailable('basic_suggestions') && (
+                <span className="ml-1 rounded bg-muted px-1 tabular-nums">
+                  {usage.requestsRemaining}
                 </span>
-              </button>
-            ))}
-          </div>
+              )}
+            </Button>
+          )}
+          <NotificationCenter />
+          {renderAddButton()}
         </div>
       </header>
 
-      <div className="flex flex-grow gap-6 overflow-hidden">
-        {/* Main Content Area */}
-        <AnimatePresence mode="wait">
+      <div className="min-h-0 flex-1 overflow-auto [-webkit-overflow-scrolling:touch]">
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={currentView}
-            initial={{ opacity: 0, y: 20 }}
+            initial={reducedMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
-            className={cn(
-              "flex-grow overflow-auto transition-all duration-300",
-              showAISuggestions ? "lg:mr-0" : "mr-0"
-            )}
+            exit={reducedMotion ? undefined : { opacity: 0, y: -8 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            className="h-full"
           >
-            {currentView === 'list' && (
-              <>
-                {isLoadingTasks ? (
-                  <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4" />
-                    <p className="text-lg font-medium">Loading tasks...</p>
-                    <p className="text-sm">Please wait while we fetch your tasks</p>
-                  </div>
-                ) : tasksError ? (
-                  <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-                    <p className="text-lg font-medium text-red-600">Error loading tasks</p>
-                    <p className="text-sm mb-4">{tasksError.message || 'Failed to fetch tasks'}</p>
-                    <Button onClick={() => refetchTasks()} variant="outline">
-                      Try Again
+            {currentView === 'today' && (
+              tasksError ? (
+                  <div className="flex flex-col items-center justify-center rounded-2xl border border-border/70 bg-card p-8 text-center">
+                    <p className="text-base font-semibold text-destructive">
+                      Could not load your tasks
+                    </p>
+                    <p className="mt-1 max-w-[40ch] text-sm text-muted-foreground">
+                      {tasksError.message || 'Check your connection and try again.'}
+                    </p>
+                    <Button
+                      onClick={() => refetchTasks()}
+                      variant="outline"
+                      size="sm"
+                      className="mt-4 active:scale-[0.97] transition-transform"
+                    >
+                      Try again
                     </Button>
                   </div>
                 ) : (
-                  <ListView
+                  <TodayView
                     tasks={tasks}
-                    onEdit={openTaskForm}
-                    onDelete={handleDelete}
+                    suggestions={pendingSuggestions}
+                    userFirstName={user?.firstName || undefined}
+                    tierBadge={tierBadge}
+                    isLoading={isLoadingTasks || isLoadingSuggestions}
+                    onCreateTask={() => openTaskForm()}
+                    onQuickCreate={handleQuickCreate}
+                    onEditTask={(task) => openTaskForm(task)}
+                    onDeleteTask={handleDelete}
                     onToggleCompletion={handleToggleCompletion}
+                    onAcceptSuggestion={handleAcceptSuggestion}
+                    onDismissSuggestion={handleDismissSuggestion}
+                    onGoToCalendar={() => setCurrentView('calendar')}
+                    onGoToTimetable={() => setCurrentView('timetable')}
+                    onAddTimetableClass={() => {
+                      setCurrentView('timetable');
+                      openTimetableForm();
+                    }}
                   />
-                )}
-              </>
+                )
             )}
             {currentView === 'calendar' && (
               <CalendarViewEnhanced onEditTask={openTaskForm} />
             )}
             {currentView === 'timetable' && (
-              <TimetableView 
+              <TimetableView
                 onEditEntry={openTimetableForm}
                 onAddEntry={() => openTimetableForm()}
               />
             )}
-            {currentView === 'smart-schedule' && (
-              <SmartScheduleView />
-            )}
           </motion.div>
         </AnimatePresence>
-
-        {/* AI Suggestions Sidebar */}
-        <AnimatePresence>
-          {showAISuggestions && (
-            <motion.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: "auto", opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="hidden lg:block w-80 xl:w-96 flex-shrink-0 overflow-hidden"
-            >
-              <div className="h-full bg-card border rounded-lg p-4 overflow-y-auto">
-                <div className="sticky top-0 bg-card pb-4 mb-4 border-b z-10">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-lg flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-primary" />
-                      AI Suggestions
-                      {userTier !== 'free' && (
-                        <Crown className="h-4 w-4 text-amber-500" />
-                      )}
-                    </h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={toggleAISuggestions}
-                      className="opacity-70 hover:opacity-100"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-sm text-muted-foreground">
-                      {userTier === 'free' 
-                        ? `${usage.requestsRemaining}/${tierLimits.free.dailyRequests} suggestions remaining` 
-                        : `${userTier} tier - ${usage.requestsRemaining} remaining`
-                      }
-                    </p>
-                    {userTier === 'free' && (
-                      <Button variant="link" size="sm" className="text-xs px-2 h-6">
-                        <Sparkles className="h-3 w-3 mr-1" />
-                        Upgrade
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                
-                <SuggestionList
-                  suggestions={aiSuggestions.filter(s => s.acceptanceStatus === 'pending')}
-                  onAcceptSuggestion={handleAcceptSuggestion}
-                  onRejectSuggestion={handleRejectSuggestion}
-                  onRefresh={handleRefreshSuggestions}
-                  title=""
-                  showHeader={false}
-                  showReasoning={true}
-                  isLoading={isLoadingSuggestions}
-                  layout="default"
-                  maxHeight="none"
-                  className="space-y-3"
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Mobile AI Suggestions Overlay */}
-        {showAISuggestions && (
-          <div className="lg:hidden fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-end">
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="w-full max-h-[70vh] bg-card border-t rounded-t-lg overflow-hidden"
-            >
-              <div className="p-4 border-b">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    <Brain className="h-5 w-5 text-primary" />
-                    AI Suggestions
-                  </h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={toggleAISuggestions}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="p-4 overflow-y-auto">
-                <SuggestionList
-                  suggestions={aiSuggestions.filter(s => s.acceptanceStatus === 'pending')}
-                  onAcceptSuggestion={handleAcceptSuggestion}
-                  onRejectSuggestion={handleRejectSuggestion}
-                  onRefresh={handleRefreshSuggestions}
-                  title=""
-                  showHeader={false}
-                  showReasoning={true}
-                  isLoading={isLoadingSuggestions}
-                  layout="compact"
-                  maxHeight="none"
-                />
-              </div>
-            </motion.div>
-          </div>
-        )}
       </div>
 
-      {/* Task Form Dialog */}
       {isTaskFormOpen && (
         <TaskForm
           open={isTaskFormOpen}
           onOpenChange={(open) => {
-            if (!open) {
-              closeTaskForm();
-            }
+            if (!open) closeTaskForm();
           }}
           taskId={selectedTask?.id}
           onSuccess={handleTaskFormSuccess}
@@ -747,10 +904,9 @@ export const TaskEventHub: React.FC<TaskEventHubProps> = ({ initialView = 'list'
         />
       )}
 
-      {/* Timetable Entry Form Dialog */}
       {isTimetableFormOpen && (
         <TimetableEntryForm
-          entryId={selectedTimetableEntry?.id}
+          entryId={(selectedTimetableEntry as { id?: string } | null)?.id}
           onSuccess={handleTimetableFormSubmit}
           onCancel={closeTimetableForm}
         />

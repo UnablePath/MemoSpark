@@ -16,7 +16,7 @@ interface UpgradePromptProps {
 
 export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
   title = "Upgrade to Premium",
-  description = "Unlock advanced AI features and get unlimited suggestions!",
+  description = "Unlock advanced tools and unlimited suggestions!",
   feature,
   className,
   onUpgrade,

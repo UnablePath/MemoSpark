@@ -1,52 +1,39 @@
 "use client";
 
-// import { useEffect } from 'react';
-// import { useUser } from '@/lib/user-context'; // Old context, to be removed or replaced if necessary
-import { usePathname } from 'next/navigation'; // useRouter might not be needed anymore here
 import { Toaster } from "@/components/ui/sonner";
 import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 import { UpdateAvailable } from '@/components/pwa/UpdateAvailable';
-// If we need to check Clerk's auth status for loading, import useUser from Clerk
-// import { useUser as useClerkUser } from '@clerk/nextjs'; 
 import { useEffect } from 'react';
+
+interface DevHelpers {
+  resetAIUsage: () => Promise<unknown>;
+  checkUsage: () => Promise<unknown>;
+  clearStorage: () => void;
+  upgradeToPremium: () => Promise<unknown>;
+  help: () => void;
+}
+
+declare global {
+  interface Window {
+    devHelpers?: DevHelpers;
+  }
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unknown error";
+}
 
 interface ClientBodyProps {
   children: React.ReactNode;
 }
 
-// const ALLOWED_INITIAL_PATHS = ['/', '/login', '/signup']; // This might be handled by middleware or Clerk components
-
 export default function ClientBody({ children }: ClientBodyProps) {
-  // const { profile, isProfileLoaded } = useUser(); // From old context
-  // const router = useRouter();
-  // const pathname = usePathname();
-  // const { isLoaded: isClerkLoaded } = useClerkUser(); // Example if using Clerk's loading state
-
-  /*
-  useEffect(() => {
-    // All redirection logic related to custom onboarding / profile.name is removed.
-    // Middleware now handles redirection to /clerk-onboarding based on Clerk's metadata.
-  }, [isProfileLoaded, profile, pathname, router]);
-  */
-
-  // Simplified rendering logic. 
-  // The middleware and Clerk components should manage access and loading states for routes.
-  // If a global loading spinner is desired before Clerk loads, it can be added here based on useClerkUser().isLoaded
-  /*
-  if (!isClerkLoaded && !ALLOWED_INITIAL_PATHS.includes(pathname)) { // Example condition
-     return (
-      <div className="flex items-center justify-center h-screen bg-background">
-        <p>Loading...</p>
-      </div>
-    );
-  }
-  */
 
   // Load development helpers in development mode
   useEffect(() => {
     if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
       // Development Helper Functions
-      (window as any).devHelpers = {
+      window.devHelpers = {
         /**
          * Reset AI usage limits for current user
          */
@@ -76,9 +63,9 @@ export default function ClientBody({ children }: ClientBodyProps) {
             }
             
             return data;
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.error('❌ Error resetting usage:', error);
-            return { error: error.message };
+            return { error: getErrorMessage(error) };
           }
         },
 
@@ -151,7 +138,7 @@ export default function ClientBody({ children }: ClientBodyProps) {
             }
             
             return data;
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.log('ℹ️ Upgrade endpoint not available, but development override is active');
             console.log('🎯 Premium features should work in development mode');
             return { message: 'Development override active' };

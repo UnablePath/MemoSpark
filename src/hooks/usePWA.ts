@@ -74,11 +74,10 @@ export function usePWA(): PWAState & PWAActions {
     if (mediaQuery.addEventListener) {
       mediaQuery.addEventListener('change', handleChange)
       return () => mediaQuery.removeEventListener('change', handleChange)
-    } else {
+    }
       // Fallback for older browsers
       mediaQuery.addListener(handleChange)
       return () => mediaQuery.removeListener(handleChange)
-    }
   }, [])
 
   // Monitor online/offline status
@@ -144,7 +143,7 @@ export function usePWA(): PWAState & PWAActions {
     if ('serviceWorker' in navigator) {
       try {
         const registration = await navigator.serviceWorker.getRegistration('/')
-        if (registration && registration.waiting) {
+        if (registration?.waiting) {
           console.log('[PWA] Updating service worker...')
           
           // Track if we've already handled the update to prevent infinite loops
@@ -304,10 +303,9 @@ export function usePWA(): PWAState & PWAActions {
       if (registration) {
         setIsRegistered(true)
         return
-      } else {
+      }
         // Reset flag if registration was somehow lost
         window._pwaRegistrationComplete = false
-      }
     }
 
     try {
@@ -317,7 +315,7 @@ export function usePWA(): PWAState & PWAActions {
       // Check for existing main registration first
       let registration = await navigator.serviceWorker.getRegistration('/')
       
-      if (registration && registration.active) {
+      if (registration?.active) {
         console.log('[PWA] MemoSpark Service Worker already registered and active:', registration.scope)
         setIsRegistered(true)
         window._pwaRegistrationComplete = true

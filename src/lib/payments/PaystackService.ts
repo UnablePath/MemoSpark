@@ -1,4 +1,4 @@
-import { createHash, createHmac } from 'crypto';
+import { createHash, createHmac } from 'node:crypto';
 
 interface PaystackConfig {
   publicKey: string;
@@ -369,14 +369,14 @@ export class PaystackService {
    * Convert amount to kobo (for backward compatibility)
    */
   static toKobo(amount: number): number {
-    return this.toPesewa(amount);
+    return PaystackService.toPesewa(amount);
   }
 
   /**
    * Convert amount from kobo (for backward compatibility)
    */
   static fromKobo(amount: number): number {
-    return this.fromPesewa(amount);
+    return PaystackService.fromPesewa(amount);
   }
 
   /**

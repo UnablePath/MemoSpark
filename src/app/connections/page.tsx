@@ -2,8 +2,8 @@ import { ConnectionInterface } from '@/components/social/ConnectionInterface';
 
 export default function ConnectionsPage() {
   return (
-    <div>
+    <main className="min-h-[100dvh] bg-background text-foreground">
       <ConnectionInterface />
-    </div>
+    </main>
   );
 } 

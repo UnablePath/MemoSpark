@@ -132,7 +132,7 @@ export class TutorialErrorHandler {
       }),
     };
 
-    const handler = errorHandlers[error.code];
+    const handler = errorHandlers[error.code as TutorialErrorCode];
     if (handler) {
       return handler();
     }
@@ -160,7 +160,7 @@ export class TutorialErrorHandler {
       [TUTORIAL_ERROR_CODES.STEP_VALIDATION_FAILED]: 'Checking your progress...',
     };
 
-    return messages[error.code] || 'Something went wrong, but we\'ll figure it out!';
+    return messages[error.code as TutorialErrorCode] || 'Something went wrong, but we\'ll figure it out!';
   }
 
   /**
@@ -208,24 +208,23 @@ export class TutorialErrorHandler {
    * Check if error is recoverable
    */
   private isRecoverableError(code: TutorialErrorCode): boolean {
-    const nonRecoverableErrors = [
-      TUTORIAL_ERROR_CODES.USER_CANCELLED,
-    ];
-    return !nonRecoverableErrors.includes(code);
+    return code !== TUTORIAL_ERROR_CODES.USER_CANCELLED;
   }
 
   /**
    * Check if error is retryable
    */
   private isRetryableError(code: TutorialErrorCode): boolean {
-    const retryableErrors = [
-      TUTORIAL_ERROR_CODES.NETWORK_ERROR,
-      TUTORIAL_ERROR_CODES.DATABASE_ERROR,
-      TUTORIAL_ERROR_CODES.ELEMENT_NOT_FOUND,
-      TUTORIAL_ERROR_CODES.INITIALIZATION_FAILED,
-      TUTORIAL_ERROR_CODES.STEP_VALIDATION_FAILED,
-    ];
-    return retryableErrors.includes(code);
+    switch (code) {
+      case TUTORIAL_ERROR_CODES.NETWORK_ERROR:
+      case TUTORIAL_ERROR_CODES.DATABASE_ERROR:
+      case TUTORIAL_ERROR_CODES.ELEMENT_NOT_FOUND:
+      case TUTORIAL_ERROR_CODES.INITIALIZATION_FAILED:
+      case TUTORIAL_ERROR_CODES.STEP_VALIDATION_FAILED:
+        return true;
+      default:
+        return false;
+    }
   }
 
   /**

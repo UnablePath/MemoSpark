@@ -44,7 +44,7 @@ const tierConfig = {
   premium: {
     label: 'Premium',
     icon: Star,
-    description: 'Advanced AI features'
+    description: 'Advanced insights and tools'
   },
   enterprise: {
     label: 'Enterprise',

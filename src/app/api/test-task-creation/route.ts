@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { reminderEngine } from '@/lib/reminders/ReminderEngine';
 import type { NextRequest } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/client';
+import { supabaseServerAdmin } from '@/lib/supabase/server';
 import { ReminderEngine } from '@/lib/reminders/ReminderEngine';
 
 export async function GET() {
@@ -115,13 +115,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Create Supabase client
-    const supabase = createServiceRoleClient();
+    const supabase = supabaseServerAdmin;
     if (!supabase) {
       return NextResponse.json({ error: 'Database not available' }, { status: 500 });
     }
 
     console.log(`📝 Creating task for user: ${userId}`);
-    console.log(`Task details:`, { title, description, due_date, priority, subject });
+    console.log("Task details:", { title, description, due_date, priority, subject });
 
     // Create the task
     const { data: task, error: taskError } = await supabase
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       task,
-      message: 'Task created successfully' + (due_date ? ' with smart reminders' : '')
+      message: `Task created successfully${due_date ? ' with smart reminders' : ''}`
     });
 
   } catch (error) {

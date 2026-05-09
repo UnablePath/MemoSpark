@@ -25,6 +25,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "lucide-react": [
+        "./src/components/ui/icons.tsx"
       ]
     }
   },
@@ -39,6 +42,13 @@
   ],
   "exclude": [
     "node_modules",
-    "supabase/functions/**/*"
+    "supabase/functions/**/*",
+    "__tests__",
+    "src/__tests__",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.integration.test.ts"
   ]
 }

@@ -1,13 +1,11 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { supabase } from '@/lib/supabase/client';
+import { getSupabaseWithClerkAuth } from '@/lib/supabase/server-auth';
 import { PaystackService } from '@/lib/payments/PaystackService';
 
 export async function POST(request: NextRequest) {
   try {
-    // Get authenticated user
-    const { userId } = await auth();
-    
+    const { supabase, userId } = await getSupabaseWithClerkAuth();
+
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -24,7 +22,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let requestId = 'temp-' + Date.now();
+    let requestId = `temp-${Date.now()}`;
 
     // Log the refund request to the database (optional, for audit)
     if (supabase) {

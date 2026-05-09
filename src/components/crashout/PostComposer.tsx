@@ -16,15 +16,15 @@ interface PostComposerProps {
 }
 
 const MOOD_OPTIONS = [
-  { type: 'stressed', emoji: '😤', label: 'STRESSED AF' },
-  { type: 'overwhelmed', emoji: '😵‍💫', label: 'OVERWHELMED' },
-  { type: 'frustrated', emoji: '🤬', label: 'FRUSTRATED' },
-  { type: 'anxious', emoji: '😬', label: 'ANXIOUS' },
-  { type: 'sad', emoji: '😢', label: 'SAD' },
-  { type: 'angry', emoji: '😡', label: 'ANGRY' },
-  { type: 'exhausted', emoji: '😴', label: 'EXHAUSTED' },
-  { type: 'excited', emoji: '🤩', label: 'EXCITED' },
-  { type: 'calm', emoji: '😌', label: 'CALM' }
+  { type: 'stressed', label: 'Stressed' },
+  { type: 'overwhelmed', label: 'Overwhelmed' },
+  { type: 'frustrated', label: 'Frustrated' },
+  { type: 'anxious', label: 'Anxious' },
+  { type: 'sad', label: 'Sad' },
+  { type: 'angry', label: 'Angry' },
+  { type: 'exhausted', label: 'Exhausted' },
+  { type: 'excited', label: 'Excited' },
+  { type: 'calm', label: 'Calm' }
 ];
 
 export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
@@ -50,7 +50,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
         content: content.trim(),
         title: title.trim() || undefined,
         mood_type: selectedMood || undefined,
-        mood_emoji: selectedMoodObj?.emoji || undefined,
+        mood_emoji: undefined,
         is_private: isPrivate,
         is_anonymous: isAnonymous,
         tags: tags.length > 0 ? tags : undefined
@@ -63,7 +63,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
       setTags([]);
       setTagInput('');
     } catch (error) {
-      console.error('Error posting:', error);
+      console.error('[crashout:post-compose]', error);
     } finally {
       setIsLoading(false);
     }
@@ -96,7 +96,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
             {/* Privacy Toggle */}
           <div className="flex items-center space-x-2">
             {isPrivate ? (
-              <Lock className="h-4 w-4 text-purple-400" />
+              <Lock className="h-4 w-4 text-primary" />
             ) : (
               <Unlock className="h-4 w-4 text-green-400" />
             )}
@@ -106,7 +106,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
             <Switch
               checked={isPrivate}
               onCheckedChange={setIsPrivate}
-              className="data-[state=checked]:bg-purple-600"
+              className="data-[state=checked]:bg-primary"
             />
             </div>
 
@@ -114,9 +114,9 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 flex items-center justify-center">
                 {isAnonymous ? (
-                  <span className="text-purple-400 text-xs">👤</span>
+                  <Lock className="h-3.5 w-3.5 text-primary" />
                 ) : (
-                  <span className="text-green-400 text-xs">🆔</span>
+                  <Unlock className="h-3.5 w-3.5 text-green-400" />
                 )}
               </div>
               <span className="text-sm text-gray-300">
@@ -137,7 +137,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Title (optional)"
-            className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500"
+            className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-primary"
             disabled={isLoading}
           />
 
@@ -145,8 +145,8 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
           <Textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="What's crashing on your mind today? 🔥"
-            className="min-h-[120px] bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500 resize-none"
+            placeholder="What is weighing on your mind today?"
+            className="min-h-[120px] bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-primary resize-none"
             disabled={isLoading}
           />
 
@@ -161,7 +161,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
                 className="bg-gray-700/50 border-gray-600 text-gray-300 hover:bg-gray-600"
               >
                 <Smile className="h-4 w-4 mr-1" />
-                {selectedMoodObj ? `${selectedMoodObj.emoji} ${selectedMoodObj.label}` : 'Select Mood'}
+                {selectedMoodObj ? selectedMoodObj.label : 'Select Mood'}
               </Button>
               {selectedMood && (
                 <Button
@@ -190,11 +190,10 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
                     }}
                     className={`justify-start text-xs break-words ${
                       selectedMood === mood.type 
-                        ? 'bg-purple-600 text-white' 
+                        ? 'bg-primary text-primary-foreground' 
                         : 'bg-gray-700/50 border-gray-600 text-gray-300 hover:bg-gray-600'
                     }`}
                   >
-                    <span className="mr-1 flex-shrink-0">{mood.emoji}</span>
                     <span className="truncate">{mood.label}</span>
                   </Button>
                 ))}
@@ -211,7 +210,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={addTag}
                 placeholder="Add tags (press Enter)"
-                className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500"
+                className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-primary"
                 disabled={isLoading}
               />
             </div>
@@ -222,7 +221,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
                   <Badge
                     key={tag}
                     variant="secondary"
-                    className="bg-purple-600/20 text-purple-300 border-purple-500/30"
+                    className="bg-primary/20 text-primary border-primary/40"
                   >
                     #{tag}
                     <Button
@@ -230,7 +229,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
                       variant="ghost"
                       size="sm"
                       onClick={() => removeTag(tag)}
-                      className="ml-1 h-auto p-0 text-purple-300 hover:text-white"
+                      className="ml-1 h-auto p-0 text-primary hover:text-white"
                     >
                       <X className="h-3 w-3" />
                     </Button>
@@ -264,7 +263,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
             <Button 
               type="submit" 
               disabled={!content.trim() || isLoading}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold px-8 py-2 rounded-full shadow-lg transition-all duration-200 transform hover:scale-105"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 py-2 rounded-full shadow-lg transition-all duration-200 transform hover:scale-105"
             >
               {isLoading ? (
                 <div className="flex items-center space-x-2">
@@ -272,7 +271,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({ onPost }) => {
                   <span>Posting...</span>
                 </div>
               ) : (
-                'Post Crashout 🔥'
+                'Post crashout'
               )}
             </Button>
           </div>

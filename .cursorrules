@@ -432,3 +432,7 @@ When writing code, always prioritize:
 5. **User Experience**: Create smooth, intuitive interfaces
 
 Follow these rules consistently and suggest improvements when you see opportunities to enhance code quality, performance, or developer experience.
+
+## Front-End Development Standards (Web Design Stack)
+
+Also follow [.cursor/rules/frontend-standards.mdc](.cursor/rules/frontend-standards.mdc) for utility-first CSS tokens, WCAG 2.1 AA-oriented accessibility, SEO, performance, and security. The rule file includes a short **MemoSpark stack** section so Tailwind/Next patterns stay consistent with this document.

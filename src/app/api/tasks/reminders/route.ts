@@ -39,12 +39,11 @@ export async function POST(request: NextRequest) {
         success: true, 
         message: 'Reminder(s) scheduled successfully' 
       });
-    } else {
+    }
       return NextResponse.json({ 
         success: false, 
         message: 'Failed to schedule reminder(s)' 
       }, { status: 500 });
-    }
 
   } catch (error) {
     console.error('Error scheduling task reminder:', error);
@@ -77,12 +76,11 @@ export async function DELETE(request: NextRequest) {
         success: true, 
         message: 'Reminders cancelled successfully' 
       });
-    } else {
+    }
       return NextResponse.json({ 
         success: false, 
         message: 'Failed to cancel reminders' 
       }, { status: 500 });
-    }
 
   } catch (error) {
     console.error('Error cancelling task reminders:', error);
@@ -120,12 +118,11 @@ export async function PATCH(request: NextRequest) {
         success: true, 
         message: 'Overdue reminder sent successfully' 
       });
-    } else {
+    }
       return NextResponse.json({ 
         success: false, 
         message: 'Failed to send overdue reminder' 
       }, { status: 500 });
-    }
 
   } catch (error) {
     console.error('Error sending overdue reminder:', error);

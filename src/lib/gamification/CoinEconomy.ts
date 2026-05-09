@@ -1,4 +1,5 @@
-import { supabase } from '@/lib/supabase/client';
+import { wrapClerkTokenForSupabase } from '@/lib/clerk/clerkSupabaseToken';
+import { createAuthenticatedSupabaseClient, supabase } from '@/lib/supabase/client';
 
 // Type definitions for coin system
 export interface CoinTransaction {
@@ -76,7 +77,55 @@ export interface CoinSpendingResult {
  * Handles coin earning, spending, transactions, and analytics
  */
 export class CoinEconomy {
-  
+  private static parseRequirementNumber(value: unknown): number | null {
+    if (typeof value === "number" && !Number.isNaN(value)) return value;
+    if (typeof value === "string") {
+      const n = Number.parseFloat(value);
+      return Number.isNaN(n) ? null : n;
+    }
+    return null;
+  }
+
+  /** Enforces shop `requirements` JSON (minLevel, minTotalPoints, minStreak, etc.) against `user_stats`. */
+  private async checkShopItemRequirements(
+    userId: string,
+    requirements: Record<string, unknown>,
+    getToken?: () => Promise<string | null>,
+  ): Promise<boolean> {
+    if (!getToken) return true;
+    const client = createAuthenticatedSupabaseClient(
+      wrapClerkTokenForSupabase(getToken),
+    );
+    if (!client) return false;
+    const { data: stats, error } = await client
+      .from("user_stats")
+      .select("level, total_points, current_streak, longest_streak")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) {
+      console.warn("checkShopItemRequirements:", error.message);
+      return false;
+    }
+    if (!stats) return false;
+    const minLevel = CoinEconomy.parseRequirementNumber(
+      requirements["minLevel"] ?? requirements["min_level"],
+    );
+    if (minLevel != null && (stats.level ?? 0) < minLevel) return false;
+    const minPoints = CoinEconomy.parseRequirementNumber(
+      requirements["minTotalPoints"] ??
+        requirements["min_points"] ??
+        requirements["minPoints"],
+    );
+    if (minPoints != null && (stats.total_points ?? 0) < minPoints) return false;
+    const minStreak = CoinEconomy.parseRequirementNumber(
+      requirements["minStreak"] ?? requirements["min_current_streak"],
+    );
+    if (minStreak != null && (stats.current_streak ?? 0) < minStreak) {
+      return false;
+    }
+    return true;
+  }
+
   /**
    * Get user's current coin balance
    */
@@ -282,8 +331,7 @@ export class CoinEconomy {
       const newBalance = currentBalance + amount;
 
       // Update coin_balances table (primary source of truth)
-      const { error: balanceError } = await supabase!
-        .from('coin_balances')
+      const { error: balanceError } = await supabase?.from('coin_balances')
         .upsert({
           user_id: userId,
           current_balance: newBalance,
@@ -297,8 +345,7 @@ export class CoinEconomy {
       }
 
       // Record transaction
-      const { error: transactionError } = await supabase!
-        .from('coin_transactions')
+      const { error: transactionError } = await supabase?.from('coin_transactions')
         .insert({
           user_id: userId,
           amount: amount,
@@ -499,8 +546,7 @@ export class CoinEconomy {
       const currentBalance = await this.getCoinBalance(userId);
       
       // Get transaction data
-      const { data: transactions, error } = await supabase!
-        .from('coin_transactions')
+      const { data: transactions, error } = await supabase?.from('coin_transactions')
         .select('amount, transaction_type, source')
         .eq('user_id', userId);
 
@@ -682,17 +728,27 @@ export class CoinEconomy {
         };
       }
 
-      // Check requirements (if any)
-      if (item.requirements && Object.keys(item.requirements).length > 0) {
-        // TODO: Implement requirement checking based on user stats
-        // For now, we'll skip requirement validation
+      if (item.requirements && Object.keys(item.requirements as object).length > 0) {
+        const ok = await this.checkShopItemRequirements(
+          userId,
+          item.requirements as Record<string, unknown>,
+          getToken,
+        );
+        if (!ok) {
+          return {
+            success: false,
+            amount: 0,
+            newBalance: await this.getCoinBalance(userId, getToken),
+            error: 'You have not met the requirements for this item yet',
+          };
+        }
       }
 
       // Spend coins
       return await this.spendCoins(
         userId,
         Number(item.cost),
-        `shop_purchase`,
+        "shop_purchase",
         `Purchased ${item.item_name}`,
         { 
           item_id: itemId, 
@@ -821,7 +877,7 @@ export class CoinEconomy {
   ): Promise<CoinEarningResult> {
     // Calculate daily bonus: +5 coins per day for streaks 7+
     let bonusAmount = 0;
-    let description = `Daily check-in`;
+    let description = "Daily check-in";
     
     if (streakLength >= 7) {
       bonusAmount = 5;
@@ -975,8 +1031,7 @@ export class CoinEconomy {
 
       // Get today's earnings
       const today = new Date().toISOString().split('T')[0];
-      const { data: todayTransactions } = await supabase!
-        .from('coin_transactions')
+      const { data: todayTransactions } = await supabase?.from('coin_transactions')
         .select('amount')
         .eq('user_id', userId)
         .eq('transaction_type', 'earned')
@@ -988,8 +1043,7 @@ export class CoinEconomy {
       // Get weekly earnings
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      const { data: weeklyTransactions } = await supabase!
-        .from('coin_transactions')
+      const { data: weeklyTransactions } = await supabase?.from('coin_transactions')
         .select('amount')
         .eq('user_id', userId)
         .eq('transaction_type', 'earned')
@@ -1025,7 +1079,7 @@ export class CoinEconomy {
     return await this.awardCoins(
       userId,
       'bug_compensation',
-      `🎁 Compensation for unfair streak penalty bug (sorry!)`,
+      "🎁 Compensation for unfair streak penalty bug (sorry!)",
       { 
         compensation_type: 'penalty_bug_fix',
         original_penalty_system: '50_percent_balance',

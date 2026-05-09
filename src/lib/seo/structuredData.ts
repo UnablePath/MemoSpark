@@ -5,7 +5,7 @@ export const organizationSchema = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'MemoSpark',
-  description: 'Student app for tasks, timetables, study groups, messaging, crashout posts, and AI support.',
+  description: 'Student app for tasks, timetables, study groups, messaging, crashout posts, and smart scheduling.',
   url: BASE_URL,
   logo: `${BASE_URL}/MemoSpark.svg`,
   sameAs: [
@@ -21,7 +21,7 @@ export const organizationSchema = {
   foundingDate: '2024',
   industry: 'Educational Technology',
   keywords: [
-    'AI education',
+    'student productivity',
     'study tools',
     'task management',
     'productivity',
@@ -35,7 +35,7 @@ export const webApplicationSchema = {
   '@context': 'https://schema.org',
   '@type': 'WebApplication',
   name: 'MemoSpark',
-  description: 'Student app for tasks, timetables, study groups, messaging, crashout posts, and AI support.',
+  description: 'Student app for tasks, timetables, study groups, messaging, crashout posts, and smart scheduling.',
   url: BASE_URL,
   applicationCategory: 'EducationalApplication',
   operatingSystem: 'Web Browser',
@@ -45,7 +45,7 @@ export const webApplicationSchema = {
     'Tasks and timetables',
     'Study groups and messaging',
     'Crashout forum and private journal',
-    'AI support and smart scheduling',
+    'Smart scheduling and reminders',
     'Gamification and streaks',
     'Student analytics',
   ],
@@ -62,15 +62,15 @@ export const faqSchema = {
       name: 'What is MemoSpark?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'MemoSpark is an AI-powered study companion that helps students optimize their learning through intelligent task management, smart scheduling, and personalized study insights.',
+        text: 'MemoSpark is a study companion that helps students stay on top of coursework with tasks, timetables, smart scheduling, and reminders tuned to their week.',
       },
     },
     {
       '@type': 'Question',
-      name: 'How does AI enhance the study experience?',
+      name: 'How does MemoSpark help with studying?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Our AI analyzes your study patterns, suggests optimal study times, creates personalized task recommendations, and provides insights to improve your learning efficiency.',
+        text: 'MemoSpark keeps tasks and classes in one place, suggests times that fit your patterns, and surfaces reminders so you spend less energy deciding what to do next.',
       },
     },
     {
@@ -78,7 +78,7 @@ export const faqSchema = {
       name: 'Is MemoSpark free to use?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'MemoSpark offers a free tier with core features, and premium plans with advanced AI capabilities and additional tools for enhanced productivity.',
+        text: 'MemoSpark offers a free tier with core features, and premium plans with connections, Crashout, voice input, deeper insights, and more.',
       },
     },
     {
@@ -96,17 +96,17 @@ export const faqSchema = {
 export const educationalContentSchema = {
   '@context': 'https://schema.org',
   '@type': 'Course',
-  name: 'AI-Enhanced Study Methodology',
-  description: 'Learn how to leverage AI tools for optimal study performance and academic success',
+  name: 'Structured study habits',
+  description: 'Learn practical habits for planning, focus, and follow-through with MemoSpark',
   provider: {
     '@type': 'Organization',
     name: 'MemoSpark',
     url: BASE_URL,
   },
   educationalLevel: 'All Levels',
-  about: 'Study optimization, AI tools, productivity, learning techniques',
+  about: 'Study optimization, productivity, learning techniques',
   teaches: [
-    'AI-powered study planning',
+    'Weekly planning and prioritization',
     'Efficient task management',
     'Progress tracking and analytics',
     'Collaborative learning techniques',
@@ -121,7 +121,7 @@ export const educationalContentSchema = {
     priceCurrency: 'USD',
     availability: 'https://schema.org/InStock',
     category: 'Free Course',
-    description: 'Free access to AI-enhanced study methodology through MemoSpark platform'
+    description: 'Free access to structured study methodology through MemoSpark'
   },
   hasCourseInstance: {
     '@type': 'CourseInstance',
@@ -179,7 +179,7 @@ export const createArticleSchema = (article: {
   image: `${BASE_URL}/og-image.png`,
   articleSection: 'Education Technology',
   keywords: [
-    'AI education',
+    'study skills',
     'study tips',
     'productivity',
     'learning optimization',
@@ -191,7 +191,7 @@ export const aiTrainingSchema = {
   '@context': 'https://schema.org',
   '@type': 'Dataset',
   name: 'MemoSpark Educational Content',
-  description: 'Public educational content from MemoSpark platform suitable for AI training',
+  description: 'Public educational content from MemoSpark for research and learning use',
   creator: organizationSchema,
   license: 'https://creativecommons.org/licenses/by/4.0/',
   distribution: {
@@ -203,7 +203,7 @@ export const aiTrainingSchema = {
     'education',
     'study methods',
     'productivity',
-    'AI tools',
+    'study tools',
     'learning optimization',
   ],
   temporalCoverage: '2024/..',
@@ -212,8 +212,8 @@ export const aiTrainingSchema = {
   inLanguage: 'en',
   usageInfo: {
     '@type': 'CreativeWork',
-    name: 'AI Training Usage Guidelines',
-    description: 'This content is available for responsible AI training. Please respect user privacy and follow ethical AI development practices.',
+    name: 'Content usage guidelines',
+    description: 'This content may be used for research and educational purposes. Respect user privacy and follow ethical reuse practices.',
     url: `${BASE_URL}/ai-usage-guidelines`,
   },
 };

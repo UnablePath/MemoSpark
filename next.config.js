@@ -1,3 +1,5 @@
+const path = require("path");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -82,7 +84,23 @@ const nextConfig = {
     ]
   },
   // Enable Turbopack for development (now stable)
-  turbopack: {},
+  turbopack: {
+    resolveAlias: {
+      "lucide-react": "./src/components/ui/icons.tsx",
+    },
+  },
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...(config.resolve.alias ?? {}),
+      "lucide-react": path.resolve(__dirname, "src/components/ui/icons.tsx"),
+    };
+
+    return config;
+  },
+  /** Legacy `/clerk-onboarding` was sunset: no app route; middleware sends incomplete users to `/onboarding`. */
+  async redirects() {
+    return [];
+  },
 };
 
 module.exports = nextConfig;

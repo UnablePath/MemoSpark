@@ -1,5 +1,30 @@
 {
   "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "overrides": [
+    {
+      "include": [
+        "**/__tests__/**",
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.integration.test.ts"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off",
+            "noImplicitAnyLet": "off"
+          },
+          "complexity": {
+            "noForEach": "off",
+            "useLiteralKeys": "off"
+          },
+          "style": {
+            "noNonNullAssertion": "off"
+          }
+        }
+      }
+    }
+  ],
   "vcs": {
     "enabled": false,
     "clientKind": "git",
@@ -7,7 +32,14 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "ignore": ["dist", ".next", "node_modules", "build"],
+    "ignore": [
+      "dist",
+      ".next",
+      "node_modules",
+      "build",
+      "src/types/database.old.ts",
+      "src/types/database.backup.ts"
+    ],
     "include": ["src/**/*.ts", "src/**/*.tsx"]
   },
   "formatter": {
@@ -21,13 +53,35 @@
     "enabled": true,
     "rules": {
       "recommended": true,
-      "correctness": {
-        "noUnusedVariables": "off"
-      },
       "nursery": {
         "noImgElement": "off"
       },
+      "suspicious": {
+        "noExplicitAny": "warn",
+        "noImplicitAnyLet": "warn",
+        "noArrayIndexKey": "warn",
+        "noShadowRestrictedNames": "warn"
+      },
+      "style": {
+        "noNonNullAssertion": "warn",
+        "noParameterAssign": "warn"
+      },
+      "complexity": {
+        "noForEach": "warn",
+        "noStaticOnlyClass": "warn"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "warn"
+      },
+      "correctness": {
+        "noUnusedVariables": "off",
+        "useExhaustiveDependencies": "warn",
+        "noConstantCondition": "warn",
+        "noUnsafeOptionalChaining": "warn"
+      },
       "a11y": {
+        "useSemanticElements": "warn",
+        "useFocusableInteractive": "warn",
         "noAutofocus": "off",
         "noDistractingElements": "off",
         "noHeaderScope": "off",

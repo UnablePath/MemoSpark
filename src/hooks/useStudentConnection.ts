@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import type { Student, Message, SwipeHistoryItem } from '@/types/student';
 
@@ -30,34 +30,36 @@ const isLocalStorageAvailable = () => {
 
 // Custom hook for localStorage state management with better error handling and fallbacks
 export const useLocalStorageState = <T>(key: string, defaultValue: T) => {
-  const [state, setState] = useState<T>(() => {
+  // SSR + hydration: initializer must not touch window; sync from storage after mount.
+  const [state, setState] = useState<T>(defaultValue);
+
+  useLayoutEffect(() => {
     if (!isLocalStorageAvailable()) {
-      console.warn('localStorage not available, using in-memory storage');
-      return defaultValue;
+      return;
     }
-    
     try {
       const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : defaultValue;
-    } catch (error) {
-      console.warn(`Error reading localStorage key "${key}":`, error);
-      return defaultValue;
-    }
-  });
-
-  const setValue = useCallback((value: T | ((val: T) => T)) => {
-    try {
-      const valueToStore = value instanceof Function ? value(state) : value;
-      setState(valueToStore);
-      
-      if (isLocalStorageAvailable()) {
-        localStorage.setItem(key, JSON.stringify(valueToStore));
+      if (item != null) {
+        setState(JSON.parse(item) as T);
       }
     } catch (error) {
-      console.warn(`Error setting localStorage key "${key}":`, error);
-      // Continue with in-memory storage even if localStorage fails
+      console.warn(`Error reading localStorage key "${key}":`, error);
     }
-  }, [key, state]);
+  }, [key]);
+
+  const setValue = useCallback((value: T | ((val: T) => T)) => {
+    setState((prev) => {
+      const valueToStore = value instanceof Function ? value(prev) : value;
+      if (isLocalStorageAvailable()) {
+        try {
+          localStorage.setItem(key, JSON.stringify(valueToStore));
+        } catch (error) {
+          console.warn(`Error setting localStorage key "${key}":`, error);
+        }
+      }
+      return valueToStore;
+    });
+  }, [key]);
 
   return [state, setValue] as const;
 };

@@ -348,7 +348,10 @@ export class TutorialConfigManager {
     }
 
     let steps = [...baseTemplate.steps];
-    let config = { ...baseTemplate.config };
+    let config: TutorialConfig = {
+      ...DEFAULT_TUTORIAL_CONFIG,
+      ...baseTemplate.config,
+    };
 
     // Apply variant modifications if applicable
     if (userVariant) {
@@ -369,7 +372,7 @@ export class TutorialConfigManager {
 
       // Remove steps if specified
       if (modifications.removedSteps) {
-        steps = steps.filter(step => !modifications.removedSteps!.includes(step.id));
+        steps = steps.filter(step => !modifications.removedSteps?.includes(step.id));
       }
 
       // Add additional steps if specified
@@ -442,7 +445,7 @@ export class TutorialConfigManager {
     if (preferredPace === 'fast') {
       this.assignVariantToUser(userId, 'fast_paced');
       return 'fast_paced';
-    } else if (preferredPace === 'slow') {
+    }if (preferredPace === 'slow') {
       this.assignVariantToUser(userId, 'detailed');
       return 'detailed';
     }
@@ -505,7 +508,7 @@ export class TutorialConfigManager {
       template.steps = template.steps.map(step => ({
         ...step,
         stuMessage: step.stuMessage.length > 100 
-          ? step.stuMessage.substring(0, 100) + '...'
+          ? `${step.stuMessage.substring(0, 100)}...`
           : step.stuMessage
       }));
     }

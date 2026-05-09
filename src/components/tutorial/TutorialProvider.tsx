@@ -15,6 +15,8 @@ import { TutorialManager } from '@/lib/tutorial/TutorialManager';
 import { TutorialActionDetector } from '@/lib/tutorial/TutorialActionDetector';
 import { TutorialErrorHandler } from '@/lib/tutorial/TutorialErrorHandler';
 import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
+import { useSupabaseClient } from '@/lib/supabase/client';
+import { useAuth } from '@clerk/nextjs';
 import { TutorialOverlay } from './TutorialOverlay';
 import { 
   type TutorialContextValue, 
@@ -43,8 +45,12 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
   config = {}
 }) => {
   const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
   const pathname = usePathname();
   const { triggerAchievement } = useDebouncedAchievementTrigger();
+  
+  // Register the token provider for Supabase clients
+  useSupabaseClient(getToken);
   
   // Managers - initialized once and reused
   const tutorialManager = useMemo(() => 
@@ -70,6 +76,8 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
   // Refs for cleanup
   const eventListenersRef = useRef<(() => void)[]>([]);
   const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+  const initializedRef = useRef<boolean>(false);
+  const lastActiveUserRef = useRef<string | null>(null);
   
   // Rate limiting for tutorial status checks
   const lastStatusCheckRef = useRef<number>(0);
@@ -231,12 +239,21 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
   useEffect(() => {
     if (!isLoaded) return;
     
-    cleanup(); // Clean up any existing listeners
-    setupEventListeners();
-    debouncedStatusCheck();
+    // In StrictMode, this effect runs twice. Use a ref to ensure we only
+    // perform the initial setup once per mounting cycle.
+    if (!initializedRef.current) {
+      console.log('[TutorialProvider] Initializing tutorial system for user:', user?.id);
+      cleanup();
+      setupEventListeners();
+      debouncedStatusCheck();
+      initializedRef.current = true;
+    }
     
-    return cleanup;
-  }, [isLoaded, debouncedStatusCheck, setupEventListeners, cleanup]);
+    return () => {
+      // We don't reset initializedRef.current here because we want it to persist
+      // across the StrictMode re-mount. It will be reset if the component truly unmounts.
+    };
+  }, [isLoaded, debouncedStatusCheck, setupEventListeners, cleanup, user?.id]);
 
   // Failsafe: ensure loading state never persists longer than 10 seconds
   useEffect(() => {
@@ -261,11 +278,17 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
   // Initialize action detection when tutorial becomes active
   useEffect(() => {
     if (state.isActive && user?.id) {
-      console.log('Initializing tutorial action detection for user:', user.id);
-      actionDetector.initialize(user.id);
+      if (lastActiveUserRef.current !== user.id) {
+        console.log('[TutorialProvider] Initializing action detection for user:', user.id);
+        actionDetector.initialize(user.id);
+        lastActiveUserRef.current = user.id;
+      }
     } else if (!state.isActive) {
-      console.log('Cleaning up tutorial action detection');
-      actionDetector.cleanup();
+      if (lastActiveUserRef.current) {
+        console.log('[TutorialProvider] Cleaning up action detection');
+        actionDetector.cleanup();
+        lastActiveUserRef.current = null;
+      }
     }
   }, [state.isActive, user?.id, actionDetector]);
 
