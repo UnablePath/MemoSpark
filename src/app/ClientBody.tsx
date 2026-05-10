@@ -1,11 +1,12 @@
 "use client";
 
+import { ExperimentSignupConversionBridge } from "@/components/analytics/ExperimentSignupConversionBridge";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { UpdateAvailable } from "@/components/pwa/UpdateAvailable";
 import { SiteSupportReportCorner } from "@/components/support/SiteSupportReportCorner";
 import { Toaster } from "@/components/ui/sonner";
-import { InstallPrompt } from '@/components/pwa/InstallPrompt';
-import { UpdateAvailable } from '@/components/pwa/UpdateAvailable';
 import { usePathname } from "next/navigation";
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
 interface DevHelpers {
   resetAIUsage: () => Promise<unknown>;
@@ -35,7 +36,10 @@ export default function ClientBody({ children }: ClientBodyProps) {
 
   // Load development helpers in development mode
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+    if (
+      process.env.NODE_ENV === "development" &&
+      typeof window !== "undefined"
+    ) {
       // Development Helper Functions
       window.devHelpers = {
         /**
@@ -43,32 +47,32 @@ export default function ClientBody({ children }: ClientBodyProps) {
          */
         async resetAIUsage() {
           try {
-            console.log('🔄 Resetting AI usage limits...');
-            
-            const response = await fetch('/api/dev/reset-usage', {
-              method: 'POST',
+            console.log("🔄 Resetting AI usage limits...");
+
+            const response = await fetch("/api/dev/reset-usage", {
+              method: "POST",
               headers: {
-                'Content-Type': 'application/json'
-              }
+                "Content-Type": "application/json",
+              },
             });
 
             const data = await response.json();
-            
+
             if (response.ok) {
-              console.log('✅ AI usage reset successfully!', data);
-              console.log('🚀 You can now make AI requests again');
-              
+              console.log("✅ AI usage reset successfully!", data);
+              console.log("🚀 You can now make AI requests again");
+
               // Refresh the page to update the UI
-              if (confirm('AI usage reset! Refresh page to update UI?')) {
+              if (confirm("AI usage reset! Refresh page to update UI?")) {
                 window.location.reload();
               }
             } else {
-              console.error('❌ Failed to reset usage:', data);
+              console.error("❌ Failed to reset usage:", data);
             }
-            
+
             return data;
           } catch (error: unknown) {
-            console.error('❌ Error resetting usage:', error);
+            console.error("❌ Error resetting usage:", error);
             return { error: getErrorMessage(error) };
           }
         },
@@ -77,27 +81,29 @@ export default function ClientBody({ children }: ClientBodyProps) {
          * Check current AI usage status
          */
         async checkUsage() {
-          console.log('📊 Checking AI usage status...');
-          console.log('ℹ️  Check the Network tab or server logs for usage details');
-          
+          console.log("📊 Checking AI usage status...");
+          console.log(
+            "ℹ️  Check the Network tab or server logs for usage details",
+          );
+
           try {
-            const response = await fetch('/api/ai/suggestions', {
-              method: 'POST',
+            const response = await fetch("/api/ai/suggestions", {
+              method: "POST",
               headers: {
-                'Content-Type': 'application/json'
+                "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                feature: 'basic_suggestions',
+                feature: "basic_suggestions",
                 tasks: [],
-                context: { check: true }
-              })
+                context: { check: true },
+              }),
             });
 
             const data = await response.json();
-            console.log('Current usage status:', data.usage);
+            console.log("Current usage status:", data.usage);
             return data;
           } catch (error) {
-            console.error('Error checking usage:', error);
+            console.error("Error checking usage:", error);
             return null;
           }
         },
@@ -108,7 +114,7 @@ export default function ClientBody({ children }: ClientBodyProps) {
         clearStorage() {
           localStorage.clear();
           sessionStorage.clear();
-          console.log('🧹 Local storage cleared');
+          console.log("🧹 Local storage cleared");
           window.location.reload();
         },
 
@@ -117,35 +123,43 @@ export default function ClientBody({ children }: ClientBodyProps) {
          */
         async upgradeToPremium() {
           try {
-            console.log('⬆️ Upgrading to premium tier for testing...');
-            
-            const response = await fetch('/api/dev/upgrade-tier', {
-              method: 'POST',
+            console.log("⬆️ Upgrading to premium tier for testing...");
+
+            const response = await fetch("/api/dev/upgrade-tier", {
+              method: "POST",
               headers: {
-                'Content-Type': 'application/json'
+                "Content-Type": "application/json",
               },
-              body: JSON.stringify({ tier: 'premium' })
+              body: JSON.stringify({ tier: "premium" }),
             });
 
             const data = await response.json();
-            
+
             if (response.ok) {
-              console.log('✅ Upgraded to premium tier!', data);
-              console.log('🚀 You can now test all premium AI features');
-              
-              if (confirm('Upgraded to premium! Refresh page to apply changes?')) {
+              console.log("✅ Upgraded to premium tier!", data);
+              console.log("🚀 You can now test all premium AI features");
+
+              if (
+                confirm("Upgraded to premium! Refresh page to apply changes?")
+              ) {
                 window.location.reload();
               }
             } else {
-              console.log('ℹ️ Note: Server-side override is active in development mode');
-              console.log('🎯 All premium features should work regardless of database tier');
+              console.log(
+                "ℹ️ Note: Server-side override is active in development mode",
+              );
+              console.log(
+                "🎯 All premium features should work regardless of database tier",
+              );
             }
-            
+
             return data;
           } catch (error: unknown) {
-            console.log('ℹ️ Upgrade endpoint not available, but development override is active');
-            console.log('🎯 Premium features should work in development mode');
-            return { message: 'Development override active' };
+            console.log(
+              "ℹ️ Upgrade endpoint not available, but development override is active",
+            );
+            console.log("🎯 Premium features should work in development mode");
+            return { message: "Development override active" };
           }
         },
 
@@ -164,18 +178,19 @@ devHelpers.help()          - Show this help message
 
 💡 Tip: These functions only work in development mode!
           `);
-        }
+        },
       };
 
       // Auto-show help message
-      console.log('🚀 StudySpark Development Mode');
-      console.log('📱 Development helpers loaded!');
-      console.log('💡 Type: devHelpers.help()');
+      console.log("🚀 StudySpark Development Mode");
+      console.log("📱 Development helpers loaded!");
+      console.log("💡 Type: devHelpers.help()");
     }
   }, []);
 
   return (
     <>
+      <ExperimentSignupConversionBridge />
       {children}
       <InstallPrompt />
       <UpdateAvailable />
