@@ -71,68 +71,26 @@ function createSupabaseClient() {
 }
 
 
-// Create base Supabase client
+// Single browser Supabase client — two instances trigger "Multiple GoTrueClient" warnings
 export const supabase = createSupabaseClient();
 
-let cachedAuthenticatedClient: ReturnType<typeof createClient> | null = null;
 let currentTokenProvider: (() => Promise<string | null>) | null = null;
 
 /**
- * Create or return a singleton authenticated Supabase client.
- * Uses a dynamic token provider to ensure auth stays current without
- * re-instantiating the entire client (which triggers GoTrue warnings).
+ * Returns the same client as {@link supabase}; updates the Clerk JWT provider when passed.
+ * Never creates a second {@link createClient} — duplicate clients share the same storage key
+ * and trigger GoTrueClient warnings even in a fresh incognito session.
  */
 export function createAuthenticatedSupabaseClient(getToken?: () => Promise<string | null>) {
   if (!supabaseUrl || !supabaseAnonKey) {
     return null;
   }
 
-  // Update the token provider if a new one is provided
   if (getToken) {
     currentTokenProvider = getToken;
   }
 
-  if (cachedAuthenticatedClient) {
-    return cachedAuthenticatedClient;
-  }
-
-  cachedAuthenticatedClient = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      storage: {
-        getItem: () => null,
-        setItem: () => {},
-        removeItem: () => {},
-      },
-    },
-    global: {
-      fetch: async (url, options = {}) => {
-        // Always use the latest token provider
-        const token = typeof currentTokenProvider === 'function' ? await currentTokenProvider() : null;
-        
-        const headers = new Headers(options.headers);
-        if (token) {
-          headers.set('Authorization', `Bearer ${token}`);
-        } else {
-          headers.set('Authorization', `Bearer ${supabaseAnonKey}`);
-        }
-
-        return fetch(url, {
-          ...options,
-          headers,
-        });
-      },
-    },
-    realtime: {
-      params: {
-        eventsPerSecond: 10,
-      },
-    },
-  });
-
-  return cachedAuthenticatedClient;
+  return supabase;
 }
 
 
