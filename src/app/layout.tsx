@@ -124,6 +124,41 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const oneSignalAppIdRaw = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID?.trim();
+  const oneSignalAppId =
+    oneSignalAppIdRaw &&
+    oneSignalAppIdRaw.length > 0 &&
+    oneSignalAppIdRaw !== "undefined"
+      ? oneSignalAppIdRaw
+      : null;
+  const oneSignalSafariWebId =
+    process.env.NEXT_PUBLIC_ONESIGNAL_SAFARI_WEB_ID?.trim() ?? "";
+
+  const oneSignalInlineInit =
+    oneSignalAppId != null
+      ? `
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+OneSignalDeferred.push(async function(OneSignal) {
+  await OneSignal.init({
+    appId: ${JSON.stringify(oneSignalAppId)},
+    allowLocalhostAsSecureOrigin: true,
+    autoRegister: false,
+    autoResubscribe: true,
+    safari_web_id: ${JSON.stringify(oneSignalSafariWebId)},
+    notifyButton: {
+      enable: false,
+    },
+    welcomeNotification: {
+      disable: false,
+      title: 'MemoSpark',
+      message: 'Thanks for subscribing.',
+      url: '/dashboard'
+    }
+  });
+});
+`.trim()
+      : null;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -137,36 +172,19 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://cdn.onesignal.com" />
         <link rel="dns-prefetch" href="https://api.memospark.live" />
 
-        {/* OneSignal Web SDK - Official Implementation */}
-        <script
-          src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
-          defer
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-                window.OneSignalDeferred = window.OneSignalDeferred || [];
-                OneSignalDeferred.push(async function(OneSignal) {
-                  await OneSignal.init({
-                    appId: "${process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID}",
-                    allowLocalhostAsSecureOrigin: true,
-                    autoRegister: false,
-                    autoResubscribe: true,
-                    safari_web_id: "${process.env.NEXT_PUBLIC_ONESIGNAL_SAFARI_WEB_ID || ""}",
-                    notifyButton: {
-                      enable: false,
-                    },
-                    welcomeNotification: {
-                      disable: false,
-                      title: 'MemoSpark',
-                      message: 'Thanks for subscribing.',
-                      url: '/dashboard'
-                    }
-                  });
-                });
-              `,
-          }}
-        />
+        {/* OneSignal: only bootstrap when NEXT_PUBLIC_* is present at build time; missing env yields literal "undefined" in HTML otherwise */}
+        {oneSignalAppId != null && oneSignalInlineInit ? (
+          <>
+            <script
+              src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
+              defer
+            />
+            <script
+              // biome-ignore lint/security/noDangerouslySetInnerHtml: OneSignal v16 deferred init only; snippet uses JSON.stringify on build-time env
+              dangerouslySetInnerHTML={{ __html: oneSignalInlineInit }}
+            />
+          </>
+        ) : null}
 
         {/* Favicon for different browsers and devices */}
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
