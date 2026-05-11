@@ -1,5 +1,6 @@
-import { type NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { cancelOneSignalNotification } from "@/lib/notifications/onesignal-rest-client";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { type NextRequest, NextResponse } from "next/server";
 
 const supabase = getSupabaseAdmin();
 
@@ -20,14 +21,14 @@ export async function POST(request: NextRequest) {
 
     if (!taskId || !userId) {
       return NextResponse.json(
-        { error: 'Missing required fields: taskId, userId' },
+        { error: "Missing required fields: taskId, userId" },
         { status: 400 },
       );
     }
 
     if (!supabase) {
       return NextResponse.json(
-        { error: 'Database connection error' },
+        { error: "Database connection error" },
         { status: 500 },
       );
     }
@@ -37,22 +38,22 @@ export async function POST(request: NextRequest) {
 
     if (!oneSignalAppId || !oneSignalKey) {
       return NextResponse.json(
-        { error: 'OneSignal not configured' },
+        { error: "OneSignal not configured" },
         { status: 500 },
       );
     }
 
     const { data: queued, error: queueError } = await supabase
-      .from('notification_queue')
-      .select('id, onesignal_notification_id')
-      .eq('clerk_user_id', userId)
-      .eq('status', 'scheduled')
-      .filter('data->>taskId', 'eq', taskId);
+      .from("notification_queue")
+      .select("id, onesignal_notification_id")
+      .eq("clerk_user_id", userId)
+      .eq("status", "scheduled")
+      .filter("data->>taskId", "eq", taskId);
 
     if (queueError) {
-      console.warn('[cancel] queue lookup failed', queueError);
+      console.warn("[cancel] queue lookup failed", queueError);
       return NextResponse.json(
-        { cancelled: 0, failed: 0, reason: 'queue-lookup-failed' },
+        { cancelled: 0, failed: 0, reason: "queue-lookup-failed" },
         { status: 200 },
       );
     }
@@ -69,46 +70,38 @@ export async function POST(request: NextRequest) {
         const id = row.onesignal_notification_id;
         if (!id) return;
         try {
-          const res = await fetch(
-            `https://onesignal.com/api/v1/notifications/${id}?app_id=${oneSignalAppId}`,
-            {
-              method: 'DELETE',
-              headers: {
-                Authorization: `Basic ${oneSignalKey}`,
-              },
-            },
-          );
+          const res = await cancelOneSignalNotification(id, oneSignalAppId);
           if (res.ok || res.status === 404) {
             cancelled += 1;
           } else {
             failed += 1;
-            const body = await res.text().catch(() => '');
-            console.warn('[cancel] OneSignal reject', res.status, body);
+            const body = await res.text().catch(() => "");
+            console.warn("[cancel] OneSignal reject", res.status, body);
           }
         } catch (error) {
           failed += 1;
-          console.warn('[cancel] OneSignal request threw', error);
+          console.warn("[cancel] OneSignal request threw", error);
         }
       }),
     );
 
     const ids = queued.map((r) => r.id);
     const { error: updateError } = await supabase
-      .from('notification_queue')
-      .update({ status: 'cancelled' })
-      .in('id', ids);
+      .from("notification_queue")
+      .update({ status: "cancelled" })
+      .in("id", ids);
 
     if (updateError) {
-      console.warn('[cancel] queue status update failed', updateError);
+      console.warn("[cancel] queue status update failed", updateError);
     }
 
     return NextResponse.json({ cancelled, failed, total: queued.length });
   } catch (error) {
-    console.error('[cancel] unhandled error', error);
+    console.error("[cancel] unhandled error", error);
     return NextResponse.json(
       {
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
     );

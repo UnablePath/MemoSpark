@@ -7,7 +7,16 @@
 declare global {
   interface Window {
     OneSignalDeferred?: Array<(oneSignalSdk: unknown) => void | Promise<void>>;
+    /** Present on some builds after init completes — used when callbacks ran before React subscribed. */
+    OneSignal?: unknown;
   }
+}
+
+function tryReadMountedOneSignalPageSdk(): unknown | undefined {
+  const sdk = window.OneSignal;
+  if (!sdk || typeof sdk !== "object") return undefined;
+  const o = sdk as Record<string, unknown>;
+  return "User" in o && "Notifications" in o ? sdk : undefined;
 }
 
 /** Default matches provider + service timeouts (slow networks). */
@@ -32,29 +41,47 @@ export function getOneSignalPageSdk(
     );
   }
 
+  const alreadyMounted = tryReadMountedOneSignalPageSdk();
+  if (alreadyMounted != null) {
+    return Promise.resolve(alreadyMounted);
+  }
+
   memoSparkOneSignalPageSdkSingleton ??= new Promise((resolve, reject) => {
     let settled = false;
 
     const fail = (message: string) => {
       if (settled) return;
       settled = true;
-      window.clearTimeout(t);
+      window.clearTimeout(timeoutHandle);
+      window.clearInterval(pollHandle);
       memoSparkOneSignalPageSdkSingleton = null;
       reject(new Error(message));
     };
 
-    const t = window.setTimeout(() => {
+    const succeed = (oneSignalSdk: unknown) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutHandle);
+      window.clearInterval(pollHandle);
+      resolve(oneSignalSdk);
+    };
+
+    const timeoutHandle = window.setTimeout(() => {
       fail(`OneSignal Page SDK did not resolve within ${timeoutMs}ms`);
     }, timeoutMs);
+
+    const pollHandle = window.setInterval(() => {
+      const mounted = tryReadMountedOneSignalPageSdk();
+      if (mounted != null) {
+        succeed(mounted);
+      }
+    }, 50);
 
     window.OneSignalDeferred = window.OneSignalDeferred ?? [];
     window.OneSignalDeferred.push(async function memoSparkAwaitOneSignalPageSdk(
       oneSignalSdk: unknown,
     ) {
-      window.clearTimeout(t);
-      if (settled) return;
-      settled = true;
-      resolve(oneSignalSdk);
+      succeed(oneSignalSdk);
     });
   });
 

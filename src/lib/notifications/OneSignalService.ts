@@ -1,4 +1,5 @@
 import { getOneSignalPageSdk } from "@/lib/notifications/onesignal-page-sdk";
+import { postOneSignalNotification } from "@/lib/notifications/onesignal-rest-client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 interface OneSignalNotification {
@@ -59,7 +60,6 @@ export class OneSignalService {
   private _supabase: SupabaseClient | null = null;
   private appId: string;
   private restApiKey: string;
-  private apiUrl = "https://onesignal.com/api/v1";
   private isInitialized = false;
 
   /** Web v16+: obtain SDK from deferred queue rather than treating `window.OneSignal` as authoritative. */
@@ -417,14 +417,9 @@ export class OneSignalService {
         ...notification,
       };
 
-      const response = await fetch(`${this.apiUrl}/notifications`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Basic ${this.restApiKey}`,
-        },
-        body: JSON.stringify(payload),
-      });
+      const response = await postOneSignalNotification(
+        payload as unknown as Record<string, unknown>,
+      );
 
       if (!response.ok) {
         const errorData = await response.text();
