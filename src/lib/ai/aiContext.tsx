@@ -1,7 +1,7 @@
 'use client'
 
 import type React from 'react';
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react'
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useAuth } from '@clerk/nextjs';
 import { supabase, supabaseHelpers } from '../supabase/client';
@@ -45,7 +45,7 @@ interface AIContextType {
   rejectSuggestion: (suggestionId: string) => void;
   generateAISuggestions: () => Promise<void>;
   syncUserPreferencesWithSupabase: (preferencesToSync: UserAIPreferences) => Promise<void>; // Updated signature
-  fetchUserPreferencesFromSupabase: () => Promise<void>; 
+  fetchUserPreferencesFromSupabase: (isCancelled?: () => boolean) => Promise<void>;
 }
 
 const AIContext = createContext<AIContextType | undefined>(undefined);
@@ -57,6 +57,12 @@ export const AIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     'memospark_ai_user_profiles', // Changed local storage key to reflect table
     defaultUserAIPreferences
   );
+  /** Stabilize latest prefs + setter for fetch: `useLocalStorage` recreates `setUserPreferences` when state changes, which would otherwise retrigger the Supabase sync effect forever. */
+  const userPreferencesRef = useRef(userPreferences);
+  userPreferencesRef.current = userPreferences;
+  const setUserPreferencesRef = useRef(setUserPreferences);
+  setUserPreferencesRef.current = setUserPreferences;
+
   const [authUserId, setAuthUserId] = useState<string | undefined>(undefined);
   const { userId, isLoaded: isAuthLoaded } = useAuth();
 
@@ -97,7 +103,7 @@ export const AIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     }
   }, [authUserId]);
 
-  const fetchUserPreferencesFromSupabase = useCallback(async () => {
+  const fetchUserPreferencesFromSupabase = useCallback(async (isCancelled?: () => boolean) => {
     if (!authUserId || !supabase) return;
     console.log('Fetching user AI preferences from Supabase table ai_user_profiles for user:', authUserId);
     try {
@@ -106,6 +112,10 @@ export const AIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         .select('*, ai_interaction_settings')
         .eq('user_id', authUserId)
         .single();
+
+      if (isCancelled?.()) {
+        return;
+      }
 
       if (error && error.code !== 'PGRST116') { 
         supabaseHelpers.handleError(error, 'fetching AI user profile');
@@ -127,20 +137,21 @@ export const AIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
             created_at: data.created_at,
             updated_at: data.updated_at,
         };
-        setUserPreferences(fetchedPrefs);
+        setUserPreferencesRef.current(fetchedPrefs);
       } else {
         console.log(`No AI profile for user ${authUserId}, creating one with default/local settings.`);
+        const prev = userPreferencesRef.current;
         const initialPrefsToSync = { 
-            ...userPreferences, 
+            ...prev, 
             user_id: authUserId, 
-            ai_interaction_settings: userPreferences.ai_interaction_settings || defaultUserAIPreferences.ai_interaction_settings
+            ai_interaction_settings: prev.ai_interaction_settings || defaultUserAIPreferences.ai_interaction_settings
         };
         await syncUserPreferencesWithSupabase(initialPrefsToSync);
       }
-    } catch (error) {
-      console.error('Error in fetchUserPreferencesFromSupabase:', error);
+    } catch (err) {
+      console.error('[ai:preferences-fetch]', err);
     }
-  }, [authUserId, setUserPreferences, userPreferences, syncUserPreferencesWithSupabase]);
+  }, [authUserId, syncUserPreferencesWithSupabase]);
 
   const updateUserPreferences = useCallback((prefs: Partial<UserAIPreferences>) => {
     setUserPreferences(prev => {
@@ -195,9 +206,14 @@ export const AIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
 
   // Effect to fetch preferences from Supabase when authUserId becomes available
   useEffect(() => {
-    if (authUserId && supabase) { 
-      fetchUserPreferencesFromSupabase();
+    if (!authUserId || !supabase) {
+      return;
     }
+    let cancelled = false;
+    void fetchUserPreferencesFromSupabase(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
   }, [authUserId, fetchUserPreferencesFromSupabase]);
 
   return (

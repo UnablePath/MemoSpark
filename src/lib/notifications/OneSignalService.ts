@@ -1,10 +1,5 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
-
-declare global {
-  interface Window {
-    OneSignal?: any;
-  }
-}
+import { getOneSignalPageSdk } from "@/lib/notifications/onesignal-page-sdk";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 interface OneSignalNotification {
   app_id: string;
@@ -16,18 +11,18 @@ interface OneSignalNotification {
   data?: Record<string, any>;
   url?: string;
   send_after?: string;
-  delayed_option?: 'timezone' | 'last-active';
+  delayed_option?: "timezone" | "last-active";
   delivery_time_of_day?: string;
   ttl?: number;
   priority?: number;
-  
+
   // Android-specific
   android_channel_id?: string;
   small_icon?: string;
   large_icon?: string;
-  
+
   // iOS-specific APNS configuration
-  ios_badgeType?: 'None' | 'SetTo' | 'Increase';
+  ios_badgeType?: "None" | "SetTo" | "Increase";
   ios_badgeCount?: number;
   ios_sound?: string;
   ios_category?: string;
@@ -43,8 +38,8 @@ interface OneSignalNotification {
   }[];
   mutable_content?: boolean;
   content_available?: boolean;
-  ios_interruption_level?: 'passive' | 'active' | 'time-sensitive' | 'critical';
-  
+  ios_interruption_level?: "passive" | "active" | "time-sensitive" | "critical";
+
   buttons?: Array<{
     id: string;
     text: string;
@@ -64,29 +59,34 @@ export class OneSignalService {
   private _supabase: SupabaseClient | null = null;
   private appId: string;
   private restApiKey: string;
-  private apiUrl = 'https://onesignal.com/api/v1';
+  private apiUrl = "https://onesignal.com/api/v1";
   private isInitialized = false;
 
+  /** Web v16+: obtain SDK from deferred queue rather than treating `window.OneSignal` as authoritative. */
+  private async resolvePageSdkOrThrow(): Promise<Record<string, any>> {
+    return (await getOneSignalPageSdk()) as Record<string, any>;
+  }
+
   private get supabase(): SupabaseClient {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       // Client-side: use the standard singleton
-      const { supabase } = require('@/lib/supabase/client');
-      if (!supabase) throw new Error('Supabase client singleton not available');
+      const { supabase } = require("@/lib/supabase/client");
+      if (!supabase) throw new Error("Supabase client singleton not available");
       return supabase;
-    } else {
-      // Server-side: use the admin client for system-level notifications
-      const { supabaseServerAdmin } = require('@/lib/supabase/server');
-      if (!supabaseServerAdmin) throw new Error('Supabase server admin client not available');
-      return supabaseServerAdmin;
     }
+    // Server-side: use the admin client for system-level notifications
+    const { supabaseServerAdmin } = require("@/lib/supabase/server");
+    if (!supabaseServerAdmin)
+      throw new Error("Supabase server admin client not available");
+    return supabaseServerAdmin;
   }
 
   constructor() {
-    this.appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID ?? '';
-    this.restApiKey = process.env.ONESIGNAL_REST_API_KEY ?? '';
+    this.appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID ?? "";
+    this.restApiKey = process.env.ONESIGNAL_REST_API_KEY ?? "";
 
     if (!this.appId || !this.restApiKey) {
-      console.warn('OneSignal credentials not properly configured');
+      console.warn("OneSignal credentials not properly configured");
     }
   }
 
@@ -99,71 +99,51 @@ export class OneSignalService {
 
   async initializeOneSignal(): Promise<boolean> {
     if (this.isInitialized) return true;
-    
+
     try {
-      if (typeof window === 'undefined') {
-        console.log('OneSignal: Server-side, skipping initialization');
+      if (typeof window === "undefined") {
+        console.log("OneSignal: Server-side, skipping initialization");
         return false;
       }
 
       if (!process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID) {
-        console.warn('OneSignal: App ID not configured, skipping initialization');
+        console.warn(
+          "OneSignal: App ID not configured, skipping initialization",
+        );
         return false;
       }
 
-      // OneSignal is initialized via script tags in layout.tsx
-      // Just wait for it to be available and mark as initialized
-      if (window.OneSignal) {
-        console.log('OneSignal: Already available, marking as initialized');
-        this.isInitialized = true;
-        return true;
-      }
-      
-      // Wait for OneSignal to be loaded
-      console.log('OneSignal: Waiting for SDK to load...');
-      await new Promise<void>((resolve, reject) => {
-        const checkInterval = setInterval(() => {
-          if (window.OneSignal) {
-            console.log('OneSignal: SDK loaded successfully');
-            clearInterval(checkInterval);
-            resolve();
-          }
-        }, 100);
-        
-        setTimeout(() => {
-          console.warn('OneSignal: SDK not found after 5 seconds');
-          clearInterval(checkInterval);
-          reject(new Error('OneSignal SDK not found'));
-        }, 5000);
-      });
+      // OneSignal is initialized via layout.tsx deferred queue — resolve SDK through OneSignalDeferred, not window.OneSignal (v16+).
+      await getOneSignalPageSdk();
 
       this.isInitialized = true;
       return true;
     } catch (error) {
-      console.warn('OneSignal: Failed to initialize:', error);
+      console.warn("[onesignal:sdk-await]", error);
       return false;
     }
   }
 
-  async getSubscriptionStatus(): Promise<{ isSubscribed: boolean; playerId?: string }> {
+  async getSubscriptionStatus(): Promise<{
+    isSubscribed: boolean;
+    playerId?: string;
+  }> {
     try {
       if (!this.isInitialized) {
         await this.initializeOneSignal();
       }
-      
-      if (!window.OneSignal) {
-        return { isSubscribed: false };
-      }
-      
-      const permission = window.OneSignal.Notifications.permission;
-      const playerId = window.OneSignal.User.PushSubscription.id;
-      
+
+      const OneSignal = await this.resolvePageSdkOrThrow();
+
+      const permission = OneSignal.Notifications.permission;
+      const playerId = OneSignal.User.PushSubscription.id;
+
       return {
         isSubscribed: permission,
-        playerId: playerId || undefined
+        playerId: playerId || undefined,
       };
     } catch (error) {
-      console.error('Failed to get subscription status:', error);
+      console.error("Failed to get subscription status:", error);
       return { isSubscribed: false };
     }
   }
@@ -174,28 +154,22 @@ export class OneSignalService {
         await this.initializeOneSignal();
       }
 
-      if (!window.OneSignal) {
-        console.error('OneSignal not available');
-        return null;
-      }
+      const OneSignal = await this.resolvePageSdkOrThrow();
 
-      // Prompt for push notification permission
-      await window.OneSignal.Slidedown.promptPush();
-      
-      // Set external user ID for better user tracking
-      await window.OneSignal.login(clerkUserId);
-      
-      // Get the player ID after subscription
-      const playerId = window.OneSignal.User.PushSubscription.id;
-      
+      await OneSignal.Slidedown.promptPush();
+
+      await OneSignal.login(clerkUserId);
+
+      const playerId = OneSignal.User.PushSubscription.id;
+
       if (playerId) {
         await this.storePlayerSubscription(clerkUserId, playerId);
         return playerId;
       }
-      
+
       return null;
     } catch (error) {
-      console.error('Failed to subscribe user:', error);
+      console.error("Failed to subscribe user:", error);
       return null;
     }
   }
@@ -206,89 +180,93 @@ export class OneSignalService {
         await this.initializeOneSignal();
       }
 
-      if (!window.OneSignal) {
-        console.error('OneSignal not available');
-        return false;
-      }
+      const OneSignal = await this.resolvePageSdkOrThrow();
 
-      // Unsubscribe from push notifications
-      await window.OneSignal.User.PushSubscription.optOut();
-      
+      await OneSignal.User.PushSubscription.optOut();
+
       // Remove from database
       await this.removePlayerSubscription(playerId);
-      
+
       return true;
     } catch (error) {
-      console.error('Failed to unsubscribe user:', error);
+      console.error("Failed to unsubscribe user:", error);
       return false;
     }
   }
 
-  async storePlayerSubscription(clerkUserId: string, playerId: string): Promise<void> {
+  async storePlayerSubscription(
+    clerkUserId: string,
+    playerId: string,
+  ): Promise<void> {
     try {
-      const { error } = await this.supabase
-        .from('push_subscriptions')
-        .upsert({
+      const { error } = await this.supabase.from("push_subscriptions").upsert(
+        {
           clerk_user_id: clerkUserId, // Using clerk_user_id consistently
           external_user_id: clerkUserId, // Clerk user ID
           onesignal_player_id: playerId,
-          device_type: 'web',
+          device_type: "web",
           is_active: true,
           updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'external_user_id'
-        });
+        },
+        {
+          onConflict: "external_user_id",
+        },
+      );
 
       if (error) {
-        console.error('Error storing player subscription:', error);
+        console.error("Error storing player subscription:", error);
       }
     } catch (error) {
-      console.error('Failed to store player subscription:', error);
+      console.error("Failed to store player subscription:", error);
     }
   }
 
   async removePlayerSubscription(playerId: string): Promise<void> {
     try {
       const { error } = await this.supabase
-        .from('push_subscriptions')
+        .from("push_subscriptions")
         .update({ is_active: false, updated_at: new Date().toISOString() })
-        .eq('onesignal_player_id', playerId);
+        .eq("onesignal_player_id", playerId);
 
       if (error) {
-        console.error('Error removing player subscription:', error);
+        console.error("Error removing player subscription:", error);
       }
     } catch (error) {
-      console.error('Failed to remove player subscription:', error);
+      console.error("Failed to remove player subscription:", error);
     }
   }
 
-  async sendTaskReminder(playerId: string, taskTitle: string, reminderTime: Date): Promise<boolean> {
+  async sendTaskReminder(
+    playerId: string,
+    taskTitle: string,
+    reminderTime: Date,
+  ): Promise<boolean> {
     try {
       // Use iOS-optimized notification for better delivery
       return await this.sendIOSTaskReminder(playerId, taskTitle, reminderTime);
     } catch (error) {
-      console.error('Failed to send task reminder:', error);
-      
+      console.error("Failed to send task reminder:", error);
+
       // Fallback to basic notification
-      const response = await fetch('/api/notifications/send', {
-        method: 'POST',
+      const response = await fetch("/api/notifications/send", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           player_ids: [playerId],
-          headings: { en: '📚 Task Reminder' },
+          headings: { en: "📚 Task Reminder" },
           contents: { en: `Don't forget: ${taskTitle}` },
           data: {
-            type: 'task_reminder',
+            type: "task_reminder",
             task_title: taskTitle,
             reminder_time: reminderTime.toISOString(),
           },
-          url: '/dashboard',
+          url: "/dashboard",
           // iOS-specific fallback settings
-          ios_sound: 'default',
-          ios_category: 'TASK_REMINDER',
-          ios_badgeType: 'Increase',
+          ios_sound: "default",
+          ios_category: "TASK_REMINDER",
+          ios_badgeType: "Increase",
         }),
       });
 
@@ -297,53 +275,64 @@ export class OneSignalService {
     }
   }
 
-  async sendAchievementNotification(playerId: string, achievementTitle: string): Promise<boolean> {
+  async sendAchievementNotification(
+    playerId: string,
+    achievementTitle: string,
+  ): Promise<boolean> {
     try {
       // Use iOS-optimized notification for achievements
       const result = await this.sendIOSOptimizedNotification(
         playerId,
-        '🎉 Achievement Unlocked!',
+        "🎉 Achievement Unlocked!",
         `Congratulations! You earned: ${achievementTitle}`,
         {
-          subtitle: 'Great job on your progress!',
-          category: 'ACHIEVEMENT',
-          sound: 'tri-tone.caf', // Celebratory sound for achievements
-          interruptionLevel: 'active',
+          subtitle: "Great job on your progress!",
+          category: "ACHIEVEMENT",
+          sound: "tri-tone.caf", // Celebratory sound for achievements
+          interruptionLevel: "active",
           actionButtons: [
-            { id: 'view', text: '🏆 View Achievement', url: '/dashboard?tab=achievements' },
-            { id: 'share', text: '📱 Share', url: '/dashboard?share=achievement' }
+            {
+              id: "view",
+              text: "🏆 View Achievement",
+              url: "/dashboard?tab=achievements",
+            },
+            {
+              id: "share",
+              text: "📱 Share",
+              url: "/dashboard?share=achievement",
+            },
           ],
           data: {
-            type: 'achievement',
+            type: "achievement",
             achievement_title: achievementTitle,
           },
-          url: '/dashboard?tab=achievements'
-        }
+          url: "/dashboard?tab=achievements",
+        },
       );
 
       return !!result;
     } catch (error) {
-      console.error('Failed to send achievement notification:', error);
-      
+      console.error("Failed to send achievement notification:", error);
+
       // Fallback to basic notification
-      const response = await fetch('/api/notifications/send', {
-        method: 'POST',
+      const response = await fetch("/api/notifications/send", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           player_ids: [playerId],
-          headings: { en: '🎉 Achievement Unlocked!' },
+          headings: { en: "🎉 Achievement Unlocked!" },
           contents: { en: `Congratulations! You earned: ${achievementTitle}` },
           data: {
-            type: 'achievement',
+            type: "achievement",
             achievement_title: achievementTitle,
           },
-          url: '/dashboard?tab=achievements',
+          url: "/dashboard?tab=achievements",
           // iOS-specific fallback settings
-          ios_sound: 'tri-tone.caf',
-          ios_category: 'ACHIEVEMENT',
-          ios_badgeType: 'Increase',
+          ios_sound: "tri-tone.caf",
+          ios_category: "ACHIEVEMENT",
+          ios_badgeType: "Increase",
         }),
       });
 
@@ -352,53 +341,60 @@ export class OneSignalService {
     }
   }
 
-  async sendBreakSuggestion(playerId: string, message: string): Promise<boolean> {
+  async sendBreakSuggestion(
+    playerId: string,
+    message: string,
+  ): Promise<boolean> {
     try {
       // Use iOS-optimized notification for break suggestions
       const result = await this.sendIOSOptimizedNotification(
         playerId,
-        '🌟 Take a Break',
+        "🌟 Take a Break",
         message,
         {
-          subtitle: 'Your wellbeing matters',
-          category: 'WELLNESS',
-          sound: 'default',
-          interruptionLevel: 'passive', // Non-intrusive for wellness suggestions
+          subtitle: "Your wellbeing matters",
+          category: "WELLNESS",
+          sound: "default",
+          interruptionLevel: "passive", // Non-intrusive for wellness suggestions
           actionButtons: [
-            { id: 'break', text: '☕ Take Break', url: '/dashboard?tab=wellness' },
-            { id: 'continue', text: '📚 Keep Studying', url: '/dashboard' }
+            {
+              id: "break",
+              text: "☕ Take Break",
+              url: "/dashboard?tab=wellness",
+            },
+            { id: "continue", text: "📚 Keep Studying", url: "/dashboard" },
           ],
           data: {
-            type: 'break_suggestion',
+            type: "break_suggestion",
             message,
           },
-          url: '/dashboard?tab=wellness'
-        }
+          url: "/dashboard?tab=wellness",
+        },
       );
 
       return !!result;
     } catch (error) {
-      console.error('Failed to send break suggestion:', error);
-      
+      console.error("Failed to send break suggestion:", error);
+
       // Fallback to basic notification
-      const response = await fetch('/api/notifications/send', {
-        method: 'POST',
+      const response = await fetch("/api/notifications/send", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           player_ids: [playerId],
-          headings: { en: '🌟 Take a Break' },
+          headings: { en: "🌟 Take a Break" },
           contents: { en: message },
           data: {
-            type: 'break_suggestion',
+            type: "break_suggestion",
             message,
           },
-          url: '/dashboard?tab=wellness',
+          url: "/dashboard?tab=wellness",
           // iOS-specific fallback settings
-          ios_sound: 'default',
-          ios_category: 'WELLNESS',
-          ios_badgeType: 'None', // Don't increase badge for wellness suggestions
+          ios_sound: "default",
+          ios_category: "WELLNESS",
+          ios_badgeType: "None", // Don't increase badge for wellness suggestions
         }),
       });
 
@@ -411,33 +407,35 @@ export class OneSignalService {
    * Send notification immediately via OneSignal REST API
    * This eliminates the need for cron jobs - notifications are sent in real-time
    */
-  async sendNotification(notification: Partial<OneSignalNotification>): Promise<OneSignalResponse | null> {
+  async sendNotification(
+    notification: Partial<OneSignalNotification>,
+  ): Promise<OneSignalResponse | null> {
     try {
       const payload: OneSignalNotification = {
         app_id: this.appId,
-        contents: { en: 'Default message' },
+        contents: { en: "Default message" },
         ...notification,
       };
 
       const response = await fetch(`${this.apiUrl}/notifications`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Basic ${this.restApiKey}`,
+          "Content-Type": "application/json",
+          Authorization: `Basic ${this.restApiKey}`,
         },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const errorData = await response.text();
-        console.error('OneSignal API error:', response.status, errorData);
+        console.error("OneSignal API error:", response.status, errorData);
         return null;
       }
 
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('Error sending OneSignal notification:', error);
+      console.error("Error sending OneSignal notification:", error);
       return null;
     }
   }
@@ -445,41 +443,49 @@ export class OneSignalService {
   /**
    * Send study break suggestion
    */
-  async sendStudyBreakSuggestion(userId: string, message: string): Promise<boolean> {
+  async sendStudyBreakSuggestion(
+    userId: string,
+    message: string,
+  ): Promise<boolean> {
     try {
       const { data: subscription, error } = await this.supabase
-        .from('push_subscriptions')
-        .select('onesignal_player_id')
-        .eq('external_user_id', userId)
-        .eq('is_active', true)
+        .from("push_subscriptions")
+        .select("onesignal_player_id")
+        .eq("external_user_id", userId)
+        .eq("is_active", true)
         .maybeSingle();
 
       if (error || !subscription?.onesignal_player_id) return false;
 
       const result = await this.sendNotification({
-        contents: { 
-          en: message 
+        contents: {
+          en: message,
         },
-        headings: { 
-          en: '☕ Time for a Break?' 
+        headings: {
+          en: "☕ Time for a Break?",
         },
         include_player_ids: [subscription.onesignal_player_id],
-        data: { 
-          type: 'study_break' 
+        data: {
+          type: "study_break",
         },
-        url: '/dashboard?tab=wellness',
-        android_channel_id: 'study_breaks',
+        url: "/dashboard?tab=wellness",
+        android_channel_id: "study_breaks",
         priority: 4,
       });
 
       if (result) {
-        await this.trackNotificationEvent(userId, result.id, 'sent', 'study_break');
+        await this.trackNotificationEvent(
+          userId,
+          result.id,
+          "sent",
+          "study_break",
+        );
         return true;
       }
 
       return false;
     } catch (error) {
-      console.error('Error sending study break suggestion:', error);
+      console.error("Error sending study break suggestion:", error);
       return false;
     }
   }
@@ -489,16 +495,16 @@ export class OneSignalService {
    * This replaces cron job functionality
    */
   async scheduleNotification(
-    userId: string, 
-    notification: Partial<OneSignalNotification>, 
-    deliveryTime: Date
+    userId: string,
+    notification: Partial<OneSignalNotification>,
+    deliveryTime: Date,
   ): Promise<boolean> {
     try {
       const { data: subscription, error } = await this.supabase
-        .from('push_subscriptions')
-        .select('onesignal_player_id')
-        .eq('external_user_id', userId)
-        .eq('is_active', true)
+        .from("push_subscriptions")
+        .select("onesignal_player_id")
+        .eq("external_user_id", userId)
+        .eq("is_active", true)
         .maybeSingle();
 
       if (error || !subscription?.onesignal_player_id) return false;
@@ -507,29 +513,27 @@ export class OneSignalService {
         ...notification,
         include_player_ids: [subscription.onesignal_player_id],
         send_after: deliveryTime.toISOString(),
-        delayed_option: 'timezone', // Respect user's timezone
+        delayed_option: "timezone", // Respect user's timezone
       });
 
       if (result) {
         // Store scheduled notification in database for tracking
-        await this.supabase
-          .from('notification_queue')
-          .insert({
-            clerk_user_id: userId, // Use clerk_user_id instead of user_id
-            onesignal_notification_id: result.id,
-            title: notification.headings?.en || 'Notification',
-            body: notification.contents?.en || 'You have a notification',
-            scheduled_for: deliveryTime.toISOString(),
-            status: 'scheduled',
-            data: notification.data || {},
-          });
+        await this.supabase.from("notification_queue").insert({
+          clerk_user_id: userId, // Use clerk_user_id instead of user_id
+          onesignal_notification_id: result.id,
+          title: notification.headings?.en || "Notification",
+          body: notification.contents?.en || "You have a notification",
+          scheduled_for: deliveryTime.toISOString(),
+          status: "scheduled",
+          data: notification.data || {},
+        });
 
         return true;
       }
 
       return false;
     } catch (error) {
-      console.error('Error scheduling notification:', error);
+      console.error("Error scheduling notification:", error);
       return false;
     }
   }
@@ -539,12 +543,12 @@ export class OneSignalService {
    */
   async getNotificationCategories() {
     const { data, error } = await this.supabase
-      .from('notification_categories')
-      .select('*')
-      .order('name');
+      .from("notification_categories")
+      .select("*")
+      .order("name");
 
     if (error) {
-      console.error('Error fetching notification categories:', error);
+      console.error("Error fetching notification categories:", error);
       return [];
     }
 
@@ -556,16 +560,19 @@ export class OneSignalService {
    */
   async updateNotificationPreferences(userId: string, preferences: any) {
     const { error } = await this.supabase
-      .from('notification_preferences')
-      .upsert(preferences.map((pref: any) => ({
-        ...pref,
-        user_id: userId,
-      })), {
-        onConflict: 'user_id,category_id'
-      });
+      .from("notification_preferences")
+      .upsert(
+        preferences.map((pref: any) => ({
+          ...pref,
+          user_id: userId,
+        })),
+        {
+          onConflict: "user_id,category_id",
+        },
+      );
 
     if (error) {
-      console.error('Error updating notification preferences:', error);
+      console.error("Error updating notification preferences:", error);
       return false;
     }
 
@@ -576,23 +583,21 @@ export class OneSignalService {
    * Track notification events for analytics
    */
   async trackNotificationEvent(
-    userId: string, 
-    notificationId: string, 
-    eventType: string, 
-    category: string
+    userId: string,
+    notificationId: string,
+    eventType: string,
+    category: string,
   ): Promise<void> {
     try {
-      await this.supabase
-        .from('notification_analytics')
-        .insert({
-          user_id: userId,
-          notification_id: notificationId,
-          event_type: eventType,
-          category,
-          timestamp: new Date().toISOString(),
-        });
+      await this.supabase.from("notification_analytics").insert({
+        user_id: userId,
+        notification_id: notificationId,
+        event_type: eventType,
+        category,
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
-      console.error('Error tracking notification event:', error);
+      console.error("Error tracking notification event:", error);
     }
   }
 
@@ -604,14 +609,14 @@ export class OneSignalService {
     startDate.setDate(startDate.getDate() - days);
 
     const { data, error } = await this.supabase
-      .from('notification_analytics')
-      .select('*')
-      .eq('user_id', userId)
-      .gte('timestamp', startDate.toISOString())
-      .order('timestamp', { ascending: false });
+      .from("notification_analytics")
+      .select("*")
+      .eq("user_id", userId)
+      .gte("timestamp", startDate.toISOString())
+      .order("timestamp", { ascending: false });
 
     if (error) {
-      console.error('Error fetching notification analytics:', error);
+      console.error("Error fetching notification analytics:", error);
       return [];
     }
 
@@ -623,14 +628,14 @@ export class OneSignalService {
    */
   async hasActiveSubscription(userId: string): Promise<boolean> {
     const { data, error } = await this.supabase
-      .from('push_subscriptions')
-      .select('onesignal_player_id')
-      .eq('external_user_id', userId)
-      .eq('is_active', true)
+      .from("push_subscriptions")
+      .select("onesignal_player_id")
+      .eq("external_user_id", userId)
+      .eq("is_active", true)
       .maybeSingle(); // Use maybeSingle to avoid 406 error when no record found
 
     if (error) {
-      console.error('Error checking subscription status:', error);
+      console.error("Error checking subscription status:", error);
       return false;
     }
 
@@ -648,18 +653,18 @@ export class OneSignalService {
   }> {
     const result = {
       isSupported: false,
-      permission: 'unknown',
+      permission: "unknown",
       issues: [] as string[],
-      suggestions: [] as string[]
+      suggestions: [] as string[],
     };
 
     try {
       // Check if running on iOS
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       const isIOSPWA = window.navigator.standalone;
-      
+
       if (!isIOS) {
-        result.issues.push('Not running on iOS device');
+        result.issues.push("Not running on iOS device");
         return result;
       }
 
@@ -668,42 +673,54 @@ export class OneSignalService {
       // Check Safari version for PWA support
       const safariMatch = navigator.userAgent.match(/Version\/(\d+\.\d+)/);
       const safariVersion = safariMatch ? Number.parseFloat(safariMatch[1]) : 0;
-      
+
       if (safariVersion < 11.3) {
-        result.issues.push(`Safari ${safariVersion} detected. iOS 11.3+ required for PWA notifications`);
-        result.suggestions.push('Update iOS to version 11.3 or later');
+        result.issues.push(
+          `Safari ${safariVersion} detected. iOS 11.3+ required for PWA notifications`,
+        );
+        result.suggestions.push("Update iOS to version 11.3 or later");
       }
 
       // Check if app is installed as PWA
       if (!isIOSPWA) {
-        result.issues.push('App not installed as PWA');
-        result.suggestions.push('Install app to Home Screen for notification support');
-        result.suggestions.push('Use Safari Share button → "Add to Home Screen"');
+        result.issues.push("App not installed as PWA");
+        result.suggestions.push(
+          "Install app to Home Screen for notification support",
+        );
+        result.suggestions.push(
+          'Use Safari Share button → "Add to Home Screen"',
+        );
       }
 
-      // Check OneSignal permission status
-      if (window.OneSignal) {
-        result.permission = window.OneSignal.Notifications.permission ? 'granted' : 'default';
-        
-        if (result.permission === 'default') {
-          result.suggestions.push('Tap "Allow" when prompted for notifications');
-        } else if (result.permission === 'denied') {
-          result.issues.push('Notifications blocked by user');
-          result.suggestions.push('Go to iPhone Settings → Notifications → [App Name] to enable');
+      // Check OneSignal permission status (Page SDK via deferred queue)
+      try {
+        const OneSignal = await this.resolvePageSdkOrThrow();
+        const perm = OneSignal.Notifications.permission;
+        result.permission = perm ? "granted" : "default";
+
+        if (result.permission === "default") {
+          result.suggestions.push(
+            'Tap "Allow" when prompted for notifications',
+          );
+        } else if (result.permission === "denied") {
+          result.issues.push("Notifications blocked by user");
+          result.suggestions.push(
+            "Go to iPhone Settings → Notifications → [App Name] to enable",
+          );
         }
-      } else {
-        result.issues.push('OneSignal not loaded');
+      } catch {
+        result.issues.push("OneSignal not loaded");
       }
 
       // Check for notification API support
-      if (!('Notification' in window)) {
-        result.issues.push('Notification API not supported');
+      if (!("Notification" in window)) {
+        result.issues.push("Notification API not supported");
       }
 
       return result;
     } catch (error) {
-      console.error('Error checking iOS permissions:', error);
-      result.issues.push('Error checking permissions');
+      console.error("Error checking iOS permissions:", error);
+      result.issues.push("Error checking permissions");
       return result;
     }
   }
@@ -713,25 +730,20 @@ export class OneSignalService {
    */
   async setiOSBadgeCount(count: number): Promise<boolean> {
     try {
-      if (!window.OneSignal) {
-        console.error('OneSignal not available for badge management');
-        return false;
-      }
-
-      // OneSignal handles badge count automatically, but we can send a silent notification to update it
+      // Badge updates go through the REST API; client SDK presence is not required.
       const result = await this.sendNotification({
         include_player_ids: [], // No specific users, just badge update
-        contents: { en: '' }, // Silent notification
-        headings: { en: '' },
-        ios_badgeType: 'SetTo',
+        contents: { en: "" }, // Silent notification
+        headings: { en: "" },
+        ios_badgeType: "SetTo",
         ios_badgeCount: Math.max(0, count),
         content_available: true, // Makes it a silent notification
-        priority: 1 // Low priority for badge-only updates
+        priority: 1, // Low priority for badge-only updates
       });
 
       return !!result;
     } catch (error) {
-      console.error('Error setting iOS badge count:', error);
+      console.error("Error setting iOS badge count:", error);
       return false;
     }
   }
@@ -740,64 +752,64 @@ export class OneSignalService {
    * Send iOS-optimized notification with enhanced APNS configuration
    */
   async sendIOSOptimizedNotification(
-    playerId: string, 
-    title: string, 
-    message: string, 
+    playerId: string,
+    title: string,
+    message: string,
     options: {
       subtitle?: string;
       category?: string;
       sound?: string;
       badge?: number;
-      interruptionLevel?: 'passive' | 'active' | 'time-sensitive' | 'critical';
+      interruptionLevel?: "passive" | "active" | "time-sensitive" | "critical";
       attachments?: { id: string; url: string; type?: string }[];
       actionButtons?: { id: string; text: string; url?: string }[];
       data?: Record<string, any>;
       url?: string;
-    } = {}
+    } = {},
   ): Promise<OneSignalResponse | null> {
     try {
       const notification: Partial<OneSignalNotification> = {
         include_player_ids: [playerId],
         contents: { en: message },
         headings: { en: title },
-        
+
         // iOS-specific APNS configuration
         apns_alert: {
           title,
           subtitle: options.subtitle,
-          body: message
+          body: message,
         },
-        ios_sound: options.sound || 'default',
-        ios_category: options.category || 'STUDYSPARK_NOTIFICATION',
-        ios_interruption_level: options.interruptionLevel || 'active',
+        ios_sound: options.sound || "default",
+        ios_category: options.category || "STUDYSPARK_NOTIFICATION",
+        ios_interruption_level: options.interruptionLevel || "active",
         mutable_content: true, // Enables notification service extensions
-        
+
         // Badge management
-        ios_badgeType: options.badge !== undefined ? 'SetTo' : 'Increase',
+        ios_badgeType: options.badge !== undefined ? "SetTo" : "Increase",
         ios_badgeCount: options.badge,
-        
+
         // Attachments (images, etc.)
         ios_attachments: options.attachments,
-        
+
         // Action buttons
         buttons: options.actionButtons,
-        
+
         // Data and URL
         data: {
           ...options.data,
           ios_optimized: true,
-          sent_at: new Date().toISOString()
+          sent_at: new Date().toISOString(),
         },
         url: options.url,
-        
+
         // High priority for iOS notifications
-        priority: options.interruptionLevel === 'critical' ? 10 : 8,
-        ttl: 259200 // 3 days
+        priority: options.interruptionLevel === "critical" ? 10 : 8,
+        ttl: 259200, // 3 days
       };
 
       return await this.sendNotification(notification);
     } catch (error) {
-      console.error('Error sending iOS-optimized notification:', error);
+      console.error("Error sending iOS-optimized notification:", error);
       return null;
     }
   }
@@ -806,76 +818,93 @@ export class OneSignalService {
    * Send iOS task reminder with proper APNS configuration
    */
   async sendIOSTaskReminder(
-    playerId: string, 
-    taskTitle: string, 
+    playerId: string,
+    taskTitle: string,
     reminderTime: Date,
     options: {
-      priority?: 'low' | 'medium' | 'high' | 'urgent';
+      priority?: "low" | "medium" | "high" | "urgent";
       minutesUntilDue?: number;
-    } = {}
+    } = {},
   ): Promise<boolean> {
-    const { priority = 'medium', minutesUntilDue } = options;
-    
+    const { priority = "medium", minutesUntilDue } = options;
+
     // Determine message and urgency based on time remaining
     let message = `Don't forget: ${taskTitle}`;
-    let interruptionLevel: 'passive' | 'active' | 'time-sensitive' | 'critical' = 'active';
-    let sound = 'default';
-    
+    let interruptionLevel:
+      | "passive"
+      | "active"
+      | "time-sensitive"
+      | "critical" = "active";
+    let sound = "default";
+
     if (minutesUntilDue !== undefined) {
       if (minutesUntilDue <= 5) {
         message = `🚨 URGENT: "${taskTitle}" is due in ${minutesUntilDue} minutes!`;
-        interruptionLevel = 'critical';
-        sound = 'alarm.caf';
+        interruptionLevel = "critical";
+        sound = "alarm.caf";
       } else if (minutesUntilDue <= 30) {
         message = `⏰ "${taskTitle}" is due in ${minutesUntilDue} minutes`;
-        interruptionLevel = 'time-sensitive';
+        interruptionLevel = "time-sensitive";
       } else if (minutesUntilDue <= 60) {
         message = `📅 "${taskTitle}" is due within the hour`;
       }
     }
 
     // Priority-based sound selection
-    if (priority === 'urgent') {
-      sound = 'alarm.caf';
-      interruptionLevel = 'critical';
-    } else if (priority === 'high') {
-      sound = 'tri-tone.caf';
-      interruptionLevel = 'time-sensitive';
+    if (priority === "urgent") {
+      sound = "alarm.caf";
+      interruptionLevel = "critical";
+    } else if (priority === "high") {
+      sound = "tri-tone.caf";
+      interruptionLevel = "time-sensitive";
     }
 
     try {
       const result = await this.sendIOSOptimizedNotification(
         playerId,
-        '📚 Task Reminder',
+        "📚 Task Reminder",
         message,
         {
           subtitle: `Due: ${reminderTime.toLocaleTimeString()}`,
-          category: 'TASK_REMINDER',
+          category: "TASK_REMINDER",
           sound,
           interruptionLevel,
           actionButtons: [
-            { id: 'complete', text: '✅ Mark Complete', url: '/dashboard?complete=true' },
-            { id: 'snooze', text: '⏰ Snooze 15min', url: '/dashboard?snooze=15' }
+            {
+              id: "complete",
+              text: "✅ Mark Complete",
+              url: "/dashboard?complete=true",
+            },
+            {
+              id: "snooze",
+              text: "⏰ Snooze 15min",
+              url: "/dashboard?snooze=15",
+            },
           ],
           data: {
-            type: 'task_reminder',
+            type: "task_reminder",
             task_title: taskTitle,
             reminder_time: reminderTime.toISOString(),
             priority,
-            minutes_until_due: minutesUntilDue
+            minutes_until_due: minutesUntilDue,
           },
-          url: '/dashboard'
-        }
+          url: "/dashboard",
+        },
       );
 
       if (result) {
-        await this.trackNotificationEvent(playerId.split('-')[0] || playerId, result.id, 'sent', 'task_reminder');
+        await this.trackNotificationEvent(
+          playerId.split("-")[0] || playerId,
+          result.id,
+          "sent",
+          "task_reminder",
+        );
         return true;
       }
 
       return false;
     } catch (error) {
-      console.error('Failed to send iOS task reminder:', error);
+      console.error("Failed to send iOS task reminder:", error);
       return false;
     }
   }
@@ -891,7 +920,7 @@ export class OneSignalService {
     const result = {
       success: false,
       issues: [] as string[],
-      notificationId: undefined as string | undefined
+      notificationId: undefined as string | undefined,
     };
 
     try {
@@ -904,33 +933,38 @@ export class OneSignalService {
       // Send test notification
       const testNotification = await this.sendIOSOptimizedNotification(
         playerId,
-        '🧪 iOS Test Notification',
-        'If you see this, iOS notifications are working correctly!',
+        "🧪 iOS Test Notification",
+        "If you see this, iOS notifications are working correctly!",
         {
-          subtitle: 'StudySpark Notification Test',
-          category: 'TEST_NOTIFICATION',
-          sound: 'default',
-          interruptionLevel: 'active',
+          subtitle: "StudySpark Notification Test",
+          category: "TEST_NOTIFICATION",
+          sound: "default",
+          interruptionLevel: "active",
           actionButtons: [
-            { id: 'success', text: '✅ Working!', url: '/dashboard?test=success' }
+            {
+              id: "success",
+              text: "✅ Working!",
+              url: "/dashboard?test=success",
+            },
           ],
           data: {
-            type: 'ios_test',
-            timestamp: new Date().toISOString()
-          }
-        }
+            type: "ios_test",
+            timestamp: new Date().toISOString(),
+          },
+        },
       );
 
       if (testNotification) {
         result.success = true;
         result.notificationId = testNotification.id;
       } else {
-        result.issues.push('Failed to send test notification');
+        result.issues.push("Failed to send test notification");
       }
-
     } catch (error) {
-      console.error('Error testing iOS notification delivery:', error);
-      result.issues.push(`Test error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error testing iOS notification delivery:", error);
+      result.issues.push(
+        `Test error: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
 
     return result;
@@ -938,4 +972,4 @@ export class OneSignalService {
 }
 
 // Export singleton instance
-export const oneSignalService = OneSignalService.getInstance(); 
+export const oneSignalService = OneSignalService.getInstance();

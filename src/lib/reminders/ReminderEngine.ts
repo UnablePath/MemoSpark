@@ -1,4 +1,5 @@
 import { taskReminderService } from '@/lib/notifications/TaskReminderService';
+import { BASE_URL } from '@/lib/seo/seoConfig';
 import { supabase } from '@/lib/supabase/client';
 import { StuCelebration, type CelebrationType } from '@/lib/stu/StuCelebration';
 
@@ -126,6 +127,25 @@ export class ReminderEngine {
    */
   private getClient() {
     return this.supabaseService || this.fallbackClient;
+  }
+
+  /**
+   * Next.js API routes run in Node: `fetch('/api/...')` is invalid (no base URL).
+   * Browser keeps relative paths so same-origin cookies / deployment work as today.
+   */
+  private resolveMemoSparkApiOrigin(): string {
+    if (typeof window !== 'undefined') {
+      return '';
+    }
+    const custom = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '');
+    if (custom) {
+      return custom;
+    }
+    const vercelHost = process.env.VERCEL_URL?.replace(/\/$/, '');
+    if (vercelHost) {
+      return `https://${vercelHost}`;
+    }
+    return BASE_URL.replace(/\/$/, '');
   }
 
   /**
@@ -601,7 +621,9 @@ export class ReminderEngine {
       console.log(`🎭 Scheduling streak reminder with Stu animation: ${stuAnimation}`);
 
       // Use existing notification API infrastructure
-      const response = await fetch('/api/notifications/schedule', {
+      const apiRoot = this.resolveMemoSparkApiOrigin();
+      const scheduleUrl = `${apiRoot}/api/notifications/schedule`;
+      const response = await fetch(scheduleUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
