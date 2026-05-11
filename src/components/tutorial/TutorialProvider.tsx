@@ -1,33 +1,33 @@
-'use client';
+"use client";
 
-import React, { 
-  createContext, 
-  useContext, 
-  useState, 
-  useEffect, 
-  useCallback, 
-  useMemo,
-  useRef
-} from 'react';
-import { useUser } from '@clerk/nextjs';
-import { usePathname } from 'next/navigation';
-import { TutorialManager } from '@/lib/tutorial/TutorialManager';
-import { TutorialActionDetector } from '@/lib/tutorial/TutorialActionDetector';
-import { TutorialErrorHandler } from '@/lib/tutorial/TutorialErrorHandler';
-import { useDebouncedAchievementTrigger } from '@/hooks/useDebouncedAchievementTrigger';
-import { useSupabaseClient } from '@/lib/supabase/client';
-import { useAuth } from '@clerk/nextjs';
-import { TutorialOverlay } from './TutorialOverlay';
-import { 
-  type TutorialContextValue, 
-  type TutorialState, 
-  TutorialProgress, 
-  TutorialError, 
-  type TutorialResult,
-  type TutorialStep,
+import { useDebouncedAchievementTrigger } from "@/hooks/useDebouncedAchievementTrigger";
+import { useSupabaseClient } from "@/lib/supabase/client";
+import { TutorialActionDetector } from "@/lib/tutorial/TutorialActionDetector";
+import { TutorialErrorHandler } from "@/lib/tutorial/TutorialErrorHandler";
+import { TutorialManager } from "@/lib/tutorial/TutorialManager";
+import {
   DEFAULT_TUTORIAL_CONFIG,
-  type TutorialConfig
-} from '@/lib/tutorial/types';
+  type TutorialConfig,
+  type TutorialContextValue,
+  TutorialError,
+  TutorialProgress,
+  type TutorialResult,
+  type TutorialState,
+  type TutorialStep,
+} from "@/lib/tutorial/types";
+import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
+import { usePathname } from "next/navigation";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
+import { TutorialOverlay } from "./TutorialOverlay";
 
 interface TutorialProviderProps {
   children: React.ReactNode;
@@ -38,528 +38,619 @@ interface TutorialProviderProps {
 
 const TutorialContext = createContext<TutorialContextValue | null>(null);
 
-export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(({
-  children,
-  autoStart = true,
-  onTabChange,
-  config = {}
-}) => {
-  const { user, isLoaded } = useUser();
-  const { getToken } = useAuth();
-  const pathname = usePathname();
-  const { triggerAchievement } = useDebouncedAchievementTrigger();
-  
-  // Register the token provider for Supabase clients
-  useSupabaseClient(getToken);
-  
-  // Managers - initialized once and reused
-  const tutorialManager = useMemo(() => 
-    TutorialManager.getInstance({ ...DEFAULT_TUTORIAL_CONFIG, ...config }), 
-    [config]
-  );
-  const actionDetector = useMemo(() => TutorialActionDetector.getInstance(), []);
-  const errorHandler = useMemo(() => TutorialErrorHandler.getInstance(), []);
-  
-  // State management
-  const [state, setState] = useState<TutorialState>({
-    isActive: false,
-    currentProgress: null,
-    isLoading: true,
-    error: null,
-    retryCount: 0,
-    actionInProgress: false
-  });
+export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(
+  ({ children, autoStart = true, onTabChange, config = {} }) => {
+    const { user, isLoaded } = useUser();
+    const { getToken } = useAuth();
+    const pathname = usePathname();
+    const { triggerAchievement } = useDebouncedAchievementTrigger();
 
-  const [shouldShowTutorial, setShouldShowTutorial] = useState(false);
-  const [isDashboard, setIsDashboard] = useState(false);
-  
-  // Refs for cleanup
-  const eventListenersRef = useRef<(() => void)[]>([]);
-  const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
-  const initializedRef = useRef<boolean>(false);
-  const lastActiveUserRef = useRef<string | null>(null);
-  
-  // Rate limiting for tutorial status checks
-  const lastStatusCheckRef = useRef<number>(0);
-  const STATUS_CHECK_INTERVAL = 5000; // 5 seconds minimum between checks
+    // Register the token provider for Supabase clients
+    useSupabaseClient(getToken);
 
-  // Check if we're on dashboard
-  useEffect(() => {
-    setIsDashboard(pathname === '/dashboard');
-  }, [pathname]);
+    // Managers - initialized once and reused
+    const tutorialManager = useMemo(
+      () =>
+        TutorialManager.getInstance({ ...DEFAULT_TUTORIAL_CONFIG, ...config }),
+      [config],
+    );
+    const actionDetector = useMemo(
+      () => TutorialActionDetector.getInstance(),
+      [],
+    );
+    const errorHandler = useMemo(() => TutorialErrorHandler.getInstance(), []);
 
-  // Cleanup function
-  const cleanup = useCallback(() => {
-    // Clean up event listeners
-    eventListenersRef.current.forEach(cleanup => cleanup());
-    eventListenersRef.current = [];
-    
-    // Clear timeouts
-    timeoutsRef.current.forEach(timeout => clearTimeout(timeout));
-    timeoutsRef.current = [];
-    
-    // Clean up action detector
-    actionDetector.cleanup();
-  }, [actionDetector]);
+    // State management
+    const [state, setState] = useState<TutorialState>({
+      isActive: false,
+      currentProgress: null,
+      isLoading: true,
+      error: null,
+      retryCount: 0,
+      actionInProgress: false,
+    });
 
-  // Setup event listeners
-  const setupEventListeners = useCallback(() => {
-    if (typeof window === 'undefined') return;
+    const [shouldShowTutorial, setShouldShowTutorial] = useState(false);
+    const [isDashboard, setIsDashboard] = useState(false);
 
-    const handleTutorialError = (event: CustomEvent) => {
-      const { error, recovery } = event.detail;
-      setState(prev => ({ ...prev, error, isLoading: false }));
-      
-      // Show user-friendly message
-      if (recovery?.userMessage) {
-        // You could show a toast notification here
-        console.info('Tutorial:', recovery.userMessage);
-      }
-    };
+    // Refs for cleanup
+    const eventListenersRef = useRef<(() => void)[]>([]);
+    const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+    const initializedRef = useRef<boolean>(false);
+    const lastActiveUserRef = useRef<string | null>(null);
 
-    const handleTutorialActionCompleted = (event: CustomEvent) => {
-      setState(prev => ({ ...prev, actionInProgress: false }));
-    };
+    // Rate limiting for tutorial status checks
+    const lastStatusCheckRef = useRef<number>(0);
+    const STATUS_CHECK_INTERVAL = 5000; // 5 seconds minimum between checks
 
-    const handleKeyboardNavigation = (event: KeyboardEvent) => {
-      if (!state.isActive || !config.enableKeyboardNavigation) return;
+    // Check if we're on dashboard
+    useEffect(() => {
+      setIsDashboard(pathname === "/dashboard");
+    }, [pathname]);
 
-      switch (event.key) {
-        case 'Escape':
-          if (event.ctrlKey) {
-            hideTutorial();
-          }
-          break;
-        case 'F1':
-          event.preventDefault();
-          if (!state.isActive) {
-            showTutorial();
-          }
-          break;
-        case 'Enter':
-          if (event.altKey && state.currentProgress) {
-            // Skip current step
-            skipStep();
-          }
-          break;
-      }
-    };
+    // Cleanup function
+    const cleanup = useCallback(() => {
+      // Clean up event listeners
+      eventListenersRef.current.forEach((cleanup) => cleanup());
+      eventListenersRef.current = [];
 
-    // Add event listeners
-    window.addEventListener('tutorialError', handleTutorialError as EventListener);
-    window.addEventListener('tutorialActionCompleted', handleTutorialActionCompleted as EventListener);
-    document.addEventListener('keydown', handleKeyboardNavigation);
+      // Clear timeouts
+      timeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+      timeoutsRef.current = [];
 
-    // Store cleanup functions
-    eventListenersRef.current = [
-      () => window.removeEventListener('tutorialError', handleTutorialError as EventListener),
-      () => window.removeEventListener('tutorialActionCompleted', handleTutorialActionCompleted as EventListener),
-      () => document.removeEventListener('keydown', handleKeyboardNavigation),
-    ];
-  }, [state.isActive, state.currentProgress, config.enableKeyboardNavigation]);
+      // Clean up action detector
+      actionDetector.cleanup();
+    }, [actionDetector]);
 
-  // Check tutorial status - optimized with useCallback, timeout, and rate limiting
-  const checkTutorialStatus = useCallback(async () => {
-    if (!user?.id) {
-      setState(prev => ({ ...prev, isLoading: false }));
-      return;
-    }
+    // Setup event listeners
+    const setupEventListeners = useCallback(() => {
+      if (typeof window === "undefined") return;
 
-    // Rate limiting: prevent excessive status checks
-    const now = Date.now();
-    if (now - lastStatusCheckRef.current < STATUS_CHECK_INTERVAL) {
-      console.log('Tutorial status: Rate limited, skipping check');
-      return;
-    }
-    lastStatusCheckRef.current = now;
+      const handleTutorialError = (event: CustomEvent) => {
+        const { error, recovery } = event.detail;
+        setState((prev) => ({ ...prev, error, isLoading: false }));
 
-    try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
-      
-      // Add timeout wrapper to prevent infinite loading
-      const timeoutPromise = new Promise((_, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Tutorial status check timed out'));
-        }, 5000); // 5 second timeout
-        timeoutsRef.current.push(timeout);
-      });
+        // Show user-friendly message
+        if (recovery?.userMessage) {
+          // You could show a toast notification here
+          console.info("Tutorial:", recovery.userMessage);
+        }
+      };
 
-      // Race between the actual operations and timeout
-      const [progress, shouldShow] = await Promise.race([
-        Promise.all([
-          tutorialManager.getTutorialProgress(user.id),
-          tutorialManager.shouldShowTutorial(user.id)
-        ]),
-        timeoutPromise
-      ]) as [any, boolean];
-      
-      setState(prev => ({
-        ...prev,
-        currentProgress: progress,
-        isLoading: false,
-        error: null
-      }));
-      
-      setShouldShowTutorial(shouldShow);
-      
-      // Auto-start tutorial if enabled and needed
-      if (autoStart && shouldShow && isDashboard) {
-        const timeout = setTimeout(() => {
-          setState(prev => ({ ...prev, isActive: true }));
-        }, 1000); // Small delay to let UI settle
-        
-        timeoutsRef.current.push(timeout);
-      }
-    } catch (error) {
-      // On timeout or error, set safe defaults and stop loading
-      console.warn('Tutorial status check failed:', error);
-      
-      setState(prev => ({
-        ...prev,
-        currentProgress: null,
-        isLoading: false,
-        error: null // Don't show error for timeout, just fail silently
-      }));
-      
-      // Default to showing tutorial for new users when we can't determine status
-      setShouldShowTutorial(true);
-    }
-  }, [user?.id, tutorialManager, errorHandler, autoStart, isDashboard]);
+      const handleTutorialActionCompleted = (event: CustomEvent) => {
+        setState((prev) => ({ ...prev, actionInProgress: false }));
+      };
 
-  // Debounced status check to prevent rapid successive calls
-  const debouncedStatusCheck = useCallback(() => {
-    const timeout = setTimeout(() => {
-      checkTutorialStatus();
-    }, 1000); // 1 second debounce
-    
-    timeoutsRef.current.push(timeout);
-  }, [checkTutorialStatus]);
+      const handleKeyboardNavigation = (event: KeyboardEvent) => {
+        if (!state.isActive || !config.enableKeyboardNavigation) return;
 
-  // Initialize when user is loaded
-  useEffect(() => {
-    if (!isLoaded) return;
-    
-    // In StrictMode, this effect runs twice. Use a ref to ensure we only
-    // perform the initial setup once per mounting cycle.
-    if (!initializedRef.current) {
-      console.log('[TutorialProvider] Initializing tutorial system for user:', user?.id);
-      cleanup();
-      setupEventListeners();
-      debouncedStatusCheck();
-      initializedRef.current = true;
-    }
-    
-    return () => {
-      // We don't reset initializedRef.current here because we want it to persist
-      // across the StrictMode re-mount. It will be reset if the component truly unmounts.
-    };
-  }, [isLoaded, debouncedStatusCheck, setupEventListeners, cleanup, user?.id]);
+        switch (event.key) {
+          case "Escape":
+            if (event.ctrlKey) {
+              hideTutorial();
+            }
+            break;
+          case "F1":
+            event.preventDefault();
+            if (!state.isActive) {
+              showTutorial();
+            }
+            break;
+          case "Enter":
+            if (event.altKey && state.currentProgress) {
+              // Skip current step
+              skipStep();
+            }
+            break;
+        }
+      };
 
-  // Failsafe: ensure loading state never persists longer than 10 seconds
-  useEffect(() => {
-    if (state.isLoading) {
-      const failsafeTimeout = setTimeout(() => {
-        console.warn('Tutorial loading failsafe triggered - forcing loading to false');
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          currentProgress: null,
-          error: null
-        }));
-        setShouldShowTutorial(true); // Default to showing tutorial
-      }, 10000); // 10 second absolute maximum
-      
-      timeoutsRef.current.push(failsafeTimeout);
-      
-      return () => clearTimeout(failsafeTimeout);
-    }
-  }, [state.isLoading]);
-
-  // Initialize action detection when tutorial becomes active
-  useEffect(() => {
-    if (state.isActive && user?.id) {
-      if (lastActiveUserRef.current !== user.id) {
-        console.log('[TutorialProvider] Initializing action detection for user:', user.id);
-        actionDetector.initialize(user.id);
-        lastActiveUserRef.current = user.id;
-      }
-    } else if (!state.isActive) {
-      if (lastActiveUserRef.current) {
-        console.log('[TutorialProvider] Cleaning up action detection');
-        actionDetector.cleanup();
-        lastActiveUserRef.current = null;
-      }
-    }
-  }, [state.isActive, user?.id, actionDetector]);
-
-  // Tutorial control functions
-  const showTutorial = useCallback(() => {
-    setState(prev => ({ ...prev, isActive: true, error: null }));
-  }, []);
-
-  const hideTutorial = useCallback(() => {
-    setState(prev => ({ ...prev, isActive: false }));
-  }, []);
-
-  const clearError = useCallback(() => {
-    setState(prev => ({ ...prev, error: null, retryCount: 0 }));
-  }, []);
-
-  const completeTutorial = useCallback(async (): Promise<TutorialResult> => {
-    if (!user?.id) {
-      const error = errorHandler.createError(
-        'INVALID_STATE',
-        'No user ID available for tutorial completion',
-        { action: 'complete' }
+      // Add event listeners
+      window.addEventListener(
+        "tutorialError",
+        handleTutorialError as EventListener,
       );
-      return { success: false, error };
-    }
+      window.addEventListener(
+        "tutorialActionCompleted",
+        handleTutorialActionCompleted as EventListener,
+      );
+      document.addEventListener("keydown", handleKeyboardNavigation);
 
-    try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
-      
-      hideTutorial();
+      // Store cleanup functions
+      eventListenersRef.current = [
+        () =>
+          window.removeEventListener(
+            "tutorialError",
+            handleTutorialError as EventListener,
+          ),
+        () =>
+          window.removeEventListener(
+            "tutorialActionCompleted",
+            handleTutorialActionCompleted as EventListener,
+          ),
+        () => document.removeEventListener("keydown", handleKeyboardNavigation),
+      ];
+    }, [
+      state.isActive,
+      state.currentProgress,
+      config.enableKeyboardNavigation,
+    ]);
 
-      // Trigger the achievement for completing the tutorial
+    // Check tutorial status - optimized with useCallback, timeout, and rate limiting
+    const checkTutorialStatus = useCallback(async () => {
+      if (!user?.id) {
+        setState((prev) => ({ ...prev, isLoading: false }));
+        return;
+      }
+
+      // Rate limiting: prevent excessive status checks
+      const now = Date.now();
+      if (now - lastStatusCheckRef.current < STATUS_CHECK_INTERVAL) {
+        if (process.env.NODE_ENV === "development") {
+          console.log(
+            "[tutorial:status-check] Rate limited; skipping duplicate check.",
+          );
+        }
+        return;
+      }
+      lastStatusCheckRef.current = now;
+
       try {
-        await triggerAchievement('TUTORIAL_COMPLETED');
-        console.log('TUTORIAL_COMPLETED achievement triggered successfully.');
-      } catch (achievementError) {
-        console.error('Failed to trigger TUTORIAL_COMPLETED achievement:', achievementError);
-      }
-      
-      // Update progress state locally
-      const updatedProgress = await tutorialManager.getTutorialProgress(user.id);
-      setState(prev => ({
-        ...prev,
-        currentProgress: updatedProgress,
-        isLoading: false
-      }));
-      setShouldShowTutorial(false);
-      
-      // Dispatch a global event for other components to listen to
-      requestAnimationFrame(() => {
-        window.dispatchEvent(new CustomEvent('tutorialCompleted', {
-          detail: { userId: user.id }
-        }));
-      });
+        setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-      return { success: true, data: true };
-    } catch (error) {
-      const tutorialError = errorHandler.createError(
-        'STEP_VALIDATION_FAILED',
-        `Failed to complete tutorial: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { action: 'complete', metadata: { userId: user.id } }
-      );
-      
-      setState(prev => ({
-        ...prev,
-        error: tutorialError,
-        isLoading: false
-      }));
-      
-      return { success: false, error: tutorialError };
-    }
-  }, [user?.id, hideTutorial, triggerAchievement, tutorialManager, errorHandler]);
+        // Add timeout wrapper to prevent infinite loading
+        const timeoutPromise = new Promise((_, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error("Tutorial status check timed out"));
+          }, 5000); // 5 second timeout
+          timeoutsRef.current.push(timeout);
+        });
 
-  const skipStep = useCallback(async (step?: TutorialStep): Promise<TutorialResult> => {
-    if (!user?.id || !state.currentProgress) {
-      const error = errorHandler.createError(
-        'INVALID_STATE',
-        'Cannot skip step: no user or progress available',
-        { action: 'skip_step' }
-      );
-      return { success: false, error };
-    }
+        // Race between the actual operations and timeout
+        const [progress, shouldShow] = (await Promise.race([
+          Promise.all([
+            tutorialManager.getTutorialProgress(user.id),
+            tutorialManager.shouldShowTutorial(user.id),
+          ]),
+          timeoutPromise,
+        ])) as [any, boolean];
 
-    try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
-      
-      const stepToSkip = step || state.currentProgress.current_step;
-      const result = await tutorialManager.skipStep(user.id, stepToSkip);
-      
-      if (result.success) {
-        const updatedProgress = await tutorialManager.getTutorialProgress(user.id);
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
-          currentProgress: updatedProgress,
-          isLoading: false
+          currentProgress: progress,
+          isLoading: false,
+          error: null,
         }));
-      } else {
-        setState(prev => ({
-          ...prev,
-          error: result.error || null,
-          isLoading: false
-        }));
-      }
-      
-      return result;
-    } catch (error) {
-      const tutorialError = errorHandler.createError(
-        'STEP_VALIDATION_FAILED',
-        `Failed to skip step: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { action: 'skip_step', step, metadata: { userId: user.id } }
-      );
-      
-      setState(prev => ({
-        ...prev,
-        error: tutorialError,
-        isLoading: false
-      }));
-      
-      return { success: false, error: tutorialError };
-    }
-  }, [user?.id, state.currentProgress, tutorialManager, errorHandler]);
 
-  const restartTutorial = useCallback(async (): Promise<TutorialResult> => {
-    if (!user?.id) {
-      const error = errorHandler.createError(
-        'INVALID_STATE',
-        'No user ID available for tutorial restart',
-        { action: 'restart' }
-      );
-      return { success: false, error };
-    }
+        setShouldShowTutorial(shouldShow);
 
-    try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
-      
-      const result = await tutorialManager.restartTutorial(user.id);
-      
-      if (result.success) {
-        const updatedProgress = await tutorialManager.getTutorialProgress(user.id);
-        setState(prev => ({
+        // Auto-start tutorial if enabled and needed
+        if (autoStart && shouldShow && isDashboard) {
+          const timeout = setTimeout(() => {
+            setState((prev) => ({ ...prev, isActive: true }));
+          }, 1000); // Small delay to let UI settle
+
+          timeoutsRef.current.push(timeout);
+        }
+      } catch (error) {
+        // On timeout or error, set safe defaults and stop loading
+        console.error("[tutorial:fetch-status]", error);
+
+        setState((prev) => ({
           ...prev,
-          currentProgress: updatedProgress,
-          isActive: true,
-          isLoading: false
+          currentProgress: null,
+          isLoading: false,
+          error: null, // Don't show error for timeout, just fail silently
         }));
+
+        // Default to showing tutorial for new users when we can't determine status
         setShouldShowTutorial(true);
-      } else {
-        setState(prev => ({
+      }
+    }, [user?.id, tutorialManager, errorHandler, autoStart, isDashboard]);
+
+    // Debounced status check to prevent rapid successive calls
+    const debouncedStatusCheck = useCallback(() => {
+      const timeout = setTimeout(() => {
+        checkTutorialStatus();
+      }, 1000); // 1 second debounce
+
+      timeoutsRef.current.push(timeout);
+    }, [checkTutorialStatus]);
+
+    // Initialize when user is loaded
+    useEffect(() => {
+      if (!isLoaded) return;
+
+      // In StrictMode, this effect runs twice. Use a ref to ensure we only
+      // perform the initial setup once per mounting cycle.
+      if (!initializedRef.current) {
+        if (process.env.NODE_ENV === "development") {
+          console.log("[TutorialProvider] Initializing tutorial system", {
+            studentId: user?.id ?? null,
+            clerkLoaded: true,
+          });
+        }
+        cleanup();
+        setupEventListeners();
+        debouncedStatusCheck();
+        initializedRef.current = true;
+      }
+
+      return () => {
+        // We don't reset initializedRef.current here because we want it to persist
+        // across the StrictMode re-mount. It will be reset if the component truly unmounts.
+      };
+    }, [
+      isLoaded,
+      debouncedStatusCheck,
+      setupEventListeners,
+      cleanup,
+      user?.id,
+    ]);
+
+    // Failsafe: ensure loading state never persists longer than 10 seconds
+    useEffect(() => {
+      if (state.isLoading) {
+        const failsafeTimeout = setTimeout(() => {
+          if (process.env.NODE_ENV === "development") {
+            console.warn(
+              "[tutorial:failsafe] Forcing tutorial loading state off after timeout",
+            );
+          }
+          setState((prev) => ({
+            ...prev,
+            isLoading: false,
+            currentProgress: null,
+            error: null,
+          }));
+          setShouldShowTutorial(true); // Default to showing tutorial
+        }, 10000); // 10 second absolute maximum
+
+        timeoutsRef.current.push(failsafeTimeout);
+
+        return () => clearTimeout(failsafeTimeout);
+      }
+    }, [state.isLoading]);
+
+    // Initialize action detection when tutorial becomes active
+    useEffect(() => {
+      if (state.isActive && user?.id) {
+        if (lastActiveUserRef.current !== user.id) {
+          if (process.env.NODE_ENV === "development") {
+            console.log(
+              "[TutorialProvider] Initializing action detection for user:",
+              user.id,
+            );
+          }
+          actionDetector.initialize(user.id);
+          lastActiveUserRef.current = user.id;
+        }
+      } else if (!state.isActive) {
+        if (lastActiveUserRef.current) {
+          if (process.env.NODE_ENV === "development") {
+            console.log("[TutorialProvider] Cleaning up action detection");
+          }
+          actionDetector.cleanup();
+          lastActiveUserRef.current = null;
+        }
+      }
+    }, [state.isActive, user?.id, actionDetector]);
+
+    // Tutorial control functions
+    const showTutorial = useCallback(() => {
+      setState((prev) => ({ ...prev, isActive: true, error: null }));
+    }, []);
+
+    const hideTutorial = useCallback(() => {
+      setState((prev) => ({ ...prev, isActive: false }));
+    }, []);
+
+    const clearError = useCallback(() => {
+      setState((prev) => ({ ...prev, error: null, retryCount: 0 }));
+    }, []);
+
+    const completeTutorial = useCallback(async (): Promise<TutorialResult> => {
+      if (!user?.id) {
+        const error = errorHandler.createError(
+          "INVALID_STATE",
+          "No user ID available for tutorial completion",
+          { action: "complete" },
+        );
+        return { success: false, error };
+      }
+
+      try {
+        setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+        hideTutorial();
+
+        // Trigger the achievement for completing the tutorial
+        try {
+          await triggerAchievement("TUTORIAL_COMPLETED");
+          if (process.env.NODE_ENV === "development") {
+            console.log(
+              "[tutorial:achievement]",
+              "TUTORIAL_COMPLETED triggered.",
+            );
+          }
+        } catch (achievementError) {
+          console.error(
+            "Failed to trigger TUTORIAL_COMPLETED achievement:",
+            achievementError,
+          );
+        }
+
+        // Update progress state locally
+        const updatedProgress = await tutorialManager.getTutorialProgress(
+          user.id,
+        );
+        setState((prev) => ({
           ...prev,
-          error: result.error || null,
-          isLoading: false
+          currentProgress: updatedProgress,
+          isLoading: false,
         }));
+        setShouldShowTutorial(false);
+
+        // Dispatch a global event for other components to listen to
+        requestAnimationFrame(() => {
+          window.dispatchEvent(
+            new CustomEvent("tutorialCompleted", {
+              detail: { userId: user.id },
+            }),
+          );
+        });
+
+        return { success: true, data: true };
+      } catch (error) {
+        const tutorialError = errorHandler.createError(
+          "STEP_VALIDATION_FAILED",
+          `Failed to complete tutorial: ${error instanceof Error ? error.message : "Unknown error"}`,
+          { action: "complete", metadata: { userId: user.id } },
+        );
+
+        setState((prev) => ({
+          ...prev,
+          error: tutorialError,
+          isLoading: false,
+        }));
+
+        return { success: false, error: tutorialError };
       }
-      
-      return result;
-    } catch (error) {
-      const tutorialError = errorHandler.createError(
-        'INITIALIZATION_FAILED',
-        `Failed to restart tutorial: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { action: 'restart', metadata: { userId: user.id } }
-      );
-      
-      setState(prev => ({
-        ...prev,
-        error: tutorialError,
-        isLoading: false
-      }));
-      
-      return { success: false, error: tutorialError };
-    }
-  }, [user?.id, tutorialManager, errorHandler]);
+    }, [
+      user?.id,
+      hideTutorial,
+      triggerAchievement,
+      tutorialManager,
+      errorHandler,
+    ]);
 
-  const retryCurrentStep = useCallback(async (): Promise<TutorialResult> => {
-    if (!user?.id || !state.currentProgress) {
-      const error = errorHandler.createError(
-        'INVALID_STATE',
-        'Cannot retry step: no user or progress available',
-        { action: 'retry' }
-      );
-      return { success: false, error };
-    }
+    const skipStep = useCallback(
+      async (step?: TutorialStep): Promise<TutorialResult> => {
+        if (!user?.id || !state.currentProgress) {
+          const error = errorHandler.createError(
+            "INVALID_STATE",
+            "Cannot skip step: no user or progress available",
+            { action: "skip_step" },
+          );
+          return { success: false, error };
+        }
 
-    try {
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: true, 
-        error: null,
-        retryCount: prev.retryCount + 1
-      }));
-      
-      // Re-initialize action detection for current step
-      const stepConfig = tutorialManager.getStepConfig(state.currentProgress.current_step);
-      if (stepConfig?.actionDetection && stepConfig.waitForAction) {
-        await actionDetector.setupActionDetection(stepConfig.waitForAction, stepConfig.actionDetection);
+        try {
+          setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+          const stepToSkip = step || state.currentProgress.current_step;
+          const result = await tutorialManager.skipStep(user.id, stepToSkip);
+
+          if (result.success) {
+            const updatedProgress = await tutorialManager.getTutorialProgress(
+              user.id,
+            );
+            setState((prev) => ({
+              ...prev,
+              currentProgress: updatedProgress,
+              isLoading: false,
+            }));
+          } else {
+            setState((prev) => ({
+              ...prev,
+              error: result.error || null,
+              isLoading: false,
+            }));
+          }
+
+          return result;
+        } catch (error) {
+          const tutorialError = errorHandler.createError(
+            "STEP_VALIDATION_FAILED",
+            `Failed to skip step: ${error instanceof Error ? error.message : "Unknown error"}`,
+            { action: "skip_step", step, metadata: { userId: user.id } },
+          );
+
+          setState((prev) => ({
+            ...prev,
+            error: tutorialError,
+            isLoading: false,
+          }));
+
+          return { success: false, error: tutorialError };
+        }
+      },
+      [user?.id, state.currentProgress, tutorialManager, errorHandler],
+    );
+
+    const restartTutorial = useCallback(async (): Promise<TutorialResult> => {
+      if (!user?.id) {
+        const error = errorHandler.createError(
+          "INVALID_STATE",
+          "No user ID available for tutorial restart",
+          { action: "restart" },
+        );
+        return { success: false, error };
       }
-      
-      setState(prev => ({ ...prev, isLoading: false }));
-      
-      return { success: true, data: true };
-    } catch (error) {
-      const tutorialError = errorHandler.createError(
-        'STEP_VALIDATION_FAILED',
-        `Failed to retry step: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { action: 'retry', metadata: { userId: user.id, currentStep: state.currentProgress.current_step } }
-      );
-      
-      setState(prev => ({
-        ...prev,
-        error: tutorialError,
-        isLoading: false
-      }));
-      
-      return { success: false, error: tutorialError };
-    }
-  }, [user?.id, state.currentProgress, state.retryCount, tutorialManager, actionDetector, errorHandler]);
 
-  // Handle tutorial complete callback
-  const handleTutorialComplete = useCallback(async () => {
-    await completeTutorial();
-  }, [completeTutorial]);
+      try {
+        setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-  // Memoize context value to prevent unnecessary re-renders
-  const contextValue = useMemo<TutorialContextValue>(() => ({
-    ...state,
-    showTutorial,
-    hideTutorial,
-    completeTutorial,
-    skipStep,
-    restartTutorial,
-    retryCurrentStep,
-    shouldShowTutorial,
-    clearError
-  }), [
-    state,
-    showTutorial,
-    hideTutorial,
-    completeTutorial,
-    skipStep,
-    restartTutorial,
-    retryCurrentStep,
-    shouldShowTutorial,
-    clearError
-  ]);
+        const result = await tutorialManager.restartTutorial(user.id);
 
-  return (
-    <TutorialContext.Provider value={contextValue}>
-      {children}
-      
-      {/* Render tutorial overlay when active and on dashboard - memoized */}
-      {state.isActive && isDashboard && (
-        <TutorialOverlay
-          isVisible={state.isActive}
-          onClose={hideTutorial}
-          onComplete={handleTutorialComplete}
-          onTabChange={onTabChange}
-          error={state.error}
-          onRetry={retryCurrentStep}
-          onClearError={clearError}
-          currentProgress={state.currentProgress}
-        />
-      )}
-    </TutorialContext.Provider>
-  );
-});
+        if (result.success) {
+          const updatedProgress = await tutorialManager.getTutorialProgress(
+            user.id,
+          );
+          setState((prev) => ({
+            ...prev,
+            currentProgress: updatedProgress,
+            isActive: true,
+            isLoading: false,
+          }));
+          setShouldShowTutorial(true);
+        } else {
+          setState((prev) => ({
+            ...prev,
+            error: result.error || null,
+            isLoading: false,
+          }));
+        }
 
-TutorialProvider.displayName = 'TutorialProvider';
+        return result;
+      } catch (error) {
+        const tutorialError = errorHandler.createError(
+          "INITIALIZATION_FAILED",
+          `Failed to restart tutorial: ${error instanceof Error ? error.message : "Unknown error"}`,
+          { action: "restart", metadata: { userId: user.id } },
+        );
+
+        setState((prev) => ({
+          ...prev,
+          error: tutorialError,
+          isLoading: false,
+        }));
+
+        return { success: false, error: tutorialError };
+      }
+    }, [user?.id, tutorialManager, errorHandler]);
+
+    const retryCurrentStep = useCallback(async (): Promise<TutorialResult> => {
+      if (!user?.id || !state.currentProgress) {
+        const error = errorHandler.createError(
+          "INVALID_STATE",
+          "Cannot retry step: no user or progress available",
+          { action: "retry" },
+        );
+        return { success: false, error };
+      }
+
+      try {
+        setState((prev) => ({
+          ...prev,
+          isLoading: true,
+          error: null,
+          retryCount: prev.retryCount + 1,
+        }));
+
+        // Re-initialize action detection for current step
+        const stepConfig = tutorialManager.getStepConfig(
+          state.currentProgress.current_step,
+        );
+        if (stepConfig?.actionDetection && stepConfig.waitForAction) {
+          await actionDetector.setupActionDetection(
+            stepConfig.waitForAction,
+            stepConfig.actionDetection,
+          );
+        }
+
+        setState((prev) => ({ ...prev, isLoading: false }));
+
+        return { success: true, data: true };
+      } catch (error) {
+        const tutorialError = errorHandler.createError(
+          "STEP_VALIDATION_FAILED",
+          `Failed to retry step: ${error instanceof Error ? error.message : "Unknown error"}`,
+          {
+            action: "retry",
+            metadata: {
+              userId: user.id,
+              currentStep: state.currentProgress.current_step,
+            },
+          },
+        );
+
+        setState((prev) => ({
+          ...prev,
+          error: tutorialError,
+          isLoading: false,
+        }));
+
+        return { success: false, error: tutorialError };
+      }
+    }, [
+      user?.id,
+      state.currentProgress,
+      state.retryCount,
+      tutorialManager,
+      actionDetector,
+      errorHandler,
+    ]);
+
+    // Handle tutorial complete callback
+    const handleTutorialComplete = useCallback(async () => {
+      await completeTutorial();
+    }, [completeTutorial]);
+
+    // Memoize context value to prevent unnecessary re-renders
+    const contextValue = useMemo<TutorialContextValue>(
+      () => ({
+        ...state,
+        showTutorial,
+        hideTutorial,
+        completeTutorial,
+        skipStep,
+        restartTutorial,
+        retryCurrentStep,
+        shouldShowTutorial,
+        clearError,
+      }),
+      [
+        state,
+        showTutorial,
+        hideTutorial,
+        completeTutorial,
+        skipStep,
+        restartTutorial,
+        retryCurrentStep,
+        shouldShowTutorial,
+        clearError,
+      ],
+    );
+
+    return (
+      <TutorialContext.Provider value={contextValue}>
+        {children}
+
+        {/* Render tutorial overlay when active and on dashboard - memoized */}
+        {state.isActive && isDashboard && (
+          <TutorialOverlay
+            isVisible={state.isActive}
+            onClose={hideTutorial}
+            onComplete={handleTutorialComplete}
+            onTabChange={onTabChange}
+            error={state.error}
+            onRetry={retryCurrentStep}
+            onClearError={clearError}
+            currentProgress={state.currentProgress}
+          />
+        )}
+      </TutorialContext.Provider>
+    );
+  },
+);
+
+TutorialProvider.displayName = "TutorialProvider";
 
 export const useTutorial = (): TutorialContextValue => {
   const context = useContext(TutorialContext);
   if (!context) {
-    throw new Error('useTutorial must be used within a TutorialProvider');
+    throw new Error("useTutorial must be used within a TutorialProvider");
   }
   return context;
 };
