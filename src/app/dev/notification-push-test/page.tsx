@@ -89,8 +89,8 @@ export default function NotificationPushTestPage() {
             title: "MemoSpark test ping",
             body:
               opts.delaySeconds <= 0
-                ? "Queued now — if cron + deliver run, you should see this on this device."
-                : `Scheduled for ~${opts.delaySeconds}s from queue time — use this to test push-scheduler timing.`,
+                ? "Queued for immediate delivery — scheduler wake runs after this request; browser/OS push adds a short delay."
+                : `Scheduled for ~${opts.delaySeconds}s after queue — scheduler wakes now but row stays pending until scheduled_for passes.`,
             url: "/dev/notification-push-test",
             scheduledFor,
           }),
@@ -141,7 +141,10 @@ export default function NotificationPushTestPage() {
         </h1>
         <p className="text-sm text-muted-foreground">
           One place to enable push, enqueue a test notification, and read what
-          to check in Supabase when the tray stays quiet.
+          to check in Supabase when the tray stays quiet. After a successful
+          queue, the app server wakes{" "}
+          <code className="text-xs">push-scheduler</code> in the background so
+          delivery is usually fast—not stuck waiting only on cron.
         </p>
       </div>
 
@@ -271,9 +274,11 @@ export default function NotificationPushTestPage() {
           <CardDescription>
             Calls <code className="text-xs">POST /api/push/event</code> with
             category <code className="text-xs">system</code>. That inserts a row
-            in <code className="text-xs">notifications</code>. Edge{" "}
-            <code className="text-xs">push-scheduler</code> must run before you
-            feel a ding.
+            in <code className="text-xs">notifications</code>. On{" "}
+            <strong className="font-medium text-foreground">success</strong>,
+            the route triggers a non-blocking wake of Edge{" "}
+            <code className="text-xs">push-scheduler</code> (same as cron). Cron
+            still catches drift if that wake fails or rows become due later.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -298,6 +303,37 @@ export default function NotificationPushTestPage() {
             >
               Schedule ~90s ahead
             </Button>
+          </div>
+
+          <div className="rounded-lg border border-border/70 bg-muted/30 p-3 text-xs text-muted-foreground">
+            <p className="font-medium text-foreground">Timing expectations</p>
+            <ul className="mt-2 list-disc space-y-1.5 ps-4">
+              <li>
+                <strong className="text-foreground">“Instant” here</strong>{" "}
+                means usually within about a second or a few seconds after HTTP
+                200: Next.js finishes the response, then the scheduler POST
+                runs, then Web Push reaches this device (FCM/APNs/browser—not
+                hard real-time).
+              </li>
+              <li>
+                <strong className="text-foreground">
+                  Second-level schedules
+                </strong>{" "}
+                — You can schedule with ISO timestamps that resolve to whole
+                seconds (this page uses seconds offset). Postgres stores fine
+                timestamps; delivery still waits until{" "}
+                <code className="text-xs">scheduled_for ≤ now()</code> on the
+                server plus another scheduler pass—don’t expect guaranteed
+                millisecond precision on the lock screen.
+              </li>
+              <li>
+                <strong className="text-foreground">Quiet hours</strong> — If
+                configured in prefs,{" "}
+                <code className="text-xs">notify_user</code> may bump{" "}
+                <code className="text-xs">scheduled_for</code>, so “due now” can
+                arrive later than you expect.
+              </li>
+            </ul>
           </div>
 
           {queueResult != null && (
@@ -364,9 +400,12 @@ LIMIT 5;`}
               Dashboard → Edge Functions →{" "}
               <code className="text-xs">push-scheduler</code> then{" "}
               <code className="text-xs">push-deliver</code> → Logs after you
-              queue a test. If scheduler never runs, configure{" "}
-              <code className="text-xs">pg_cron</code> or invoke the scheduler
-              URL manually with your cron secret and Bearer service role.
+              queue a test. Production wakes the scheduler after enqueue (plus{" "}
+              <code className="text-xs">CRON_SECRET</code> + service role on
+              Vercel); if pushes stay stuck{" "}
+              <code className="text-xs">pending</code>, check missing env or
+              invoke the scheduler manually once with cron secret + Bearer. Keep{" "}
+              <code className="text-xs">pg_cron</code> as backup.
             </li>
             <li>
               <strong className="text-foreground">

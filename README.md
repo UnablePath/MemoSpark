@@ -57,7 +57,7 @@ cd memospark
 ```bash
 # Recommended — matches pnpm-lock.yaml
 corepack enable
-corepack prepare pnpm@9.15.9 --activate
+corepack prepare pnpm@10.33.4 --activate
 pnpm install
 ```
 

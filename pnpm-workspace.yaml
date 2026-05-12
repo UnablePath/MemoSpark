@@ -1,0 +1,6 @@
+# Supply-chain hardening: refuse registry versions newer than this age (minutes).
+# TanStack advisory (2026): https://github.com/TanStack/router/issues/7383
+# Requires pnpm >= 10.16.0 (see package.json "packageManager").
+packages:
+  - .
+minimumReleaseAge: 10080

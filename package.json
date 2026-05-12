@@ -2,7 +2,7 @@
   "name": "memospark",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@9.15.9",
+  "packageManager": "pnpm@10.33.4",
   "scripts": {
     "dev": "node --localstorage-file=.next/localstorage.json ./node_modules/next/dist/bin/next dev --turbopack -H 0.0.0.0",
     "build": "next build",
