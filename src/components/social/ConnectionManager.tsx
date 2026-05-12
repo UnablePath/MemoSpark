@@ -1,9 +1,8 @@
 "use client";
 
+import { DirectMessageChat } from "@/components/social/chat/DirectMessageChat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +17,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DirectMessageChat } from "@/components/social/chat/DirectMessageChat";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   connectionHubKeys,
   useConnectionHubConnections,
@@ -27,6 +27,11 @@ import {
   useConnectionsRealtime,
 } from "@/hooks/useConnectionHubQueries";
 import { MessagingService } from "@/lib/messaging/MessagingService";
+import { enqueueSocialPushNotification } from "@/lib/notifications/sendSocialPushClient";
+import {
+  StudentDiscovery,
+  type UserSearchResult,
+} from "@/lib/social/StudentDiscovery";
 import {
   connectionAvatarHue,
   connectionDisplayInitials,
@@ -35,12 +40,7 @@ import {
   createMemoSparkReportMailtoHref,
   openMemoSparkSupportMailHref,
 } from "@/lib/support/memosparkSupportEmail";
-import {
-  StudentDiscovery,
-  type UserSearchResult,
-} from "@/lib/social/StudentDiscovery";
 import { cn } from "@/lib/utils";
-import { enqueueSocialPushNotification } from "@/lib/notifications/sendSocialPushClient";
 import { useAuth, useUser } from "@clerk/nextjs";
 import {
   Chat as ChatIcon,
@@ -53,18 +53,9 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  AnimatePresence,
-  motion,
-  useReducedMotion,
-} from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type React from "react";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 interface ConnectionManagerProps {
@@ -76,7 +67,10 @@ interface ConnectionManagerProps {
 /** Stable deterministic "unit id" derived from a clerk id, for CRT metadata flavor. */
 function unitId(id: string | null | undefined): string {
   if (!id) return "UNIT / ----";
-  const tail = id.replace(/[^a-z0-9]/gi, "").slice(-4).toUpperCase();
+  const tail = id
+    .replace(/[^a-z0-9]/gi, "")
+    .slice(-4)
+    .toUpperCase();
   return `UNIT / ${tail || "0000"}`;
 }
 
@@ -130,7 +124,10 @@ const SectionHead: React.FC<{
       <span aria-hidden className="text-muted-foreground">
         ]
       </span>
-      <span aria-hidden className="ml-1 flex-1 border-t border-dashed border-border/70" />
+      <span
+        aria-hidden
+        className="ml-1 flex-1 border-t border-dashed border-border/70"
+      />
     </div>
   );
 };
@@ -161,7 +158,16 @@ const TelemetryRow: React.FC<{
   hueKey?: string | null;
   statusDot?: "online" | "idle" | "alert" | null;
   children?: React.ReactNode;
-}> = ({ avatarUrl, fallback, name, unit, meta, hueKey, statusDot, children }) => {
+}> = ({
+  avatarUrl,
+  fallback,
+  name,
+  unit,
+  meta,
+  hueKey,
+  statusDot,
+  children,
+}) => {
   return (
     <div
       className={cn(
@@ -272,7 +278,10 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
     [getToken],
   );
 
-  const connectionsQuery = useConnectionHubConnections(user?.id, studentDiscovery);
+  const connectionsQuery = useConnectionHubConnections(
+    user?.id,
+    studentDiscovery,
+  );
   const incomingQuery = useConnectionHubIncoming(user?.id, studentDiscovery);
   const outgoingQuery = useConnectionHubOutgoing(user?.id, studentDiscovery);
 
@@ -346,13 +355,16 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
       } else {
         setSentRequests((prev) => [...prev, receiverId]);
         toast.success("Request dispatched");
-        await enqueueSocialPushNotification({
+        const outgoingPush = await enqueueSocialPushNotification({
           recipientUserId: receiverId,
           title: "New connection request",
           body: `${user.firstName ?? "Someone"} wants to connect with you`,
-          url: `/home`,
+          url: "/home",
           sourceType: "social",
         });
+        if (!outgoingPush.ok) {
+          toast.error(outgoingPush.message);
+        }
         await Promise.all([
           queryClient.invalidateQueries({
             queryKey: connectionHubKeys.outgoing(user.id),
@@ -375,13 +387,16 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
     try {
       await studentDiscovery.acceptConnectionRequest(requesterId, user.id);
       toast.success("Connection accepted.");
-      await enqueueSocialPushNotification({
+      const acceptedPush = await enqueueSocialPushNotification({
         recipientUserId: requesterId,
         title: "Request accepted",
         body: `${user.firstName ?? "Your connection"} accepted your request`,
-        url: `/home`,
+        url: "/home",
         sourceType: "social",
       });
+      if (!acceptedPush.ok) {
+        toast.error(acceptedPush.message);
+      }
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: connectionHubKeys.connections(user.id),
@@ -395,7 +410,9 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
       ]);
     } catch (err) {
       console.error("[social:acceptRequest]", err);
-      toast.error("Couldn't accept the request. Check your connection and try again.");
+      toast.error(
+        "Couldn't accept the request. Check your connection and try again.",
+      );
     }
   };
 
@@ -413,7 +430,9 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
       ]);
     } catch (err) {
       console.error("[social:rejectRequest]", err);
-      toast.error("Couldn't decline the request. Check your connection and try again.");
+      toast.error(
+        "Couldn't decline the request. Check your connection and try again.",
+      );
     }
   };
 
@@ -577,7 +596,9 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
       setChatSheetOpen(true);
     } catch (err) {
       console.error("[social:startChat]", err);
-      toast.error("Couldn't open the chat. Check your connection and try again.");
+      toast.error(
+        "Couldn't open the chat. Check your connection and try again.",
+      );
     }
   };
 
@@ -628,9 +649,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
                       <motion.div key={result.clerk_user_id} {...rowMotion}>
                         <TelemetryRow
                           avatarUrl={result.avatar_url}
-                          fallback={connectionDisplayInitials(
-                            result.full_name,
-                          )}
+                          fallback={connectionDisplayInitials(result.full_name)}
                           hueKey={result.clerk_user_id}
                           name={result.full_name ?? "Unknown"}
                           unit={unitId(result.clerk_user_id)}
@@ -710,14 +729,18 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
                         <SquareBtn
                           tone="danger"
                           aria-label="Dismiss request"
-                          onClick={() => handleRejectRequest(request.requester_id)}
+                          onClick={() =>
+                            handleRejectRequest(request.requester_id)
+                          }
                         >
                           <X className="h-3.5 w-3.5" weight="bold" />
                         </SquareBtn>
                         <SquareBtn
                           tone="accept"
                           aria-label="Accept request"
-                          onClick={() => handleAcceptRequest(request.requester_id)}
+                          onClick={() =>
+                            handleAcceptRequest(request.requester_id)
+                          }
                         >
                           <Check className="h-3.5 w-3.5" weight="bold" />
                           <span className="hidden sm:inline">ACCEPT</span>
@@ -884,7 +907,9 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-destructive"
-                                onClick={() => handleBlock(profile.clerk_user_id)}
+                                onClick={() =>
+                                  handleBlock(profile.clerk_user_id)
+                                }
                               >
                                 <Prohibit
                                   className="mr-2 h-4 w-4"
@@ -900,10 +925,7 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
                                   )
                                 }
                               >
-                                <Flag
-                                  className="mr-2 h-4 w-4"
-                                  weight="bold"
-                                />
+                                <Flag className="mr-2 h-4 w-4" weight="bold" />
                                 Report
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -980,7 +1002,8 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
               <span className="font-medium text-foreground">
                 {reportTarget?.name ?? "this student"}
               </span>
-              . Tap below to open your email app with a draft to MemoSpark support.
+              . Tap below to open your email app with a draft to MemoSpark
+              support.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">

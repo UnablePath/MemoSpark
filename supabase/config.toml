@@ -257,4 +257,11 @@ gcp_jwt_path = "supabase/gcloud.json"
 # A mapping of function name to import map, used to resolve dependencies for edge functions.
 # See: https://supabase.com/docs/guides/functions/import-maps
 [functions."clerk-webhooks"]
-verify_jwt = false 
+verify_jwt = false
+
+# push-deliver is invoked only by push-scheduler (and trusted jobs) with x-cron-secret
+# and/or Authorization: Bearer <SERVICE_ROLE>. Hosted projects may use non-JWT secrets
+# (sb_secret_*) for SUPABASE_SERVICE_ROLE_KEY; Edge gateway verify_jwt rejects those with
+# UNAUTHORIZED_INVALID_JWT_FORMAT (401) before this code runs. Authentication remains in-code.
+[functions.push-deliver]
+verify_jwt = false

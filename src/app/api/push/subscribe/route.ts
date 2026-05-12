@@ -1,5 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
+import { schedulePushDrain } from "@/lib/notifications/wakePushScheduler";
 import { supabaseServerAdmin } from "@/lib/supabase/server";
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 type PushSubscriptionJson = {
@@ -23,11 +24,10 @@ export async function POST(req: Request) {
     );
   }
 
-  const subUnknown = await req.json() as unknown;
+  const subUnknown = (await req.json()) as unknown;
   const sub = subUnknown as PushSubscriptionJson;
 
-  const endpoint =
-    typeof sub?.endpoint === "string" ? sub.endpoint.trim() : "";
+  const endpoint = typeof sub?.endpoint === "string" ? sub.endpoint.trim() : "";
   const p256dh =
     typeof sub?.keys?.p256dh === "string" ? sub.keys.p256dh.trim() : "";
   const authKey =
@@ -47,19 +47,18 @@ export async function POST(req: Request) {
       ? subUnknown
       : { endpoint, keys: { p256dh, auth: authKey } };
 
-  const { error } = await supabaseServerAdmin.from("push_subscriptions")
-    .upsert(
-      {
-        user_id: userId,
-        endpoint,
-        p256dh_key: p256dh,
-        auth_key: authKey,
-        subscription_json: subscriptionJson as Record<string, unknown>,
-        user_agent: userAgent,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" },
-    );
+  const { error } = await supabaseServerAdmin.from("push_subscriptions").upsert(
+    {
+      user_id: userId,
+      endpoint,
+      p256dh_key: p256dh,
+      auth_key: authKey,
+      subscription_json: subscriptionJson as Record<string, unknown>,
+      user_agent: userAgent,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
 
   if (error) {
     console.error("[push:subscribe]", error);
@@ -85,6 +84,8 @@ export async function POST(req: Request) {
 
   if (rpcErr) {
     console.error("[push:subscribe/welcome_notify]", rpcErr);
+  } else {
+    schedulePushDrain();
   }
 
   return NextResponse.json({ success: true });
@@ -103,7 +104,9 @@ export async function DELETE() {
     );
   }
 
-  const { error } = await supabaseServerAdmin.from("push_subscriptions").delete()
+  const { error } = await supabaseServerAdmin
+    .from("push_subscriptions")
+    .delete()
     .eq("user_id", userId);
 
   if (error) {

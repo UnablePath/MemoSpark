@@ -1,15 +1,33 @@
-import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
-import { supabaseServerAdmin } from "@/lib/supabase/server";
 import {
   cancelPendingStreakNotifications,
   enqueueStreakPushNotification,
 } from "@/lib/notifications/streakPushSchedule";
+import { schedulePushDrain } from "@/lib/notifications/wakePushScheduler";
+import { createSlidingWindowLimiter } from "@/lib/rate-limit-memory";
+import { supabaseServerAdmin } from "@/lib/supabase/server";
+import { auth } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+
+const streakSchedulePostLimiter = createSlidingWindowLimiter({
+  windowMs: 60_000,
+  max: 20,
+});
 
 export async function POST(req: Request) {
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!streakSchedulePostLimiter.allow(`push:streak-schedule:${userId}`)) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "Too many streak reminder updates in a short window. Try again shortly.",
+      },
+      { status: 429 },
+    );
   }
 
   if (!supabaseServerAdmin) {
@@ -19,15 +37,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const bodyUnknown = await req.json() as {
+  const bodyUnknown = (await req.json()) as {
     action?: string;
     currentStreak?: number;
     timeOfDay?: string;
   };
 
-  const actionRaw = typeof bodyUnknown.action === "string"
-    ? bodyUnknown.action
-    : "enable";
+  const actionRaw =
+    typeof bodyUnknown.action === "string" ? bodyUnknown.action : "enable";
   const action = actionRaw.trim().toLowerCase();
 
   if (action === "disable" || action === "cancel") {
@@ -83,10 +100,13 @@ export async function POST(req: Request) {
   );
 
   if (!enqueue.ok) {
-    return NextResponse.json({
-      success: false,
-      error: "Couldn't schedule streak reminder. Try again later.",
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Couldn't schedule streak reminder. Try again later.",
+      },
+      { status: 500 },
+    );
   }
 
   const streakEnableAnalyticsUpsert = await supabaseServerAdmin
@@ -109,6 +129,8 @@ export async function POST(req: Request) {
       streakEnableAnalyticsUpsert.error,
     );
   }
+
+  schedulePushDrain();
 
   return NextResponse.json({
     success: true,

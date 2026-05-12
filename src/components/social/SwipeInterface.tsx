@@ -2,10 +2,13 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { enqueueSocialPushNotification } from "@/lib/notifications/sendSocialPushClient";
-import { StudentDiscovery, type UserSearchResult } from "@/lib/social/StudentDiscovery";
+import {
+  StudentDiscovery,
+  type UserSearchResult,
+} from "@/lib/social/StudentDiscovery";
 import type { UserProfile } from "@/lib/social/StudentDiscovery";
+import { cn } from "@/lib/utils";
 import { useAuth, useUser } from "@clerk/nextjs";
 import {
   ArrowClockwise,
@@ -26,6 +29,11 @@ interface SwipeInterfaceProps {
   onSwipeModeChange?: (isSwipeMode: boolean) => void;
 }
 
+/** Narrow ref surface used from `react-tinder-card`. */
+interface TinderSwipeCardHandle {
+  swipe: (direction: string) => void | Promise<void>;
+}
+
 export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({
   onMatch,
   onSwipeModeChange,
@@ -36,7 +44,9 @@ export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({
 
   const [studentDiscovery, setStudentDiscovery] =
     useState<StudentDiscovery | null>(null);
-  const [recommendations, setRecommendations] = useState<UserSearchResult[]>([]);
+  const [recommendations, setRecommendations] = useState<UserSearchResult[]>(
+    [],
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,9 +90,9 @@ export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({
 
   const childRefs = useMemo(
     () =>
-      Array(recommendations.length)
-        .fill(0)
-        .map(() => createRef<any>()),
+      Array.from({ length: recommendations.length }, () =>
+        createRef<TinderSwipeCardHandle | null>(null),
+      ),
     [recommendations.length],
   );
 
@@ -90,34 +100,47 @@ export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({
     setSwipedUsers((prev) => [...prev, userSwiped.clerk_user_id]);
 
     if (direction === "right") {
-      try {
-        const status = await studentDiscovery?.sendConnectionRequest(
-          user?.id!,
-          userSwiped.clerk_user_id,
+      const studentId = user?.id;
+      if (!studentDiscovery || !studentId) {
+        toast.error(
+          "Couldn't send request. Sign in again or check your connection.",
         );
-        if (status === "accepted") {
-          toast.success("It's a match.");
-          onMatch?.(userSwiped as UserProfile);
-          await enqueueSocialPushNotification({
-            recipientUserId: userSwiped.clerk_user_id,
-            title: "New connection",
-            body: `${user?.firstName ?? "Someone"} just matched with you!`,
-            url: "/home",
-            sourceType: "social",
-          });
-        } else {
-          toast.success("Request sent");
-          await enqueueSocialPushNotification({
-            recipientUserId: userSwiped.clerk_user_id,
-            title: "New connection request",
-            body: `${user?.firstName ?? "Someone"} wants to connect with you`,
-            url: "/home",
-            sourceType: "social",
-          });
+      } else {
+        try {
+          const status = await studentDiscovery.sendConnectionRequest(
+            studentId,
+            userSwiped.clerk_user_id,
+          );
+          if (status === "accepted") {
+            toast.success("It's a match.");
+            onMatch?.(userSwiped as UserProfile);
+            const matchPush = await enqueueSocialPushNotification({
+              recipientUserId: userSwiped.clerk_user_id,
+              title: "New connection",
+              body: `${user?.firstName ?? "Someone"} just matched with you!`,
+              url: "/home",
+              sourceType: "social",
+            });
+            if (!matchPush.ok) {
+              toast.error(matchPush.message);
+            }
+          } else {
+            toast.success("Request sent");
+            const swipeRequestPush = await enqueueSocialPushNotification({
+              recipientUserId: userSwiped.clerk_user_id,
+              title: "New connection request",
+              body: `${user?.firstName ?? "Someone"} wants to connect with you`,
+              url: "/home",
+              sourceType: "social",
+            });
+            if (!swipeRequestPush.ok) {
+              toast.error(swipeRequestPush.message);
+            }
+          }
+        } catch (error) {
+          console.error("[social:swipe:send-request]", error);
+          toast.error("Couldn't send request");
         }
-      } catch (error) {
-        console.error("[social:swipe:send-request]", error);
-        toast.error("Couldn't send request");
       }
     }
     setCurrentIndex((prev) => prev + 1);
@@ -189,7 +212,11 @@ export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({
           size="sm"
           className="rounded-full"
         >
-          <ArrowClockwise className="mr-1.5 h-4 w-4" weight="bold" aria-hidden />
+          <ArrowClockwise
+            className="mr-1.5 h-4 w-4"
+            weight="bold"
+            aria-hidden
+          />
           Retry
         </Button>
       </div>
@@ -218,7 +245,11 @@ export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({
           size="sm"
           className="rounded-full"
         >
-          <ArrowClockwise className="mr-1.5 h-4 w-4" weight="bold" aria-hidden />
+          <ArrowClockwise
+            className="mr-1.5 h-4 w-4"
+            weight="bold"
+            aria-hidden
+          />
           Reset deck
         </Button>
       </div>
@@ -228,8 +259,8 @@ export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({
   return (
     <div className="flex w-full flex-col items-center gap-6">
       <p className="max-w-md text-center text-xs leading-relaxed text-muted-foreground">
-        Suggested for you from shared subjects and interests, using the same signals we use
-        in search, not a random list.
+        Suggested for you from shared subjects and interests, using the same
+        signals we use in search, not a random list.
       </p>
       <div className="relative w-full max-w-[22rem]">
         <div className="pointer-events-none absolute -top-3 right-1 z-40 flex items-center gap-1.5 rounded-full bg-background/80 px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-[0.18em] text-muted-foreground shadow-[0_2px_6px_-3px_hsl(var(--foreground)/0.2)]">
@@ -272,9 +303,7 @@ export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({
                 <motion.article
                   aria-label={`${rec.full_name ?? "Student profile"} card`}
                   animate={
-                    isTopCard && !reduceMotion
-                      ? { y: [0, -3, 0] }
-                      : { y: 0 }
+                    isTopCard && !reduceMotion ? { y: [0, -3, 0] } : { y: 0 }
                   }
                   transition={
                     isTopCard && !reduceMotion
