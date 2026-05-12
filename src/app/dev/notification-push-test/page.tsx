@@ -2,8 +2,8 @@
 
 import { useUser } from "@clerk/nextjs";
 import {
+  AlertCircle,
   CheckCircle2,
-  CircleAlert,
   Loader2,
   Send,
   Sparkles,
@@ -186,7 +186,7 @@ export default function NotificationPushTestPage() {
               {isSupported ? (
                 <CheckCircle2 className="size-4 text-emerald-600" />
               ) : (
-                <CircleAlert className="size-4 text-amber-600" />
+                <AlertCircle className="size-4 text-amber-600" />
               )}
               <span>
                 Browser push support:{" "}
@@ -197,7 +197,7 @@ export default function NotificationPushTestPage() {
               {vapidConfigured ? (
                 <CheckCircle2 className="size-4 text-emerald-600" />
               ) : (
-                <CircleAlert className="size-4 text-red-600" />
+                <AlertCircle className="size-4 text-red-600" />
               )}
               <span>
                 <code className="text-xs">NEXT_PUBLIC_VAPID_PUBLIC_KEY</code> on
@@ -212,7 +212,7 @@ export default function NotificationPushTestPage() {
               {isSubscribed ? (
                 <CheckCircle2 className="size-4 text-emerald-600" />
               ) : (
-                <CircleAlert className="size-4 text-muted-foreground" />
+                <AlertCircle className="size-4 text-muted-foreground" />
               )}
               <span>
                 Push subscription saved:{" "}
@@ -223,7 +223,7 @@ export default function NotificationPushTestPage() {
               {systemNoticesOn ? (
                 <CheckCircle2 className="size-4 text-emerald-600" />
               ) : (
-                <CircleAlert className="size-4 text-amber-600" />
+                <AlertCircle className="size-4 text-amber-600" />
               )}
               <span>
                 System notices preference:{" "}
