@@ -32,7 +32,6 @@ declare global {
 
 declare global {
   interface Window {
-    OneSignal?: unknown
     gtag?: (...args: unknown[]) => void
     _pwaSWListenerAdded?: boolean
   }

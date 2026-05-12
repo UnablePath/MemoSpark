@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       nextSteps: [
         '1. Refresh the page',
         '2. Check browser notification permission (should be "Allow")',
-        '3. Try subscribing again from Settings or OneSignal test page',
+        '3. Try subscribing again from Settings → Notifications (Web Push)',
         '4. You should see the browser permission prompt again'
       ]
     });

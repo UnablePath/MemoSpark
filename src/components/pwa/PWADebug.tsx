@@ -176,17 +176,19 @@ export default function PWADebug({ className = '' }: PWADebugProps) {
             <div>User Agent: {debugInfo.userAgent.substring(0, 50)}...</div>
             
             <details className="mt-2">
-              <summary className="cursor-pointer text-amber-700 font-medium">OneSignal CDN Test</summary>
+              <summary className="cursor-pointer text-amber-700 font-medium">
+                Push delivery checklist
+              </summary>
               <div className="mt-2 p-2 bg-amber-100 rounded text-xs">
-                <p>If OneSignal is stuck on "Initializing...", try:</p>
                 <ul className="list-disc list-inside mt-1 space-y-1">
-                  <li>Check if <code>cdn.onesignal.com</code> is reachable</li>
-                  <li>Disable VPN/proxy temporarily</li>
-                  <li>Try a different network (mobile hotspot)</li>
-                  <li>Check corporate firewall settings</li>
-                  <li>Clear browser cache and cookies</li>
+                  <li>
+                    MemoSpark registers <code>/sw.js</code> root scope{' '}
+                    <code>/</code>
+                  </li>
+                  <li>HTTPS or localhost is required by the browser.</li>
+                  <li>If delivery stalls, toggle notifications off/on in Settings.</li>
+                  <li>Corporate networks may block upstream push relays.</li>
                 </ul>
-                <p className="mt-2 font-semibold">The app works normally without OneSignal!</p>
               </div>
             </details>
           </div>

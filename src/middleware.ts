@@ -12,8 +12,6 @@ const devOnlyPublicRoutes =
     ? ([
         "/pwa-test",
         "/pwa-debug",
-        "/onesignal-test",
-        "/api/test-notification",
         "/api/test-manifest",
         "/api/debug-clerk",
       ] as const)
@@ -34,7 +32,6 @@ const isPublicRoute = createRouteMatcher([
   "/api/webhooks(.*)",
   "/api/clerk-webhooks",
   "/api/webhook-health",
-  "/OneSignalSDKWorker.js",
   "/sw.js",
   "/manifest",
   "/manifest.json",

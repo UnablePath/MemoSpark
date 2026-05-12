@@ -232,7 +232,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Create Supabase client with service role
-    const supabase = createServiceRoleClient();
+    const supabase = supabaseServerAdmin;
     if (!supabase) {
       return NextResponse.json({ error: 'Database not available' }, { status: 500 });
     }

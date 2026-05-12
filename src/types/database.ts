@@ -1022,7 +1022,7 @@ export type Database = {
           external_user_id: string | null
           id: string
           notification_id: string | null
-          onesignal_notification_id: string | null
+          external_delivery_id: string | null
           timestamp: string | null
           user_agent: string | null
           user_id: string | null
@@ -1035,7 +1035,7 @@ export type Database = {
           external_user_id?: string | null
           id?: string
           notification_id?: string | null
-          onesignal_notification_id?: string | null
+          external_delivery_id?: string | null
           timestamp?: string | null
           user_agent?: string | null
           user_id?: string | null
@@ -1048,7 +1048,7 @@ export type Database = {
           external_user_id?: string | null
           id?: string
           notification_id?: string | null
-          onesignal_notification_id?: string | null
+          external_delivery_id?: string | null
           timestamp?: string | null
           user_agent?: string | null
           user_id?: string | null
@@ -1129,57 +1129,39 @@ export type Database = {
       }
       notification_preferences: {
         Row: {
-          achievements: boolean | null
-          break_reminders: boolean | null
-          clerk_user_id: string | null
-          created_at: string | null
-          daily_summary: boolean | null
-          email_enabled: boolean | null
-          id: string
-          push_enabled: boolean | null
+          achievements: boolean
           quiet_hours_end: string | null
           quiet_hours_start: string | null
-          reminder_minutes_before: number | null
-          study_sessions: boolean | null
-          task_reminders: boolean | null
-          timezone: string | null
-          updated_at: string | null
+          social_activity: boolean
+          streak_alerts: boolean
+          system_notices: boolean
+          task_reminders: boolean
+          timezone: string
+          updated_at: string
           user_id: string
         }
         Insert: {
-          achievements?: boolean | null
-          break_reminders?: boolean | null
-          clerk_user_id?: string | null
-          created_at?: string | null
-          daily_summary?: boolean | null
-          email_enabled?: boolean | null
-          id?: string
-          push_enabled?: boolean | null
+          achievements?: boolean
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
-          reminder_minutes_before?: number | null
-          study_sessions?: boolean | null
-          task_reminders?: boolean | null
-          timezone?: string | null
-          updated_at?: string | null
+          social_activity?: boolean
+          streak_alerts?: boolean
+          system_notices?: boolean
+          task_reminders?: boolean
+          timezone?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
-          achievements?: boolean | null
-          break_reminders?: boolean | null
-          clerk_user_id?: string | null
-          created_at?: string | null
-          daily_summary?: boolean | null
-          email_enabled?: boolean | null
-          id?: string
-          push_enabled?: boolean | null
+          achievements?: boolean
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
-          reminder_minutes_before?: number | null
-          study_sessions?: boolean | null
-          task_reminders?: boolean | null
-          timezone?: string | null
-          updated_at?: string | null
+          social_activity?: boolean
+          streak_alerts?: boolean
+          system_notices?: boolean
+          task_reminders?: boolean
+          timezone?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -1195,7 +1177,7 @@ export type Database = {
           data: Json | null
           icon_url: string | null
           id: string
-          onesignal_notification_id: string | null
+          external_delivery_id: string | null
           priority: number | null
           scheduled_for: string | null
           sent_at: string | null
@@ -1213,7 +1195,7 @@ export type Database = {
           data?: Json | null
           icon_url?: string | null
           id?: string
-          onesignal_notification_id?: string | null
+          external_delivery_id?: string | null
           priority?: number | null
           scheduled_for?: string | null
           sent_at?: string | null
@@ -1231,13 +1213,79 @@ export type Database = {
           data?: Json | null
           icon_url?: string | null
           id?: string
-          onesignal_notification_id?: string | null
+          external_delivery_id?: string | null
           priority?: number | null
           scheduled_for?: string | null
           sent_at?: string | null
           status?: string | null
           title?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          actions: Json | null
+          body: string
+          category: string
+          created_at: string
+          extra: Json | null
+          failure_reason: string | null
+          icon: string | null
+          id: string
+          image: string | null
+          read_at: string | null
+          retry_count: number
+          scheduled_for: string
+          sent_at: string | null
+          source_id: string | null
+          source_type: string | null
+          status: string
+          title: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          actions?: Json | null
+          body: string
+          category: string
+          created_at?: string
+          extra?: Json | null
+          failure_reason?: string | null
+          icon?: string | null
+          id?: string
+          image?: string | null
+          read_at?: string | null
+          retry_count?: number
+          scheduled_for?: string
+          sent_at?: string | null
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
+          title: string
+          url?: string
+          user_id: string
+        }
+        Update: {
+          actions?: Json | null
+          body?: string
+          category?: string
+          created_at?: string
+          extra?: Json | null
+          failure_reason?: string | null
+          icon?: string | null
+          id?: string
+          image?: string | null
+          read_at?: string | null
+          retry_count?: number
+          scheduled_for?: string
+          sent_at?: string | null
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
+          title?: string
+          url?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1600,55 +1648,37 @@ export type Database = {
       }
       push_subscriptions: {
         Row: {
-          auth_key: string | null
-          clerk_user_id: string | null
-          created_at: string | null
-          device_type: string | null
-          endpoint: string | null
-          external_user_id: string | null
+          auth_key: string
+          created_at: string
+          endpoint: string
           id: string
-          is_active: boolean | null
-          last_used: string | null
-          onesignal_player_id: string | null
-          p256dh_key: string | null
-          platform: string | null
-          updated_at: string | null
+          p256dh_key: string
+          subscription_json: Json
+          updated_at: string
           user_agent: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
-          auth_key?: string | null
-          clerk_user_id?: string | null
-          created_at?: string | null
-          device_type?: string | null
-          endpoint?: string | null
-          external_user_id?: string | null
+          auth_key: string
+          created_at?: string
+          endpoint: string
           id?: string
-          is_active?: boolean | null
-          last_used?: string | null
-          onesignal_player_id?: string | null
-          p256dh_key?: string | null
-          platform?: string | null
-          updated_at?: string | null
+          p256dh_key: string
+          subscription_json: Json
+          updated_at?: string
           user_agent?: string | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
-          auth_key?: string | null
-          clerk_user_id?: string | null
-          created_at?: string | null
-          device_type?: string | null
-          endpoint?: string | null
-          external_user_id?: string | null
+          auth_key?: string
+          created_at?: string
+          endpoint?: string
           id?: string
-          is_active?: boolean | null
-          last_used?: string | null
-          onesignal_player_id?: string | null
-          p256dh_key?: string | null
-          platform?: string | null
-          updated_at?: string | null
+          p256dh_key?: string
+          subscription_json?: Json
+          updated_at?: string
           user_agent?: string | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -2132,7 +2162,7 @@ export type Database = {
           id: string
           is_final_reminder: boolean | null
           message: string
-          onesignal_notification_id: string | null
+          external_delivery_id: string | null
           priority_level: number | null
           processed_at: string | null
           reminder_type: string
@@ -2148,7 +2178,7 @@ export type Database = {
           id?: string
           is_final_reminder?: boolean | null
           message: string
-          onesignal_notification_id?: string | null
+          external_delivery_id?: string | null
           priority_level?: number | null
           processed_at?: string | null
           reminder_type?: string
@@ -2164,7 +2194,7 @@ export type Database = {
           id?: string
           is_final_reminder?: boolean | null
           message?: string
-          onesignal_notification_id?: string | null
+          external_delivery_id?: string | null
           priority_level?: number | null
           processed_at?: string | null
           reminder_type?: string

@@ -3,6 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { enqueueSocialPushNotification } from "@/lib/notifications/sendSocialPushClient";
 import { StudentDiscovery, type UserSearchResult } from "@/lib/social/StudentDiscovery";
 import type { UserProfile } from "@/lib/social/StudentDiscovery";
 import { useAuth, useUser } from "@clerk/nextjs";
@@ -97,42 +98,22 @@ export const SwipeInterface: React.FC<SwipeInterfaceProps> = ({
         if (status === "accepted") {
           toast.success("It's a match.");
           onMatch?.(userSwiped as UserProfile);
-          try {
-            await fetch("/api/notifications/send", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                userId: userSwiped.clerk_user_id,
-                notification: {
-                  app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
-                  headings: { en: "New connection" },
-                  contents: {
-                    en: `${user?.firstName ?? "Someone"} just matched with you!`,
-                  },
-                  data: { type: "connection_accept" },
-                },
-              }),
-            });
-          } catch {}
+          await enqueueSocialPushNotification({
+            recipientUserId: userSwiped.clerk_user_id,
+            title: "New connection",
+            body: `${user?.firstName ?? "Someone"} just matched with you!`,
+            url: "/home",
+            sourceType: "social",
+          });
         } else {
           toast.success("Request sent");
-          try {
-            await fetch("/api/notifications/send", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                userId: userSwiped.clerk_user_id,
-                notification: {
-                  app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
-                  headings: { en: "New connection request" },
-                  contents: {
-                    en: `${user?.firstName ?? "Someone"} wants to connect with you`,
-                  },
-                  data: { type: "connection_request" },
-                },
-              }),
-            });
-          } catch {}
+          await enqueueSocialPushNotification({
+            recipientUserId: userSwiped.clerk_user_id,
+            title: "New connection request",
+            body: `${user?.firstName ?? "Someone"} wants to connect with you`,
+            url: "/home",
+            sourceType: "social",
+          });
         }
       } catch (error) {
         console.error("[social:swipe:send-request]", error);

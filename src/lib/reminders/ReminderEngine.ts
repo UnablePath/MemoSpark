@@ -1,4 +1,7 @@
-import { taskReminderService } from '@/lib/notifications/TaskReminderService';
+import {
+  cancelPendingStreakNotifications,
+  enqueueStreakPushNotification,
+} from '@/lib/notifications/streakPushSchedule';
 import { BASE_URL } from '@/lib/seo/seoConfig';
 import { supabase } from '@/lib/supabase/client';
 import { StuCelebration, type CelebrationType } from '@/lib/stu/StuCelebration';
@@ -341,33 +344,35 @@ export class ReminderEngine {
         return false;
       }
       
-      const { data: task, error } = await client
+      const { data: task, error: fetchTaskError } = await client
         .from('tasks')
-        .select('*')
+        .select('title')
         .eq('id', taskId)
-        .eq('user_id', userId)
+        .eq('clerk_user_id', userId)
         .single();
 
-      if (error || !task) {
-        console.error('Task not found for snooze:', error);
+      if (fetchTaskError || !task) {
+        console.error('Task not found for snooze:', fetchTaskError);
         return false;
       }
 
-      // Create new reminder at snoozed time
-      const snoozeTime = new Date(Date.now() + (snoozeMinutes * 60 * 1000));
-      const taskForSnooze = {
-        ...task,
-        reminder_offset_minutes: 0 // Send immediately when snooze time arrives
-      };
+      const snoozeTime = new Date(Date.now() + snoozeMinutes * 60 * 1000);
 
-      // Schedule the snoozed reminder with encouraging Stu animation
-      const success = await this.scheduleReminderWithStu(
-        taskForSnooze,
-        'encouraging',
-        `🔔 Snooze time's up! Ready to tackle "${task.title}"?`,
-        false
-      );
+      const { error: updateError } = await client
+        .from("tasks")
+        .update({
+          due_date: snoozeTime.toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", taskId)
+        .eq("clerk_user_id", userId);
 
+      if (updateError) {
+        console.error("Error snoozing task due_date:", updateError);
+        return false;
+      }
+
+      const success = true;
       // Track snooze analytics (only if we have service role permissions)
       if (this.supabaseService) {
         try {
@@ -423,7 +428,7 @@ export class ReminderEngine {
           completed_at: new Date().toISOString()
         })
         .eq('id', taskId)
-        .eq('user_id', userId);
+        .eq('clerk_user_id', userId);
 
       if (error) {
         console.error('Error completing task:', error);
@@ -578,8 +583,21 @@ export class ReminderEngine {
     try {
       console.log(`🗑️ Cancelling daily streak reminders for user: ${userId}`);
 
-      // OneSignal doesn't support cancelling scheduled notifications via API
-      // But we can mark them as disabled in user preferences
+      if (typeof window === 'undefined') {
+        try {
+          const { supabaseServerAdmin } = await import('@/lib/supabase/server');
+          if (supabaseServerAdmin != null) {
+            await cancelPendingStreakNotifications(
+              supabaseServerAdmin,
+              userId,
+            );
+          }
+        } catch (cancelErr: unknown) {
+          console.warn('⚠️ Failed to cancel streak notifications queue:', cancelErr);
+        }
+      }
+
+      // Update analytics prefs for tooling that reads user_analytics
       if (this.supabaseService) {
         try {
           await this.supabaseService
@@ -615,75 +633,43 @@ export class ReminderEngine {
     title: string,
     stuAnimation: 'gentle' | 'encouraging' | 'urgent',
     reminderTime: Date,
-    currentStreak: number
+    currentStreak: number,
   ): Promise<boolean> {
+    void message;
+    void title;
+    void stuAnimation;
     try {
-      console.log(`🎭 Scheduling streak reminder with Stu animation: ${stuAnimation}`);
-
-      // Use existing notification API infrastructure
-      const apiRoot = this.resolveMemoSparkApiOrigin();
-      const scheduleUrl = `${apiRoot}/api/notifications/schedule`;
-      const response = await fetch(scheduleUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: userId,
-          notification: {
-            contents: { en: message },
-            headings: { en: title },
-            data: {
-              type: 'daily_streak_reminder',
-              stuAnimation: stuAnimation,
-              currentStreak: currentStreak,
-              url: '/dashboard',
-              actionButtons: [
-                {
-                  id: 'check_in',
-                  text: '🔥 Check In Now',
-                  url: '/dashboard?action=check_in'
-                },
-                {
-                  id: 'snooze',
-                  text: '⏰ Remind in 1hr',
-                  url: '/dashboard?action=snooze_streak'
-                }
-              ]
-            },
-            url: '/dashboard?tab=streaks',
-            priority: currentStreak > 7 ? 7 : 5, // Higher priority for longer streaks
-            
-            // iOS-specific configuration for better delivery
-            ios_sound: currentStreak > 14 ? 'tri-tone.caf' : 'default',
-            ios_category: 'STREAK_REMINDER',
-            ios_badgeType: 'Increase',
-            ios_interruption_level: currentStreak > 30 ? 'time-sensitive' : 'active',
-            
-            // Action buttons for iOS
-            buttons: [
-              {
-                id: 'check_in',
-                text: '🔥 Check In',
-                url: '/dashboard?action=check_in'
-              },
-              {
-                id: 'settings', 
-                text: '⚙️ Settings',
-                url: '/settings?tab=notifications'
-              }
-            ]
-          },
-          deliveryTime: reminderTime.toISOString()
-        })
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        console.log(`✅ Streak reminder scheduled with OneSignal ID: ${result.oneSignalId}`);
-        return true;
-      }
-        console.error('❌ Failed to schedule streak reminder:', result.error);
+      if (typeof window !== 'undefined') {
+        console.warn(
+          '[ReminderEngine] Streak push enqueue is server-only — skipped in browser.',
+        );
         return false;
+      }
+
+      const { supabaseServerAdmin } = await import('@/lib/supabase/server');
+      if (supabaseServerAdmin == null) {
+        console.error('[ReminderEngine] supabaseServerAdmin not configured.');
+        return false;
+      }
+
+      const hod = reminderTime.getHours();
+      const min = reminderTime.getMinutes();
+      const timeOfDay = `${hod}:${String(min).padStart(2, '0')}`;
+
+      const result = await enqueueStreakPushNotification(
+        supabaseServerAdmin,
+        userId,
+        currentStreak,
+        timeOfDay,
+      );
+
+      if (!result.ok) {
+        console.error('❌ Failed to enqueue streak push:', result.error);
+        return false;
+      }
+
+      console.log('[ReminderEngine] Streak queued for:', result.scheduledFor);
+      return true;
     } catch (error) {
       console.error('❌ Error in scheduleStreakReminderWithStu:', error);
       return false;
@@ -1040,99 +1026,23 @@ export class ReminderEngine {
    * Schedule a reminder with Stu mascot integration
    */
   private async scheduleReminderWithStu(
-    task: Task, 
-    stuAnimation: string, 
-    message: string, 
-    isFinalReminder: boolean
+    task: Task,
+    stuAnimation: string,
+    message: string,
+    isFinalReminder: boolean,
   ): Promise<boolean> {
     try {
-      console.log(`📱 Scheduling reminder with Stu: ${message}`);
-
-      // Calculate reminder time
-      const dueDate = new Date(task.due_date);
-      const reminderTime = new Date(dueDate.getTime() - (task.reminder_offset_minutes || 15) * 60 * 1000);
-      const now = new Date();
-
-      // Use the same direct API approach as test reminders
-      try {
-        if (reminderTime <= now) {
-          // Send immediate notification using direct API (same as test reminders)
-          console.log("⚡ Sending immediate notification via API");
-          
-          const response = await fetch('/api/notifications/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId: task.user_id,
-              notification: {
-                contents: { en: message },
-                headings: { en: '📋 Task Reminder' },
-                data: {
-                  type: 'smart_reminder',
-                  taskId: task.id,
-                  taskTitle: task.title,
-                  stuAnimation: stuAnimation,
-                  url: '/dashboard'
-                },
-                url: '/dashboard',
-                priority: isFinalReminder ? 8 : 5
-              }
-            })
-          });
-
-          const result = await response.json();
-          if (response.ok && result.success) {
-            console.log('✅ Immediate notification sent via API:', result.oneSignalId);
-            return true;
-          }
-            console.warn('⚠️ Immediate notification failed:', result.error);
-        } else {
-          // Schedule future notification using direct API (same as test reminders)
-          console.log(`📅 Scheduling notification via API for: ${reminderTime.toISOString()}`);
-          
-          const response = await fetch('/api/notifications/schedule', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId: task.user_id,
-              notification: {
-                contents: { en: message },
-                headings: { en: '📋 Task Reminder' },
-                data: {
-                  type: 'smart_reminder',
-                  taskId: task.id,
-                  taskTitle: task.title,
-                  stuAnimation: stuAnimation,
-                  url: '/dashboard'
-                },
-                url: '/dashboard',
-                priority: isFinalReminder ? 8 : 5
-              },
-              deliveryTime: reminderTime.toISOString()
-            })
-          });
-
-          const result = await response.json();
-          if (response.ok && result.success) {
-            console.log('✅ Notification scheduled via API:', result.oneSignalId);
-            return true;
-          }
-            console.warn('⚠️ Scheduled notification failed:', result.error);
-        }
-      } catch (apiError) {
-        console.error('❌ Direct API notification failed:', apiError);
-      }
-
-      // Final fallback to TaskReminderService (original approach)
-      try {
-        console.log('🔄 Falling back to TaskReminderService...');
-        await taskReminderService.scheduleTaskReminder(task);
-        console.log('✅ Fallback notification scheduled successfully');
-        return true;
-      } catch (fallbackError) {
-        console.error('❌ All notification methods failed:', fallbackError);
-        return false;
-      }
+      console.log('[reminder-engine:schedule-reminder]', {
+        taskId: task.id,
+        dueIso: task.due_date,
+        stuAnimation,
+        isFinalReminder,
+        messageSnippet: message.slice(0, 160),
+      });
+      console.log(
+        '[reminder-engine] Task reminders are queued from Postgres via tasks.due_date / reminder_settings triggers.',
+      );
+      return true;
     } catch (error) {
       console.error('❌ Error in scheduleReminderWithStu:', error);
       return false;

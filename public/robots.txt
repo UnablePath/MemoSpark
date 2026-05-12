@@ -10,10 +10,8 @@ Disallow: /static/*
 Disallow: *.json$
 Disallow: /onboarding/*
 Disallow: /questionnaire/*
-Disallow: /onesignal-test/*
 Disallow: /pwa-test/*
 Disallow: /pwa-debug/*
-Disallow: /simple-notification-test/*
 Disallow: /test-*
 
 # GPTBot

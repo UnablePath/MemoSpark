@@ -272,52 +272,43 @@ export function usePWA(): PWAState & PWAActions {
 
       for (const registration of registrations) {
         const scope = registration.scope;
-        const scriptURL = registration.active?.scriptURL || "";
+        const worker =
+          registration.active ?? registration.waiting ?? registration.installing;
+        const scriptURL = worker?.scriptURL ?? '';
 
-        logPWAInfo("[PWA] Found registration:", { scope, scriptURL });
+        logPWAInfo('[PWA] Found registration:', { scope, scriptURL });
 
-        // Keep OneSignal service worker if it exists
-        if (
-          scriptURL.includes("OneSignalSDKWorker") ||
-          scope.includes("OneSignal")
-        ) {
-          logPWAInfo("[PWA] Keeping OneSignal service worker:", scope);
+        if (!scriptURL.trim()) {
           continue;
         }
 
-        // Keep our main service worker registration
-        if (
-          scriptURL.includes("sw.js") &&
-          scope === `${window.location.origin}/`
-        ) {
-          logPWAInfo("[PWA] Keeping main MemoSpark service worker:", scope);
+        let pathname = '';
+        try {
+          pathname = new URL(scriptURL, window.location.origin).pathname;
+        } catch {
+          pathname = '';
+        }
+
+        const expectedScope = `${window.location.origin.replace(/\/$/, '')}/`;
+        const canonicalScopeMatches =
+          scope === expectedScope ||
+          scope.replace(/\/$/, '') === window.location.origin;
+        const isMemoSparkCanonical =
+          pathname.endsWith('/sw.js') && canonicalScopeMatches;
+
+        if (isMemoSparkCanonical) {
+          logPWAInfo(
+            '[PWA] Keeping primary MemoSpark service worker:',
+            scope,
+          );
           continue;
         }
 
-        // Unregister conflicting service workers
-        if (
-          scriptURL.includes("sw.js") &&
-          scope !== `${window.location.origin}/`
-        ) {
-          logPWAInfo("[PWA] Unregistering conflicting service worker:", scope);
-          try {
-            await registration.unregister();
-          } catch (error) {
-            console.warn("[PWA] Failed to unregister service worker:", error);
-          }
-        } else if (
-          !scriptURL.includes("sw.js") &&
-          !scriptURL.includes("OneSignal")
-        ) {
-          logPWAInfo("[PWA] Unregistering unknown service worker:", scope);
-          try {
-            await registration.unregister();
-          } catch (error) {
-            console.warn(
-              "[PWA] Failed to unregister unknown service worker:",
-              error,
-            );
-          }
+        logPWAInfo('[PWA] Unregistering non-canonical worker:', scope);
+        try {
+          await registration.unregister();
+        } catch (error) {
+          console.warn('[PWA] Failed to unregister:', error);
         }
       }
 

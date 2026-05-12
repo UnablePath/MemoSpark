@@ -107,6 +107,35 @@ export async function GET(request: NextRequest) {
   }
 }
 
+async function enqueueAchievementPushNotification(params: {
+  clerkUserId: string;
+  achievement: { id: string; name: string; description?: string | null };
+}): Promise<void> {
+  if (!supabaseServerAdmin) return;
+  try {
+    const description =
+      typeof params.achievement.description === "string"
+        ? params.achievement.description
+        : "You unlocked a new badge.";
+
+    const { error } = await supabaseServerAdmin.rpc("notify_user", {
+      p_user_id: params.clerkUserId,
+      p_category: "achievement",
+      p_title: `Badge unlocked: ${params.achievement.name}`,
+      p_body: description,
+      p_url: "/reminders?tab=achievements",
+      p_scheduled_for: new Date().toISOString(),
+      p_source_type: "achievement",
+      p_source_id: params.achievement.id,
+      p_actions: [{ action: "open", title: "View Badge" }],
+      p_extra: { achievementId: params.achievement.id },
+    });
+    if (error) console.error("[achievements:push]", error);
+  } catch (err) {
+    console.error("[achievements:push]", err);
+  }
+}
+
 // POST /api/achievements - Trigger achievement check
 export async function POST(request: NextRequest) {
   try {
@@ -298,6 +327,15 @@ export async function POST(request: NextRequest) {
         console.error('Error awarding coins for achievement:', coinError);
         // Don't fail the whole operation, just log the error
       }
+
+      await enqueueAchievementPushNotification({
+        clerkUserId: userId,
+        achievement: {
+          id: achievement.id,
+          name: achievement.name,
+          description: achievement.description ?? null,
+        },
+      });
 
       return NextResponse.json({
         success: true,
@@ -536,6 +574,15 @@ export async function POST(request: NextRequest) {
 
           // Check for meta-achievements after unlocking a new one
           await checkAndUnlockMetaAchievements(userId, supabaseServerAdmin);
+
+          await enqueueAchievementPushNotification({
+            clerkUserId: userId,
+            achievement: {
+              id: achievement.id,
+              name: achievement.name,
+              description: achievement.description ?? null,
+            },
+          });
 
           unlockedAchievements.push({
             ...achievement,

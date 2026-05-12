@@ -49,14 +49,14 @@ export const useAutoStreak = (enabled = true) => {
           
           // Schedule next day's streak reminder automatically
           try {
-            const response = await fetch('/api/notifications/schedule-daily-streaks', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+            const response = await fetch("/api/push/streak-schedule", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                action: 'enable',
-                timeOfDay: '20:00', // 8PM default
-                currentStreak: result.newStreak
-              })
+                action: "enable",
+                timeOfDay: "20:00",
+                currentStreak: result.newStreak,
+              }),
             });
 
             if (response.ok) {

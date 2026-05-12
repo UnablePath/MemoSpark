@@ -40,6 +40,7 @@ import {
   type UserSearchResult,
 } from "@/lib/social/StudentDiscovery";
 import { cn } from "@/lib/utils";
+import { enqueueSocialPushNotification } from "@/lib/notifications/sendSocialPushClient";
 import { useAuth, useUser } from "@clerk/nextjs";
 import {
   Chat as ChatIcon,
@@ -345,23 +346,13 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
       } else {
         setSentRequests((prev) => [...prev, receiverId]);
         toast.success("Request dispatched");
-        try {
-          await fetch("/api/notifications/send", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              userId: receiverId,
-              notification: {
-                app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
-                headings: { en: "New connection request" },
-                contents: {
-                  en: `${user.firstName ?? "Someone"} wants to connect with you`,
-                },
-                data: { type: "connection_request" },
-              },
-            }),
-          });
-        } catch {}
+        await enqueueSocialPushNotification({
+          recipientUserId: receiverId,
+          title: "New connection request",
+          body: `${user.firstName ?? "Someone"} wants to connect with you`,
+          url: `/home`,
+          sourceType: "social",
+        });
         await Promise.all([
           queryClient.invalidateQueries({
             queryKey: connectionHubKeys.outgoing(user.id),
@@ -384,23 +375,13 @@ export const ConnectionManager: React.FC<ConnectionManagerProps> = ({
     try {
       await studentDiscovery.acceptConnectionRequest(requesterId, user.id);
       toast.success("Connection accepted.");
-      try {
-        await fetch("/api/notifications/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: requesterId,
-            notification: {
-              app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
-              headings: { en: "Request accepted" },
-              contents: {
-                en: `${user.firstName ?? "Your connection"} accepted your request`,
-              },
-              data: { type: "connection_accept" },
-            },
-          }),
-        });
-      } catch {}
+      await enqueueSocialPushNotification({
+        recipientUserId: requesterId,
+        title: "Request accepted",
+        body: `${user.firstName ?? "Your connection"} accepted your request`,
+        url: `/home`,
+        sourceType: "social",
+      });
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: connectionHubKeys.connections(user.id),

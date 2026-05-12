@@ -1,181 +1,137 @@
 'use client';
 
 import type React from 'react';
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Bell, BellOff, AlertCircle, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { useOneSignal } from '@/components/providers/onesignal-provider';
+import { useState } from 'react';
 import { useUser } from '@clerk/nextjs';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Bell, BellOff, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 export const PushNotificationManager: React.FC = () => {
   const { toast } = useToast();
   const { user } = useUser();
   const {
-    isInitialized,
+    isSupported,
+    permission,
     isSubscribed,
-    playerId,
-    error,
+    isLoading,
     subscribe,
     unsubscribe,
-    isOperating
-  } = useOneSignal();
-  
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
+  } = usePushNotifications();
 
-  const handleSubscribe = async () => {
-    setIsLoading(true);
+  const [isTestSending, setIsTestSending] = useState(false);
+
+  const handleSubscribe = async (): Promise<void> => {
     try {
       const success = await subscribe();
       if (success) {
         toast({
-          title: "🔔 Notifications Enabled",
-          description: "You'll now receive push notifications for task reminders and important updates. Database sync completed!",
-          variant: "default",
+          title: 'Notifications enabled',
+          description:
+            'MemoSpark saved your subscription. Task reminders queue in the background.',
+          variant: 'default',
         });
       } else {
         toast({
-          title: "Subscription Failed",
-          description: "Unable to enable notifications. Please check your browser settings and try again.",
-          variant: "destructive",
+          title: 'Could not subscribe',
+          description:
+            permission === 'denied'
+              ? 'Unblock notifications for this site in your browser settings, then try again.'
+              : 'Check your connection and try again.',
+          variant: 'destructive',
         });
       }
     } catch (err) {
-      console.error('Subscription error:', err);
+      console.error('[notifications:subscribe]', err);
       toast({
-        title: "Error",
-        description: "An error occurred while enabling notifications.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Could not finish enabling notifications.',
+        variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const handleUnsubscribe = async () => {
-    setIsLoading(true);
+  const handleUnsubscribe = async (): Promise<void> => {
     try {
       const success = await unsubscribe();
       if (success) {
         toast({
-          title: "Notifications Disabled",
-          description: "You'll no longer receive push notifications.",
-          variant: "default",
+          title: 'Notifications turned off',
+          description: 'We removed this device from push delivery.',
+          variant: 'default',
         });
       } else {
         toast({
-          title: "Unsubscribe Failed",
-          description: "Unable to disable notifications. Please try again.",
-          variant: "destructive",
+          title: 'Could not unsubscribe',
+          description: 'Try again in a moment.',
+          variant: 'destructive',
         });
       }
     } catch (err) {
-      console.error('Unsubscribe error:', err);
+      console.error('[notifications:unsubscribe]', err);
       toast({
-        title: "Error",
-        description: "An error occurred while disabling notifications.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Could not disable notifications.',
+        variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const handleManualSync = async () => {
-    if (!user?.id || !playerId) {
-      toast({
-        title: "Sync Not Available",
-        description: "User must be logged in and subscribed to sync.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSyncing(true);
+  const sendTestPush = async (): Promise<void> => {
+    if (!user?.id || !isSubscribed) return;
+    setIsTestSending(true);
     try {
-      const response = await fetch('/api/notifications/sync-subscription', {
+      const response = await fetch('/api/push/event', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
-          playerId,
-          deviceType: 'web'
+          recipientUserId: user.id,
+          category: 'system',
+          title: 'Test notification',
+          body: 'MemoSpark push pipeline is wired up correctly.',
+          url: '/dashboard',
+          sourceType: 'system',
         }),
       });
 
       if (response.ok) {
         toast({
-          title: "🔄 Sync Successful",
-          description: "OneSignal subscription synced with database. Task reminders will now work!",
-          variant: "default",
+          title: 'Test queued',
+          description:
+            'If you are subscribed on this browser, delivery should arrive within a minute.',
+          variant: 'default',
         });
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to sync subscription');
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error((errBody as { error?: string }).error ?? 'Request failed');
       }
     } catch (err) {
-      console.error('Sync error:', err);
+      console.error('[notifications:test-push]', err);
       toast({
-        title: "Sync Failed",
-        description: err instanceof Error ? err.message : "Unable to sync subscription.",
-        variant: "destructive",
+        title: 'Test failed',
+        description:
+          err instanceof Error ? err.message : 'Unable to enqueue test.',
+        variant: 'destructive',
       });
     } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const sendTestNotification = async () => {
-    if (!playerId) {
-      toast({
-        title: "No Player ID",
-        description: "You need to be subscribed to receive test notifications.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/test-notification', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          playerId,
-          type: 'test'
-        }),
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Test Notification Sent",
-          description: "Check your device for the test notification.",
-          variant: "default",
-        });
-      } else {
-        throw new Error('Failed to send test notification');
-      }
-    } catch (err) {
-      console.error('Test notification error:', err);
-      toast({
-        title: "Test Failed",
-        description: "Unable to send test notification.",
-        variant: "destructive",
-      });
+      setIsTestSending(false);
     }
   };
 
   const getStatusIcon = () => {
-    if (!isInitialized) {
-      return <Loader2 className="h-4 w-4 animate-spin" />;
+    if (!isSupported) {
+      return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
     }
-    if (error) {
+    if (permission === 'denied') {
       return <AlertCircle className="h-4 w-4 text-destructive" />;
     }
     if (isSubscribed) {
@@ -185,32 +141,35 @@ export const PushNotificationManager: React.FC = () => {
   };
 
   const getStatusText = () => {
-    if (!isInitialized) return 'Initializing...';
-    if (error) return `Error: ${error}`;
-    if (isSubscribed) return 'Subscribed';
-    return 'Not Subscribed';
+    if (!isSupported) return 'Not supported';
+    if (permission === 'denied') return 'Blocked in browser settings';
+    if (isSubscribed) return 'Subscribed on this device';
+    return permission === 'granted'
+      ? 'Permission granted — finish setup below'
+      : 'Not subscribed';
   };
 
   const getStatusBadge = () => {
-    if (!isInitialized) return <Badge variant="secondary">Initializing</Badge>;
-    if (error) return <Badge variant="destructive">Error</Badge>;
+    if (!isSupported) return <Badge variant="destructive">Unsupported</Badge>;
+    if (permission === 'denied') return <Badge variant="destructive">Blocked</Badge>;
     if (isSubscribed) return <Badge variant="default">Active</Badge>;
     return <Badge variant="outline">Inactive</Badge>;
   };
+
+  const busySubscribe = isLoading;
 
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bell className="h-5 w-5" />
-          Push Notifications
+          Push notifications
         </CardTitle>
         <CardDescription>
-          Manage your push notification preferences
+          Register the MemoSpark service worker and save this device with Web Push (VAPID).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Status Display */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {getStatusIcon()}
@@ -218,109 +177,72 @@ export const PushNotificationManager: React.FC = () => {
           </div>
           {getStatusBadge()}
         </div>
-        
-        {/* Player ID Display */}
-        {playerId && (
-          <div className="text-xs text-muted-foreground break-all">
-            Player ID: {playerId}
-        </div>
-        )}
 
-        {/* Error Message */}
-      {error && (
-          <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
-            {error}
-        </div>
-      )}
-
-      {/* Action Buttons */}
         <div className="flex flex-col gap-2">
-          {!isSubscribed ? (
-            <Button 
-              onClick={handleSubscribe} 
-              disabled={isLoading || !isInitialized || isOperating}
+          {!isSupported ? (
+            <p className="text-xs text-muted-foreground">
+              This browser cannot register Web Push. Try Chrome or Edge on desktop.
+            </p>
+          ) : !isSubscribed ? (
+            <Button
+              onClick={() => void handleSubscribe()}
+              disabled={busySubscribe || permission === 'denied'}
               className="w-full"
             >
-              {isLoading || isOperating ? (
+              {busySubscribe ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Subscribing...
+                  Starting…
                 </>
               ) : (
                 <>
                   <Bell className="mr-2 h-4 w-4" />
-                  Enable Notifications
+                  Enable notifications
                 </>
               )}
             </Button>
           ) : (
-            <Button 
-              onClick={handleUnsubscribe} 
-              disabled={isLoading || isOperating}
+            <Button
+              onClick={() => void handleUnsubscribe()}
+              disabled={busySubscribe}
               variant="outline"
               className="w-full"
             >
-              {isLoading || isOperating ? (
+              {busySubscribe ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Unsubscribing...
+                  Turning off…
                 </>
               ) : (
                 <>
                   <BellOff className="mr-2 h-4 w-4" />
-                  Disable Notifications
+                  Disable notifications
                 </>
               )}
             </Button>
           )}
 
-          {/* Manual Sync Button - for existing subscriptions that need database sync */}
-          {isSubscribed && playerId && user?.id && (
-            <Button 
-              onClick={handleManualSync}
-              disabled={isSyncing}
-              variant="outline"
-              size="sm"
-              className="w-full"
-            >
-              {isSyncing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Syncing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Sync to Database
-                </>
-              )}
-            </Button>
-          )}
-
-          {/* Test Notification Button */}
-          {isSubscribed && (
-            <Button 
-              onClick={sendTestNotification}
+          {isSubscribed && user?.id && (
+            <Button
+              type="button"
+              onClick={() => void sendTestPush()}
               variant="secondary"
               size="sm"
+              disabled={isTestSending || busySubscribe}
               className="w-full"
             >
-              Send Test Notification
+              {isTestSending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Queuing test…
+                </>
+              ) : (
+                'Queue test notification'
+              )}
             </Button>
-        )}
-      </div>
-
-        {/* Debug Information */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
-            <div>Debug Info:</div>
-            <div>Initialized: {isInitialized.toString()}</div>
-            <div>Subscribed: {isSubscribed.toString()}</div>
-            <div>Player ID: {playerId || 'None'}</div>
-            <div>Error: {error || 'None'}</div>
-          </div>
-      )}
+          )}
+        </div>
       </CardContent>
     </Card>
   );
-}; 
+};
