@@ -1,4 +1,4 @@
-import { schedulePushDrain } from "@/lib/notifications/wakePushScheduler";
+import { wakePushScheduler } from "@/lib/notifications/wakePushScheduler";
 import { supabaseServerAdmin } from "@/lib/supabase/server";
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
   if (rpcErr) {
     console.error("[push:subscribe/welcome_notify]", rpcErr);
   } else {
-    schedulePushDrain();
+    await wakePushScheduler();
   }
 
   return NextResponse.json({ success: true });

@@ -1,7 +1,7 @@
 "use server";
 
 import { wrapClerkTokenForSupabase } from "@/lib/clerk/clerkSupabaseToken";
-import { schedulePushDrain } from "@/lib/notifications/wakePushScheduler";
+import { wakePushScheduler } from "@/lib/notifications/wakePushScheduler";
 import { createAuthenticatedSupabaseClient } from "@/lib/supabase/client";
 import { supabaseServerAdmin } from "@/lib/supabase/server";
 import { auth } from "@clerk/nextjs/server";
@@ -99,7 +99,7 @@ export async function sendTaskReminder(
       return { success: false, error: "Couldn't queue reminder." };
     }
 
-    schedulePushDrain();
+    await wakePushScheduler();
 
     return { success: true, data: { queued: true } };
   } catch (error) {
@@ -157,7 +157,7 @@ export async function scheduleTaskReminder(
       };
     }
 
-    schedulePushDrain();
+    await wakePushScheduler();
 
     return {
       success: true,
@@ -207,7 +207,7 @@ export async function sendAchievementNotification(
       };
     }
 
-    schedulePushDrain();
+    await wakePushScheduler();
 
     return { success: true, data: { queued: true } };
   } catch (error) {
@@ -249,7 +249,7 @@ export async function sendBreakSuggestion(
       return { success: false, error: "Could not queue break suggestion." };
     }
 
-    schedulePushDrain();
+    await wakePushScheduler();
 
     return { success: true, data: { queued: true } };
   } catch (error) {
@@ -295,7 +295,7 @@ export async function sendNotification(
       };
     }
 
-    schedulePushDrain();
+    await wakePushScheduler();
 
     return { success: true, data: { queued: true } };
   } catch (error) {

@@ -1,5 +1,5 @@
 import { coinEconomy } from "@/lib/gamification/CoinEconomy";
-import { schedulePushDrain } from "@/lib/notifications/wakePushScheduler";
+import { wakePushScheduler } from "@/lib/notifications/wakePushScheduler";
 import { supabaseServerAdmin } from "@/lib/supabase/server";
 import { auth } from "@clerk/nextjs/server";
 import { type NextRequest, NextResponse } from "next/server";
@@ -150,7 +150,7 @@ async function enqueueAchievementPushNotification(params: {
     if (error) {
       console.error("[achievements:push]", error);
     } else {
-      schedulePushDrain();
+      await wakePushScheduler();
     }
   } catch (err) {
     console.error("[achievements:push]", err);

@@ -142,9 +142,10 @@ export default function NotificationPushTestPage() {
         <p className="text-sm text-muted-foreground">
           One place to enable push, enqueue a test notification, and read what
           to check in Supabase when the tray stays quiet. After a successful
-          queue, the app server wakes{" "}
-          <code className="text-xs">push-scheduler</code> in the background so
-          delivery is usually fast—not stuck waiting only on cron.
+          queue, the API waits for one{" "}
+          <code className="text-xs">push-scheduler</code> run before returning —
+          so delivery starts immediately instead of waiting only on cron (still
+          useful as backup).
         </p>
       </div>
 
@@ -276,9 +277,12 @@ export default function NotificationPushTestPage() {
             category <code className="text-xs">system</code>. That inserts a row
             in <code className="text-xs">notifications</code>. On{" "}
             <strong className="font-medium text-foreground">success</strong>,
-            the route triggers a non-blocking wake of Edge{" "}
-            <code className="text-xs">push-scheduler</code> (same as cron). Cron
-            still catches drift if that wake fails or rows become due later.
+            the route{" "}
+            <strong className="font-medium text-foreground">awaits</strong> one
+            Edge run of <code className="text-xs">push-scheduler</code> before
+            responding so delivery starts immediately (small extra latency vs
+            returning before the wake finishes). Cron still catches drift if
+            that wake fails or rows become due later.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -310,10 +314,11 @@ export default function NotificationPushTestPage() {
             <ul className="mt-2 list-disc space-y-1.5 ps-4">
               <li>
                 <strong className="text-foreground">“Instant” here</strong>{" "}
-                means usually within about a second or a few seconds after HTTP
-                200: Next.js finishes the response, then the scheduler POST
-                runs, then Web Push reaches this device (FCM/APNs/browser—not
-                hard real-time).
+                means once your browser sees HTTP 200, the server has already
+                asked Supabase <code className="text-xs">push-scheduler</code>{" "}
+                to run once — usually the ding follows within about a second or
+                a few seconds after that (then Web Push / OS queues—not hard
+                real-time).
               </li>
               <li>
                 <strong className="text-foreground">
@@ -400,12 +405,16 @@ LIMIT 5;`}
               Dashboard → Edge Functions →{" "}
               <code className="text-xs">push-scheduler</code> then{" "}
               <code className="text-xs">push-deliver</code> → Logs after you
-              queue a test. Production wakes the scheduler after enqueue (plus{" "}
-              <code className="text-xs">CRON_SECRET</code> + service role on
-              Vercel); if pushes stay stuck{" "}
-              <code className="text-xs">pending</code>, check missing env or
-              invoke the scheduler manually once with cron secret + Bearer. Keep{" "}
-              <code className="text-xs">pg_cron</code> as backup.
+              queue a test. The route awaits one scheduler wake before HTTP 200.
+              Hosted Supabase must deploy{" "}
+              <code className="text-xs">push-scheduler</code> with{" "}
+              <code className="text-xs">verify_jwt = false</code> (see repo{" "}
+              <code className="text-xs">supabase/config.toml</code>) so Bearer{" "}
+              <code className="text-xs">sb_secret_*</code> keys reach the
+              function — otherwise wakes 401 silently and only cron delivers.
+              Env on Vercel: <code className="text-xs">CRON_SECRET</code> +
+              service role. Keep <code className="text-xs">pg_cron</code> as
+              backup.
             </li>
             <li>
               <strong className="text-foreground">

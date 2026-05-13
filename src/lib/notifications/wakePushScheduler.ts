@@ -1,5 +1,3 @@
-import { after } from "next/server";
-
 const EDGE_SCHEDULER_SUFFIX = "/functions/v1/push-scheduler";
 
 /**
@@ -7,10 +5,16 @@ const EDGE_SCHEDULER_SUFFIX = "/functions/v1/push-scheduler";
  *
  * Secrets must stay server-only (`CRON_SECRET` ≠ `NEXT_PUBLIC_*`).
  *
+ * **Call with `await`** after enqueueing notifications so serverless invocations
+ * finish the POST before freezing — `after()` alone can drop pending IO on some hosts.
+ *
  * Reads:
  * - `NEXT_PUBLIC_SUPABASE_URL` — project HTTPS origin (already used by server admin client).
  * - `SUPABASE_SERVICE_ROLE_KEY` — same value edge uses for Bearer (opaque `sb_secret_*` OK).
  * - `CRON_SECRET` — duplicate of Supabase Edge Function secret for scheduler auth.
+ *
+ * Hosted Supabase: `[functions.push-scheduler] verify_jwt = false` in `config.toml`
+ * so the gateway accepts Bearer sb_secret_* (see push-deliver comment).
  */
 export async function wakePushScheduler(): Promise<void> {
   const rawBase =
@@ -59,11 +63,4 @@ export async function wakePushScheduler(): Promise<void> {
   } catch (err: unknown) {
     console.error("[notifications:wake_scheduler]", err);
   }
-}
-
-/** Queue a single scheduler run after this request/server action resolves (won’t delay the student response). */
-export function schedulePushDrain(): void {
-  after(async () => {
-    await wakePushScheduler();
-  });
 }

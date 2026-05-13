@@ -259,6 +259,11 @@ gcp_jwt_path = "supabase/gcloud.json"
 [functions."clerk-webhooks"]
 verify_jwt = false
 
+# push-scheduler is invoked by pg_cron and MemoSpark Next.js (wakePushScheduler) with
+# x-cron-secret plus Bearer service role. Non-JWT sb_secret_* keys fail gateway JWT verify.
+[functions.push-scheduler]
+verify_jwt = false
+
 # push-deliver is invoked only by push-scheduler (and trusted jobs) with x-cron-secret
 # and/or Authorization: Bearer <SERVICE_ROLE>. Hosted projects may use non-JWT secrets
 # (sb_secret_*) for SUPABASE_SERVICE_ROLE_KEY; Edge gateway verify_jwt rejects those with

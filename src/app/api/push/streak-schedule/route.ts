@@ -2,7 +2,7 @@ import {
   cancelPendingStreakNotifications,
   enqueueStreakPushNotification,
 } from "@/lib/notifications/streakPushSchedule";
-import { schedulePushDrain } from "@/lib/notifications/wakePushScheduler";
+import { wakePushScheduler } from "@/lib/notifications/wakePushScheduler";
 import { createSlidingWindowLimiter } from "@/lib/rate-limit-memory";
 import { supabaseServerAdmin } from "@/lib/supabase/server";
 import { auth } from "@clerk/nextjs/server";
@@ -130,7 +130,7 @@ export async function POST(req: Request) {
     );
   }
 
-  schedulePushDrain();
+  await wakePushScheduler();
 
   return NextResponse.json({
     success: true,
