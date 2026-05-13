@@ -607,10 +607,16 @@ export const getDashboardCounts = async (
   const client = getAuthenticatedClient(getToken);
 
   try {
+    // Planned counts = PostgREST uses the query planner row estimate instead of a full
+    // table scan (exact). Cuts Disk IO on Nano compute; numbers may differ slightly from EXACT.
+    const countMode = 'planned' as const;
     const [tasksResult, completedTasksResult, timetableResult] = await Promise.all([
-      client.from('tasks').select('*', { count: 'exact', head: true }),
-      client.from('tasks').select('*', { count: 'exact', head: true }).eq('completed', true),
-      client.from('user_timetables').select('*', { count: 'exact', head: true }),
+      client.from('tasks').select('id', { count: countMode, head: true }),
+      client
+        .from('tasks')
+        .select('id', { count: countMode, head: true })
+        .eq('completed', true),
+      client.from('user_timetables').select('id', { count: countMode, head: true }),
     ]);
 
     const totalTasks = tasksResult.count || 0;

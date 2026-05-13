@@ -302,9 +302,19 @@ export class RareAchievementEngine {
     try {
       // Get user's task completion history, stats, etc.
       const [userStats, userTasks, userAchievements] = await Promise.all([
-        supabase.from('user_stats').select('*').eq('user_id', userId).single(),
-        supabase.from('tasks').select('*').eq('user_id', userId),
-        supabase.from('user_achievements').select('*').eq('user_id', userId)
+        supabase
+          .from('user_stats')
+          .select('user_id, current_streak, total_points')
+          .eq('user_id', userId)
+          .single(),
+        supabase
+          .from('tasks')
+          .select('completed_at, category')
+          .eq('user_id', userId),
+        supabase
+          .from('user_achievements')
+          .select('achievement_id')
+          .eq('user_id', userId),
       ]);
 
       // Check each rare achievement
