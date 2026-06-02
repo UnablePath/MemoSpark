@@ -162,21 +162,22 @@ html[class*="theme-"]:not([class*="-light"]) {
   font-style: normal;
 }
 
-/* Safari tightens SVG <text> kerning at small sizes (e.g. navbar logo). */
-.memospark-logo-memo--safari {
+/* Safari: alternate wordmark letter anchors (see MemoSparkLogoSvg). */
+.memospark-logo-wordmark--safari {
   display: none;
 }
 
-html.safari .memospark-logo-memo--default {
+html.safari .memospark-logo-wordmark--default {
   display: none;
 }
 
-html.safari .memospark-logo-memo--safari {
+html.safari .memospark-logo-wordmark--safari {
   display: inline;
 }
 
-html.safari .memospark-logo-memo--safari text {
+html.safari .memospark-logo-wordmark--safari text {
   font-kerning: none;
+  text-rendering: geometricPrecision;
 }
 
 @layer base {

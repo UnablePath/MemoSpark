@@ -2,10 +2,18 @@ import type React from 'react';
 
 import { cn } from '@/lib/utils';
 
-/** Default MEMO letter anchors from brand SVG. */
-const MEMO_TSPAN_X_DEFAULT = '-496.246 -392.246 -310.246 -206.246';
-/** Safari: slightly wider M→E gap (WebKit subpixel kerning at small heights). */
-const MEMO_TSPAN_X_SAFARI = '-496.246 -384.246 -310.246 -206.246';
+/** Letter anchors from `public/MemoSpark.svg` (Inkscape export). */
+const PARK_TSPAN_X = '0 62.385303 150.59816 224.33784';
+const MEMO_TSPAN_X = '-496.24619 -388.26117 -323.34857 -216.30257';
+
+/**
+ * Safari: pull 2nd M toward E and tighten P↔AR↔K (WebKit exaggerates gaps at small sizes).
+ * Baseline coords above match all other browsers.
+ */
+const PARK_TSPAN_X_SAFARI = '0 58 147 218';
+const MEMO_TSPAN_X_SAFARI = '-496.24619 -388.26117 -328.34857 -216.30257';
+
+const WORDMARK_TRANSFORM = 'matrix(1,0,0,-0.9000009,496.246,28.6102)';
 
 const WORDMARK_TEXT_STYLE: React.CSSProperties = {
   fontVariant: 'normal',
@@ -26,12 +34,14 @@ interface MemoSparkLogoSvgProps {
   darkBackground?: boolean;
 }
 
-function MemoWordmarkText({
+function WordmarkText({
   wordmarkFill,
+  parkTspanX,
   memoTspanX,
   className,
 }: {
   wordmarkFill: string;
+  parkTspanX: string;
   memoTspanX: string;
   className: string;
 }) {
@@ -39,9 +49,9 @@ function MemoWordmarkText({
     <text
       className={className}
       style={{ ...WORDMARK_TEXT_STYLE, fill: wordmarkFill }}
-      transform="matrix(1,0,0,-1,496.246,28.6102)"
+      transform={WORDMARK_TRANSFORM}
     >
-      <tspan y="0" x="0 82 168 258">
+      <tspan y="0" x={parkTspanX}>
         PARK
       </tspan>
       <tspan y="-7.6085033" x={memoTspanX}>
@@ -101,15 +111,17 @@ export const MemoSparkLogoSvg: React.FC<MemoSparkLogoSvgProps> = ({
             </text>
           </g>
           <g transform="scale(10)">
-            <MemoWordmarkText
+            <WordmarkText
               wordmarkFill={wordmarkFill}
-              memoTspanX={MEMO_TSPAN_X_DEFAULT}
-              className="memospark-logo-memo memospark-logo-memo--default"
+              parkTspanX={PARK_TSPAN_X}
+              memoTspanX={MEMO_TSPAN_X}
+              className="memospark-logo-wordmark memospark-logo-wordmark--default"
             />
-            <MemoWordmarkText
+            <WordmarkText
               wordmarkFill={wordmarkFill}
+              parkTspanX={PARK_TSPAN_X_SAFARI}
               memoTspanX={MEMO_TSPAN_X_SAFARI}
-              className="memospark-logo-memo memospark-logo-memo--safari"
+              className="memospark-logo-wordmark memospark-logo-wordmark--safari"
             />
           </g>
         </g>
