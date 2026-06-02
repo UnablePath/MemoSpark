@@ -336,14 +336,28 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(
       }
     }, [state.isActive, user?.id, actionDetector]);
 
+    const markDashboardIntroSeen = useCallback(() => {
+      if (typeof window === "undefined") return;
+      try {
+        localStorage.setItem("hasSeenWelcome", "true");
+        const url = new URL(window.location.href);
+        if (url.searchParams.has("from")) {
+          window.history.replaceState({}, "", "/dashboard");
+        }
+      } catch (error) {
+        console.warn("[tutorial:dismiss] localStorage unavailable:", error);
+      }
+    }, []);
+
     // Tutorial control functions
     const showTutorial = useCallback(() => {
       setState((prev) => ({ ...prev, isActive: true, error: null }));
     }, []);
 
     const hideTutorial = useCallback(() => {
+      markDashboardIntroSeen();
       setState((prev) => ({ ...prev, isActive: false }));
-    }, []);
+    }, [markDashboardIntroSeen]);
 
     const clearError = useCallback(() => {
       setState((prev) => ({ ...prev, error: null, retryCount: 0 }));
@@ -364,18 +378,18 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(
 
         hideTutorial();
 
-        // Trigger the achievement for completing the tutorial
         try {
           await triggerAchievement("TUTORIAL_COMPLETED");
+          await triggerAchievement("welcome_completed");
           if (process.env.NODE_ENV === "development") {
             console.log(
               "[tutorial:achievement]",
-              "TUTORIAL_COMPLETED triggered.",
+              "TUTORIAL_COMPLETED and welcome_completed triggered.",
             );
           }
         } catch (achievementError) {
           console.error(
-            "Failed to trigger TUTORIAL_COMPLETED achievement:",
+            "Failed to trigger tutorial completion achievements:",
             achievementError,
           );
         }

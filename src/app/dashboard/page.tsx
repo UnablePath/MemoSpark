@@ -3,7 +3,6 @@
 // Import achievement system
 import { AchievementNotificationSystem } from "@/components/achievements/AchievementNotificationSystem";
 import { UserAccountHubPanel } from "@/components/clerk/UserAccountHubPanels";
-import { WelcomeFlow } from "@/components/onboarding/WelcomeFlow";
 import { AuthAwareSeo } from "@/components/seo/AuthAwareSeo";
 import { TutorialTrigger } from "@/components/tutorial";
 import { MemoSparkLogoSvg } from "@/components/ui/MemoSparkLogoSvg";
@@ -29,7 +28,6 @@ import DashboardSwipeTabs from "./DashboardSwipeTabs";
 
 export default function DashboardPage() {
   const [achievementsInitialized, setAchievementsInitialized] = useState(false);
-  const [showWelcomeFlow, setShowWelcomeFlow] = useState(false);
   const constraintsRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
 
@@ -37,21 +35,17 @@ export default function DashboardPage() {
   const { user } = useUser();
   const conversionTracker = useConversionTracking();
 
-  const welcomeSubjects = useMemo(() => {
-    const raw = user?.publicMetadata?.subjects;
-    if (Array.isArray(raw)) {
-      return raw.filter((item): item is string => typeof item === "string");
-    }
-    return [];
-  }, [user?.publicMetadata?.subjects]);
-
   // Tier-aware dashboard features
   const { userTier, usage, isLoading } = useTieredAI();
 
-  // Check if user is new (from onboarding or first visit)
+  // Achievement system
+  const { triggerAchievement, triggerTutorialStep } =
+    useDebouncedAchievementTrigger();
+  const { data: achievementsData } = useFetchAchievements();
+
+  // First dashboard visit analytics + achievement (tutorial is the sole guided overlay)
   useEffect(() => {
-    // Ensure we're on the client side before accessing window or localStorage
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !user?.id) return;
 
     const urlParams = new URLSearchParams(window.location.search);
     const fromOnboarding =
@@ -64,29 +58,36 @@ export default function DashboardPage() {
       console.warn("localStorage not available:", error);
     }
 
-    if (user?.id) {
-      // Track dashboard visit
-      const isFirstVisit = fromOnboarding || !hasSeenWelcome;
-      conversionTracker.trackDashboardVisit(user.id, isFirstVisit);
+    const isFirstVisit = fromOnboarding || !hasSeenWelcome;
+    conversionTracker.trackDashboardVisit(user.id, isFirstVisit);
 
-      // Track signup completion if coming from onboarding
-      if (fromOnboarding) {
-        conversionTracker.trackSignUpCompleted(
-          user.id,
-          user.primaryEmailAddress?.emailAddress,
-        );
+    if (fromOnboarding) {
+      conversionTracker.trackSignUpCompleted(
+        user.id,
+        user.primaryEmailAddress?.emailAddress,
+      );
+    }
+
+    if (isFirstVisit) {
+      const firstLoginKey = `memospark_first_login_${user.id}`;
+      try {
+        if (localStorage.getItem(firstLoginKey) !== "1") {
+          localStorage.setItem(firstLoginKey, "1");
+          void triggerAchievement("first_login");
+        }
+      } catch (error) {
+        console.warn("localStorage not available:", error);
       }
     }
 
-    if (fromOnboarding || !hasSeenWelcome) {
-      setShowWelcomeFlow(true);
+    if (fromOnboarding) {
+      try {
+        window.history.replaceState({}, "", "/dashboard");
+      } catch (error) {
+        console.warn("Could not clear onboarding URL param:", error);
+      }
     }
-  }, [user, conversionTracker]);
-
-  // Achievement system
-  const { triggerAchievement, triggerTutorialStep } =
-    useDebouncedAchievementTrigger();
-  const { data: achievementsData } = useFetchAchievements();
+  }, [user, conversionTracker, triggerAchievement]);
 
   // §3B: tutorial achievement for completed Clerk onboarding (idempotent server-side).
   useEffect(() => {
@@ -271,33 +272,6 @@ export default function DashboardPage() {
           id="dashboard-status-message"
         />
 
-        {/* Welcome Flow for new users */}
-        {showWelcomeFlow && (
-          <WelcomeFlow
-            userName={user?.fullName || user?.firstName || undefined}
-            userSubjects={welcomeSubjects}
-            onComplete={() => {
-              setShowWelcomeFlow(false);
-
-              // Safely set localStorage
-              try {
-                if (typeof window !== "undefined") {
-                  localStorage.setItem("hasSeenWelcome", "true");
-                  // Clear URL params
-                  window.history.replaceState({}, "", "/dashboard");
-                }
-              } catch (error) {
-                console.warn("localStorage not available:", error);
-              }
-
-              // Trigger first achievement
-              setTimeout(() => {
-                triggerAchievement("welcome_completed");
-                triggerAchievement("first_login");
-              }, 1000);
-            }}
-          />
-        )}
       </div>
     </>
   );
