@@ -1,30 +1,34 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { usePWA } from "@/hooks/usePWA";
 import { cn } from "@/lib/utils";
-import { ArrowDownToLine, Bell, Smartphone, Wifi, X, Zap } from "lucide-react";
+import {
+  ArrowDownToLine,
+  Bell,
+  ChevronDown,
+  Smartphone,
+  Wifi,
+  X,
+  Zap,
+} from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 
 const INSTALL_CORNER_PREF_KEY = "ms-pwa-install-prefer-corner";
+const IOS_INSTALL_DELAY_MS = 15000;
+const CHROMIUM_INSTALL_DELAY_MS = 20000;
 
-// More accurate iOS Safari Share icon
 const IOSSafariShareIcon = () => (
   <svg
-    width="24"
-    height="24"
+    width="22"
+    height="22"
     viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
+    aria-hidden
   >
     <rect
       x="3"
@@ -32,7 +36,6 @@ const IOSSafariShareIcon = () => (
       width="18"
       height="10"
       rx="2"
-      ry="2"
       stroke="currentColor"
       strokeWidth="2"
       fill="none"
@@ -48,14 +51,14 @@ const IOSSafariShareIcon = () => (
   </svg>
 );
 
-// Add to Home Screen icon
 const AddToHomeIcon = () => (
   <svg
-    width="24"
-    height="24"
+    width="22"
+    height="22"
     viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
+    aria-hidden
   >
     <rect
       x="5"
@@ -63,7 +66,6 @@ const AddToHomeIcon = () => (
       width="14"
       height="20"
       rx="2"
-      ry="2"
       stroke="currentColor"
       strokeWidth="2"
       fill="none"
@@ -78,7 +80,102 @@ const AddToHomeIcon = () => (
   </svg>
 );
 
-/** Viewport chip: same lip affordance as SiteSupportReportCorner (stacked above it on the homepage). */
+interface InstallSheetShellProps {
+  onClose: () => void;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+}
+
+function InstallSheetShell({
+  onClose,
+  title,
+  description,
+  children,
+  footer,
+}: InstallSheetShellProps) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex flex-col justify-end bg-black/65 backdrop-blur-md sm:items-center sm:justify-center sm:p-6"
+      role="presentation"
+    >
+      <motion.button
+        type="button"
+        className="absolute inset-0 cursor-default"
+        aria-label="Dismiss install prompt"
+        onClick={onClose}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      />
+      <motion.div
+        role="region"
+        aria-labelledby="install-prompt-title"
+        aria-describedby="install-prompt-description"
+        initial={{ y: "100%", opacity: 0.6 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: "100%", opacity: 0 }}
+        transition={{ type: "spring", stiffness: 420, damping: 36 }}
+        className={cn(
+          "relative z-10 w-full max-w-lg overflow-hidden",
+          "rounded-t-2xl border border-white/10 bg-[#0c0e13]/95 shadow-2xl",
+          "pb-[max(1rem,env(safe-area-inset-bottom,0px))]",
+          "sm:rounded-2xl sm:pb-0",
+        )}
+      >
+        <div
+          className="mx-auto mt-2 mb-1 h-1 w-10 rounded-full bg-white/20 sm:hidden"
+          aria-hidden
+        />
+        <div className="border-b border-white/8 px-5 pb-4 pt-3 sm:px-6 sm:pt-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">
+                <Smartphone className="h-6 w-6 text-primary" aria-hidden />
+              </div>
+              <h2
+                id="install-prompt-title"
+                className="text-lg font-semibold tracking-tight text-white sm:text-xl"
+              >
+                {title}
+              </h2>
+              <p
+                id="install-prompt-description"
+                className="mt-1.5 max-w-prose text-sm leading-relaxed text-white/65"
+              >
+                {description}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-11 w-11 shrink-0 rounded-full text-white/55 hover:bg-white/8 hover:text-white"
+              aria-label="Close install prompt"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+        <div className="space-y-4 px-5 py-4 sm:px-6 sm:py-5">{children}</div>
+        {footer ? (
+          <div className="border-t border-white/8 px-5 py-4 sm:px-6">{footer}</div>
+        ) : null}
+        <motion.div
+          className="pointer-events-none absolute -bottom-1 left-1/2 hidden -translate-x-1/2 sm:flex"
+          animate={{ y: [0, 6, 0] }}
+          transition={{ duration: 1.6, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+          aria-hidden
+        >
+          <ChevronDown className="h-5 w-5 text-primary/80" />
+        </motion.div>
+      </motion.div>
+    </div>
+  );
+}
+
 function InstallPWACornerChip({
   onExpand,
   label = "Install app",
@@ -91,7 +188,6 @@ function InstallPWACornerChip({
       className={cn(
         "pointer-events-none z-40 flex flex-col items-end justify-end gap-1.5",
         "fixed",
-        /** Above SiteSupportReportCorner (~44px hit + gap + safe area) */
         "bottom-[calc(max(0.75rem,env(safe-area-inset-bottom,0px))+3.5rem)]",
         "end-[max(0.75rem,env(safe-area-inset-right,0px))]",
       )}
@@ -131,6 +227,13 @@ function InstallPWACornerChip({
   );
 }
 
+const installFeatures = [
+  { icon: Zap, label: "Faster loading" },
+  { icon: Bell, label: "Push notifications" },
+  { icon: Wifi, label: "Works offline" },
+  { icon: Smartphone, label: "Home screen access" },
+] as const;
+
 export const InstallPrompt: React.FC = () => {
   const pathname = usePathname();
   const { os, canInstall, install, isInstalled } = usePWA();
@@ -153,7 +256,6 @@ export const InstallPrompt: React.FC = () => {
     }
   }, [isInstalled]);
 
-  // iOS: delayed hint (unchanged logic)
   useEffect(() => {
     if (os !== "ios") return;
     if (typeof window === "undefined") return;
@@ -167,22 +269,26 @@ export const InstallPrompt: React.FC = () => {
       if (!hasSeenHint) {
         setShowIOSHint(true);
       }
-    }, 3000);
+    }, IOS_INSTALL_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [os]);
 
-  // Chromium install card: show full card when installable and user has not chosen corner mode
   useEffect(() => {
     if (!hydrated) return;
     if (os === "ios") {
       setShowPrompt(false);
       return;
     }
-    if (canInstall && !preferCorner && !isInstalled) {
-      setShowPrompt(true);
-    } else {
+    if (!canInstall || preferCorner || isInstalled) {
       setShowPrompt(false);
+      return;
     }
+
+    const timer = window.setTimeout(() => {
+      setShowPrompt(true);
+    }, CHROMIUM_INSTALL_DELAY_MS);
+
+    return () => window.clearTimeout(timer);
   }, [hydrated, os, canInstall, preferCorner, isInstalled]);
 
   const handleDismissToCorner = useCallback(() => {
@@ -228,170 +334,134 @@ export const InstallPrompt: React.FC = () => {
     !isInstalled &&
     preferCorner;
 
-  if (showIOSHint) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm sm:items-center">
-        <div className="max-h-[90vh] w-full max-w-md overflow-y-auto sm:max-h-[80vh]">
-          <Card className="mx-auto border-0 bg-white shadow-2xl">
-            <CardHeader className="relative pb-4 text-center">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleCloseIOSHint}
-                className="absolute top-2 right-2 z-10 text-gray-400 hover:text-gray-600"
-                aria-label="Close install instructions"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600">
-                <Smartphone className="h-8 w-8 text-white" />
-              </div>
-              <CardTitle className="pr-8 text-xl font-bold text-gray-900">
-                Install MemoSpark App
-              </CardTitle>
-              <CardDescription className="mt-2 text-gray-600">
-                Get the full app experience on your iPhone!
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="space-y-4 pb-6">
-              <div className="rounded-lg bg-blue-50 p-3">
-                <h4 className="mb-2 text-sm font-semibold text-blue-900">
-                  Why install the app?
-                </h4>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-center space-x-1 text-blue-800">
-                    <Zap className="h-3 w-3" />
-                    <span>Faster loading</span>
-                  </div>
-                  <div className="flex items-center space-x-1 text-blue-800">
-                    <Bell className="h-3 w-3" />
-                    <span>Push notifications</span>
-                  </div>
-                  <div className="flex items-center space-x-1 text-blue-800">
-                    <Wifi className="h-3 w-3" />
-                    <span>Works offline</span>
-                  </div>
-                  <div className="flex items-center space-x-1 text-blue-800">
-                    <Smartphone className="h-3 w-3" />
-                    <span>Home screen access</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <h4 className="text-center text-sm font-semibold text-gray-900">
-                  Easy Installation in 2 Steps:
-                </h4>
-
-                <div className="rounded-lg border border-green-200 bg-gradient-to-r from-green-50 to-green-100 p-3">
-                  <div className="flex items-start space-x-2">
-                    <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white">
-                      1
-                    </div>
-                    <div className="flex-1">
-                      <p className="mb-1 text-sm font-medium text-green-900">
-                        Tap the Share button
-                      </p>
-                      <div className="flex items-center space-x-1 text-green-800">
-                        <span className="text-xs">
-                          Look for this icon at the bottom of Safari:
-                        </span>
-                        <div className="rounded border border-green-300 bg-white p-1">
-                          <IOSSafariShareIcon />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-purple-200 bg-gradient-to-r from-purple-50 to-purple-100 p-3">
-                  <div className="flex items-start space-x-2">
-                    <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-purple-500 text-xs font-bold text-white">
-                      2
-                    </div>
-                    <div className="flex-1">
-                      <p className="mb-1 text-sm font-medium text-purple-900">
-                        Select &quot;Add to Home Screen&quot;
-                      </p>
-                      <div className="flex flex-wrap items-center space-x-1 text-purple-800">
-                        <span className="text-xs">
-                          Scroll down and look for:
-                        </span>
-                        <div className="flex items-center space-x-1 rounded border border-purple-300 bg-white p-1">
-                          <AddToHomeIcon />
-                          <span className="text-xs font-medium">
-                            Add to Home Screen
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-2">
-                <div className="flex items-center space-x-2 text-amber-800">
-                  <div className="h-4 w-4 text-amber-500">💡</div>
-                  <p className="text-xs font-medium">
-                    Tip: The share button is usually in the bottom toolbar of
-                    Safari
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex space-x-2 pt-2">
-                <Button
-                  variant="outline"
-                  onClick={handleCloseIOSHint}
-                  className="flex-1 text-sm"
-                  size="sm"
-                >
-                  Maybe Later
-                </Button>
-                <Button
-                  onClick={handleCloseIOSHint}
-                  className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-sm hover:from-blue-600 hover:to-purple-700"
-                  size="sm"
-                >
-                  Got It!
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
-      {showPrompt && (
-        <div className="fixed right-4 bottom-4 z-50 max-w-[calc(100vw-2rem)]">
-          <Card className="max-w-sm border-border bg-background/90 shadow-lg backdrop-blur-sm">
-            <CardHeader className="relative gap-1 pr-10">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={handleDismissToCorner}
-                className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
-                aria-label="Close install prompt"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-              <CardTitle>Install MemoSpark</CardTitle>
-              <CardDescription>Get the full app experience.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={handleInstallClick} className="w-full">
-                <ArrowDownToLine className="mr-2 h-4 w-4" />
-                Install App
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <AnimatePresence>
+        {showIOSHint ? (
+          <InstallSheetShell
+            key="ios-install"
+            onClose={handleCloseIOSHint}
+            title="Install MemoSpark"
+            description="Add MemoSpark to your home screen for the full app experience on iPhone."
+            footer={
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCloseIOSHint}
+                  className="h-11 border-white/15 bg-transparent text-white/80 hover:bg-white/8 hover:text-white"
+                >
+                  Maybe later
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleCloseIOSHint}
+                  className="h-11 bg-primary font-semibold text-primary-foreground hover:bg-primary/90"
+                >
+                  Got it
+                </Button>
+              </div>
+            }
+          >
+            <ul className="grid grid-cols-2 gap-2">
+              {installFeatures.map(({ icon: Icon, label }) => (
+                <li
+                  key={label}
+                  className="flex items-center gap-2 rounded-lg border border-white/8 bg-white/[0.04] px-3 py-2.5 text-xs text-white/75"
+                >
+                  <Icon className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+                  {label}
+                </li>
+              ))}
+            </ul>
+
+            <p className="text-xs font-medium uppercase tracking-wider text-white/45">
+              Two steps
+            </p>
+
+            <ol className="space-y-3">
+              <li className="rounded-xl border border-primary/25 bg-primary/[0.08] p-3.5">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                    1
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-white">Tap Share in Safari</p>
+                    <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/60">
+                      Bottom toolbar
+                      <span className="inline-flex rounded-md border border-white/15 bg-white/5 p-1.5 text-white">
+                        <IOSSafariShareIcon />
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </li>
+              <li className="rounded-xl border border-white/10 bg-white/[0.04] p-3.5">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-bold text-white">
+                    2
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-white">Add to Home Screen</p>
+                    <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/60">
+                      In the share menu
+                      <span className="inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-2 py-1 text-white">
+                        <AddToHomeIcon />
+                        <span className="font-medium">Add to Home Screen</span>
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </li>
+            </ol>
+
+            <p className="text-center text-xs text-white/50">
+              The share button is usually in Safari&apos;s bottom toolbar.
+            </p>
+          </InstallSheetShell>
+        ) : null}
+
+        {showPrompt ? (
+          <InstallSheetShell
+            key="chromium-install"
+            onClose={handleDismissToCorner}
+            title="Install MemoSpark"
+            description="Install the app for faster access, offline support, and notifications."
+            footer={
+              <div className="flex flex-col gap-2">
+                <Button
+                  type="button"
+                  onClick={handleInstallClick}
+                  className="h-12 w-full bg-primary text-base font-semibold text-primary-foreground hover:bg-primary/90"
+                >
+                  <ArrowDownToLine className="mr-2 h-4 w-4" aria-hidden />
+                  Install app
+                </Button>
+                <button
+                  type="button"
+                  onClick={handleDismissToCorner}
+                  className="text-center text-xs text-white/45 underline-offset-4 hover:text-white/65 hover:underline"
+                >
+                  Minimize to corner
+                </button>
+              </div>
+            }
+          >
+            <ul className="grid grid-cols-2 gap-2">
+              {installFeatures.map(({ icon: Icon, label }) => (
+                <li
+                  key={label}
+                  className="flex items-center gap-2 rounded-lg border border-white/8 bg-white/[0.04] px-3 py-2.5 text-sm text-white/75"
+                >
+                  <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                  {label}
+                </li>
+              ))}
+            </ul>
+          </InstallSheetShell>
+        ) : null}
+      </AnimatePresence>
+
       {showHomeInstallChip ? (
         <InstallPWACornerChip
           onExpand={handleExpandFromCorner}

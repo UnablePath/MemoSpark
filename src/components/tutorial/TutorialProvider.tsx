@@ -228,7 +228,7 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = React.memo(
         if (autoStart && shouldShow && isDashboard) {
           const timeout = setTimeout(() => {
             setState((prev) => ({ ...prev, isActive: true }));
-          }, 1000); // Small delay to let UI settle
+          }, 15000);
 
           timeoutsRef.current.push(timeout);
         }
