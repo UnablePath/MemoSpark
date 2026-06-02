@@ -21,6 +21,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata, Viewport } from "next";
 import { Geist, Manrope } from "next/font/google";
+import Script from "next/script";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -148,6 +149,9 @@ export default function RootLayout({
         {/* Microsoft tiles */}
         <meta name="msapplication-TileColor" content="#fadbdb" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
+        <Script id="memospark-safari-root" strategy="beforeInteractive">
+          {`(function(){try{var ua=navigator.userAgent;var p=navigator.platform;var tp=navigator.maxTouchPoints||0;var ios=/iPad|iPhone|iPod/i.test(ua)||(p==='MacIntel'&&tp>1);var safari=/Safari/i.test(ua)&&!/Chrome|Chromium|CriOS|FxiOS|EdgiOS|Edg|OPR|Android/i.test(ua);var webkitIos=ios&&!/CriOS|FxiOS|EdgiOS/i.test(ua);if(safari||webkitIos)document.documentElement.classList.add('safari');}catch(e){}})();`}
+        </Script>
       </head>
       <body
         className={`${geist.variable} ${manrope.variable} font-sans max-w-full overflow-x-hidden`}

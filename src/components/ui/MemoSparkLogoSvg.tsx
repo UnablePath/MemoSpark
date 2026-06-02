@@ -2,6 +2,21 @@ import type React from 'react';
 
 import { cn } from '@/lib/utils';
 
+/** Default MEMO letter anchors from brand SVG. */
+const MEMO_TSPAN_X_DEFAULT = '-496.246 -392.246 -310.246 -206.246';
+/** Safari: slightly wider M→E gap (WebKit subpixel kerning at small heights). */
+const MEMO_TSPAN_X_SAFARI = '-496.246 -384.246 -310.246 -206.246';
+
+const WORDMARK_TEXT_STYLE: React.CSSProperties = {
+  fontVariant: 'normal',
+  fontWeight: 900,
+  fontSize: '120.41098785px',
+  fontFamily: 'Futura, Arial, sans-serif',
+  fillOpacity: 1,
+  fillRule: 'nonzero',
+  stroke: 'none',
+};
+
 interface MemoSparkLogoSvgProps {
   height: number;
   className?: string;
@@ -9,6 +24,31 @@ interface MemoSparkLogoSvgProps {
   textColor?: string;
   /** Force light wordmark (e.g. on a primary or photo slab). Prefer `text-foreground` via default when on `bg-background`. */
   darkBackground?: boolean;
+}
+
+function MemoWordmarkText({
+  wordmarkFill,
+  memoTspanX,
+  className,
+}: {
+  wordmarkFill: string;
+  memoTspanX: string;
+  className: string;
+}) {
+  return (
+    <text
+      className={className}
+      style={{ ...WORDMARK_TEXT_STYLE, fill: wordmarkFill }}
+      transform="matrix(1,0,0,-1,496.246,28.6102)"
+    >
+      <tspan y="0" x="0 82 168 258">
+        PARK
+      </tspan>
+      <tspan y="-7.6085033" x={memoTspanX}>
+        MEMO
+      </tspan>
+    </text>
+  );
 }
 
 export const MemoSparkLogoSvg: React.FC<MemoSparkLogoSvgProps> = ({
@@ -42,7 +82,6 @@ export const MemoSparkLogoSvg: React.FC<MemoSparkLogoSvgProps> = ({
       <g transform="matrix(1.3333333,0,0,-1.3333333,0,199.48)">
         <g transform="scale(0.1)">
           <g transform="scale(10)">
-            {/* Green Spark/Lightning Symbol */}
             <text
               style={{
                 fontVariant: 'normal',
@@ -62,27 +101,16 @@ export const MemoSparkLogoSvg: React.FC<MemoSparkLogoSvgProps> = ({
             </text>
           </g>
           <g transform="scale(10)">
-            {/* MEMO and PARK Text */}
-            <text
-              style={{
-                fontVariant: 'normal',
-                fontWeight: 900,
-                fontSize: '120.41098785px',
-                fontFamily: 'Futura, Arial, sans-serif',
-                fill: wordmarkFill,
-                fillOpacity: 1,
-                fillRule: 'nonzero',
-                stroke: 'none',
-              }}
-              transform="matrix(1,0,0,-1,496.246,28.6102)"
-            >
-              <tspan y="0" x="0 82 168 258">
-                PARK
-              </tspan>
-              <tspan y="-7.6085033" x="-496.246 -392.246 -310.246 -206.246">
-                MEMO
-              </tspan>
-            </text>
+            <MemoWordmarkText
+              wordmarkFill={wordmarkFill}
+              memoTspanX={MEMO_TSPAN_X_DEFAULT}
+              className="memospark-logo-memo memospark-logo-memo--default"
+            />
+            <MemoWordmarkText
+              wordmarkFill={wordmarkFill}
+              memoTspanX={MEMO_TSPAN_X_SAFARI}
+              className="memospark-logo-memo memospark-logo-memo--safari"
+            />
           </g>
         </g>
       </g>

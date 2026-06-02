@@ -162,6 +162,23 @@ html[class*="theme-"]:not([class*="-light"]) {
   font-style: normal;
 }
 
+/* Safari tightens SVG <text> kerning at small sizes (e.g. navbar logo). */
+.memospark-logo-memo--safari {
+  display: none;
+}
+
+html.safari .memospark-logo-memo--default {
+  display: none;
+}
+
+html.safari .memospark-logo-memo--safari {
+  display: inline;
+}
+
+html.safari .memospark-logo-memo--safari text {
+  font-kerning: none;
+}
+
 @layer base {
   /*
    * MemoSpark default = dark (editorial slate + jade accent).
